@@ -12,7 +12,7 @@ assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator An
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"
-src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhoujp'")
+src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhouv2'")
 assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
 src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
     "implementation 'androidx.appcompat:appcompat:1.4.0'\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
@@ -22,7 +22,7 @@ strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 strings.write_text(src.replace('<string name="app_name">Winlator</string>',
-    '<string name="app_name">Touhou Pocket JP Test</string>'), encoding="utf-8")
+    '<string name="app_name">Touhou Pocket Launcher</string>'), encoding="utf-8")
 
 # Runtime assets use a same-length replacement Android package name to preserve\n# native ELF interpreter and library offsets. Do not change this ID without\n# rewriting runtime-preview/rewrite_prefix.py in tandem.\n# The provider authority must not collide with separately installed Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"
@@ -31,6 +31,12 @@ a = "{http://schemas.android.com/apk/res/android}"
 manifest = ET.parse(manifest_path)
 app = manifest.getroot().find("application")
 assert app is not None
+# Dedicated Touhou launcher icon (original vector) replaces stock Winlator icon.
+icon_destination = root / "app/src/main/res/drawable/touhou_pocket_icon.xml"
+icon_destination.parent.mkdir(parents=True, exist_ok=True)
+icon_destination.write_bytes((Path(__file__).resolve().parent / "touhou_pocket_icon.xml").read_bytes())
+app.set(a + "icon", "@drawable/touhou_pocket_icon")
+app.set(a + "roundIcon", "@drawable/touhou_pocket_icon")
 original_main = next((activity for activity in app.findall("activity")
     if activity.get(a + "name") == "com.winlator.MainActivity"), None)
 assert original_main is not None, "Winlator launcher activity not found"
@@ -41,7 +47,7 @@ for filt in filters:
     original_main.remove(filt)
 for provider in app.findall("provider"):
     if provider.get(a + "authorities") == "com.winlator.FileProvider":
-        provider.set(a + "authorities", "com.touhoujp.FileProvider")
+        provider.set(a + "authorities", "com.touhouv2.FileProvider")
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
@@ -60,7 +66,7 @@ for java in java_root.rglob("*.java"):
     text = java.read_text(encoding="utf-8")
     if '"com.winlator.FileProvider"' in text:
         java.write_text(text.replace('"com.winlator.FileProvider"',
-            '"com.touhoujp.FileProvider"'), encoding="utf-8")
+            '"com.touhouv2.FileProvider"'), encoding="utf-8")
 
 target = java_root / "com/winlator/TouhouEntryActivity.java"
 assert not target.exists(), "Upstream has a colliding Touhou entry activity"
@@ -78,7 +84,7 @@ for native_source in cpp_root.rglob("*"):
         before = native_source.read_bytes()
         if b"/data/data/com.winlator" in before:
             native_source.write_bytes(before.replace(
-                b"/data/data/com.winlator", b"/data/data/com.touhoujp"))
+                b"/data/data/com.winlator", b"/data/data/com.touhouv2"))
             native_path_changes += 1
 print(f"Rebased {native_path_changes} C/C++ app-private path sources")
 

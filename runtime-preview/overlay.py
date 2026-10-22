@@ -21,8 +21,21 @@ gradle.write_text(src, encoding="utf-8")
 strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
-strings.write_text(src.replace('<string name="app_name">Winlator</string>',
-    '<string name="app_name">Touhou Pocket Launcher</string>'), encoding="utf-8")
+src = src.replace('<string name="app_name">Winlator</string>',
+                  '<string name="app_name">Touhou Pocket Launcher</string>')
+# Remove upstream branding from visible startup and background notifications.
+# This does NOT change the runtime's original Winlator-derived architecture.
+for original, branded in (
+    ('<string name="starting_up">Starting up...</string>',
+     '<string name="starting_up">Launching Touhou game...</string>'),
+    ('<string name="fgs_notification_content_else">Winlator is running in the background</string>',
+     '<string name="fgs_notification_content_else">Touhou Pocket Launcher is running</string>'),
+    ('<string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\\\'s background process management.</string>',
+     '<string name="fgs_notification_channel_desc">Keeps Touhou Pocket Launcher active while a Windows game is running.</string>'),
+):
+    assert original in src, f"Upstream string changed: {original[:58]}"
+    src = src.replace(original, branded)
+strings.write_text(src, encoding="utf-8")
 
 # Runtime assets use a same-length replacement Android package name to preserve\n# native ELF interpreter and library offsets. Do not change this ID without\n# rewriting runtime-preview/rewrite_prefix.py in tandem.\n# The provider authority must not collide with separately installed Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"

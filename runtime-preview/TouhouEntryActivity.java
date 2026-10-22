@@ -622,6 +622,17 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Intent play = new Intent(this, XServerDisplayActivity.class);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", path);
+        try {
+            if (path.toLowerCase(java.util.Locale.ROOT).endsWith("setup.exe")) {
+                Container current = new ContainerManager(this).getContainerById(containerId);
+                if (current != null) {
+                    File log = new File(current.getRootDir(), ".wine/drive_c/touhou_probe.log");
+                    TouhouDiagnostics.setProbePath(this, log.getAbsolutePath());
+                }
+            } else TouhouDiagnostics.setProbePath(this, "");
+        } catch (Exception error) {
+            TouhouDiagnostics.recordLine("Could not configure local Japanese path diagnostics: " + error);
+        }
         startActivity(play);
     }
 

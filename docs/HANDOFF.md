@@ -54,3 +54,14 @@ New `runtime-preview/TouhouEntryActivity.java` **removes Winlator UI navigation*
 5. Handoff to a new conversation only when context reaches limits; use this file and current main.
 
 Documentation: `README.md` and `docs/RUNTIME-TEST.md` updated for direct Touhou UI.
+
+
+## October 22 follow-up: user reports nothing launches, indefinite 'Starting up'
+- User directly tested the Touhou UI build and reports game installers and Play hang on 'Starting up'. They are unhappy the APK uses Winlator's Windows environment. **Do not claim playable or compatible.**
+- Windows x86 EXEs inherently require Wine/Box64 (or another Windows emulation/compatibility system); separate Winlator interface is avoidable. Our APK currently derives much of Winlator's runtime and XServerDisplayActivity; user wants it hidden behind Touhou game UI.
+- Changes committed on main: `runtime-preview/TouhouDiagnostics.java` gathers bounded local process output; `runtime-preview/overlay.py` instruments upstream XServerDisplayActivity with 45-second launch watchdog, native error dialog, local diagnostics recording, and returns to TouhouEntryActivity rather than Winlator on game exit; also records ProcessHelper spawn errors.
+- `runtime-preview/TouhouEntryActivity.java` now has a launch-diagnostics viewer with copy action, compatibility graphics toggle (Vortek/VirGL, WineD3D, conservative Box64, 800x600), stable normal preset, upstream first-run Box64 settings initialization, and fixed non-ASCII game path handling. Supports multi-file Windows game installers selected via Import Game Folder; single-file EXE imports only for self-contained installers.
+- Latest code commit for this set: `3a3f0f6749beaf85258705b6df39750f98ed5dc2`. Workflow `39793531948` was **queued** at the time of this documentation. Inspect current Actions status and fix compilation issues before giving APK links: https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml .
+- The exact cause on Galaxy S26 Ultra remains unknown until its Windows runtime logs are supplied. Prefer real diagnostics over speculation. RootFS initialization and graphics are plausible failure areas, but not proven root cause.
+- IMPORTANT: Existing imported games/saves inside app private data may be deleted on uninstall. APK debug signatures can change across CI builds; do not casually tell user to uninstall unless files/saves are backed up.
+- Next: obtain successful APK, user install/update (protect app data), tap Play; if 45-second error, return to Library > View Last Launch Diagnostics > Copy report and share. Try compatibility graphics if needed. After identifying root cause, fix engine and verify TPDP base before patch/expansion work.

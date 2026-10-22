@@ -12,7 +12,7 @@ assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator An
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"
-src = src.replace("applicationId 'com.winlator'", "applicationId 'games.charoite.touhoupocket.runtime'")
+src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhoupk'")
 assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
 src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
     "implementation 'androidx.appcompat:appcompat:1.4.0'\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
@@ -24,7 +24,7 @@ assert '<string name="app_name">Winlator</string>' in src, "Upstream app name ch
 strings.write_text(src.replace('<string name="app_name">Winlator</string>',
     '<string name="app_name">Touhou Pocket Launcher</string>'), encoding="utf-8")
 
-# The provider authority must not collide with a separately installed stock Winlator.
+# Runtime assets use a same-length replacement Android package name to preserve\n# native ELF interpreter and library offsets. Do not change this ID without\n# rewriting runtime-preview/rewrite_prefix.py in tandem.\n# The provider authority must not collide with separately installed Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"
 ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
 a = "{http://schemas.android.com/apk/res/android}"
@@ -41,7 +41,7 @@ for filt in filters:
     original_main.remove(filt)
 for provider in app.findall("provider"):
     if provider.get(a + "authorities") == "com.winlator.FileProvider":
-        provider.set(a + "authorities", "games.charoite.touhoupocket.runtime.FileProvider")
+        provider.set(a + "authorities", "com.touhoupk.FileProvider")
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
@@ -60,7 +60,7 @@ for java in java_root.rglob("*.java"):
     text = java.read_text(encoding="utf-8")
     if '"com.winlator.FileProvider"' in text:
         java.write_text(text.replace('"com.winlator.FileProvider"',
-            '"games.charoite.touhoupocket.runtime.FileProvider"'), encoding="utf-8")
+            '"com.touhoupk.FileProvider"'), encoding="utf-8")
 
 target = java_root / "com/winlator/TouhouEntryActivity.java"
 assert not target.exists(), "Upstream has a colliding Touhou entry activity"

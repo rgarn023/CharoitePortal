@@ -271,3 +271,23 @@ Latest milestone is **read-only diagnostics to determine whether the installer e
 - Current font rendering regression from wrong IPA families is fixed as of prior v5; user screenshot `157033.jpg` shows dialog readable but edit control path squares. The probe does NOT change original installer path. `com.touhoudr` continues as Android ID. User must protect app-private game data on updates, and avoid uninstall/clear data.
 - First phone test: open current original `setup.exe`, move to destination path where blocks appear, leave screen there 15–25 seconds. Exit/return to Touhou Pocket and choose **View Last Launch Diagnostics -> Copy Report**, paste here. It should include `GetACP`, hex codepoints of edit field, and selected GDI font glyph coverage if Win32 probe runs; if report missing check `Read-only Japanese installer probe started (pid=...)` in process diagnostics, Wine filename, Wine prefix paths.
 - Diagnose based on actual codepoints: Japanese actual values (U+3040-30FF, U+4E00-9FFF) and GDI missing glyphs -> font selection; literal U+25A1 squares, U+FFFD replacement, or U+003F question marks -> encoding already corrupted; GetACP not 932 -> Wine code page. No further speculative fonts or forced ASCII `/DIR` unless the user explicitly changes requirements.
+
+
+## 2026-10-22: v2 diagnostic for Wine named-desktop installer text
+
+User supplied diagnostic report from v1:
+```
+Game: setup.exe
+Status: game window appeared
+touhou-probe-v1 GetACP=932 GetOEMCP=932 GetUserDefaultUILanguage=0411 GetSystemDefaultUILanguage=0411
+No supported installer destination edit control found in 60 seconds.
+```
+**Supported inference:** Japanese ANSI/OEM codepages and UI language are set as expected (932/932/0411), **but v1 missed the target field**, so cannot conclude whether source UTF-16 path is correct, corrupted, or merely missing glyphs. The user wants the *original Japanese install path* unchanged; NO `/DIR` override.
+
+**New v2 source and successful APK build:** `runtime-preview/touhou_probe.c` rewritten to enumerate all visible Wine top-level windows without filtering Japanese titles, identify `Edit` and `Combo` classes, examine UTF-16 of candidate path fields, check the GDI font's Japanese glyph support, and crucially enumerate **all Wine virtual desktops** with `EnumDesktopsW`, `OpenDesktopW`, and `EnumDesktopWindows`. It logs window/desktop/child/edit counts when no path is found, so v2 failure is actionable. Does not call SetThreadDesktop or alter windows. CI compiles Win32 probe with mingw.
+
+- GitHub Actions successful build: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39843184436 ; source commit `265050ffc77aa5fef426c98bbf768a2e9f922ba0`; artifact `touhou-pocket-runtime-preview-apk` id `12454600810`.
+- Exported APK: `/mnt/data/TouhouPocketLauncher-Japanese-Desktop-Probe-v2.apk`, 230409216 bytes, SHA256 `cd64b057e327735609aec08e982ca19d4df2cf56af16ba46ec50ce597cc614fa`. Outer GitHub ZIP and inner APK CRC verified. Contains `assets/japanese/touhou_probe.exe` and both Japanese IPA and Noto font licenses. On-device operation **not tested**.
+- User test: install over existing `com.touhoudr` if Android signature accepts **without uninstalling/clearing app data**. Open already-imported original `setup.exe` > page where Japanese default folder shows blocks; leave screen ~20–30 seconds (v2 polls up to 60 sec) > return to launcher > View Last Launch Diagnostics > Copy Report > paste full output.
+- v2 output should contain `touhou-probe-v2`, `desktop: name=`, `pass=... desktops=... windows=... edit_candidates=...`, and hopefully `PATH FOUND class=...` codepoints and `font: name=... missing_known_japanese=...`. If absent, determine whether desktop enumeration failed or installer uses custom-drawn control; do not blindly add fonts again.
+- If `GetACP=932`, path codepoints include real Japanese characters but font reports missing glyphs -> font selection; if stored codepoints are literal squares/question marks/replacement chars -> already-corrupted string; if path not visible through desktop, try attaching diagnostic to Wine virtual desktop `nogui` directly or targeted window inspection. Avoid user-game changes.

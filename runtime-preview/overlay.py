@@ -93,7 +93,7 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
 old_cursor = "                    xServerView.getRenderer().setCursorVisible(true);"
 assert code.count(old_cursor) == 1, "Window-open marker changed"
 code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;
-                    if (getIntent().hasExtra("exec_path")) TouhouDiagnostics.windowOpened(this);
+                    if (getIntent().hasExtra("exec_path")) TouhouDiagnostics.windowOpened(XServerDisplayActivity.this);
 """ + old_cursor)
 old_exit = """        if (intent.hasExtra("exec_path")) {
             AppUtils.RestartApplicationOptions options = new AppUtils.RestartApplicationOptions();

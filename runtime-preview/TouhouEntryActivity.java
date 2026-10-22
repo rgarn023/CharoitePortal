@@ -128,12 +128,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         });
         main.addView(folderButton);
         main.addView(installerButton);
-        main.addView(button("COPY SAFE ENGLISH INSTALL PATH", () -> {
-            String safePath = "C:\\Touhou\\TPDP";
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setPrimaryClip(ClipData.newPlainText("Touhou installer folder", safePath));
-            setStatus("Copied C:\\Touhou\\TPDP. Paste or enter this in the installer's destination field if Japanese folder names appear as squares.");
-        }));
         scanButton = button("FIND INSTALLED TOUHOU GAMES", this::findInstalledGames);
         main.addView(scanButton);
         compatButton = button("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
@@ -605,8 +599,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             boolean installer = game.optBoolean("installer");
             Button play = button(installer ? "INSTALL" : "PLAY",
                     () -> {
-                        if (installer) selectInstallerDestination(path);
-                        else launchGame(path);
+                        launchGame(path);
                     });
             play.setEnabled(!busy && containerId > 0);
             item.addView(play);
@@ -617,49 +610,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
 
     /**
-     * Old Japanese Inno Setup dialog edit boxes may show missing glyph boxes
-     * even when Japanese descriptive text works correctly. Let the user specify
-     * an ASCII-only install path with Android native text entry and pass it
-     * directly to Inno's documented /DIR command-line option. Do not use this
-     * for non-Inno installers unless the user opts in.
+     * Launch the selected original Windows installer without adding /DIR or
+     * any destination override. The Windows installer chooses its own path.
      */
-    private void selectInstallerDestination(String path) {
-        if (busy || containerId <= 0) return;
-        final android.widget.EditText edit = new android.widget.EditText(this);
-        edit.setSingleLine(true);
-        edit.setText("C:\\Touhou\\TPDP");
-        edit.setSelectAllOnFocus(true);
-        edit.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
-                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-        final int pad = dp(20);
-        final android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
-        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setPadding(pad, dp(4), pad, 0);
-        layout.addView(edit);
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Japanese installer destination")
-            .setMessage("Choose a Windows path using only English letters, numbers, underscores or hyphens. " +
-                    "For Inno Setup installers, this sets the folder before the installer opens. " +
-                    "It avoids the garbled Japanese path field.")
-            .setView(layout)
-            .setPositiveButton("Install to this folder", (dialog, which) -> {
-                String value = edit.getText().toString().trim();
-                if (!value.matches("(?i)^[a-z]:\\\\[a-z0-9_-]+(?:\\\\[a-z0-9_-]+)*$")) {
-                    setStatus("Invalid path: use C:\\Touhou\\TPDP with English letters and no spaces.");
-                    return;
-                }
-                launchGame(path, value);
-            })
-            .setNeutralButton("Use installer's original path", (dialog, which) -> launchGame(path))
-            .setNegativeButton("Cancel", null)
-            .show();
-    }
-
     private void launchGame(String path) {
-        launchGame(path, null);
-    }
-
-    private void launchGame(String path, String innoDestination) {
         if (busy || containerId <= 0) return;
         if (!new File(path).isFile()) {
             setStatus("Game file is missing. Re-import the game.");
@@ -668,10 +622,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Intent play = new Intent(this, XServerDisplayActivity.class);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", path);
-        if (innoDestination != null) {
-            play.putExtra("touhou_setup_dir", innoDestination);
-            setStatus("Launching with ASCII installation directory: " + innoDestination);
-        }
         startActivity(play);
     }
 

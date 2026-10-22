@@ -171,6 +171,45 @@ diagnostics = java_root / "com/winlator/TouhouDiagnostics.java"
 assert not diagnostics.exists(), "Conflicting upstream diagnostics class"
 diagnostics.write_bytes((overlay.parent / "TouhouDiagnostics.java").read_bytes())
 
+
+# Japanese Shift-JIS locale is set for the guest process, not Android itself.
+locale_java = java_root / "com/winlator/core/LocaleHelper.java"
+locale_code = locale_java.read_text(encoding="utf-8")
+locale_marker = '        envVars.put("LC_ALL", "en_US.UTF-8");'
+assert locale_code.count(locale_marker) == 1, "Winlator language fallback changed"
+locale_code = locale_code.replace(locale_marker,
+    '        envVars.put("LC_ALL", "ja_JP.UTF-8");')
+locale_java.write_text(locale_code, encoding="utf-8")
+
+launcher = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
+launch_code = launcher.read_text(encoding="utf-8")
+launch_marker = '        if (this.envVars != null) envVars.putAll(this.envVars);'
+assert launch_code.count(launch_marker) == 1, "Guest process locale hook changed"
+launch_code = launch_code.replace(launch_marker, launch_marker + """
+        // Override English Android UI locale and custom container settings only
+        // for the Wine guest. Most Japanese Touhou setup programs use CP932.
+        envVars.put("LANG", "ja_JP.UTF-8");
+        envVars.put("LC_ALL", "ja_JP.UTF-8");
+        envVars.put("LC_CTYPE", "ja_JP.UTF-8");
+""")
+launcher.write_text(launch_code, encoding="utf-8")
+
+japanese_file = java_root / "com/winlator/TouhouJapaneseSupport.java"
+assert not japanese_file.exists(), "Upstream Japanese support class conflict"
+japanese_file.write_bytes((overlay.parent / "TouhouJapaneseSupport.java").read_bytes())
+
+display_code = display.read_text(encoding="utf-8")
+fonts_marker = '        if (containerDataChanged) container.saveData();'
+assert display_code.count(fonts_marker) == 1, "Wine registry setup hook changed"
+display_code = display_code.replace(fonts_marker, fonts_marker + """
+        try {
+            TouhouJapaneseSupport.ensure(this, rootFS, container);
+        } catch (Exception error) {
+            TouhouDiagnostics.recordLine("Japanese locale/font initialization failed: " + error);
+        }
+""")
+display.write_text(display_code, encoding="utf-8")
+
 # Both the upstream license and original attribution travel with the APK.
 license_dir = root / "app/src/main/assets/licenses"
 license_dir.mkdir(parents=True, exist_ok=True)

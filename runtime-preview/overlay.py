@@ -176,9 +176,10 @@ display.write_text(code, encoding="utf-8")
 guest = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
 guest_code = guest.read_text(encoding="utf-8")
 
-# Run a small additional Win32 process ONLY for setup.exe, in the existing
-# Wine session. It reads the editable destination field (UTF-16 hex) and Win32
-# GetACP, with no path modifications, clicks, or patching of the installer.
+# Start the scoped Japanese font monitor early for setup.exe in the same
+# Wine session. It observes the original UTF-16 path and applies a compatible
+# font in the installer's GUI thread once that control exists. Never changes
+# the installer command line or its original installation destination.
 guest_code = guest_code.replace(
     "    private static int pid = -1;",
     "    private static int pid = -1;\n    private static volatile int probePid = -1;",
@@ -206,13 +207,15 @@ guest_code = guest_code.replace(return_end, return_end + """
             probeEnv.putAll(envVars);
             new Thread(() -> {
                 try {
-                    Thread.sleep(9000);
+                    // Start near Wine launch; monitor waits for the original
+                    // Japanese destination control to be created.
+                    Thread.sleep(750);
                     if (pid != mainPid) return;
                     String commandProbe = rootDir + "/usr/local/bin/box64 wine C:\\\\touhou_probe.exe";
                     probePid = ProcessHelper.exec(commandProbe, probeEnv, rootDir,
                             (status) -> probePid = -1);
                     com.winlator.TouhouDiagnostics.recordLine(
-                            "Read-only Japanese installer probe started (pid=" + probePid + ").");
+                            "Japanese installer font monitor started (pid=" + probePid + ").");
                 } catch (InterruptedException ignored) {
                     Thread.currentThread().interrupt();
                 } catch (Exception error) {

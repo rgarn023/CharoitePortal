@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ORIGINAL = b"com.winlator"
-TARGET = b"com.touhoujp"
+TARGET = b"com.touhouv2"
 assert len(ORIGINAL) == len(TARGET), "ELF-safe path rewrite must preserve byte length"
 
 MANDATORY = {
@@ -44,7 +44,7 @@ def rewrite_archive(archive: Path) -> int:
                     link = os.readlink(path)
                     if "com.winlator" in link:
                         path.unlink()
-                        path.symlink_to(link.replace("com.winlator", "com.touhoujp"))
+                        path.symlink_to(link.replace("com.winlator", "com.touhouv2"))
                         touched += 1
                 elif path.is_file():
                     blob = path.read_bytes()

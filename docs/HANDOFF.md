@@ -383,3 +383,11 @@ Thus the actual font fix works, original Japanese path is preserved, and install
 - Preserve package ID `com.touhoudr`, original path, single installer entry, legitimate user-owned games. Debug APK signatures may differ; never instruct uninstall/clear data with imported files.
 - Ask user to check that Japanese destination displays correctly without waiting several seconds in the new APK and report delay, if any. If still slow, profile Windows Wine side process creation/WM_GETMESSAGE wakeup rather than tinkering with working font registration. Continue focus on rendering latency until satisfied.
 - Reminder: app still uses Winlator-derived Wine/Box64 display/backend; no false claims of fully independent backend. More Touhou-themed launcher icon is an outstanding separate request.
+
+
+### Verified low-latency Japanese font hook APK — 2026-10-22
+- User's on-device v5 report showed **successful IPAPGothic hook**, unchanged Japanese path and delayed switch from blocks to correct glyphs. This is a confirmed functional fix; only latency remains.
+- Source changes (main): `runtime-preview/overlay.py` moves helper startup from `Thread.sleep(9000)` to `Thread.sleep(750)`; `runtime-preview/touhou_probe.c` v6 polls every 300ms during first minute and 850ms subsequently, monitoring for up to ~4 minutes, while preserving original path. Hook DLL/font registry and 32-bit installer behavior unchanged.
+- GitHub Actions **success**: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39859088115 at commit `7ca9660030959bce26f20a2b35022521326bc8e3`; artifact `touhou-pocket-runtime-preview-apk` ID `12461321643`.
+- Verified APK local path `/mnt/data/TouhouPocketLauncher-Japanese-Font-Faster-Startup.apk`, 231,971,672 bytes, SHA256 `50f50640c88ef3a2a50dd8c2bd40390f2d6c6eddbdac5dfb1b93c5ee97f0df73`; APK ZIP CRC passes. Includes `touhou-probe-v6`, four 32/64 bit font hook/helper assets, Japanese font addon and font license notices.
+- **Not verified yet on Galaxy after timing changes.** Ask user to update app *without uninstalling/clearing user data*, reopen original setup.exe and check whether original Japanese folder now displays correctly much sooner. If still visible delay, check v6 diagnostics / hook-v1 log; profile Wine EXE process spawn and in-process hook response. Avoid repeating font substitutions because font repair is known working.

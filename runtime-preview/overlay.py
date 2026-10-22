@@ -46,7 +46,7 @@ entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
     a + "screenOrientation": "sensor",
-    a + "theme": "@android:style/Theme.Material.NoActionBar"
+    a + "theme": "@style/AppThemeDark"
 })
 intent = ET.SubElement(entry, "intent-filter")
 ET.SubElement(intent, "action", {a + "name": "android.intent.action.MAIN"})

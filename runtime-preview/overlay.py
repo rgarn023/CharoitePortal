@@ -120,6 +120,30 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
         });""")
 display.write_text(code, encoding="utf-8")
 
+# Report Box64/loader existence and mode before attempting Android execve.
+guest = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
+guest_code = guest.read_text(encoding="utf-8")
+exec_marker = '        String command = rootDir+"/usr/local/bin/box64 "+guestExecutable;'
+assert guest_code.count(exec_marker) == 1, "Box64 launcher entry changed"
+guest_code = guest_code.replace(exec_marker, """        File box64File = new File(rootDir, "usr/local/bin/box64");
+        File glibcLoader = new File(rootDir, "lib/ld-linux-aarch64.so.1");
+        if (box64File.isFile() && !box64File.canExecute()) {
+            FileUtils.chmod(box64File, 0755);
+        }
+        com.winlator.TouhouDiagnostics.recordLine("Box64 native path: exists=" +
+            box64File.isFile() + ", execute=" + box64File.canExecute() +
+            "; glibc loader exists=" + glibcLoader.isFile() +
+            ", execute=" + glibcLoader.canExecute() +
+            "; Android appId=" + environment.getContext().getPackageName());
+        if (!box64File.isFile() || !box64File.canExecute() || !glibcLoader.isFile()) {
+            com.winlator.TouhouDiagnostics.recordLine("Wine launch blocked before exec: missing or non-executable Box64/loader");
+            return -1;
+        }
+
+""" + exec_marker)
+guest.write_text(guest_code, encoding="utf-8")
+
+
 log_file = java_root / "com/winlator/core/ProcessHelper.java"
 process_code = log_file.read_text(encoding="utf-8")
 old_catch = "        catch (Exception e) {}\n        return pid;"

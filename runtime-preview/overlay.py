@@ -74,6 +74,16 @@ overlay = Path(__file__).resolve().parent / "TouhouEntryActivity.java"
 target.write_bytes(overlay.read_bytes())
 
 
+# The read-only Wine diagnostics executable is cross-compiled by Actions and
+# bundled as an asset, never committed as a binary to the source repository.
+probe_binary = overlay.parent / "touhou_probe.exe"
+assert probe_binary.is_file(), "Compile touhou_probe.exe before applying overlay"
+probe_asset = root / "app/src/main/assets/japanese/touhou_probe.exe"
+probe_asset.parent.mkdir(parents=True, exist_ok=True)
+probe_asset.write_bytes(probe_binary.read_bytes())
+
+
+
 # JNI entrypoints retain the com.winlator Java package, but native C/C++
 # files also bake in app-private cache locations. Rewrite ONLY absolute
 # /data/data/... paths (not JNI symbol names).
@@ -144,6 +154,54 @@ display.write_text(code, encoding="utf-8")
 # Report Box64/loader existence and mode before attempting Android execve.
 guest = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
 guest_code = guest.read_text(encoding="utf-8")
+
+# Run a small additional Win32 process ONLY for setup.exe, in the existing
+# Wine session. It reads the editable destination field (UTF-16 hex) and Win32
+# GetACP, with no path modifications, clicks, or patching of the installer.
+guest_code = guest_code.replace(
+    "    private static int pid = -1;",
+    "    private static int pid = -1;\n    private static volatile int probePid = -1;",
+)
+stop_old = """                Process.killProcess(pid);
+                pid = -1;"""
+assert guest_code.count(stop_old) == 1, "Guest stop() method changed"
+guest_code = guest_code.replace(stop_old, stop_old + """
+                if (probePid != -1) {
+                    Process.killProcess(probePid);
+                    probePid = -1;
+                }""")
+return_old = """        return ProcessHelper.exec(command, envVars, rootDir, (status) -> {"""
+assert guest_code.count(return_old) == 1, "Box64 Windows guest runner changed"
+return_new = """        final int mainPid = ProcessHelper.exec(command, envVars, rootDir, (status) -> {"""
+guest_code = guest_code.replace(return_old, return_new)
+return_end = """            if (terminationCallback != null) terminationCallback.call(status);
+        });"""
+assert guest_code.count(return_end) == 1, "Box64 Windows callback ending changed"
+guest_code = guest_code.replace(return_end, return_end + """
+        if (guestExecutable != null &&
+                guestExecutable.toLowerCase(java.util.Locale.ROOT).contains("setup.exe") &&
+                mainPid > 0) {
+            final EnvVars probeEnv = new EnvVars();
+            probeEnv.putAll(envVars);
+            new Thread(() -> {
+                try {
+                    Thread.sleep(9000);
+                    if (pid != mainPid) return;
+                    String commandProbe = rootDir + "/usr/local/bin/box64 wine C:\\\\touhou_probe.exe";
+                    probePid = ProcessHelper.exec(commandProbe, probeEnv, rootDir,
+                            (status) -> probePid = -1);
+                    com.winlator.TouhouDiagnostics.recordLine(
+                            "Read-only Japanese installer probe started (pid=" + probePid + ").");
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception error) {
+                    com.winlator.TouhouDiagnostics.recordLine(
+                            "Japanese installer probe could not start: " + error);
+                }
+            }, "touhou-wine-japanese-probe").start();
+        }
+        return mainPid;""")
+
 exec_marker = '        String command = rootDir+"/usr/local/bin/box64 "+guestExecutable;'
 assert guest_code.count(exec_marker) == 1, "Box64 launcher entry changed"
 guest_code = guest_code.replace(exec_marker, """        File box64File = new File(rootDir, "usr/local/bin/box64");

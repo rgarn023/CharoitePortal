@@ -34,7 +34,9 @@ public final class TouhouJapaneseSupport {
         File root = rootFS.getRootDir();
         File locale = new File(root, "usr/lib/locale/ja_JP.utf8/LC_CTYPE");
         File linuxFont = new File(root, "usr/share/fonts/opentype/noto/" + FONT_NAME);
-        if (!locale.isFile() || !linuxFont.isFile()) {
+        File ipaGothic = new File(root, "usr/share/fonts/truetype/ipa/ipag.ttf");
+        File ipaPGothic = new File(root, "usr/share/fonts/truetype/ipa/ipagp.ttf");
+        if (!locale.isFile() || !linuxFont.isFile() || !ipaGothic.isFile() || !ipaPGothic.isFile()) {
             TouhouDiagnostics.recordLine("Installing bundled Japanese locale and Noto font...");
             if (!TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD,
                     context, ADDON, root)) {
@@ -44,8 +46,7 @@ public final class TouhouJapaneseSupport {
         if (!locale.isFile() || !linuxFont.isFile() || linuxFont.length() < 4000000) {
             throw new IOException("Japanese locale or font installation incomplete");
         }
-        File ipaGothic = new File(root, "usr/share/fonts/truetype/ipa/ipag.ttf");
-        File ipaPGothic = new File(root, "usr/share/fonts/truetype/ipa/ipagp.ttf");
+
         if (!ipaGothic.isFile() || !ipaPGothic.isFile() ||
                 ipaGothic.length() < 3000000 || ipaPGothic.length() < 3000000)
             throw new IOException("Required IPA Gothic Japanese TrueType font missing");
@@ -144,7 +145,8 @@ public final class TouhouJapaneseSupport {
      * creates a Touhou-specific fallback file; it never modifies OS fonts. */
     private static void installFontConfigFallback(File root) throws IOException {
         File target = new File(root, "etc/fonts/conf.d/66-touhou-japanese.conf");
-        if (target.isFile()) return;
+        // Refresh an older Noto-based fallback for existing Wine prefixes.
+        // This file is app-specific; no OS-level font settings are changed.
         File parent = target.getParentFile();
         if (!parent.isDirectory() && !parent.mkdirs())
             throw new IOException("Could not prepare Wine Fontconfig directory");

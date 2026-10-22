@@ -1,5 +1,5 @@
 /*
- * Touhou Pocket Japanese installer font repair + diagnostic v4.
+ * Touhou Pocket Japanese installer font repair + diagnostic v5.
  *
  * Scoped Wine GUI font fix. Does not alter game files, window text,
  * locale, registry or install directory. Inspects the installer destination
@@ -29,9 +29,6 @@ static int edit_controls = 0;
 static int desktop_count = 0;
 static int debug_windows = 0;
 static int debug_children = 0;
-static HWND repaired_edit = NULL;
-static HFONT repaired_font = NULL;
-static HFONT previous_font = NULL;
 static int repair_attempted = 0;
 
 static void line(const char *value) {
@@ -69,133 +66,61 @@ static int is_path(const wchar_t *value) {
 
 
 /*
- * Replace only the font of the exact destination TEdit control, not its text.
- * The installer continues using the original C:\game\FocasLens\... path.
- *
- * WM_SETFONT is a system Windows message supported by a standard EDIT/VCL
- * control. Some environments reject a font handle from another process;
- * verify WM_GETFONT after sending and revert on failure. Keep the HFONT alive
- * until the edit window closes, rather than freeing it while in use.
+ * A cross-process probe can read WM_GETTEXT but cannot safely send an HFONT
+ * from its own process via WM_SETFONT to a foreign installer thread. v4
+ * correctly refused to run after WM_GETFONT failed, but it cannot repair
+ * across that boundary. Instead start an architecture-matched thread hook
+ * helper, which creates and installs the font inside the installer's process.
  */
 static void try_repair_path_font(HWND hwnd, const wchar_t *originalText) {
-    if (repair_attempted || repaired_edit != NULL) return;
+    if (repair_attempted) return;
     repair_attempted = 1;
-    int hasJapanese = 0;
-    for (int i=0; originalText[i]; i++)
-        if ((originalText[i] >= 0x3000 && originalText[i] <= 0x9fff) ||
-            (originalText[i] >= 0xf900 && originalText[i] <= 0xfaff))
-            { hasJapanese = 1; break; }
-    if (!hasJapanese) {
-        line("font-fix: no Japanese characters in destination; unchanged");
+    if (!wcsstr(originalText,L"\x5E7B\x60F3\x4EBA\x5F62\x6F14\x821E")) {
+        line("font-fix: original Japanese text not present; no changes");
         return;
     }
-
-    DWORD_PTR old = 0;
-    if (!SendMessageTimeoutW(hwnd, WM_GETFONT, 0, 0,
-             SMTO_ABORTIFHUNG | SMTO_BLOCK, 750, &old)) {
-        line("font-fix: failed to read current EDIT font; unchanged");
+    DWORD installerPid=0;
+    DWORD installerThread=GetWindowThreadProcessId(hwnd,&installerPid);
+    if (!installerPid || !installerThread) {
+        line("font-fix: unable to identify installer's GUI thread");
         return;
     }
-
-    previous_font = (HFONT)(UINT_PTR)old;
-    char detail[320];
-    snprintf(detail, sizeof(detail), "font-fix: old-font-is-null=%d",
-             previous_font == NULL ? 1 : 0);
-    line(detail);
-
-    // Only intervene when this specific edit field cannot draw Japanese.
-    // The font selected through WM_GETFONT may be NULL; in that case the
-    // edit control is using a stock font ("System" in the v3 phone report).
-    HDC existingDC = GetDC(hwnd);
-    if (existingDC) {
-        HGDIOBJ beforeSelection = previous_font
-            ? SelectObject(existingDC, previous_font) : NULL;
-        const wchar_t originalGlyphs[] =
-            L"\x5e7b\x60f3\x4eba\x5f62\x6f14\x821e";
-        WORD beforeIndices[6] = {0};
-        DWORD beforeResult = GetGlyphIndicesW(existingDC, originalGlyphs, 6,
-                 beforeIndices, GGI_MARK_NONEXISTING_GLYPHS);
-        int beforeMissing = 0;
-        for(int i=0;i<6;i++) if (beforeIndices[i] == 0xffff) beforeMissing++;
-        snprintf(detail, sizeof(detail),
-            "font-fix: old-font missing_japanese=%d gdi_error=%d",
-            beforeMissing, beforeResult == GDI_ERROR);
-        line(detail);
-        if (beforeSelection && beforeSelection != HGDI_ERROR)
-            SelectObject(existingDC, beforeSelection);
-        ReleaseDC(hwnd, existingDC);
-        if (beforeResult != GDI_ERROR && beforeMissing == 0) {
-            line("font-fix: existing edit font supports Japanese; no modification required");
-            return;
-        }
-    }
-
-    HFONT japanese = CreateFontW(
-        -15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-        SHIFTJIS_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"IPAPGothic");
-    if (!japanese) { line("font-fix: CreateFontW failed; unchanged"); return; }
-
-    HDC dc = GetDC(hwnd);
-    if (!dc) {
-        line("font-fix: unable to inspect new font DC; unchanged");
-        DeleteObject(japanese);
+    HANDLE process=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,installerPid);
+    if (!process) {
+        line("font-fix: cannot open installer process for bitness check");
         return;
     }
-    HGDIOBJ previous = SelectObject(dc, japanese);
-    wchar_t fontFace[LF_FACESIZE] = {0};
-    GetTextFaceW(dc, LF_FACESIZE, fontFace);
-    const wchar_t japaneseSample[] =
-        L"\x5e7b\x60f3\x4eba\x5f62\x6f14\x821e";
-    WORD indices[6] = {0};
-    DWORD glyphs = GetGlyphIndicesW(
-        dc, japaneseSample, 6, indices, GGI_MARK_NONEXISTING_GLYPHS);
-    unsigned missing = 0;
-    for(int i=0;i<6;i++) if (indices[i] == 0xffff) missing++;
-    char face[200]; utf8(fontFace,face,sizeof(face));
-    snprintf(detail,sizeof(detail),
-             "font-fix: selected-font=%s glyph-missing=%u gdi-error=%d",
-             face, missing, glyphs == GDI_ERROR);
-    line(detail);
-    if (previous && previous != HGDI_ERROR) SelectObject(dc, previous);
-    ReleaseDC(hwnd, dc);
-    if (glyphs == GDI_ERROR || missing != 0) {
-        line("font-fix: new font unsuitable; installer left unchanged");
-        DeleteObject(japanese);
+    BOOL is32bit=FALSE;
+    if(!IsWow64Process(process,&is32bit)) {
+        line("font-fix: IsWow64Process unavailable; trying 32-bit helper");
+        is32bit=TRUE;
+    }
+    CloseHandle(process);
+    const wchar_t *executable=is32bit
+        ? L"C:\\touhou_font_helper32.exe" : L"C:\\touhou_font_helper64.exe";
+    wchar_t cmdline[300];
+    swprintf(cmdline,300,L"\"%ls\" %lu",executable,(unsigned long)installerThread);
+    STARTUPINFOW startup;
+    PROCESS_INFORMATION child;
+    ZeroMemory(&startup,sizeof(startup));
+    ZeroMemory(&child,sizeof(child));
+    startup.cb=sizeof(startup);
+    if (!CreateProcessW(executable,cmdline,NULL,NULL,FALSE,CREATE_NO_WINDOW,
+           NULL,NULL,&startup,&child)) {
+        char msg[220];
+        snprintf(msg,sizeof(msg),
+            "font-fix: helper process failed to launch (32bit=%d,error=%lu)",
+            is32bit!=FALSE,(unsigned long)GetLastError());
+        line(msg);
         return;
     }
-
-    DWORD_PTR result = 0;
-    if (!SendMessageTimeoutW(hwnd, WM_SETFONT,
-            (WPARAM)japanese, (LPARAM)TRUE,
-            SMTO_ABORTIFHUNG | SMTO_BLOCK, 850, &result)) {
-        line("font-fix: WM_SETFONT timed out; installer left unchanged");
-        DeleteObject(japanese);
-        return;
-    }
-    DWORD_PTR verified = 0;
-    int readBack = SendMessageTimeoutW(hwnd, WM_GETFONT, 0, 0,
-                         SMTO_ABORTIFHUNG | SMTO_BLOCK, 850, &verified) != 0;
-    wchar_t check[2048] = {0};
-    DWORD_PTR count = 0;
-    int textOK = SendMessageTimeoutW(hwnd, WM_GETTEXT, 2048,
-                          (LPARAM)check, SMTO_ABORTIFHUNG | SMTO_BLOCK,
-                          850, &count) != 0;
-    if (!readBack || (HFONT)(UINT_PTR)verified != japanese ||
-        !textOK || wcscmp(check,originalText) != 0) {
-        // Must never rewrite or damage the install directory.
-        SendMessageTimeoutW(hwnd, WM_SETFONT,
-                (WPARAM)previous_font, (LPARAM)TRUE,
-                SMTO_ABORTIFHUNG | SMTO_BLOCK, 850, &result);
-        line("font-fix: verification failed; restored original font and left path unchanged");
-        DeleteObject(japanese);
-        return;
-    }
-    repaired_edit = hwnd;
-    repaired_font = japanese;
-    line("font-fix: SUCCESS: TEdit now uses IPAPGothic; original Japanese directory confirmed unchanged");
-    InvalidateRect(hwnd, NULL, TRUE);
-    UpdateWindow(hwnd);
+    CloseHandle(child.hThread);
+    CloseHandle(child.hProcess);
+    char message[230];
+    snprintf(message,sizeof(message),
+        "font-fix: launched in-process helper (32bit=%d,targetThread=%lu)",
+        is32bit!=FALSE,(unsigned long)installerThread);
+    line(message);
 }
 
 static void glyph_report(HWND hwnd) {
@@ -353,7 +278,7 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
     if (log_handle == INVALID_HANDLE_VALUE) return 2;
     char header[500];
     snprintf(header, sizeof(header),
-       "touhou-probe-v4 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
+       "touhou-probe-v5 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
        GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
        (unsigned)GetSystemDefaultUILanguage());
     line(header);
@@ -376,12 +301,7 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
     else line("Japanese path captured; path text remains unchanged.");
     // WM_SETFONT does not transfer ownership of HFONT. Keep this helper
     // alive while the installer edit control exists.
-    if (repaired_font && repaired_edit) {
-        line("font-fix: retaining font handle while installer control exists.");
-        while (IsWindow(repaired_edit)) Sleep(1000);
-        DeleteObject(repaired_font);
-        line("font-fix: installer control closed, released temporary Japanese font.");
-    }
+    /* Actual HFONT belongs to installer process; never share it here. */
     CloseHandle(log_handle);
     return snapshots > 0 ? 0 : 1;
 }

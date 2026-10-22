@@ -23,6 +23,7 @@ public final class TouhouJapaneseSupport {
     private static final String FONT_NAME = "NotoSansCJKjp-Regular.otf";
     private static final String FONT_FAMILY = "Noto Sans CJK JP";
     private static final String ADDON = "japanese/japanese-support.tzst";
+    private static final String DIALOG_FALLBACK_VERSION = "v3";
 
     private TouhouJapaneseSupport() {}
 
@@ -41,6 +42,7 @@ public final class TouhouJapaneseSupport {
         if (!locale.isFile() || !linuxFont.isFile() || linuxFont.length() < 4000000) {
             throw new IOException("Japanese locale or font installation incomplete");
         }
+        installFontConfigFallback(root);
 
         File prefix = new File(container.getRootDir(), ".wine");
         File userReg = new File(prefix, "user.reg");
@@ -53,7 +55,7 @@ public final class TouhouJapaneseSupport {
             throw new IOException("Cannot create Windows Japanese Fonts folder");
         }
         File windowsFont = new File(windowsFonts, FONT_NAME);
-        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v2");
+        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v3");
         if (registrationMarker.isFile() && windowsFont.isFile()
                 && windowsFont.length() == linuxFont.length()) {
             return;
@@ -74,8 +76,11 @@ public final class TouhouJapaneseSupport {
             final String fontSubstitutes =
                     "Software\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes";
             for (String alias : new String[]{
-                    "MS Gothic", "MS PGothic", "MS UI Gothic",
-                    "Meiryo", "Yu Gothic", "ＭＳ ゴシック", "ＭＳ Ｐゴシック",
+                    "MS Gothic", "MS PGothic", "MS UI Gothic", "MS Mincho",
+                    "Meiryo", "Yu Gothic", "Yu Gothic UI",
+                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma",
+                    "Microsoft Sans Serif", "MS Sans Serif",
+                    "ＭＳ ゴシック", "ＭＳ Ｐゴシック",
                     "ＭＳ ＵＩ ゴシック"}) {
                 system.setStringValue(fontSubstitutes, alias, FONT_FAMILY);
             }
@@ -99,14 +104,43 @@ public final class TouhouJapaneseSupport {
                     "MS Gothic", "MS PGothic", "MS UI Gothic",
                     "Meiryo", "Meiryo UI", "Yu Gothic", "Yu Gothic UI",
                     "MS Mincho", "MS PMincho",
+                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma",
+                    "Microsoft Sans Serif", "MS Sans Serif",
                     "ＭＳ ゴシック", "ＭＳ Ｐゴシック", "ＭＳ ＵＩ ゴシック",
                     "ＭＳ 明朝", "ＭＳ Ｐ明朝", "Ｍｅｉｒｙｏ"}) {
                 user.setStringValue(replacements, face, FONT_FAMILY);
             }
         }
-        if (!FileUtils.writeString(registrationMarker, "v2\n")) {
+        if (!FileUtils.writeString(registrationMarker, DIALOG_FALLBACK_VERSION + "\n")) {
             throw new IOException("Could not mark Japanese font registration complete");
         }
-        TouhouDiagnostics.recordLine("Japanese locale and Noto font installed successfully.");
+        TouhouDiagnostics.recordLine("Japanese fonts registered for MS Shell Dlg and Wine edit controls (" +
+                DIALOG_FALLBACK_VERSION + ").");
+    }
+
+    /** Fontconfig is used by Wine/Freetype for font selection. This only
+     * creates a Touhou-specific fallback file; it never modifies OS fonts. */
+    private static void installFontConfigFallback(File root) throws IOException {
+        File target = new File(root, "etc/fonts/conf.d/66-touhou-japanese.conf");
+        if (target.isFile()) return;
+        File parent = target.getParentFile();
+        if (!parent.isDirectory() && !parent.mkdirs())
+            throw new IOException("Could not prepare Wine Fontconfig directory");
+        String xml = "<?xml version=\"1.0\"?>\n" +
+                "<!DOCTYPE fontconfig SYSTEM \"fonts.dtd\">\n" +
+                "<fontconfig>\n" +
+                "  <alias binding=\"strong\">\n" +
+                "    <family>MS Shell Dlg</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "  </alias>\n" +
+                "  <alias binding=\"strong\">\n" +
+                "    <family>MS Shell Dlg 2</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "  </alias>\n" +
+                "  <alias binding=\"strong\">\n" +
+                "    <family>Tahoma</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "  </alias>\n" +
+                "  <alias><family>sans-serif</family><prefer><family>Noto Sans CJK JP</family></prefer></alias>\n" +
+                "</fontconfig>\n";
+        if (!FileUtils.writeString(target, xml))
+            throw new IOException("Unable to install Touhou Fontconfig fallback");
     }
 }

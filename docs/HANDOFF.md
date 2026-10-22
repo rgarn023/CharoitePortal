@@ -152,3 +152,10 @@ Implementation now on `main` (commit `6979b572cdd2c6ffc0f5da8cd2996ce7a9fbbd14`)
 References: https://learn.microsoft.com/en-us/windows/win32/Intl/using-ms-shell-dlg-and-ms-shell-dlg-2 ; https://learn.microsoft.com/en-us/globalization/fonts-layout/fonts
 
 Build run: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39811685139 ; check status/artifact before asserting APK available. New test package `com.touhoudr` is separate from prior `com.touhouv2`; do not uninstall old APK or lose imported data. **On-device font result unverified**. If still squares, may be encoded source string rather than missing font; collect exact diagnostics and test ASCII/Inno destination. Do not promise guaranteed font fix.
+
+
+### Latest Japanese dialog-font test artifact confirmed
+GitHub Actions successful on 2026-10-22, run https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39811685139, commit `6979b572cdd2c6ffc0f5da8cd2996ce7a9fbbd14`.
+Artifact `touhou-pocket-runtime-preview-apk` (ID `12440597508`), extracted APK `TouhouPocketLauncher-FontControlFix.apk` 222,029,800 bytes, SHA256 `23b906015794d1f2f735397144e40db9364c748ab652d068e51781371dfe4350`. Container ZIP test passed. Package `com.touhoudr` (separate from user's previous `com.touhouv2`), preserves old app data on device; requires importing user-owned game files again.
+
+The new runtime patch specifically maps MS Shell Dlg / MS Shell Dlg 2 / Tahoma / Microsoft Sans Serif to Noto Sans CJK JP in registry and adds a Touhou-private fontconfig fallback. Dialog-box Japanese rendering is **not yet confirmed on Galaxy**, only compile/package. If the install path still renders squares, debug possible replacement characters in the actual ANSI string (not merely missing GDI glyphs) and leverage the validated `/DIR` ASCII override from native installer destination prompt as a temporary fallback. Do not state problem definitively solved until real screenshot shows it.

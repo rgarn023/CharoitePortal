@@ -69,6 +69,16 @@ jobs:
           command -v fc-scan
           python3 runtime-preview/build_japanese_support.py upstream
 
+      - name: Compile read-only Wine Japanese path probe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-mingw-w64-x86-64
+          x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+            runtime-preview/touhou_probe.c -o runtime-preview/touhou_probe.exe \
+            -luser32 -lgdi32
+          file runtime-preview/touhou_probe.exe
+          test $(stat -c %s runtime-preview/touhou_probe.exe) -gt 10000
+
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
 
@@ -107,6 +117,21 @@ jobs:
               print("Japanese locale and SIL OFL font license included")
           PY
 
+      - name: Verify read-only installer probe is included
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              name = "assets/japanese/touhou_probe.exe"
+              assert name in z.namelist(), "Missing Wine path probe"
+              probe = z.read(name)
+              assert probe.startswith(b"MZ"), "Probe is not a Windows executable"
+              assert len(probe) > 10000
+              print("Win32 Japanese diagnostic included:", len(probe), "bytes")
+          PY
+
       - name: Archive LGPL source and derivative patch
         run: |
           mkdir -p upstream/app/src/main/assets/licenses
@@ -117,6 +142,7 @@ jobs:
           cp runtime-preview/overlay.py legal-bundle/overlay.py
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
           cp runtime-preview/build_japanese_support.py legal-bundle/build_japanese_support.py
+          cp runtime-preview/touhou_probe.c legal-bundle/touhou_probe.c
           cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
           cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
 

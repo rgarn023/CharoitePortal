@@ -103,6 +103,33 @@ static void try_repair_path_font(HWND hwnd, const wchar_t *originalText) {
              previous_font == NULL ? 1 : 0);
     line(detail);
 
+    // Only intervene when this specific edit field cannot draw Japanese.
+    // The font selected through WM_GETFONT may be NULL; in that case the
+    // edit control is using a stock font ("System" in the v3 phone report).
+    HDC existingDC = GetDC(hwnd);
+    if (existingDC) {
+        HGDIOBJ beforeSelection = previous_font
+            ? SelectObject(existingDC, previous_font) : NULL;
+        const wchar_t originalGlyphs[] =
+            L"\x5e7b\x60f3\x4eba\x5f62\x6f14\x821e";
+        WORD beforeIndices[6] = {0};
+        DWORD beforeResult = GetGlyphIndicesW(existingDC, originalGlyphs, 6,
+                 beforeIndices, GGI_MARK_NONEXISTING_GLYPHS);
+        int beforeMissing = 0;
+        for(int i=0;i<6;i++) if (beforeIndices[i] == 0xffff) beforeMissing++;
+        snprintf(detail, sizeof(detail),
+            "font-fix: old-font missing_japanese=%d gdi_error=%d",
+            beforeMissing, beforeResult == GDI_ERROR);
+        line(detail);
+        if (beforeSelection && beforeSelection != HGDI_ERROR)
+            SelectObject(existingDC, beforeSelection);
+        ReleaseDC(hwnd, existingDC);
+        if (beforeResult != GDI_ERROR && beforeMissing == 0) {
+            line("font-fix: existing edit font supports Japanese; no modification required");
+            return;
+        }
+    }
+
     HFONT japanese = CreateFontW(
         -15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         SHIFTJIS_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,

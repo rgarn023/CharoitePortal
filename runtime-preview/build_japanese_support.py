@@ -93,10 +93,20 @@ def main(root: Path) -> None:
         out_font = dest / "usr/share/fonts/opentype/noto" / FONT_NAME
         out_font.parent.mkdir(parents=True, exist_ok=True)
         out_font.write_bytes(font)
+        font_families = {"ipag.ttf": "IPAGothic", "ipagp.ttf": "IPAPGothic"}
         for name, data in ipa_fonts.items():
             ipath = dest / "usr/share/fonts/truetype/ipa" / name
             ipath.parent.mkdir(parents=True, exist_ok=True)
             ipath.write_bytes(data)
+            family = subprocess.check_output(
+                ["fc-scan", "--format", "%{postscriptname}", str(ipath)],
+                text=True).strip()
+            if family != font_families[name]:
+                raise ValueError(
+                    f"Japanese font family mismatch: {name}: {family!r} "
+                    f"expected {font_families[name]!r}. Wine aliases must use "
+                    "real internal family names.")
+            print(f"Verified {name} exact font family: {family}", flush=True)
         locale_dir = dest / "usr/lib/locale/ja_JP.utf8"
         locale_dir.parent.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()

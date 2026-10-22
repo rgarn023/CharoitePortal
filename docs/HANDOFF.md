@@ -201,3 +201,11 @@ Committed on `main`:
 **Important:** Japanese square glyph rendering in the installer destination remains unresolved. Do not equate preserved original destination with correctly decoded Unicode/CP932 path. Most other Japanese labels do display, suggesting specific legacy edit-control font/codepage issue. Do not keep reintroducing English-only forced destination contrary to user intent. Collect device diagnostics or investigate actual source ANSI string behavior if user requests character fix.
 
 Next: Verify latest workflow passes, produce APK. Ask user to confirm no extra path prompt and only one installer entry, plus whether installation completes and preserves Japanese directory after clicking Next. Then continue TPDP game compatibility and expansions as requested.
+
+
+## VERIFIED original-installer-path build — Oct 22, 2026
+- User explicitly requested original installer's destination path. Implemented removing all custom ASCII overrides, Android destination prompts, and any /DIR command-line options; starts selected setup.exe unchanged with its own default installation directory. Existing one-installer library dedupe remains intact.
+- Successful GitHub Actions run: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39816320818, SHA `1d269ad5214ec391d378c361af5d13b4b063ac75`.
+- Artifact `touhou-pocket-runtime-preview-apk` ID `12442132651` exported as `TouhouPocketLauncher-Original-Path.apk`. Size `222029232` bytes, SHA256 `15c54bf080887f6c6740cda4e09dba0a4aeaa88e68ca2725f02d5eb84d0aeaf6`. ZIP CRC checked, contains Japanese support assets and 35 native .so files.
+- Package ID remains `com.touhoudr` to attempt update over prior same-ID release. APK signature could differ between CI runners; if Android refuses update do NOT instruct immediate uninstall because app-private games and saves can be lost.
+- The Japanese path glyph issue is **unresolved**; don't claim original characters are now displayed correctly. User should check whether the original folder path can install successfully while retaining Japanese directory naming. If failure, investigate Japanese CP932/ANSI code-page rather than restoring automatic /DIR workaround.

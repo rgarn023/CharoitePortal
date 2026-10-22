@@ -77,6 +77,23 @@ public final class TouhouDiagnostics {
                 report += "\n\nJapanese probe report could not be read: " + error;
             }
         }
+        if (!probePath.isEmpty()) {
+            java.io.File parent = new java.io.File(probePath).getParentFile();
+            if (parent != null) for (String name : new String[]{
+                    "touhou_font_helper.log", "touhou_font_hook.log"}) {
+                try {
+                    java.io.File log = new java.io.File(parent, name);
+                    if (log.isFile()) {
+                        String output = new String(java.nio.file.Files.readAllBytes(log.toPath()),
+                                java.nio.charset.StandardCharsets.UTF_8);
+                        report += "\n\n" + name + ":\n" +
+                                output.substring(0, Math.min(7000, output.length()));
+                    } else report += "\n\n" + name + ": no report yet";
+                } catch (Exception error) {
+                    report += "\n" + name + ": " + error;
+                }
+            }
+        }
         return report;
     }
 

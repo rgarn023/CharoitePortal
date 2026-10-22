@@ -560,16 +560,69 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             item.addView(label(name, 16, Color.WHITE, true));
             item.addView(label(game.optInt("files", 0) + " files · " +
                     (game.optBoolean("installer") ? "Windows installer" : "Game folder"), 12, SECONDARY, false));
-            Button play = button(game.optBoolean("installer") ? "RUN INSTALLER" : "PLAY",
-                    () -> launchGame(path));
+            boolean installer = game.optBoolean("installer");
+            Button play = button(installer ? "RUN INSTALLER (ASCII DESTINATION)" : "PLAY",
+                    () -> {
+                        if (installer) selectInstallerDestination(path);
+                        else launchGame(path);
+                    });
             play.setEnabled(!busy && containerId > 0);
             item.addView(play);
+            if (installer) {
+                Button fallback = button("RUN INSTALLER WITHOUT PATH OVERRIDE",
+                    () -> launchGame(path));
+                fallback.setEnabled(!busy && containerId > 0);
+                item.addView(fallback);
+            }
             libraryArea.addView(item);
             spacerIn(libraryArea, 10);
         }
     }
 
+
+    /**
+     * Old Japanese Inno Setup dialog edit boxes may show missing glyph boxes
+     * even when Japanese descriptive text works correctly. Let the user specify
+     * an ASCII-only install path with Android native text entry and pass it
+     * directly to Inno's documented /DIR command-line option. Do not use this
+     * for non-Inno installers unless the user opts in.
+     */
+    private void selectInstallerDestination(String path) {
+        if (busy || containerId <= 0) return;
+        final android.widget.EditText edit = new android.widget.EditText(this);
+        edit.setSingleLine(true);
+        edit.setText("C:\\Touhou\\TPDP");
+        edit.setSelectAllOnFocus(true);
+        edit.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        final int pad = dp(20);
+        final android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(pad, dp(4), pad, 0);
+        layout.addView(edit);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Japanese installer destination")
+            .setMessage("Choose a Windows path using only English letters, numbers, underscores or hyphens. " +
+                    "For Inno Setup installers, this sets the folder before the installer opens. " +
+                    "It avoids the garbled Japanese path field.")
+            .setView(layout)
+            .setPositiveButton("Launch with safe path", (dialog, which) -> {
+                String value = edit.getText().toString().trim();
+                if (!value.matches("(?i)^[a-z]:\\\\[a-z0-9_-]+(?:\\\\[a-z0-9_-]+)*$")) {
+                    setStatus("Invalid path: use a path like C:\\Touhou\\TPDP, with English letters and no spaces.");
+                    return;
+                }
+                launchGame(path, value);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
     private void launchGame(String path) {
+        launchGame(path, null);
+    }
+
+    private void launchGame(String path, String innoDestination) {
         if (busy || containerId <= 0) return;
         if (!new File(path).isFile()) {
             setStatus("Game file is missing. Re-import the game.");
@@ -578,6 +631,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Intent play = new Intent(this, XServerDisplayActivity.class);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", path);
+        if (innoDestination != null) {
+            play.putExtra("touhou_setup_dir", innoDestination);
+            setStatus("Launching with ASCII installation directory: " + innoDestination);
+        }
         startActivity(play);
     }
 

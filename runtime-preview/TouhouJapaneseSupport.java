@@ -63,6 +63,16 @@ public final class TouhouJapaneseSupport {
             throw new IOException("Cannot create Windows Japanese Fonts folder");
         }
         File windowsFont = new File(windowsFonts, FONT_NAME);
+        // Read-only Win32 probe gets a file in this Wine C: drive; it never
+        // changes the original Windows setup.exe or its destination.
+        File probe = new File(prefix, "drive_c/touhou_probe.exe");
+        if (!probe.isFile() || probe.length() < 10000) {
+            if (!FileUtils.copy(context, "japanese/touhou_probe.exe", probe))
+                TouhouDiagnostics.recordLine("Optional Japanese probe asset copy failed.");
+        }
+        File previousProbe = new File(prefix, "drive_c/touhou_probe.log");
+        if (previousProbe.isFile() && !previousProbe.delete())
+            TouhouDiagnostics.recordLine("Previous installer probe report could not be cleared.");
         File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v5");
         File winIPA = new File(windowsFonts, "ipag.ttf");
         File winIPAP = new File(windowsFonts, "ipagp.ttf");

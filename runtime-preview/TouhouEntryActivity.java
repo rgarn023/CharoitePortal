@@ -128,6 +128,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         });
         main.addView(folderButton);
         main.addView(installerButton);
+        main.addView(button("COPY SAFE ENGLISH INSTALL PATH", () -> {
+            String safePath = "C:\\Touhou\\TPDP";
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(ClipData.newPlainText("Touhou installer folder", safePath));
+            setStatus("Copied C:\\Touhou\\TPDP. Paste or enter this in the installer's destination field if Japanese folder names appear as squares.");
+        }));
         scanButton = button("FIND INSTALLED TOUHOU GAMES", this::findInstalledGames);
         main.addView(scanButton);
         compatButton = button("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);

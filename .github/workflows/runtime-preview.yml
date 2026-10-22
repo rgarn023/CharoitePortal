@@ -101,7 +101,8 @@ jobs:
           with zipfile.ZipFile(apk) as z:
               assert "assets/japanese/japanese-support.tzst" in z.namelist()
               assert "assets/licenses/NotoSansCJK-OFL.txt" in z.namelist()
-              assert len(z.read("assets/japanese/japanese-support.tzst")) > 3000000
+              assert "assets/licenses/IPA-Font-License-1.0.txt" in z.namelist()
+              assert len(z.read("assets/japanese/japanese-support.tzst")) > 12000000
               print("Japanese locale and SIL OFL font license included")
           PY
 
@@ -116,6 +117,7 @@ jobs:
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
           cp runtime-preview/build_japanese_support.py legal-bundle/build_japanese_support.py
           cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
+          cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
 
       - name: Publish runtime preview APK
         uses: actions/upload-artifact@v4

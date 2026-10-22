@@ -69,10 +69,19 @@ jobs:
           command -v fc-scan
           python3 runtime-preview/build_japanese_support.py upstream
 
-      - name: Compile read-only Wine Japanese path probe
+      - name: Compile Japanese installer font helpers
+        timeout-minutes: 12
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq gcc-mingw-w64-x86-64 gcc-mingw-w64-i686
+          # Ubuntu runners may already have cross-compilers. Avoid indefinite
+          # apt lock/mirror waits by checking first and bounding installs.
+          if ! command -v x86_64-w64-mingw32-gcc >/dev/null ||
+             ! command -v i686-w64-mingw32-gcc >/dev/null; then
+            timeout 180s sudo DEBIAN_FRONTEND=noninteractive apt-get update -o Acquire::Retries=3 -qq
+            timeout 420s sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+              -o DPkg::Lock::Timeout=120 gcc-mingw-w64-x86-64 gcc-mingw-w64-i686
+          fi
+          command -v x86_64-w64-mingw32-gcc
+          command -v i686-w64-mingw32-gcc
           x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -municode -mwindows \
             runtime-preview/touhou_probe.c -o runtime-preview/touhou_probe.exe \
             -luser32 -lgdi32

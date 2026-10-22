@@ -22,7 +22,7 @@ strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 strings.write_text(src.replace('<string name="app_name">Winlator</string>',
-    '<string name="app_name">Touhou Pocket Launcher</string>'), encoding="utf-8")
+    '<string name="app_name">Touhou Pocket Test</string>'), encoding="utf-8")
 
 # Runtime assets use a same-length replacement Android package name to preserve\n# native ELF interpreter and library offsets. Do not change this ID without\n# rewriting runtime-preview/rewrite_prefix.py in tandem.\n# The provider authority must not collide with separately installed Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"

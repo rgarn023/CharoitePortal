@@ -2,6 +2,9 @@ package com.winlator;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -21,6 +24,10 @@ import androidx.documentfile.provider.DocumentFile;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.container.GraphicsDrivers;
+import com.winlator.container.DXWrappers;
+import com.winlator.box64.Box64Preset;
+import com.winlator.core.DefaultVersion;
+import androidx.preference.PreferenceManager;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xenvironment.RootFS;
 import com.winlator.xenvironment.RootFSInstaller;
@@ -63,6 +70,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button folderButton;
     private Button installerButton;
     private Button scanButton;
+    private Button compatButton;
+    private Button diagnosticButton;
     private boolean busy = false;
     private int containerId = 0;
 
@@ -121,6 +130,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         main.addView(installerButton);
         scanButton = button("FIND INSTALLED TOUHOU GAMES", this::findInstalledGames);
         main.addView(scanButton);
+        compatButton = button("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
+        main.addView(compatButton);
+        diagnosticButton = button("VIEW LAST LAUNCH DIAGNOSTICS", this::showDiagnostics);
+        main.addView(diagnosticButton);
         spacer(20);
 
         main.addView(label("YOUR TOUHOU LIBRARY", 19, Color.WHITE, true));
@@ -171,6 +184,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
+        compatButton.setEnabled(!busy && ready);
+        compatButton.setText(getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false) ?
+                "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
+        diagnosticButton.setEnabled(!busy);
         refreshLibrary();
     }
 
@@ -182,6 +199,46 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return container;
     }
 
+
+    /** Preferences adjust only this app's private game environment. */
+    private void toggleCompatibility() {
+        if (busy || containerId <= 0) return;
+        try {
+            boolean compatible = !getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
+            Container current = new ContainerManager(this).getContainerById(containerId);
+            if (current == null) throw new IllegalStateException("Windows game environment missing");
+            current.setGraphicsDriver(compatible ?
+                GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL :
+                GraphicsDrivers.getDefaultDriver(this));
+            current.setDXWrapper(compatible ? DXWrappers.WINED3D : Container.DEFAULT_DXWRAPPER);
+            current.setBox64Preset(compatible ? Box64Preset.CONSERVATIVE : Box64Preset.STABILITY);
+            current.setScreenSize(compatible ? "800x600" : "1280x720");
+            current.saveData();
+            getPreferences(MODE_PRIVATE).edit().putBoolean("compat_graphics", compatible).apply();
+            updateButtons();
+            setStatus(compatible ?
+                "Compatibility graphics enabled (Vortek/VirGL, WineD3D, conservative Box64). Try Play again." :
+                "Normal graphics restored. Try Play again.");
+        } catch (Exception e) {
+            setStatus("Could not change graphics mode: " + e.getMessage());
+        }
+    }
+
+    /** Diagnostic details remain on-device until the user explicitly copies them. */
+    private void showDiagnostics() {
+        final String report = TouhouDiagnostics.getReport(this);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Touhou startup diagnostics")
+            .setMessage(report)
+            .setPositiveButton("Copy report", (dialog, which) -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("Touhou startup report", report));
+                setStatus("Startup report copied. Share the error text for troubleshooting.");
+            })
+            .setNegativeButton("Close", null)
+            .show();
+    }
+
     private void startSetup() {
         if (busy) return;
         busy = true;
@@ -191,6 +248,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             try {
                 RootFS root = RootFS.find(this);
                 if (!root.isValid() || root.getVersion() < RootFSInstaller.LATEST_VERSION) {
+                    SettingsFragment.resetPreferenceVersions(this);
+                    PreferenceManager.getDefaultSharedPreferences(this).edit()
+                        .putString("box64_version", DefaultVersion.BOX64)
+                        .remove("current_box64_version").apply();
                     File rootDir = root.getRootDir();
                     if (!rootDir.isDirectory() && !rootDir.mkdirs())
                         throw new IllegalStateException("Cannot create private engine storage");
@@ -219,9 +280,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             }
             JSONObject profile = new JSONObject();
             profile.put("name", "Touhou Games");
-            profile.put("screenSize", "1280x720");
-            profile.put("graphicsDriver", GraphicsDrivers.getDefaultDriver(this));
-            profile.put("dxwrapper", Container.DEFAULT_DXWRAPPER);
+            boolean conservative = getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
+            profile.put("screenSize", conservative ? "800x600" : "1280x720");
+            profile.put("graphicsDriver", conservative ?
+                GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL :
+                GraphicsDrivers.getDefaultDriver(this));
+            profile.put("dxwrapper", conservative ? DXWrappers.WINED3D : Container.DEFAULT_DXWRAPPER);
+            profile.put("box64Preset", conservative ? Box64Preset.CONSERVATIVE : Box64Preset.STABILITY);
             profile.put("audioDriver", Container.DEFAULT_AUDIO_DRIVER);
             manager.createContainerAsync(profile, container -> {
                 if (isFinishing() || isDestroyed()) return;
@@ -431,7 +496,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         for (File file : files) {
             if (file.isDirectory()) collectExecutables(root, file, matches, depth + 1);
             else if (file.getName().toLowerCase(Locale.ROOT).endsWith(".exe")) {
-                String rel = root.toURI().relativize(file.toURI()).getPath();
+                String rel = file.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
                 matches.add(rel);
             }
         }

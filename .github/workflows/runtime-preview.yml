@@ -58,7 +58,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           box64 = Path('/tmp/touhou-elf-check/usr/local/bin/box64').read_bytes()
-          assert b'/data/data/com.touhoupk/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
+          assert b'/data/data/com.touhoujp/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
           assert b'/data/data/com.winlator/' not in box64
           print('Box64 loader uses Touhou package path, not inaccessible Winlator data.')
           PY

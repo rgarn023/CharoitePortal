@@ -63,6 +63,11 @@ jobs:
           print('Box64 loader uses Touhou package path, not inaccessible Winlator data.')
           PY
 
+      - name: Build licensed Japanese language support pack
+        run: |
+          command -v localedef
+          python3 runtime-preview/build_japanese_support.py upstream
+
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
 
@@ -87,6 +92,19 @@ jobs:
               print("Verified", checked, "native libraries have no stale Winlator app-data path")
           PY
 
+      - name: Verify Japanese fonts and locale shipped in APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              assert "assets/japanese/japanese-support.tzst" in z.namelist()
+              assert "assets/licenses/NotoSansCJK-OFL.txt" in z.namelist()
+              assert len(z.read("assets/japanese/japanese-support.tzst")) > 3000000
+              print("Japanese locale and SIL OFL font license included")
+          PY
+
       - name: Archive LGPL source and derivative patch
         run: |
           mkdir -p upstream/app/src/main/assets/licenses
@@ -96,6 +114,8 @@ jobs:
           cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
           cp runtime-preview/overlay.py legal-bundle/overlay.py
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
+          cp runtime-preview/build_japanese_support.py legal-bundle/build_japanese_support.py
+          cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
 
       - name: Publish runtime preview APK
         uses: actions/upload-artifact@v4

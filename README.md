@@ -32,3 +32,12 @@ The development overlay is in [runtime-preview](runtime-preview/). Upstream LGPL
 The original APK was unable to execute Box64 on a Galaxy S26 Ultra (error=13 Permission denied). The packaged ARM64 ELF interpreter and runtime assets contained absolute paths to com.winlator even though the app used a different Android ID.
 New runtime build is labeled Touhou Pocket Test with separate Android ID com.touhoupk. The build rewrites hardcoded paths in upstream runtime tarballs, preserves ELF sizes, corrects native C++ cache paths, and verifies the loader. This is a separate test app, not an in-place upgrade; keep your old installation and any stored games/saves.
 Install only the APK artifact from the latest successful runtime workflow, run Set Up Game Engine and retry game installation. If it fails, use View Last Launch Diagnostics to retrieve the Box64 preflight report. Real Android gameplay remains unverified.
+
+
+## Japanese support for Puppet Dance Performance (October 22, 2026)
+
+The Touhou Pocket Test runtime includes an optional-on-install (enabled by default) **Japanese font/locale addon** for Windows game installers and menus. It supplies licensed Noto Sans CJK JP OpenType glyphs, a compiled `ja_JP.UTF-8` glibc locale, Win32 font aliases for MS Gothic/Meiryo/Yu Gothic, and Japanese Wine guest process language settings to support Japanese legacy installer text and filenames.
+
+The font is pinned to official [Noto CJK](https://github.com/notofonts/noto-cjk), subject to its included SIL Open Font License (packaged inside the APK). Fonts and locale files are installed to app-private Wine directories with per-prefix markers; no user's game files are intentionally overwritten.
+
+If your previously working Touhou `setup.exe` displayed random Japanese characters, try the next successful [runtime build](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml) and verify a kana/kanji dialog and paths. **Android game execution and correct rendering still require on-device testing.**

@@ -2,8 +2,17 @@ name: Android Debug APK
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/android-debug.yml'
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: android-alpha-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   android:
     runs-on: ubuntu-latest

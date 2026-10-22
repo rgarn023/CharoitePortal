@@ -362,3 +362,24 @@ New v5 source uses in-process targeted Win32 GDI patch rather than cross-process
 - The APK contains `assets/japanese/touhou_probe.exe` v5 (314907 bytes), `touhou_font_helper32.exe` (241945 bytes), `touhou_font_helper64.exe` (256053), `touhou_font_hook32.dll` (220448), and `touhou_font_hook64.dll` (224846). Both IPA and Noto license notices present; 35 native Android shared objects.
 - **NOT YET ON-DEVICE VALIDATED.** Do not claim the original Japanese path now renders correctly; Wine might reject thread-specific hook, desktop switch, or PE bitness. User must install over previous `com.touhoudr` without uninstalling/clearing data (Android debug signature may differ; protect imported games/saves).
 - Exact device test: launch original `setup.exe`, go to default destination field `C:\\game\\FocasLens\\幻想人形演舞` previously showing squares, keep open ~25 sec, observe whether kanji appear; then back to Touhou launcher > View Last Launch Diagnostics > Copy Report. Look for `touhou-probe-v5`, `font-fix: launched in-process helper`, `helper-v1: thread-specific hook installed`, and `hook-v1: SUCCESS applied IPAPGothic...`. If hook fails, use error logged to choose next fix rather than another blind font swap.
+
+
+## 2026-10-22 confirmed font hook success, latency follow-up
+
+User ran the in-process (thread-specific WH_GETMESSAGE) Japanese font hook APK and explicitly confirmed: **"It works but the blocks were delayed in changing to the right characters."** This is the first confirmed working Japanese rendering fix! User report:
+- `touhou-probe-v5 GetACP=932`, original path still `C:\\game\\FocasLens\\幻想人形演舞`.
+- `font-fix: launched in-process helper (32bit=1,targetThread=232)`
+- `helper-v1: selected Wine nogui desktop`
+- `helper-v1: thread-specific hook installed; waking installer thread`
+- `hook-v1: callback executing within installer GUI thread`
+- `hook-v1: target TEdit found in original installer thread`
+- `hook-v1: SUCCESS applied IPAPGothic to path edit; original Unicode destination unchanged`.
+Thus the actual font fix works, original Japanese path is preserved, and installing additional fonts or rewriting path is not needed. Remaining issue is the visible delay.
+
+### Startup-timing optimization on main
+- Commit `58c94e67e8d1f7acd1d270d67daf28c7a2179c31`: `runtime-preview/overlay.py` starts the Wine font monitor **750ms after EXE process launch instead of 9000ms**. Scope remains original `setup.exe`; no other game/installer changes.
+- Commit `7ca9660030959bce26f20a2b35022521326bc8e3`: `runtime-preview/touhou_probe.c` v6 polls original path TEdit every **300ms** for first ~minute, then **850ms** for several more minutes (previously every 2000ms for only 60 sec). Allows user to navigate installer while hook is ready, minimizing visible block delay. Suppresses repetitive desktop logs. In-process bitness-matched font helper/hook unchanged.
+- Latest workflow run at time of writing: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39859088115 . Check **completed/success** and collect artifact before delivering an APK; latest run 39859012781 for first commit was auto-canceled by workflow concurrency.
+- Preserve package ID `com.touhoudr`, original path, single installer entry, legitimate user-owned games. Debug APK signatures may differ; never instruct uninstall/clear data with imported files.
+- Ask user to check that Japanese destination displays correctly without waiting several seconds in the new APK and report delay, if any. If still slow, profile Windows Wine side process creation/WM_GETMESSAGE wakeup rather than tinkering with working font registration. Continue focus on rendering latency until satisfied.
+- Reminder: app still uses Winlator-derived Wine/Box64 display/backend; no false claims of fully independent backend. More Touhou-themed launcher icon is an outstanding separate request.

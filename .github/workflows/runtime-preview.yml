@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: touhou-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-runtime-preview:
     runs-on: ubuntu-latest

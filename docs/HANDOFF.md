@@ -1,57 +1,56 @@
-# Touhou Pocket Launcher — project handoff
+# Touhou Pocket Launcher — ChatGPT development handoff
 
-Updated: October 22, 2026. Use the latest GitHub commit as authoritative source.
+Updated: 2026-10-22. **Check latest main commit and GitHub Actions status before stating an APK is ready.**
 
-## Development responsibility and workflow
-- **ChatGPT is the sole developer** and makes changes directly with the connected GitHub tools. Do **not** tell user to use Cursor/Gemini or ask them to upload GitHub files. Discover `mcp__GitHub__` via `functions.exec` / `ALL_TOOLS` first if needed.
-- Repository: https://github.com/rgarn023/TouhouPocketLauncher (public), default/current development branch **main**. Continue on main unless user explicitly asks otherwise.
-- GitHub Actions compiles APKs. User only tests device functionality when that cannot be confirmed via CI.
-- If chat becomes unwieldy, provide comprehensive handoff with source URLs, build status, next tasks, and user requirements. Latest main README and this file have the durable record.
+## Critical development workflow
+- **ChatGPT develops directly in connected GitHub.** Do not recommend Cursor or another coding agent. Discover `mcp__GitHub__` via `functions.exec` / `ALL_TOOLS` if needed.
+- Repo: https://github.com/rgarn023/TouhouPocketLauncher; branch: **main**; repository public and confirmed writable.
+- User requests that ChatGPT proactively prepare handoffs when chat becomes lengthy. This markdown is the durable handoff.
+- User's Galaxy S26 Ultra is the test device.
+- Do not ask user to upload repo files already accessible on GitHub; device testing still requires user to run the APK and report results.
 
-## Requirements
-- Free Android Touhou Pocket Launcher by Charoite Games, phone-first Galaxy S26 Ultra.
-- **Completely standalone APK** with bundled license-compliant Wine/Box64 graphics runtime, no separate Winlator requirement.
-- Support legally obtained Touhou Windows EXE installers / game folders; initially **Touhou Puppet Dance Performance** (TPDP), **Shard of Dreams** (SoD), **Shard of Dreams Extended** (Extended).
-- Support independent English patches (ZIP or Windows installers when safe), with version checks and backups; **no thcrap**.
-- Native mobile UX, touch controls and controllers, reliable saves, performance/graphics/audio.
-- Do not bundle copyrighted Touhou games or patch content.
+## Product requirements
+- One **standalone Android APK with a Touhou-first native interface**, NOT the Winlator app interface. Wine/Box64 stays completely underneath. The game renderer may still use native Winlator-derived controls, but no container manager / Winlator menus as the main UI.
+- Touhou Puppet Dance Performance (TPDP), Shard of Dreams (SoD), Extended first. Later other Touhou Windows games.
+- Import legally owned Windows game EXEs/installed folders; English patches installed independently with backups and rollback, **no thcrap**.
+- Automatically handle unusual installation paths, Japanese filenames, and `notkey` workaround for SoD if needed.
+- Touch/gamepad support, responsive Samsung screen layouts, saved game protection, proper graphics/audio, efficient native frame pacing.
+- Respect Wine/Box64/Winlator and other third-party licenses. No copyrighted games/patches bundled.
 
-## Current source projects
-**Native alpha**
-- `app/src/main/java/games/charoite/touhoupocket/`: Kotlin UI, SAF folder import, game recognition, ZIP inspection, EXE/ZIP staging, local library.
-- `NotkeyLinkManager.kt`: small safety checked symlink helper, covered by JVM tests. Not yet wired into a functional Windows install.
-- `.github/workflows/android-debug.yml` builds alpha APK. Earlier successful run `39778165113`.
-- Native alpha does **NOT** launch or install EXEs.
+## Source/build architecture
+There are **two build variants**, presently installed as different Android packages:
+1. Old **Kotlin file-import-only alpha**, `app/`, workflow `.github/workflows/android-debug.yml`. Build passed; cannot run EXEs; retain as reference.
+2. **Integrated Wine runtime / Touhou launcher** `runtime-preview/`, workflow `.github/workflows/runtime-preview.yml`. Builds pinned upstream `brunodev85/winlator-app` at commit `8077f374ef2d54127b088de9e8cd7b4af14d9c8b`. Reproducible overlay patches app label, application ID `games.charoite.touhoupocket.runtime`, provider authority, theme, splash/activity, and documentfile dependency; bundles LGPL notice. Source and licensing in `runtime-preview/NOTICE.md`.
 
-**Integrated Windows runtime preview (NEW, working GitHub build)**
-- `runtime-preview/overlay.py`, `TouhouEntryActivity.java`, `NOTICE.md`, `.github/workflows/runtime-preview.yml`.
-- Builds from pinned LGPL source of `brunodev85/winlator-app`, Git SHA `8077f374ef2d54127b088de9e8cd7b4af14d9c8b`. Uses rootfs, Wine, Box64, graphics assets and source-built Android/native components.
-- Overlay modifies app label, appId to `games.charoite.touhoupocket.runtime`, FileProvider authority, entry launcher, embeds LGPL notices, leaves Winlator engine and container UI.
-- **Build SUCCESS**: Actions run https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39787333874 (2026-10-22), artifact `touhou-pocket-runtime-preview-apk`, ~157 MB ZIP containing `app-debug.apk` (~157,563,163 bytes). APK ZIP integrity verified in development session, contains arm64 libraries, rootfs and LGPL notice.
-- This **is not yet a complete dedicated game launcher**: entry page leads to original Winlator container UI, which can be used to test Windows game execution. **No Android device/TPDP gameplay verification has occurred.** Do not misrepresent build success as game compatibility.
-- License: see `runtime-preview/NOTICE.md`, original upstream LGPL-2.1 and relevant third-party licenses. If redistributing, comply with all obligations.
-- Test details: `docs/RUNTIME-TEST.md`.
+## Latest implementation (important: user specifically rejected Winlator interface)
+Original runtime preview launched native `TouhouEntryActivity` but pressing its button entered the **Winlator container-manager UI**. User explicitly said they do not want that.
+New `runtime-preview/TouhouEntryActivity.java` **removes Winlator UI navigation**:
+- Touhou Pocket game library with native Android interface.
+- `Set Up Game Engine` runs private `rootfs.tzst` extraction and creates a `Touhou Games` container automatically with Winlator's own `ContainerManager`.
+- `Import Game Folder` uses Android SAF, copies complete owned game into the private C drive with path/size/file-count limits, detects `gn_enbu.exe`, `enbu_ap.exe` and numbered Touhou EXEs.
+- `Import Windows Game Installer (.EXE)` imports selected installer to a private folder; `Run Installer` launches its EXE.
+- `Find Installed Touhou Games` scans the Windows C drive for known EXEs, so after installer completes the user can play without browsing Wine UI.
+- `Play` starts `XServerDisplayActivity` directly with `container_id` and `exec_path`, bypassing Winlator MainActivity.
+- Native theme changed to `@style/AppThemeDark` because Touhou entry now inherits AppCompatActivity.
+- Winlator's `MainActivity` launcher intent filter is removed and it is non-exported; the backend remains bundled for rendering and controls.
 
-## TPDP `notkey` compatibility concern
-- Wine bug involving Japanese paths and SoD installer sometimes requires a symlink named `notkey` **in SoD folder**, pointing to base TPDP directory. Wine bug report: https://bugs.winehq.org/show_bug.cgi?id=54295 ; Steam Deck guide: https://gist.github.com/RobertTheSable/6c4d705623b4de8d8cb3c954eac4814f
-- Reportedly fixed Wine 9.21; only enable symlink workaround if the actual selected Wine runtime needs it. The Kotlin helper does not automatically affect the runtime preview APK because they are currently separate builds.
+**CI:** New code was committed with SHA `61636c4270cd1bbc04975106f66e3e87a1141010`. Runtime workflow had earlier successful builds, including `39790755310` for UI without game scan. Run `39791004531` (commit `dc3a6e6d...`, same Touhou entry with game scan plus workflow concurrency) is the final intended test; inspect live status/artifact before claiming success. Workflow: https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml .
 
-## Immediate next implementation milestones
-1. Have user install the **runtime preview** APK from successful GitHub Actions artifact, test that Winlator initializes and can create a container; gather crash/problem details.
-2. Test **unpatched TPDP base game** in this self-contained runtime. Diagnose Wine graphics/font/input or Japanese locale issues, optimize Galaxy performance.
-3. Merge dedicated Kotlin library/install wizard into the integrated runtime or port/bridge game-specific UI with upstream engine, so **one APK** does everything.
-4. Add TPDP/SoD profile selection, safe installer EXE handling, Japanese path support and conditional `notkey` creation with verified target.
-5. Add standalone English patch installers (with backups/version checks) then Extended DXGI override support.
-6. Add touch gamepad/saves/restore and benchmark game-native frame pacing on device.
+## What remains unverified
+- On-device Android installation, first engine extraction, container creation, game imports, real Windows EXE startup, graphics/audio/input on Galaxy S26 Ultra. **A successful GitHub build only proves compilation.**
+- Standalone English patches, Shard of Dreams Extended DLL override, and `notkey` adaptation for integrated runtime **not implemented**.
+- UI is Touhou-specific, but the XServer in-game display still inherits some Winlator controls; replacing these while retaining debugging/accessibility should be a future step.
+- Game folder copied into private app data; uninstalling app can delete files/saves. Must add backup/export.
 
-## Helpful links
-- Repo: https://github.com/rgarn023/TouhouPocketLauncher
-- Runtime build: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39787333874
-- Upstream engine: https://github.com/brunodev85/winlator-app
-- Source changes: `runtime-preview/`
-- Device testing: `docs/RUNTIME-TEST.md`
+## SoD `notkey` workaround
+- Documented Wine 9.21-era fix for Japanese path install bug may require symlink named `notkey` **inside SoD installation directory**, pointing at base TPDP folder.
+- `app/src/main/java/games/charoite/touhoupocket/NotkeyLinkManager.kt` tested in original Kotlin alpha but not yet moved into integrated Java runtime. Only use it if actual Wine version requires. Reference: https://bugs.winehq.org/show_bug.cgi?id=54295
 
-## Risks / honesty
-- Engine preview is built and bundled, but ability to *install/run* TPDP on specific Android phone is unknown until device test.
-- Independent English patches vary by game/version/format. Do not claim universal compatibility.
-- Runtime preview and native alpha are two Android packages. This is intentional temporary scaffolding, not final one-APK UX.
+## Immediate next steps
+1. Inspect latest runtime-preview GitHub Actions run and fix compile errors if present. Download the successful artifact `touhou-pocket-runtime-preview-apk` containing `app-debug.apk`.
+2. Have user test **Touhou Pocket** screen > **Set Up Game Engine** > **Import Game Folder** > **Play** with TPDP base game, or EXE installer > **Find Installed Touhou Games**. Troubleshoot with exact failures.
+3. Make engine setup/import robust, profile TPDP base and SoD, Japanese locale/graphics. Keep Winlator container UI hidden.
+4. After base game works, implement independent English patch management and SoD `notkey` compatibility, then Extended and touch controls.
+5. Handoff to a new conversation only when context reaches limits; use this file and current main.
+
+Documentation: `README.md` and `docs/RUNTIME-TEST.md` updated for direct Touhou UI.

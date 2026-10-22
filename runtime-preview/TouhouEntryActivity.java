@@ -120,7 +120,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             startActivityForResult(picker, FOLDER_REQUEST);
         });
-        installerButton = button("IMPORT WINDOWS GAME INSTALLER (.EXE)", () -> {
+        installerButton = button("IMPORT SINGLE-FILE INSTALLER (.EXE)", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             picker.addCategory(Intent.CATEGORY_OPENABLE);
             picker.setType("*/*");
@@ -145,7 +145,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 12, SECONDARY, false));
         spacer(12);
         main.addView(label(
-                "Beta: imports and direct EXE launch. Shard of Dreams / Extended and automatic English patches are still under development. " +
+                "To install games that include data files alongside setup.exe, choose Import Game Folder (not Single-File Installer). " +
+                "Shard of Dreams / Extended and automatic English patches are still under development. " +
                 "Games and translations are not included; import files you own.",
                 12, 0xffa3abc4, false));
         main.addView(label("Powered by licensed Wine/Box64 components. Runtime acknowledgments: github.com/brunodev85/winlator-app",
@@ -416,9 +417,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     throw new IllegalArgumentException("No executable found in selected game files");
                 File exe = new File(destination, executable);
                 JSONObject entry = new JSONObject();
-                entry.put("name", folder ? gameName(executable) : "Windows installer: " + executable);
+                boolean installer = !folder || isLikelyInstaller(executable);
+                entry.put("name", installer ? "Windows installer: " + new File(executable).getName() : gameName(executable));
                 entry.put("path", exe.getAbsolutePath());
-                entry.put("installer", !folder);
+                entry.put("installer", installer);
                 entry.put("files", count);
                 saveEntry(entry);
                 runOnUiThread(() -> finishOperation("Imported successfully. Select Play from your library."));
@@ -486,7 +488,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             String n = new File(value).getName().toLowerCase(Locale.ROOT);
             if (n.matches("th(0[6-9]|1[0-9]|20)\\.exe")) return value;
         }
+        for (String value : candidates) {
+            if (isLikelyInstaller(value)) return value;
+        }
         return candidates.get(0);
+    }
+
+    private boolean isLikelyInstaller(String path) {
+        String name = new File(path).getName().toLowerCase(Locale.ROOT);
+        return name.equals("setup.exe") || name.startsWith("setup_") ||
+            name.startsWith("install") || name.contains("installer");
     }
 
     private void collectExecutables(File root, File folder, List<String> matches, int depth) {

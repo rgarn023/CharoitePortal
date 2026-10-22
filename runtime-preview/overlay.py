@@ -67,6 +67,71 @@ assert not target.exists(), "Upstream has a colliding Touhou entry activity"
 overlay = Path(__file__).resolve().parent / "TouhouEntryActivity.java"
 target.write_bytes(overlay.read_bytes())
 
+# Instrument the Wine renderer instead of leaving "Starting up" forever.
+display = java_root / "com/winlator/XServerDisplayActivity.java"
+code = display.read_text(encoding="utf-8")
+old_show = "        preloaderDialog.show(R.string.starting_up);"
+assert code.count(old_show) == 1, "Startup dialog marker changed"
+code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {false};
+        if (getIntent().hasExtra("exec_path")) {
+            TouhouDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
+            ProcessHelper.addDebugCallback(TouhouDiagnostics.CALLBACK);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                if (!isFinishing() && !touhouWindowOpened[0]) {
+                    TouhouDiagnostics.fail(this, "No Windows game window appeared after 45 seconds. Check Wine/Box64 and graphics compatibility.");
+                    preloaderDialog.closeOnUiThread();
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Touhou game did not start")
+                        .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Touhou Pocket and open Launch Diagnostics, or switch to Compatibility Graphics.")
+                        .setCancelable(false)
+                        .setPositiveButton("Return to Touhou Pocket", (d, which) -> exit())
+                        .show();
+                }
+            }, 45000);
+        }
+""" + old_show)
+old_cursor = "                    xServerView.getRenderer().setCursorVisible(true);"
+assert code.count(old_cursor) == 1, "Window-open marker changed"
+code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;
+                    if (getIntent().hasExtra("exec_path")) TouhouDiagnostics.windowOpened(this);
+""" + old_cursor)
+old_exit = """        if (intent.hasExtra("exec_path")) {
+            AppUtils.RestartApplicationOptions options = new AppUtils.RestartApplicationOptions();
+            options.containerId = container.id;
+            options.startPath = FileUtils.getDirname(intent.getStringExtra("exec_path"));
+            AppUtils.restartApplication(this, options);
+        }
+        else AppUtils.restartApplication(this);"""
+assert code.count(old_exit) == 1, "Upstream exit routing marker changed"
+code = code.replace(old_exit, """        if (intent.hasExtra("exec_path")) {
+            ProcessHelper.removeDebugCallback(TouhouDiagnostics.CALLBACK);
+            Intent home = new Intent(this, TouhouEntryActivity.class);
+            home.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(home);
+            finish();
+        }
+        else AppUtils.restartApplication(this);""")
+old_callback = "        guestProgramLauncherComponent.setTerminationCallback((status) -> exit());"
+assert code.count(old_callback) == 1, "Guest-process exit callback changed"
+code = code.replace(old_callback, """        guestProgramLauncherComponent.setTerminationCallback((status) -> {
+            if (getIntent().hasExtra("exec_path") && status != 0)
+                TouhouDiagnostics.fail(this, "Wine/Box64 process exited with status " + status + ". See logs below.");
+            runOnUiThread(this::exit);
+        });""")
+display.write_text(code, encoding="utf-8")
+
+log_file = java_root / "com/winlator/core/ProcessHelper.java"
+process_code = log_file.read_text(encoding="utf-8")
+old_catch = "        catch (Exception e) {}\n        return pid;"
+assert process_code.count(old_catch) == 1, "Process failure marker changed"
+process_code = process_code.replace(old_catch,
+    "        catch (Exception e) { com.winlator.TouhouDiagnostics.recordLine(\"Native Windows process start failed: \" + e); }\n        return pid;")
+log_file.write_text(process_code, encoding="utf-8")
+
+diagnostics = java_root / "com/winlator/TouhouDiagnostics.java"
+assert not diagnostics.exists(), "Conflicting upstream diagnostics class"
+diagnostics.write_bytes((overlay.parent / "TouhouDiagnostics.java").read_bytes())
+
 # Both the upstream license and original attribution travel with the APK.
 license_dir = root / "app/src/main/assets/licenses"
 license_dir.mkdir(parents=True, exist_ok=True)

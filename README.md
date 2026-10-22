@@ -26,3 +26,9 @@ See [Android testing guide](docs/RUNTIME-TEST.md) and [project handoff](docs/HAN
 The APK builds from pinned, openly licensed [Winlator Android source](https://github.com/brunodev85/winlator-app) and uses its Wine/Box64 display/backend, but replaces the app's initial entry screen and hides the original container-manager launcher from users. There is **no requirement to install Winlator as a separate app**.
 
 The development overlay is in [runtime-preview](runtime-preview/). Upstream LGPL-2.1 and additional third-party license notices must be preserved. No proprietary games, expansions, or English translations are distributed.
+
+
+## Box64 native-path repair (October 22, 2026)
+The original APK was unable to execute Box64 on a Galaxy S26 Ultra (error=13 Permission denied). The packaged ARM64 ELF interpreter and runtime assets contained absolute paths to com.winlator even though the app used a different Android ID.
+New runtime build is labeled Touhou Pocket Test with separate Android ID com.touhoupk. The build rewrites hardcoded paths in upstream runtime tarballs, preserves ELF sizes, corrects native C++ cache paths, and verifies the loader. This is a separate test app, not an in-place upgrade; keep your old installation and any stored games/saves.
+Install only the APK artifact from the latest successful runtime workflow, run Set Up Game Engine and retry game installation. If it fails, use View Last Launch Diagnostics to retrieve the Box64 preflight report. Real Android gameplay remains unverified.

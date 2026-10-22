@@ -15,7 +15,7 @@ assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, 
 src = src.replace("applicationId 'com.winlator'", "applicationId 'games.charoite.touhoupocket.runtime'")
 assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
 src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
-    "implementation 'androidx.appcompat:appcompat:1.4.0'\\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
+    "implementation 'androidx.appcompat:appcompat:1.4.0'\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
 gradle.write_text(src, encoding="utf-8")
 
 strings = root / "app/src/main/res/values/strings.xml"

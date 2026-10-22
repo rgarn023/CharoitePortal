@@ -53,7 +53,7 @@ public final class TouhouJapaneseSupport {
             throw new IOException("Cannot create Windows Japanese Fonts folder");
         }
         File windowsFont = new File(windowsFonts, FONT_NAME);
-        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v1");
+        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v2");
         if (registrationMarker.isFile() && windowsFont.isFile()
                 && windowsFont.length() == linuxFont.length()) {
             return;
@@ -79,13 +79,32 @@ public final class TouhouJapaneseSupport {
                     "ＭＳ ＵＩ ゴシック"}) {
                 system.setStringValue(fontSubstitutes, alias, FONT_FAMILY);
             }
+            // Wine uses code page 932 for many non-Unicode Japanese setup
+            // programs. Wine should infer ACP from LANG, but these explicit
+            // NLS keys help preserve existing prefixes created under English.
+            final String nls = "System\\CurrentControlSet\\Control\\Nls\\CodePage";
+            system.setStringValue(nls, "ACP", "932");
+            system.setStringValue(nls, "OEMCP", "932");
         }
         try (WineRegistryEditor user = new WineRegistryEditor(userReg)) {
             user.setStringValue("Control Panel\\International", "Locale", "00000411");
             user.setStringValue("Control Panel\\International", "LocaleName", "ja-JP");
             WineUtils.setSystemFont(user, FONT_FAMILY);
+
+            // Winetricks fakejapanese uses HKCU Wine\Fonts\Replacements:
+            // the Windows FontSubstitutes key alone does not cover all Wine
+            // GDI edit controls, especially Japanese installation paths.
+            String replacements = "Software\\Wine\\Fonts\\Replacements";
+            for (String face : new String[]{
+                    "MS Gothic", "MS PGothic", "MS UI Gothic",
+                    "Meiryo", "Meiryo UI", "Yu Gothic", "Yu Gothic UI",
+                    "MS Mincho", "MS PMincho",
+                    "ＭＳ ゴシック", "ＭＳ Ｐゴシック", "ＭＳ ＵＩ ゴシック",
+                    "ＭＳ 明朝", "ＭＳ Ｐ明朝", "Ｍｅｉｒｙｏ"}) {
+                user.setStringValue(replacements, face, FONT_FAMILY);
+            }
         }
-        if (!FileUtils.writeString(registrationMarker, "v1\n")) {
+        if (!FileUtils.writeString(registrationMarker, "v2\n")) {
             throw new IOException("Could not mark Japanese font registration complete");
         }
         TouhouDiagnostics.recordLine("Japanese locale and Noto font installed successfully.");

@@ -2,88 +2,474 @@ package com.winlator;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.provider.OpenableColumns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-/**
- * Branded entrypoint for a Winlator-based standalone runtime preview.
- * Actual Wine/Box64 execution is delegated to unmodified upstream MainActivity.
- * No game content is shipped.
- */
-public final class TouhouEntryActivity extends Activity {
-    private final int background = Color.rgb(14, 15, 31);
-    private final int accent = Color.rgb(132, 93, 213);
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.documentfile.provider.DocumentFile;
 
-    @Override
-    public void onCreate(Bundle state) {
-        super.onCreate(state);
-        getWindow().setStatusBarColor(background);
-        getWindow().setNavigationBarColor(background);
-        ScrollView scrolling = new ScrollView(this);
-        scrolling.setFillViewport(true);
-        scrolling.setBackgroundColor(background);
-        LinearLayout main = new LinearLayout(this);
-        main.setOrientation(LinearLayout.VERTICAL);
-        main.setPadding(dp(24), dp(40), dp(24), dp(25));
-        scrolling.addView(main);
-        setContentView(scrolling);
-        main.addView(label("CHAROITE GAMES", 13f, 0xffad93f9, true));
-        main.addView(label("Touhou Pocket Launcher", 27f, Color.WHITE, true));
-        main.addView(label("Embedded Windows runtime preview", 15f, 0xffbfc8e3, false));
-        main.addView(spacer(20));
-        main.addView(label("This experimental build includes the Winlator runtime for testing Touhou Project Windows games. " +
-            "It does not bundle games, apply patches automatically, or guarantee that Shard of Dreams launches.", 14f, 0xffdae1f1, false));
-        main.addView(spacer(20));
-        Button open = new Button(this);
-        open.setText("OPEN WINDOWS RUNTIME");
-        open.setAllCaps(false);
-        open.setTextColor(Color.WHITE);
-        open.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accent));
-        open.setMinHeight(dp(58));
-        open.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
-        main.addView(open);
-        main.addView(spacer(24));
-        main.addView(label("FIRST TEST ON YOUR GALAXY", 15f, Color.WHITE, true));
-        main.addView(label(
-            "1. Open the Windows runtime. Allow first-launch setup to finish.\n" +
-            "2. Create a container with appropriate graphics settings.\n" +
-            "3. Copy your legally obtained TPDP files to a folder visible to the Windows environment.\n" +
-            "4. Install and test the base game, then Shard of Dreams.\n" +
-            "5. English patches and the optional notkey workaround will be integrated into the dedicated launcher next.",
-            14f, 0xffc9d3ea, false));
-        main.addView(spacer(24));
-        main.addView(label(
-            "Runtime derived from Winlator by brunodev85 (LGPL-2.1), Wine, Box64 and other third-party projects. " +
-            "See LICENSE and upstream source at github.com/brunodev85/winlator-app. " +
-            "This is a development preview and is not affiliated with FocasLens.",
-            12f, 0xffa8b0cc, false));
+import com.winlator.container.Container;
+import com.winlator.container.ContainerManager;
+import com.winlator.container.GraphicsDrivers;
+import com.winlator.core.TarCompressorUtils;
+import com.winlator.xenvironment.RootFS;
+import com.winlator.xenvironment.RootFSInstaller;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+
+/**
+ * Touhou-first Android entry point. All game operations happen through this
+ * screen; the original Winlator settings/container manager isn't launched.
+ *
+ * The compatible XServerDisplayActivity remains the game rendering backend.
+ */
+public final class TouhouEntryActivity extends AppCompatActivity {
+    private static final int FOLDER_REQUEST = 1001;
+    private static final int EXE_REQUEST = 1002;
+    private static final int BG = 0xff101322;
+    private static final int PANEL = 0xff222841;
+    private static final int SECONDARY = 0xffc7cde3;
+    private static final int ACCENT = 0xff8d67d9;
+    private static final long MAX_GAME_BYTES = 6L * 1024 * 1024 * 1024;
+    private static final int MAX_FILES = 12000;
+
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private TextView statusText;
+    private LinearLayout libraryArea;
+    private LinearLayout main;
+    private Button initButton;
+    private Button folderButton;
+    private Button installerButton;
+    private boolean busy = false;
+    private int containerId = 0;
+
+    @Override public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(BG);
+        getWindow().setNavigationBarColor(BG);
+        render();
+        refreshReadyState();
     }
 
-    private TextView label(String value, float sp, int color, boolean bold) {
+    @Override public void onDestroy() {
+        super.onDestroy();
+        worker.shutdown();
+    }
+
+    private void render() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(BG);
+        main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setPadding(dp(20), dp(30), dp(20), dp(35));
+        scroll.addView(main);
+        setContentView(scroll);
+
+        main.addView(label("CHAROITE GAMES", 12, 0xffc09cff, true));
+        main.addView(label("Touhou Pocket", 29, Color.WHITE, true));
+        main.addView(label("YOUR GAMES. ONE LIBRARY.", 12, SECONDARY, false));
+        spacer(20);
+
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        info.setPadding(dp(14), dp(15), dp(14), dp(15));
+        info.setBackgroundColor(PANEL);
+        info.addView(label("Game Engine", 18, Color.WHITE, true));
+        statusText = label("Checking Windows compatibility engine…", 13, SECONDARY, false);
+        info.addView(statusText);
+        main.addView(info);
+        spacer(12);
+
+        initButton = button("SET UP GAME ENGINE", this::startSetup);
+        main.addView(initButton);
+        folderButton = button("IMPORT GAME FOLDER", () -> {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            startActivityForResult(picker, FOLDER_REQUEST);
+        });
+        installerButton = button("IMPORT WINDOWS GAME INSTALLER (.EXE)", () -> {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.setType("*/*");
+            startActivityForResult(picker, EXE_REQUEST);
+        });
+        main.addView(folderButton);
+        main.addView(installerButton);
+        spacer(20);
+
+        main.addView(label("YOUR TOUHOU LIBRARY", 19, Color.WHITE, true));
+        libraryArea = new LinearLayout(this);
+        libraryArea.setOrientation(LinearLayout.VERTICAL);
+        main.addView(libraryArea);
+        spacer(18);
+        main.addView(label("Puppet Dance Performance • Shard of Dreams • other Windows Touhou titles",
+                12, SECONDARY, false));
+        spacer(12);
+        main.addView(label(
+                "Beta: imports and direct EXE launch. Shard of Dreams / Extended and automatic English patches are still under development. " +
+                "Games and translations are not included; import files you own.",
+                12, 0xffa3abc4, false));
+        main.addView(label("Powered by licensed Wine/Box64 components. Runtime acknowledgments: github.com/brunodev85/winlator-app",
+                11, 0xffa3abc4, false));
+        refreshLibrary();
+    }
+
+    private void refreshReadyState() {
+        RootFS root = RootFS.find(this);
+        if (!root.isValid()) {
+            containerId = 0;
+            setStatus("Setup required: install the built-in game engine once.");
+        } else if (root.getVersion() < RootFSInstaller.LATEST_VERSION) {
+            containerId = 0;
+            setStatus("Engine needs an update. Tap Set Up Game Engine.");
+        } else {
+            try {
+                ContainerManager manager = new ContainerManager(this);
+                Container selected = getActiveContainer(manager);
+                containerId = selected != null ? selected.id : 0;
+                setStatus(selected == null ?
+                        "Engine installed. Tap Set Up Game Engine to prepare your game environment." :
+                        "Engine ready. Import a game folder or EXE, then tap Play.");
+            } catch (Exception ex) {
+                containerId = 0;
+                setStatus("Engine check failed: " + ex.getMessage());
+            }
+        }
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        RootFS root = RootFS.find(this);
+        boolean ready = root.isValid() && root.getVersion() >= RootFSInstaller.LATEST_VERSION && containerId > 0;
+        initButton.setEnabled(!busy);
+        folderButton.setEnabled(!busy && ready);
+        installerButton.setEnabled(!busy && ready);
+        refreshLibrary();
+    }
+
+    private Container getActiveContainer(ContainerManager manager) {
+        int saved = getPreferences(MODE_PRIVATE).getInt("touhou_container", 0);
+        Container container = saved > 0 ? manager.getContainerById(saved) : null;
+        if (container == null && !manager.getContainers().isEmpty())
+            container = manager.getContainers().get(0);
+        return container;
+    }
+
+    private void startSetup() {
+        if (busy) return;
+        busy = true;
+        setStatus("Preparing private Windows game engine. This may use substantial storage.");
+        updateButtons();
+        worker.execute(() -> {
+            try {
+                RootFS root = RootFS.find(this);
+                if (!root.isValid() || root.getVersion() < RootFSInstaller.LATEST_VERSION) {
+                    File rootDir = root.getRootDir();
+                    if (!rootDir.isDirectory() && !rootDir.mkdirs())
+                        throw new IllegalStateException("Cannot create private engine storage");
+                    boolean ok = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this,
+                            "rootfs.tzst", rootDir);
+                    if (!ok) throw new IllegalStateException("Could not extract Windows engine resources");
+                    root.createRFSVersionFile(RootFSInstaller.LATEST_VERSION);
+                    if (!root.isValid()) throw new IllegalStateException("Engine verification failed");
+                }
+                runOnUiThread(this::ensureGameEnvironment);
+            } catch (Exception ex) {
+                runOnUiThread(() -> finishOperation("Setup failed: " + ex.getMessage()));
+            }
+        });
+    }
+
+    private void ensureGameEnvironment() {
+        setStatus("Creating game environment…");
+        try {
+            ContainerManager manager = new ContainerManager(this);
+            Container existing = getActiveContainer(manager);
+            if (existing != null) {
+                containerId = existing.id;
+                finishOperation("Touhou game engine ready. Import a game to play.");
+                return;
+            }
+            JSONObject profile = new JSONObject();
+            profile.put("name", "Touhou Games");
+            profile.put("screenSize", "1280x720");
+            profile.put("graphicsDriver", GraphicsDrivers.getDefaultDriver(this));
+            profile.put("dxwrapper", Container.DEFAULT_DXWRAPPER);
+            profile.put("audioDriver", Container.DEFAULT_AUDIO_DRIVER);
+            manager.createContainerAsync(profile, container -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (container == null) {
+                    finishOperation("Game environment creation failed; retry setup.");
+                } else {
+                    containerId = container.id;
+                    getPreferences(MODE_PRIVATE).edit().putInt("touhou_container", containerId).apply();
+                    finishOperation("Game engine ready. Import a game to play.");
+                }
+            });
+        } catch (Exception ex) {
+            finishOperation("Game setup failed: " + ex.getMessage());
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        if (requestCode == FOLDER_REQUEST) importGame(uri, true);
+        else if (requestCode == EXE_REQUEST) importGame(uri, false);
+    }
+
+    private void importGame(Uri uri, boolean folder) {
+        if (busy || containerId <= 0) return;
+        busy = true;
+        setStatus(folder ? "Copying game folder into Touhou library…" : "Importing EXE installer…");
+        updateButtons();
+        worker.execute(() -> {
+            File destination = null;
+            try {
+                Container current = new ContainerManager(this).getContainerById(containerId);
+                if (current == null) throw new IllegalStateException("Game environment missing");
+                File gameBase = new File(current.getRootDir(), ".wine/drive_c/TouhouPocket");
+                if (!gameBase.isDirectory() && !gameBase.mkdirs())
+                    throw new IllegalStateException("Unable to create game library storage");
+                destination = new File(gameBase, "game-" + System.currentTimeMillis());
+                if (!destination.mkdir()) throw new IllegalStateException("Game directory already exists");
+                int count;
+                if (folder) {
+                    DocumentFile source = DocumentFile.fromTreeUri(this, uri);
+                    if (source == null || !source.isDirectory())
+                        throw new IllegalArgumentException("Please select a game folder");
+                    Counter counter = new Counter();
+                    copyFolder(source, destination, counter, 0);
+                    count = counter.files;
+                } else {
+                    DocumentFile file = DocumentFile.fromSingleUri(this, uri);
+                    String name = file != null ? file.getName() : null;
+                    if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".exe"))
+                        throw new IllegalArgumentException("Select a Windows .exe installer");
+                    writeFile(uri, new File(destination, safeName(name)), new Counter());
+                    count = 1;
+                }
+                String executable = detectExe(destination, !folder);
+                if (executable == null)
+                    throw new IllegalArgumentException("No executable found in selected game files");
+                File exe = new File(destination, executable);
+                JSONObject entry = new JSONObject();
+                entry.put("name", folder ? gameName(executable) : "Windows installer: " + executable);
+                entry.put("path", exe.getAbsolutePath());
+                entry.put("installer", !folder);
+                entry.put("files", count);
+                saveEntry(entry);
+                runOnUiThread(() -> finishOperation("Imported successfully. Select Play from your library."));
+            } catch (Exception ex) {
+                if (destination != null) deleteTree(destination);
+                runOnUiThread(() -> finishOperation("Import failed: " + ex.getMessage()));
+            }
+        });
+    }
+
+    private static final class Counter { long bytes; int files; }
+
+    private void copyFolder(DocumentFile source, File target, Counter counter, int depth) throws Exception {
+        if (depth > 12) throw new IllegalArgumentException("Game folder is too deeply nested");
+        for (DocumentFile child : source.listFiles()) {
+            String name = safeName(child.getName());
+            File to = new File(target, name);
+            if (!to.getCanonicalPath().startsWith(target.getCanonicalPath() + File.separator))
+                throw new IllegalArgumentException("Unsafe filename in game folder");
+            if (child.isDirectory()) {
+                if (!to.mkdir()) throw new IllegalStateException("Duplicate or inaccessible game folder: " + name);
+                copyFolder(child, to, counter, depth + 1);
+            } else if (child.isFile()) {
+                writeFile(child.getUri(), to, counter);
+            }
+        }
+    }
+
+    private void writeFile(Uri uri, File target, Counter counter) throws Exception {
+        counter.files++;
+        if (counter.files > MAX_FILES)
+            throw new IllegalArgumentException("Game exceeds file count limit");
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new IllegalArgumentException("Cannot read selected file");
+            try (FileOutputStream out = new FileOutputStream(target)) {
+                byte[] buffer = new byte[65536];
+                int n;
+                while ((n = input.read(buffer)) != -1) {
+                    counter.bytes += n;
+                    if (counter.bytes > MAX_GAME_BYTES)
+                        throw new IllegalArgumentException("Game exceeds 6 GB import limit");
+                    out.write(buffer, 0, n);
+                }
+            }
+        }
+    }
+
+    private String safeName(String original) {
+        if (original == null || original.isEmpty() || original.equals(".") || original.equals("..")
+                || original.contains("/") || original.contains("\\") || original.indexOf('\0') >= 0)
+            throw new IllegalArgumentException("Unsupported filename in imported game");
+        return original;
+    }
+
+    private String detectExe(File root, boolean installer) {
+        List<String> candidates = new ArrayList<>();
+        collectExecutables(root, root, candidates, 0);
+        if (candidates.isEmpty()) return null;
+        if (installer) return candidates.get(0);
+        for (String priority : new String[]{"enbu_ap.exe", "gn_enbu.exe", "th20.exe", "th19.exe"}) {
+            for (String value : candidates)
+                if (new File(value).getName().equalsIgnoreCase(priority)) return value;
+        }
+        for (String value : candidates) {
+            String n = new File(value).getName().toLowerCase(Locale.ROOT);
+            if (n.matches("th(0[6-9]|1[0-9]|20)\\.exe")) return value;
+        }
+        return candidates.get(0);
+    }
+
+    private void collectExecutables(File root, File folder, List<String> matches, int depth) {
+        if (depth > 12 || matches.size() > 150) return;
+        File[] files = folder.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isDirectory()) collectExecutables(root, file, matches, depth + 1);
+            else if (file.getName().toLowerCase(Locale.ROOT).endsWith(".exe")) {
+                String rel = root.toURI().relativize(file.toURI()).getPath();
+                matches.add(rel);
+            }
+        }
+    }
+
+    private String gameName(String executable) {
+        String value = new File(executable).getName().toLowerCase(Locale.ROOT);
+        if (value.equals("enbu_ap.exe")) return "Touhou Puppet Dance Performance: Shard of Dreams";
+        if (value.equals("gn_enbu.exe")) return "Touhou Puppet Dance Performance";
+        return "Touhou game: " + new File(executable).getName();
+    }
+
+    private synchronized void saveEntry(JSONObject entry) throws Exception {
+        JSONArray library = loadLibrary();
+        library.put(entry);
+        getPreferences(MODE_PRIVATE).edit().putString("game_library", library.toString()).commit();
+    }
+
+    private JSONArray loadLibrary() {
+        try {
+            return new JSONArray(getPreferences(MODE_PRIVATE).getString("game_library", "[]"));
+        } catch (Exception badLibrary) {
+            return new JSONArray();
+        }
+    }
+
+    private void refreshLibrary() {
+        if (libraryArea == null) return;
+        libraryArea.removeAllViews();
+        JSONArray library = loadLibrary();
+        if (library.length() == 0) {
+            libraryArea.addView(label("No games imported yet. Use Import Game Folder to add one.", 13, SECONDARY, false));
+            return;
+        }
+        for (int i = 0; i < library.length(); i++) {
+            JSONObject game = library.optJSONObject(i);
+            if (game == null) continue;
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.VERTICAL);
+            item.setPadding(dp(12), dp(12), dp(12), dp(12));
+            item.setBackgroundColor(PANEL);
+            String path = game.optString("path", "");
+            String name = game.optString("name", "Imported game");
+            item.addView(label(name, 16, Color.WHITE, true));
+            item.addView(label(game.optInt("files", 0) + " files · " +
+                    (game.optBoolean("installer") ? "Windows installer" : "Game folder"), 12, SECONDARY, false));
+            Button play = button(game.optBoolean("installer") ? "RUN INSTALLER" : "PLAY",
+                    () -> launchGame(path));
+            play.setEnabled(!busy && containerId > 0);
+            item.addView(play);
+            libraryArea.addView(item);
+            spacerIn(libraryArea, 10);
+        }
+    }
+
+    private void launchGame(String path) {
+        if (busy || containerId <= 0) return;
+        if (!new File(path).isFile()) {
+            setStatus("Game file is missing. Re-import the game.");
+            return;
+        }
+        Intent play = new Intent(this, XServerDisplayActivity.class);
+        play.putExtra("container_id", containerId);
+        play.putExtra("exec_path", path);
+        startActivity(play);
+    }
+
+    private static void deleteTree(File path) {
+        File[] children = path.listFiles();
+        if (children != null) for (File child : children) deleteTree(child);
+        path.delete();
+    }
+
+    private void finishOperation(String message) {
+        busy = false;
+        setStatus(message);
+        refreshReadyState();
+        // Preserve the meaningful operation result instead of overwriting with generic ready text.
+        setStatus(message);
+    }
+
+    private void setStatus(String message) {
+        if (statusText != null) statusText.setText(message);
+    }
+
+    private Button button(String name, Runnable action) {
+        Button button = new Button(this);
+        button.setText(name);
+        button.setAllCaps(false);
+        button.setTextColor(Color.WHITE);
+        button.setBackgroundTintList(ColorStateList.valueOf(ACCENT));
+        button.setOnClickListener(view -> action.run());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.topMargin = dp(8);
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    private TextView label(String value, int size, int color, boolean strong) {
         TextView text = new TextView(this);
         text.setText(value);
         text.setTextColor(color);
-        text.setTextSize(sp);
+        text.setTextSize(size);
         text.setLineSpacing(dp(4), 1f);
-        if (bold) text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        if (strong) text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         return text;
     }
 
-    private View spacer(int size) {
-        View v = new View(this);
-        v.setLayoutParams(new LinearLayout.LayoutParams(1, dp(size)));
-        return v;
+    private void spacer(int height) { spacerIn(main, height); }
+    private void spacerIn(LinearLayout parent, int height) {
+        View view = new View(this);
+        view.setLayoutParams(new LinearLayout.LayoutParams(1, dp(height)));
+        parent.addView(view);
     }
-
-    private int dp(int n) {
-        return Math.round(n * getResources().getDisplayMetrics().density);
-    }
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 }

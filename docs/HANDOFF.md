@@ -135,3 +135,20 @@ Next: monitor [runtime workflow](https://github.com/rgarn023/TouhouPocketLaunche
 - Japanese font registry patch v2 (new alias keys under Wine\Fonts\Replacements and Japanese ACP 932/OEMCP 932) plus first-class `COPY SAFE ENGLISH INSTALL PATH` button. This copies `C:\\Touhou\\TPDP`. If old installer displays squares in editable Japanese path, user should replace it with this ASCII name, manually typing if Android clipboard can't paste into Wine.
 - Old user screenshot: installer text readable Japanese but path `C:\\game\\FocasLens\\...` shows square glyphs. It is unsafe to assume those represent a valid path; encourage English-only name as temporary workaround.
 - **Not yet tested on phone**. Need actual Galaxy S26 Ultra screenshot confirming edit control and installing TPDP to ASCII path / existing data. Future work: font issues, standalone English patch/SoD/Extended support. ChatGPT sole developer directly GitHub main.
+
+
+## 2026-10-22 follow-up: Japanese path still appears as square blocks
+
+User retested screenshot after previous CJK v2 font / codepage update: the installer body text is Japanese and readable, but its default folder edit field still shows square boxes following `C:\\game\\FocasLens\\`. User explicitly wants the blocks fixed, not just a manual ASCII workaround.
+
+Source investigation: Microsoft documentation confirms **MS Shell Dlg** and **MS Shell Dlg 2** are the logical fonts used for Windows dialog controls including edit boxes. Our previous font aliases lacked these. Wine font fallback and dialog selection can differ from static labels.
+
+Implementation now on `main` (commit `6979b572cdd2c6ffc0f5da8cd2996ce7a9fbbd14`):
+- `runtime-preview/TouhouJapaneseSupport.java`: font registration marker v3 so existing prefix receives new rules; adds **MS Shell Dlg**, **MS Shell Dlg 2**, **Tahoma**, and **Microsoft Sans Serif** etc. aliases to Noto Sans CJK JP in both Wine user font replacements and Windows HKLM FontSubstitutes.
+- Installs a Touhou-only Fontconfig alias under private rootfs `etc/fonts/conf.d/66-touhou-japanese.conf` preferring Noto Sans CJK JP for MS Shell Dlg / MS Shell Dlg 2 / Tahoma and generic sans-serif.
+- Existing CP932 and ja_JP.UTF-8 settings retained.
+- Separately, the direct ASCII path option / Inno Setup `/DIR` is now implemented in UI and Wine launch backend (earlier commits `5ca5293` and `1ba5f2`). This is a **fallback** for cases where the legacy installer cannot display its Japanese default path; not a substitute for trying the font fix.
+
+References: https://learn.microsoft.com/en-us/windows/win32/Intl/using-ms-shell-dlg-and-ms-shell-dlg-2 ; https://learn.microsoft.com/en-us/globalization/fonts-layout/fonts
+
+Build run: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39811685139 ; check status/artifact before asserting APK available. New test package `com.touhoudr` is separate from prior `com.touhouv2`; do not uninstall old APK or lose imported data. **On-device font result unverified**. If still squares, may be encoded source string rather than missing font; collect exact diagnostics and test ASCII/Inno destination. Do not promise guaranteed font fix.

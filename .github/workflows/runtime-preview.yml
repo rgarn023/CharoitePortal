@@ -70,6 +70,23 @@ jobs:
         working-directory: upstream
         run: gradle --no-daemon --stacktrace assembleDebug
 
+      - name: Verify APK JNI native cache paths
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              checked = 0
+              for path in z.namelist():
+                  if path.startswith("lib/") and path.endswith(".so"):
+                      checked += 1
+                      if b"/data/data/com.winlator" in z.read(path):
+                          raise AssertionError(f"Native library still has old inaccessible app path: {path}")
+              assert checked > 0, "No JNI binaries found in APK"
+              print("Verified", checked, "native libraries have no stale Winlator app-data path")
+          PY
+
       - name: Archive LGPL source and derivative patch
         run: |
           mkdir -p upstream/app/src/main/assets/licenses

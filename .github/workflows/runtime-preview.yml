@@ -66,6 +66,7 @@ jobs:
       - name: Build licensed Japanese language support pack
         run: |
           command -v localedef
+          command -v fc-scan
           python3 runtime-preview/build_japanese_support.py upstream
 
       - name: Apply Touhou runtime preview overlay

@@ -46,6 +46,23 @@ jobs:
         run: |
           sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0' 'ndk;24.0.8215888' 'cmake;3.22.1'
 
+      - name: Rebase embedded Box64 and Wine native paths
+        run: |
+          command -v zstd
+          python3 runtime-preview/rewrite_prefix.py upstream
+
+      - name: Verify Box64 points to this app's private loader
+        run: |
+          mkdir -p /tmp/touhou-elf-check
+          tar --use-compress-program=zstd -xf upstream/app/src/main/assets/box64/box64-0.4.4.tzst -C /tmp/touhou-elf-check ./usr/local/bin/box64
+          python3 - <<'PY'
+          from pathlib import Path
+          box64 = Path('/tmp/touhou-elf-check/usr/local/bin/box64').read_bytes()
+          assert b'/data/data/com.touhoupk/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
+          assert b'/data/data/com.winlator/' not in box64
+          print('Box64 loader uses Touhou package path, not inaccessible Winlator data.')
+          PY
+
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
 
@@ -61,6 +78,7 @@ jobs:
           cp upstream/LICENSE legal-bundle/Winlator-LGPL-2.1.txt
           cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
           cp runtime-preview/overlay.py legal-bundle/overlay.py
+          cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
 
       - name: Publish runtime preview APK
         uses: actions/upload-artifact@v4

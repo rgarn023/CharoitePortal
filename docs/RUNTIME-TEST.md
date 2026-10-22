@@ -28,3 +28,10 @@ Primary device: Samsung Galaxy S26 Ultra. The Android/graphics stack is not yet 
 - Tests on GitHub confirm APK compilation only. They **do not** verify game execution on Android.
 - Save files and imported games live in the APK's app-private directory. Uninstalling or clearing app data can remove them; avoid saving irreplaceable data yet.
 - Debug APK updates may cause signature problems if signing differs; keep backups.
+
+
+## Box64 EACCES correction test
+Earlier app was packaged as games.charoite.touhoupocket.runtime but embedded ARM64 Box64 and some libraries still pointed to /data/data/com.winlator. This mismatch caused launch failure before setup.exe.
+New build from the latest successful Touhou Wine Runtime Preview workflow uses Android ID com.touhoupk and label Touhou Pocket Test. It rewrites runtime native binary paths, including the Box64 ELF loader and graphics cache paths.
+Keep the previous APK installed; the new ID installs separately and does not migrate old app-private files or saves. Install the new APK, Set Up Game Engine, import your original complete game or installer folder, and press Play or Run Installer.
+If it fails again, open View Last Launch Diagnostics > Copy Report and share full text. Report should include Box64 native exists/execute and glibc loader status. CI build success is not device success.

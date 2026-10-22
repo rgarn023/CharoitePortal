@@ -206,25 +206,6 @@ japanese_file.write_bytes((overlay.parent / "TouhouJapaneseSupport.java").read_b
 
 display_code = display.read_text(encoding="utf-8")
 
-# Provide an explicit ASCII destination to legacy Japanese Inno Setup installers.
-# This overrides the preset path before the Windows edit control is populated,
-# rather than merely hiding garbled Japanese glyphs. Original path behavior
-# remains available using the launcher fallback button.
-command_marker = '            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \\""+filename+"\\""+execArgs;'
-assert display_code.count(command_marker) == 1, "Wine winhandler command marker changed"
-display_code = display_code.replace(command_marker, """            if (getIntent().hasExtra("touhou_setup_dir")) {
-                String destination = getIntent().getStringExtra("touhou_setup_dir");
-                if (destination != null &&
-                    destination.matches("(?i)^[a-z]:\\\\\\\\[a-z0-9_-]+(?:\\\\\\\\[a-z0-9_-]+)*$")) {
-                    // Inno Setup /DIR requires an absolute path. Restricting
-                    // characters prevents shell metacharacters and argument injection.
-                    // Quote the validated folder for Inno Setup's /DIR option.
-                    execArgs += " /DIR=\\\"" + destination + "\\\"";
-                    TouhouDiagnostics.recordLine("Installer /DIR override requested: " + destination);
-                }
-            }
-""" + command_marker)
-
 fonts_marker = '        if (containerDataChanged) container.saveData();'
 assert display_code.count(fonts_marker) == 1, "Wine registry setup hook changed"
 display_code = display_code.replace(fonts_marker, fonts_marker + """

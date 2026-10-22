@@ -526,18 +526,60 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return "Touhou game: " + new File(executable).getName();
     }
 
+    /**
+     * One current installer slot, not a growing history of setup.exe imports.
+     * Reimporting an installer replaces the *library entry* only: previously
+     * imported folders are not deleted, because game data may be present.
+     */
     private synchronized void saveEntry(JSONObject entry) throws Exception {
-        JSONArray library = loadLibrary();
-        library.put(entry);
-        getPreferences(MODE_PRIVATE).edit().putString("game_library", library.toString()).commit();
+        JSONArray existing = loadLibrary();
+        JSONArray updated = new JSONArray();
+        boolean newInstaller = entry.optBoolean("installer");
+        String newPath = entry.optString("path", "");
+        for (int i = 0; i < existing.length(); i++) {
+            JSONObject item = existing.optJSONObject(i);
+            if (item == null) continue;
+            if (item.optString("path").equals(newPath)) continue;
+            if (newInstaller && item.optBoolean("installer")) continue;
+            updated.put(item);
+        }
+        updated.put(entry);
+        if (!getPreferences(MODE_PRIVATE).edit()
+                .putString("game_library", updated.toString()).commit())
+            throw new IllegalStateException("Cannot save the selected installer");
     }
 
-    private JSONArray loadLibrary() {
+    /**
+     * Migrate already-imported libraries: only the newest setup.exe is shown,
+     * while previously indexed *games* are preserved. Avoid deleting files.
+     */
+    private synchronized JSONArray loadLibrary() {
+        JSONArray original;
         try {
-            return new JSONArray(getPreferences(MODE_PRIVATE).getString("game_library", "[]"));
-        } catch (Exception badLibrary) {
+            original = new JSONArray(getPreferences(MODE_PRIVATE).getString("game_library", "[]"));
+        } catch (Exception ignored) {
             return new JSONArray();
         }
+        java.util.ArrayList<JSONObject> reverse = new java.util.ArrayList<>();
+        java.util.Set<String> paths = new java.util.HashSet<>();
+        boolean keptInstaller = false;
+        for (int i = original.length() - 1; i >= 0; i--) {
+            JSONObject game = original.optJSONObject(i);
+            if (game == null) continue;
+            boolean installer = game.optBoolean("installer");
+            if (installer && keptInstaller) continue;
+            String path = game.optString("path", "");
+            if (path.isEmpty() || !paths.add(path)) continue;
+            if (installer) keptInstaller = true;
+            reverse.add(game);
+        }
+        JSONArray canonical = new JSONArray();
+        for (int i = reverse.size() - 1; i >= 0; i--) canonical.put(reverse.get(i));
+        if (canonical.length() != original.length()) {
+            getPreferences(MODE_PRIVATE).edit()
+                .putString("game_library", canonical.toString()).apply();
+        }
+        return canonical;
     }
 
     private void refreshLibrary() {
@@ -561,19 +603,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             item.addView(label(game.optInt("files", 0) + " files · " +
                     (game.optBoolean("installer") ? "Windows installer" : "Game folder"), 12, SECONDARY, false));
             boolean installer = game.optBoolean("installer");
-            Button play = button(installer ? "RUN INSTALLER (ASCII DESTINATION)" : "PLAY",
+            Button play = button(installer ? "INSTALL" : "PLAY",
                     () -> {
                         if (installer) selectInstallerDestination(path);
                         else launchGame(path);
                     });
             play.setEnabled(!busy && containerId > 0);
             item.addView(play);
-            if (installer) {
-                Button fallback = button("RUN INSTALLER WITHOUT PATH OVERRIDE",
-                    () -> launchGame(path));
-                fallback.setEnabled(!busy && containerId > 0);
-                item.addView(fallback);
-            }
             libraryArea.addView(item);
             spacerIn(libraryArea, 10);
         }
@@ -606,14 +642,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     "For Inno Setup installers, this sets the folder before the installer opens. " +
                     "It avoids the garbled Japanese path field.")
             .setView(layout)
-            .setPositiveButton("Launch with safe path", (dialog, which) -> {
+            .setPositiveButton("Install to this folder", (dialog, which) -> {
                 String value = edit.getText().toString().trim();
                 if (!value.matches("(?i)^[a-z]:\\\\[a-z0-9_-]+(?:\\\\[a-z0-9_-]+)*$")) {
-                    setStatus("Invalid path: use a path like C:\\Touhou\\TPDP, with English letters and no spaces.");
+                    setStatus("Invalid path: use C:\\Touhou\\TPDP with English letters and no spaces.");
                     return;
                 }
                 launchGame(path, value);
             })
+            .setNeutralButton("Use installer's original path", (dialog, which) -> launchGame(path))
             .setNegativeButton("Cancel", null)
             .show();
     }

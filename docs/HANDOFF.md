@@ -187,3 +187,17 @@ User supplied two screenshots: Touhou Pocket library contained **two separate en
 - **GitHub Actions run** https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39813693166, job 119946896802 succeeded with APK artifact `touhou-pocket-runtime-preview-apk` (ID `12440369528`), source SHA `4cfad6d2f19a4d36fb3267cb59686083d92af723`. Extracted `TouhouPocketLauncher-OneInstaller.apk`, **222030924 bytes** SHA256 `7d7ad40e3ba23fbf4cf6a56e8c17d352eafae4ff150b3021038c8e8d1a080608`, APK and artifact ZIP CRC verification both passed, Japanese font pack & OFL license included.
 - Android appId remains **com.touhoudr**, same as previous font fix. Debug-signing key might differ between GitHub Actions runners; if Android refuses to update, don't tell user to uninstall without first protecting existing game files/saves. An alternative side-by-side package or stable signing key is needed for future reliable upgrades.
 - First device test: install new APK if possible, confirm library has one installer and existing game card; press INSTALL, accept `C:\\Touhou\\TPDP`, verify Windows destination field now shows exactly ASCII. Tap Next, complete installation, and press Find Installed Touhou Games. If still blocks, share View Last Launch Diagnostics to check `Installer /DIR override requested` log and note whether installer ignored option.
+
+
+## 2026-10-22: user explicitly wants original installer destination, no overrides
+
+User's most recent screenshot still showed boxed characters after `C:\\game\\FocasLens\\`. User explicitly stated: "**I only want installer to run original path**" — interprets as no custom ASCII install destination and no injected Inno Setup `/DIR` option. Respect this preference, do not suggest forced `C:\\Touhou\\TPDP` as standard flow.
+
+Committed on `main`:
+- `runtime-preview/TouhouEntryActivity.java` commit `3aaecdc269a45a7fc9d5d3684017ed8c0637d5ad`: removed `selectInstallerDestination` dialog, safe English copy-path button, overloaded `launchGame(path, destination)`, `touhou_setup_dir` extra. Each installer now has ONE Install button that starts original `setup.exe` unchanged. Installer duplicate collapse remains.
+- `runtime-preview/overlay.py` commit `1d269ad5214ec391d378c361af5d13b4b063ac75`: removed previous injection of `/DIR=` option into Wine's `winhandler.exe` launch command. Original user/installer-specified default paths preserved.
+- Latest GitHub Actions build from this commit: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39816320818 . Verify success before giving download link. Package remains `com.touhoudr`; debug-signature mismatch can prevent in-place update and old app's imported files must be protected.
+
+**Important:** Japanese square glyph rendering in the installer destination remains unresolved. Do not equate preserved original destination with correctly decoded Unicode/CP932 path. Most other Japanese labels do display, suggesting specific legacy edit-control font/codepage issue. Do not keep reintroducing English-only forced destination contrary to user intent. Collect device diagnostics or investigate actual source ANSI string behavior if user requests character fix.
+
+Next: Verify latest workflow passes, produce APK. Ask user to confirm no extra path prompt and only one installer entry, plus whether installation completes and preserves Japanese directory after clicking Next. Then continue TPDP game compatibility and expansions as requested.

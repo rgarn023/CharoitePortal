@@ -32,7 +32,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +62,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button initButton;
     private Button folderButton;
     private Button installerButton;
+    private Button scanButton;
     private boolean busy = false;
     private int containerId = 0;
 
@@ -116,6 +119,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         });
         main.addView(folderButton);
         main.addView(installerButton);
+        scanButton = button("FIND INSTALLED TOUHOU GAMES", this::findInstalledGames);
+        main.addView(scanButton);
         spacer(20);
 
         main.addView(label("YOUR TOUHOU LIBRARY", 19, Color.WHITE, true));
@@ -165,6 +170,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         initButton.setEnabled(!busy);
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
+        scanButton.setEnabled(!busy && ready);
         refreshLibrary();
     }
 
@@ -238,6 +244,75 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Uri uri = data.getData();
         if (requestCode == FOLDER_REQUEST) importGame(uri, true);
         else if (requestCode == EXE_REQUEST) importGame(uri, false);
+    }
+
+
+    /**
+     * An imported Windows installer may install into Program Files, not our
+     * import folder. Recognize installed game executables inside C: without
+     * making users browse the Windows desktop or container manager.
+     */
+    private void findInstalledGames() {
+        if (busy || containerId <= 0) return;
+        busy = true;
+        setStatus("Searching for installed Touhou games…");
+        updateButtons();
+        worker.execute(() -> {
+            try {
+                Container current = new ContainerManager(this).getContainerById(containerId);
+                if (current == null) throw new IllegalStateException("Game environment missing");
+                File drive = new File(current.getRootDir(), ".wine/drive_c");
+                if (!drive.isDirectory()) throw new IllegalStateException("Windows game directory is not ready");
+                List<File> matches = new ArrayList<>();
+                int[] visited = {0};
+                scanInstalled(drive, drive, matches, 0, visited);
+
+                JSONArray library = loadLibrary();
+                Set<String> existing = new HashSet<>();
+                for (int i = 0; i < library.length(); i++) {
+                    JSONObject entry = library.optJSONObject(i);
+                    if (entry != null) existing.add(entry.optString("path"));
+                }
+                int added = 0;
+                for (File game : matches) {
+                    if (!existing.add(game.getAbsolutePath())) continue;
+                    JSONObject entry = new JSONObject();
+                    entry.put("name", gameName(game.getName()));
+                    entry.put("path", game.getAbsolutePath());
+                    entry.put("installer", false);
+                    entry.put("files", 0);
+                    library.put(entry);
+                    added++;
+                }
+                getPreferences(MODE_PRIVATE).edit().putString("game_library", library.toString()).commit();
+                final int newGames = added;
+                runOnUiThread(() -> finishOperation(
+                    newGames == 0 ? "No new supported games found. Import a complete game folder or run an installer." :
+                    "Found " + newGames + " new game(s). Tap Play in your library."));
+            } catch (Exception e) {
+                runOnUiThread(() -> finishOperation("Game search failed: " + e.getMessage()));
+            }
+        });
+    }
+
+    private void scanInstalled(File driveRoot, File folder, List<File> matches, int depth, int[] visited) {
+        if (depth > 14 || visited[0] >= 25000 || matches.size() >= 100) return;
+        File[] children = folder.listFiles();
+        if (children == null) return;
+        for (File file : children) {
+            if (++visited[0] > 25000) break;
+            if (java.nio.file.Files.isSymbolicLink(file.toPath())) continue;
+            if (!file.getAbsolutePath().startsWith(driveRoot.getAbsolutePath() + File.separator)) continue;
+            String name = file.getName().toLowerCase(Locale.ROOT);
+            if (file.isDirectory()) {
+                if (name.equals("windows") || name.equals("programdata") || name.equals("$recycle.bin")) continue;
+                scanInstalled(driveRoot, file, matches, depth + 1, visited);
+            } else if (file.isFile()) {
+                if (name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe") ||
+                    name.matches("th(0[6-9]|1[0-9]|20)\\.exe"))
+                    matches.add(file);
+            }
+        }
     }
 
     private void importGame(Uri uri, boolean folder) {

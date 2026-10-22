@@ -47,3 +47,8 @@ Once a newer `Touhou Pocket Test` APK with the Japanese language pack has succes
 6. Do not apply translations or Shard of Dreams/Extended until unpatched base-game installation is stable.
 
 The font is Noto Sans CJK JP, SIL OFL 1.1, sourced from a pinned official revision and distributed with its license in the APK. Wine is configured for `ja_JP.UTF-8` and the Windows font faces MS Gothic / Meiryo alias to Noto; native Android app labels remain English.
+
+
+### Current Japanese-language APK installs separately
+
+Current test package: `com.touhoujp`, label **Touhou Pocket JP Test**. It can coexist with the working `com.touhoupk` Box64 test app, avoiding debug signing conflicts and protecting existing imported files. After installing the new app, tap **Set Up Game Engine**, reimport the complete original TPDP installer files, run setup and check that Japanese text displays correctly. Once tested, report what appears and share screenshots if glyphs are still garbled. Wine and Box64 are still bundled and the interface stays Touhou-focused.

@@ -218,7 +218,9 @@ display_code = display_code.replace(command_marker, """            if (getIntent
                     destination.matches("(?i)^[a-z]:\\\\\\\\[a-z0-9_-]+(?:\\\\\\\\[a-z0-9_-]+)*$")) {
                     // Inno Setup /DIR requires an absolute path. Restricting
                     // characters prevents shell metacharacters and argument injection.
-                    execArgs += " /DIR=" + destination;
+                    // Quote the validated folder for Inno Setup's /DIR option.
+                    execArgs += " /DIR=\\\"" + destination + "\\\"";
+                    TouhouDiagnostics.recordLine("Installer /DIR override requested: " + destination);
                 }
             }
 """ + command_marker)

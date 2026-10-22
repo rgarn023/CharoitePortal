@@ -73,7 +73,7 @@ jobs:
 
       - name: Build integrated Windows runtime preview
         working-directory: upstream
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
 
       - name: Verify APK JNI native cache paths
         run: |

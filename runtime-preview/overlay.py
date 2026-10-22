@@ -22,16 +22,16 @@ strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 src = src.replace('<string name="app_name">Winlator</string>',
-                  '<string name="app_name">Touhou Pocket Launcher</string>')
+                  '<string name="app_name">Touhou OS</string>')
 # Remove upstream branding from visible startup and background notifications.
 # This does NOT change the runtime's original Winlator-derived architecture.
 for original, branded in (
     ('<string name="starting_up">Starting up...</string>',
      '<string name="starting_up">Launching Touhou game...</string>'),
     ('<string name="fgs_notification_content_else">Winlator is running in the background</string>',
-     '<string name="fgs_notification_content_else">Touhou Pocket Launcher is running</string>'),
+     '<string name="fgs_notification_content_else">Touhou OS is running</string>'),
     ('<string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\\\'s background process management.</string>',
-     '<string name="fgs_notification_channel_desc">Keeps Touhou Pocket Launcher active while a Windows game is running.</string>'),
+     '<string name="fgs_notification_channel_desc">Keeps Touhou OS active while a Windows game is running.</string>'),
 ):
     assert original in src, f"Upstream string changed: {original[:58]}"
     src = src.replace(original, branded)
@@ -44,7 +44,7 @@ a = "{http://schemas.android.com/apk/res/android}"
 manifest = ET.parse(manifest_path)
 app = manifest.getroot().find("application")
 assert app is not None
-# Dedicated Touhou launcher icon (original vector) replaces stock Winlator icon.
+# Dedicated Touhou OS shrine emblem (original vector) replaces stock launcher icon.
 icon_destination = root / "app/src/main/res/drawable/touhou_pocket_icon.xml"
 icon_destination.parent.mkdir(parents=True, exist_ok=True)
 icon_destination.write_bytes((Path(__file__).resolve().parent / "touhou_pocket_icon.xml").read_bytes())

@@ -72,10 +72,24 @@ jobs:
       - name: Compile read-only Wine Japanese path probe
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq gcc-mingw-w64-x86-64
+          sudo apt-get install -y -qq gcc-mingw-w64-x86-64 gcc-mingw-w64-i686
           x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -municode -mwindows \
             runtime-preview/touhou_probe.c -o runtime-preview/touhou_probe.exe \
             -luser32 -lgdi32
+          for arch in 32 64; do
+            if [ "$arch" = 32 ]; then cc=i686-w64-mingw32-gcc; else cc=x86_64-w64-mingw32-gcc; fi
+            "$cc" -std=c11 -O2 -Wall -Wextra -shared \
+              runtime-preview/touhou_font_hook.c \
+              -o "runtime-preview/touhou_font_hook${arch}.dll" \
+              -luser32 -lgdi32
+            "$cc" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+              runtime-preview/touhou_font_helper.c \
+              -o "runtime-preview/touhou_font_helper${arch}.exe" \
+              -luser32
+            file "runtime-preview/touhou_font_hook${arch}.dll" "runtime-preview/touhou_font_helper${arch}.exe"
+            test $(stat -c %s "runtime-preview/touhou_font_hook${arch}.dll") -gt 5000
+            test $(stat -c %s "runtime-preview/touhou_font_helper${arch}.exe") -gt 5000
+          done
           file runtime-preview/touhou_probe.exe
           test $(stat -c %s runtime-preview/touhou_probe.exe) -gt 10000
 
@@ -130,6 +144,11 @@ jobs:
               assert probe.startswith(b"MZ"), "Probe is not a Windows executable"
               assert len(probe) > 10000
               print("Win32 Japanese diagnostic included:", len(probe), "bytes")
+              for arch in ("32", "64"):
+                  for name,signature in ((f"touhou_font_helper{arch}.exe",b"MZ"),(f"touhou_font_hook{arch}.dll",b"MZ")):
+                      bundled = z.read("assets/japanese/" + name)
+                      assert bundled.startswith(signature) and len(bundled) > 5000
+                      print("Wine scoped font patch included:", name, len(bundled))
           PY
 
       - name: Archive LGPL source and derivative patch
@@ -143,6 +162,8 @@ jobs:
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
           cp runtime-preview/build_japanese_support.py legal-bundle/build_japanese_support.py
           cp runtime-preview/touhou_probe.c legal-bundle/touhou_probe.c
+          cp runtime-preview/touhou_font_hook.c legal-bundle/touhou_font_hook.c
+          cp runtime-preview/touhou_font_helper.c legal-bundle/touhou_font_helper.c
           cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
           cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
 

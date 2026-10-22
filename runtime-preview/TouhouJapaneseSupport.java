@@ -23,7 +23,9 @@ public final class TouhouJapaneseSupport {
     private static final String FONT_NAME = "NotoSansCJKjp-Regular.otf";
     private static final String FONT_FAMILY = "Noto Sans CJK JP";
     private static final String ADDON = "japanese/japanese-support.tzst";
-    private static final String DIALOG_FALLBACK_VERSION = "v3";
+    private static final String DIALOG_FALLBACK_VERSION = "v4";
+    private static final String IPA_GOTHIC = "IPA Gothic";
+    private static final String IPA_P_GOTHIC = "IPA P Gothic";
 
     private TouhouJapaneseSupport() {}
 
@@ -42,6 +44,11 @@ public final class TouhouJapaneseSupport {
         if (!locale.isFile() || !linuxFont.isFile() || linuxFont.length() < 4000000) {
             throw new IOException("Japanese locale or font installation incomplete");
         }
+        File ipaGothic = new File(root, "usr/share/fonts/truetype/ipa/ipag.ttf");
+        File ipaPGothic = new File(root, "usr/share/fonts/truetype/ipa/ipagp.ttf");
+        if (!ipaGothic.isFile() || !ipaPGothic.isFile() ||
+                ipaGothic.length() < 3000000 || ipaPGothic.length() < 3000000)
+            throw new IOException("Required IPA Gothic Japanese TrueType font missing");
         installFontConfigFallback(root);
 
         File prefix = new File(container.getRootDir(), ".wine");
@@ -55,15 +62,26 @@ public final class TouhouJapaneseSupport {
             throw new IOException("Cannot create Windows Japanese Fonts folder");
         }
         File windowsFont = new File(windowsFonts, FONT_NAME);
-        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v3");
+        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v4");
+        File winIPA = new File(windowsFonts, "ipag.ttf");
+        File winIPAP = new File(windowsFonts, "ipagp.ttf");
         if (registrationMarker.isFile() && windowsFont.isFile()
-                && windowsFont.length() == linuxFont.length()) {
+                && windowsFont.length() == linuxFont.length()
+                && winIPA.isFile() && winIPA.length() == ipaGothic.length()
+                && winIPAP.isFile() && winIPAP.length() == ipaPGothic.length()) {
+            TouhouDiagnostics.recordLine("Japanese TrueType fonts installed (v4).");
             return;
         }
         if (!FileUtils.copy(linuxFont, windowsFont)
                 || windowsFont.length() != linuxFont.length()) {
             throw new IOException("Unable to copy Japanese font into Windows prefix");
         }
+        if ((!winIPA.isFile() || winIPA.length() != ipaGothic.length()) &&
+                (!FileUtils.copy(ipaGothic, winIPA) || winIPA.length() != ipaGothic.length()))
+            throw new IOException("Cannot install IPA Gothic TrueType font");
+        if ((!winIPAP.isFile() || winIPAP.length() != ipaPGothic.length()) &&
+                (!FileUtils.copy(ipaPGothic, winIPAP) || winIPAP.length() != ipaPGothic.length()))
+            throw new IOException("Cannot install IPA P Gothic TrueType font");
 
         // Register the OpenType font and the traditional face names requested
         // by old non-Unicode Touhou installers (not an MS proprietary font).
@@ -72,6 +90,8 @@ public final class TouhouJapaneseSupport {
                     "Software\\Microsoft\\Windows\\CurrentVersion\\Fonts",
                     "Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"}) {
                 system.setStringValue(key, FONT_FAMILY + " (OpenType)", FONT_NAME);
+                system.setStringValue(key, IPA_GOTHIC + " (TrueType)", "ipag.ttf");
+                system.setStringValue(key, IPA_P_GOTHIC + " (TrueType)", "ipagp.ttf");
             }
             final String fontSubstitutes =
                     "Software\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes";

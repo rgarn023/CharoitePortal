@@ -96,13 +96,14 @@ public final class TouhouJapaneseSupport {
             final String fontSubstitutes =
                     "Software\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes";
             for (String alias : new String[]{
-                    "MS Gothic", "MS PGothic", "MS UI Gothic", "MS Mincho",
-                    "Meiryo", "Yu Gothic", "Yu Gothic UI",
-                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma",
-                    "Microsoft Sans Serif", "MS Sans Serif",
-                    "ＭＳ ゴシック", "ＭＳ Ｐゴシック",
-                    "ＭＳ ＵＩ ゴシック"}) {
-                system.setStringValue(fontSubstitutes, alias, FONT_FAMILY);
+                    "MS Gothic", "MS Mincho", "ＭＳ ゴシック", "ＭＳ 明朝"}) {
+                system.setStringValue(fontSubstitutes, alias, IPA_GOTHIC);
+            }
+            for (String alias : new String[]{
+                    "MS PGothic", "MS UI Gothic", "ＭＳ Ｐゴシック", "ＭＳ ＵＩ ゴシック",
+                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma", "Meiryo", "Meiryo UI",
+                    "Yu Gothic", "Yu Gothic UI", "Microsoft Sans Serif", "MS Sans Serif"}) {
+                system.setStringValue(fontSubstitutes, alias, IPA_P_GOTHIC);
             }
             // Wine uses code page 932 for many non-Unicode Japanese setup
             // programs. Wine should infer ACP from LANG, but these explicit
@@ -114,28 +115,29 @@ public final class TouhouJapaneseSupport {
         try (WineRegistryEditor user = new WineRegistryEditor(userReg)) {
             user.setStringValue("Control Panel\\International", "Locale", "00000411");
             user.setStringValue("Control Panel\\International", "LocaleName", "ja-JP");
-            WineUtils.setSystemFont(user, FONT_FAMILY);
+            WineUtils.setSystemFont(user, IPA_P_GOTHIC);
 
             // Winetricks fakejapanese uses HKCU Wine\Fonts\Replacements:
             // the Windows FontSubstitutes key alone does not cover all Wine
             // GDI edit controls, especially Japanese installation paths.
             String replacements = "Software\\Wine\\Fonts\\Replacements";
             for (String face : new String[]{
-                    "MS Gothic", "MS PGothic", "MS UI Gothic",
-                    "Meiryo", "Meiryo UI", "Yu Gothic", "Yu Gothic UI",
-                    "MS Mincho", "MS PMincho",
-                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma",
-                    "Microsoft Sans Serif", "MS Sans Serif",
-                    "ＭＳ ゴシック", "ＭＳ Ｐゴシック", "ＭＳ ＵＩ ゴシック",
-                    "ＭＳ 明朝", "ＭＳ Ｐ明朝", "Ｍｅｉｒｙｏ"}) {
-                user.setStringValue(replacements, face, FONT_FAMILY);
+                    "MS Gothic", "MS Mincho", "ＭＳ ゴシック", "ＭＳ 明朝"}) {
+                user.setStringValue(replacements, face, IPA_GOTHIC);
+            }
+            for (String face : new String[]{
+                    "MS PGothic", "MS UI Gothic", "ＭＳ Ｐゴシック", "ＭＳ ＵＩ ゴシック",
+                    "MS Shell Dlg", "MS Shell Dlg 2", "Tahoma", "Meiryo", "Meiryo UI",
+                    "Yu Gothic", "Yu Gothic UI", "MS PMincho", "ＭＳ Ｐ明朝",
+                    "Microsoft Sans Serif", "MS Sans Serif"}) {
+                user.setStringValue(replacements, face, IPA_P_GOTHIC);
             }
         }
         if (!FileUtils.writeString(registrationMarker, DIALOG_FALLBACK_VERSION + "\n")) {
             throw new IOException("Could not mark Japanese font registration complete");
         }
-        TouhouDiagnostics.recordLine("Japanese fonts registered for MS Shell Dlg and Wine edit controls (" +
-                DIALOG_FALLBACK_VERSION + ").");
+        TouhouDiagnostics.recordLine("Japanese UI fonts registered (" + DIALOG_FALLBACK_VERSION +
+                "): IPA Gothic/IPA P Gothic, ACP=932, MS Shell Dlg.");
     }
 
     /** Fontconfig is used by Wine/Freetype for font selection. This only
@@ -150,15 +152,15 @@ public final class TouhouJapaneseSupport {
                 "<!DOCTYPE fontconfig SYSTEM \"fonts.dtd\">\n" +
                 "<fontconfig>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>MS Shell Dlg</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "    <family>MS Shell Dlg</family><prefer><family>IPA P Gothic</family></prefer>\n" +
                 "  </alias>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>MS Shell Dlg 2</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "    <family>MS Shell Dlg 2</family><prefer><family>IPA P Gothic</family></prefer>\n" +
                 "  </alias>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>Tahoma</family><prefer><family>Noto Sans CJK JP</family></prefer>\n" +
+                "    <family>Tahoma</family><prefer><family>IPA P Gothic</family></prefer>\n" +
                 "  </alias>\n" +
-                "  <alias><family>sans-serif</family><prefer><family>Noto Sans CJK JP</family></prefer></alias>\n" +
+                "  <alias><family>sans-serif</family><prefer><family>IPA P Gothic</family></prefer></alias>\n" +
                 "</fontconfig>\n";
         if (!FileUtils.writeString(target, xml))
             throw new IOException("Unable to install Touhou Fontconfig fallback");

@@ -94,6 +94,14 @@ assert probe_binary.is_file(), "Compile touhou_probe.exe before applying overlay
 probe_asset = root / "app/src/main/assets/japanese/touhou_probe.exe"
 probe_asset.parent.mkdir(parents=True, exist_ok=True)
 probe_asset.write_bytes(probe_binary.read_bytes())
+# Windows installers may be 32-bit while the Wine runtime is 64-bit. Both
+# matching bitness thread-hook helpers must ship alongside the diagnostic.
+for arch in ("32", "64"):
+    for suffix in (".exe", ".dll"):
+        stem = "touhou_font_helper" if suffix == ".exe" else "touhou_font_hook"
+        original = overlay.parent / f"{stem}{arch}{suffix}"
+        assert original.is_file(), f"Missing compiled scoped font asset: {original}"
+        (probe_asset.parent / original.name).write_bytes(original.read_bytes())
 
 
 

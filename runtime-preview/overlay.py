@@ -12,7 +12,7 @@ assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator An
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"
-src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhouv2'")
+src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhoudr'")
 assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
 src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
     "implementation 'androidx.appcompat:appcompat:1.4.0'\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
@@ -47,7 +47,7 @@ for filt in filters:
     original_main.remove(filt)
 for provider in app.findall("provider"):
     if provider.get(a + "authorities") == "com.winlator.FileProvider":
-        provider.set(a + "authorities", "com.touhouv2.FileProvider")
+        provider.set(a + "authorities", "com.touhoudr.FileProvider")
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
@@ -66,7 +66,7 @@ for java in java_root.rglob("*.java"):
     text = java.read_text(encoding="utf-8")
     if '"com.winlator.FileProvider"' in text:
         java.write_text(text.replace('"com.winlator.FileProvider"',
-            '"com.touhouv2.FileProvider"'), encoding="utf-8")
+            '"com.touhoudr.FileProvider"'), encoding="utf-8")
 
 target = java_root / "com/winlator/TouhouEntryActivity.java"
 assert not target.exists(), "Upstream has a colliding Touhou entry activity"
@@ -84,7 +84,7 @@ for native_source in cpp_root.rglob("*"):
         before = native_source.read_bytes()
         if b"/data/data/com.winlator" in before:
             native_source.write_bytes(before.replace(
-                b"/data/data/com.winlator", b"/data/data/com.touhouv2"))
+                b"/data/data/com.winlator", b"/data/data/com.touhoudr"))
             native_path_changes += 1
 print(f"Rebased {native_path_changes} C/C++ app-private path sources")
 

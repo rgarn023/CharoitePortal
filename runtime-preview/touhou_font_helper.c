@@ -52,6 +52,9 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
     if(!module) { report("helper-v1: unable to load matching hook DLL"); return 3; }
     HOOKPROC callback=(HOOKPROC)GetProcAddress(module,exportName);
     if(!callback) {
+        callback=(HOOKPROC)GetProcAddress(module,"TouhouFontHook@12");
+    }
+    if(!callback) {
         callback=(HOOKPROC)GetProcAddress(module,"TouhouFontHook");
     }
     if(!callback) {

@@ -1,5 +1,5 @@
 /*
- * Touhou Pocket Japanese installer font repair + diagnostic v5.
+ * Touhou Pocket Japanese installer font repair + diagnostic v6.
  *
  * Scoped Wine GUI font fix. Does not alter game files, window text,
  * locale, registry or install directory. Inspects the installer destination
@@ -231,7 +231,7 @@ static BOOL CALLBACK desktop_callback(LPWSTR name, LPARAM context) {
     char label[200]; utf8(name, label, sizeof(label));
     char msg[300];
     snprintf(msg, sizeof(msg), "desktop: name=%s", label);
-    line(msg);
+    if (debug_windows < 100) line(msg);
 
     HDESK desktop = OpenDesktopW(name, 0, FALSE, DESKTOP_READOBJECTS);
     if (!desktop) {
@@ -247,7 +247,7 @@ static BOOL CALLBACK desktop_callback(LPWSTR name, LPARAM context) {
         line(msg);
     }
     snprintf(msg, sizeof(msg), "desktop-window-count=%d", seen_windows - was);
-    line(msg);
+    if (debug_windows < 100) line(msg);
     CloseDesktop(desktop);
     return TRUE;
 }
@@ -278,15 +278,18 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
     if (log_handle == INVALID_HANDLE_VALUE) return 2;
     char header[500];
     snprintf(header, sizeof(header),
-       "touhou-probe-v5 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
+       "touhou-probe-v6 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
        GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
        (unsigned)GetSystemDefaultUILanguage());
     line(header);
-    for (int pass=0; pass<30; pass++) {
+    // Begin monitoring near Wine startup, not after an arbitrary nine seconds.
+    // Poll quickly so the font can be installed as soon as TEdit appears.
+    // Continue longer because the user may spend time on introductory pages.
+    for (int pass=0; pass<420; pass++) {
         /* Log detailed windows only at first scan to keep report compact. */
         if (pass > 0) { debug_windows = 100; debug_children = 100; }
         enumerate_once();
-        if (pass == 0 || pass == 5 || pass == 12 || snapshots > 0) {
+        if (pass == 0 || pass == 10 || pass == 100 || snapshots > 0) {
             snprintf(header, sizeof(header),
                      "pass=%d desktops=%d windows=%d child_controls=%d edit_candidates=%d found=%d",
                      pass, desktop_count, seen_windows, seen_children,
@@ -294,7 +297,9 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
             line(header);
         }
         if (snapshots > 0) break;
-        Sleep(2000);
+        // 300 ms for the first minute, then 850 ms until the control
+        // is available. This avoids a visible multi-second font swap.
+        Sleep(pass < 200 ? 300 : 850);
     }
     if (snapshots == 0) line(
         "No destination control readable; desktop/window counts above distinguish virtual-desktop isolation from custom installer controls.");

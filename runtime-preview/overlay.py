@@ -12,13 +12,17 @@ assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator An
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"
-gradle.write_text(src.replace("applicationId 'com.winlator'", "applicationId 'games.charoite.touhoupocket.runtime'"), encoding="utf-8")
+src = src.replace("applicationId 'com.winlator'", "applicationId 'games.charoite.touhoupocket.runtime'")
+assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
+src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
+    "implementation 'androidx.appcompat:appcompat:1.4.0'\\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
+gradle.write_text(src, encoding="utf-8")
 
 strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 strings.write_text(src.replace('<string name="app_name">Winlator</string>',
-    '<string name="app_name">Touhou Pocket Runtime</string>'), encoding="utf-8")
+    '<string name="app_name">Touhou Pocket Launcher</string>'), encoding="utf-8")
 
 # The provider authority must not collide with a separately installed stock Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"

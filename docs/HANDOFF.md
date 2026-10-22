@@ -34,7 +34,7 @@ New `runtime-preview/TouhouEntryActivity.java` **removes Winlator UI navigation*
 - Native theme changed to `@style/AppThemeDark` because Touhou entry now inherits AppCompatActivity.
 - Winlator's `MainActivity` launcher intent filter is removed and it is non-exported; the backend remains bundled for rendering and controls.
 
-**CI:** New code was committed with SHA `61636c4270cd1bbc04975106f66e3e87a1141010`. Runtime workflow had earlier successful builds, including `39790755310` for UI without game scan. Run `39791004531` (commit `dc3a6e6d...`, same Touhou entry with game scan plus workflow concurrency) is the final intended test; inspect live status/artifact before claiming success. Workflow: https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml .
+**CI:** New code was committed with SHA `61636c4270cd1bbc04975106f66e3e87a1141010`. Runtime workflow PASSED on 2026-10-22: run `39791004531` at commit `dc3a6e6d...`, including the Touhou library UI, direct Wine EXE launch, game folder import, and installed-game scan. Artifact `touhou-pocket-runtime-preview-apk` (ID `12430358682`) contains `app-debug.apk` (157,571,711 bytes). APK ZIP integrity verified. On-device behavior remains **UNTESTED**. Workflow: https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml .
 
 ## What remains unverified
 - On-device Android installation, first engine extraction, container creation, game imports, real Windows EXE startup, graphics/audio/input on Galaxy S26 Ultra. **A successful GitHub build only proves compilation.**
@@ -47,7 +47,7 @@ New `runtime-preview/TouhouEntryActivity.java` **removes Winlator UI navigation*
 - `app/src/main/java/games/charoite/touhoupocket/NotkeyLinkManager.kt` tested in original Kotlin alpha but not yet moved into integrated Java runtime. Only use it if actual Wine version requires. Reference: https://bugs.winehq.org/show_bug.cgi?id=54295
 
 ## Immediate next steps
-1. Inspect latest runtime-preview GitHub Actions run and fix compile errors if present. Download the successful artifact `touhou-pocket-runtime-preview-apk` containing `app-debug.apk`.
+1. Download the successful artifact `touhou-pocket-runtime-preview-apk` from GitHub Actions run `39791004531` containing `app-debug.apk`.
 2. Have user test **Touhou Pocket** screen > **Set Up Game Engine** > **Import Game Folder** > **Play** with TPDP base game, or EXE installer > **Find Installed Touhou Games**. Troubleshoot with exact failures.
 3. Make engine setup/import robust, profile TPDP base and SoD, Japanese locale/graphics. Keep Winlator container UI hidden.
 4. After base game works, implement independent English patch management and SoD `notkey` compatibility, then Extended and touch controls.

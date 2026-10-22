@@ -7,6 +7,9 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.widget.ImageView;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -55,10 +58,14 @@ import java.util.concurrent.ExecutorService;
 public final class TouhouEntryActivity extends AppCompatActivity {
     private static final int FOLDER_REQUEST = 1001;
     private static final int EXE_REQUEST = 1002;
-    private static final int BG = 0xff101322;
-    private static final int PANEL = 0xff222841;
-    private static final int SECONDARY = 0xffc7cde3;
-    private static final int ACCENT = 0xff8d67d9;
+    // Shrine-red, ink-purple and sakura. No external image or copyrighted art.
+    private static final int BG = 0xff120F18;
+    private static final int PANEL = 0xff241C2A;
+    private static final int SECONDARY = 0xffCDBFC8;
+    private static final int ACCENT = 0xffC93E62;
+    private static final int GOLD = 0xffF4D9A9;
+    private static final int SAKURA = 0xffF4ACC6;
+    private static final int LINE = 0xff654153;
     private static final long MAX_GAME_BYTES = 6L * 1024 * 1024 * 1024;
     private static final int MAX_FILES = 12000;
 
@@ -72,6 +79,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button scanButton;
     private Button compatButton;
     private Button diagnosticButton;
+    private Button libraryTab;
+    private Button importTab;
+    private Button systemTab;
+    private LinearLayout libraryScreen;
+    private LinearLayout importScreen;
+    private LinearLayout systemScreen;
+    private ScrollView mainScroll;
+    private TextView runtimeLabel;
     private boolean busy = false;
     private int containerId = 0;
 
@@ -88,70 +103,239 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         worker.shutdown();
     }
 
+    /** Touhou OS — mobile-first dashboard, distinct from the Wine runtime UI. */
     private void render() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(BG);
+        mainScroll = new ScrollView(this);
+        mainScroll.setFillViewport(true);
+        mainScroll.setClipToPadding(false);
+        mainScroll.setBackgroundColor(BG);
         main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
-        main.setPadding(dp(20), dp(30), dp(20), dp(35));
-        scroll.addView(main);
-        setContentView(scroll);
+        main.setPadding(dp(16), dp(18), dp(16), dp(30));
+        mainScroll.addView(main);
+        setContentView(mainScroll);
 
-        main.addView(label("CHAROITE GAMES", 12, 0xffc09cff, true));
-        main.addView(label("Touhou Pocket", 29, Color.WHITE, true));
-        main.addView(label("YOUR GAMES. ONE LIBRARY.", 12, SECONDARY, false));
-        spacer(20);
-
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        info.setPadding(dp(14), dp(15), dp(14), dp(15));
-        info.setBackgroundColor(PANEL);
-        info.addView(label("Game Engine", 18, Color.WHITE, true));
-        statusText = label("Checking Windows compatibility engine…", 13, SECONDARY, false);
-        info.addView(statusText);
-        main.addView(info);
+        TextView maker = label("C H A R O I T E   G A M E S", 11, GOLD, true);
+        main.addView(maker);
         spacer(12);
 
-        initButton = button("SET UP GAME ENGINE", this::startSetup);
-        main.addView(initButton);
+        LinearLayout hero = new LinearLayout(this);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+        hero.setOrientation(LinearLayout.HORIZONTAL);
+        hero.setPadding(dp(17), dp(16), dp(15), dp(16));
+        hero.setBackground(heroBackground());
+        LinearLayout.LayoutParams heroParams = new LinearLayout.LayoutParams(-1, -2);
+        hero.setLayoutParams(heroParams);
+
+        LinearLayout headline = new LinearLayout(this);
+        headline.setOrientation(LinearLayout.VERTICAL);
+        headline.addView(label("東方  •  幻想郷", 12, GOLD, true));
+        headline.addView(label("TOUHOU OS", 31, Color.WHITE, true));
+        headline.addView(label("Your gateway to Gensokyo", 13, 0xffF9D4DF, false));
+        hero.addView(headline, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        ImageView brand = new ImageView(this);
+        brand.setImageResource(R.drawable.touhou_pocket_icon);
+        brand.setContentDescription("Touhou OS shrine and sakura emblem");
+        brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(78), dp(78));
+        imageParams.leftMargin = dp(6);
+        hero.addView(brand, imageParams);
+        main.addView(hero);
+        spacer(12);
+
+        LinearLayout engineStrip = card();
+        engineStrip.addView(label("SYSTEM STATUS  •  WINE / BOX64", 11, GOLD, true));
+        statusText = label("Checking Touhou game environment…", 13, Color.WHITE, false);
+        engineStrip.addView(statusText);
+        main.addView(engineStrip);
+        spacer(15);
+
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setPadding(dp(3), dp(3), dp(3), dp(3));
+        tabs.setBackground(rounded(0xff2B2030, 18, 0xff523548));
+        libraryTab = tabButton("Library", () -> showSection(0));
+        importTab = tabButton("Import", () -> showSection(1));
+        systemTab = tabButton("System", () -> showSection(2));
+        tabs.addView(libraryTab, tabParams());
+        tabs.addView(importTab, tabParams());
+        tabs.addView(systemTab, tabParams());
+        main.addView(tabs);
+        spacer(19);
+
+        libraryScreen = new LinearLayout(this);
+        libraryScreen.setOrientation(LinearLayout.VERTICAL);
+        main.addView(libraryScreen);
+        sectionTitle(libraryScreen, "YOUR LIBRARY", "Choose a game to play or install.");
+        libraryArea = new LinearLayout(this);
+        libraryArea.setOrientation(LinearLayout.VERTICAL);
+        libraryScreen.addView(libraryArea);
+        Button add = outlinedButton("＋  ADD TOUHOU GAME", () -> showSection(1));
+        libraryScreen.addView(add);
+        spacerIn(libraryScreen, 12);
+        libraryScreen.addView(label("Games and installers are stored locally on your device.", 12, SECONDARY, false));
+
+        importScreen = new LinearLayout(this);
+        importScreen.setOrientation(LinearLayout.VERTICAL);
+        main.addView(importScreen);
+        sectionTitle(importScreen, "ADD A GAME", "Bring your existing Touhou games into your library.");
+
+        LinearLayout folderCard = card();
+        folderCard.addView(label("01   COMPLETE GAME FOLDER", 12, GOLD, true));
+        folderCard.addView(label("Recommended for setups containing an EXE plus data files.", 13, SECONDARY, false));
         folderButton = button("IMPORT GAME FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             startActivityForResult(picker, FOLDER_REQUEST);
         });
-        installerButton = button("IMPORT SINGLE-FILE INSTALLER (.EXE)", () -> {
+        folderCard.addView(folderButton);
+        importScreen.addView(folderCard);
+        spacerIn(importScreen, 12);
+
+        LinearLayout exeCard = card();
+        exeCard.addView(label("02   SINGLE-FILE SETUP", 12, GOLD, true));
+        exeCard.addView(label("For standalone Windows installers. The installer keeps its original destination.", 13, SECONDARY, false));
+        installerButton = button("IMPORT SETUP.EXE", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             picker.addCategory(Intent.CATEGORY_OPENABLE);
             picker.setType("*/*");
             startActivityForResult(picker, EXE_REQUEST);
         });
-        main.addView(folderButton);
-        main.addView(installerButton);
-        scanButton = button("FIND INSTALLED TOUHOU GAMES", this::findInstalledGames);
-        main.addView(scanButton);
-        compatButton = button("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
-        main.addView(compatButton);
-        diagnosticButton = button("VIEW LAST LAUNCH DIAGNOSTICS", this::showDiagnostics);
-        main.addView(diagnosticButton);
-        spacer(20);
+        exeCard.addView(installerButton);
+        importScreen.addView(exeCard);
+        spacerIn(importScreen, 12);
 
-        main.addView(label("YOUR TOUHOU LIBRARY", 19, Color.WHITE, true));
-        libraryArea = new LinearLayout(this);
-        libraryArea.setOrientation(LinearLayout.VERTICAL);
-        main.addView(libraryArea);
-        spacer(18);
-        main.addView(label("Puppet Dance Performance • Shard of Dreams • other Windows Touhou titles",
-                12, SECONDARY, false));
-        spacer(12);
-        main.addView(label(
-                "To install games that include data files alongside setup.exe, choose Import Game Folder (not Single-File Installer). " +
-                "Shard of Dreams / Extended and automatic English patches are still under development. " +
-                "Games and translations are not included; import files you own.",
-                12, 0xffa3abc4, false));
-        main.addView(label("Powered by licensed Wine/Box64 components. Runtime acknowledgments: github.com/brunodev85/winlator-app",
-                11, 0xffa3abc4, false));
+        LinearLayout scanCard = card();
+        scanCard.addView(label("ALREADY INSTALLED?", 12, GOLD, true));
+        scanCard.addView(label("Search the private Windows drive for supported Touhou games.", 13, SECONDARY, false));
+        scanButton = outlinedButton("FIND INSTALLED GAMES", this::findInstalledGames);
+        scanCard.addView(scanButton);
+        importScreen.addView(scanCard);
+        spacerIn(importScreen, 15);
+        importScreen.addView(label("Games and translations are not included. Import copies you own.", 12, SECONDARY, false));
+
+        systemScreen = new LinearLayout(this);
+        systemScreen.setOrientation(LinearLayout.VERTICAL);
+        main.addView(systemScreen);
+        sectionTitle(systemScreen, "SYSTEM", "Runtime, graphics and troubleshooting.");
+
+        LinearLayout runtimeCard = card();
+        runtimeCard.addView(label("GAME ENGINE", 17, Color.WHITE, true));
+        runtimeLabel = label("Checking your game environment…", 13, SECONDARY, false);
+        runtimeCard.addView(runtimeLabel);
+        initButton = button("SET UP GAME ENGINE", this::startSetup);
+        runtimeCard.addView(initButton);
+        runtimeCard.addView(outlinedButton("WHAT DOES GAME ENGINE SETUP DO?", this::showEngineInfo));
+        systemScreen.addView(runtimeCard);
+        spacerIn(systemScreen, 12);
+
+        LinearLayout graphicsCard = card();
+        graphicsCard.addView(label("DISPLAY & COMPATIBILITY", 16, Color.WHITE, true));
+        graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
+        compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
+        graphicsCard.addView(compatButton);
+        systemScreen.addView(graphicsCard);
+        spacerIn(systemScreen, 12);
+
+        LinearLayout debugCard = card();
+        debugCard.addView(label("SUPPORT & DIAGNOSTICS", 16, Color.WHITE, true));
+        debugCard.addView(label("Review local Windows launch information. Nothing is sent automatically.", 12, SECONDARY, false));
+        diagnosticButton = outlinedButton("VIEW LAST LAUNCH DIAGNOSTICS", this::showDiagnostics);
+        debugCard.addView(diagnosticButton);
+        systemScreen.addView(debugCard);
+        spacerIn(systemScreen, 18);
+        systemScreen.addView(label("Touhou OS by Charoite Games. Uses Wine, Box64 and a modified, LGPL-licensed Winlator runtime. No games included.", 11, SECONDARY, false));
+
         refreshLibrary();
+        showSection(RootFS.find(this).isValid() ? 0 : 2);
+    }
+
+    private void showEngineInfo() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("What does Game Engine Setup do?")
+            .setMessage("Touhou OS runs Windows Touhou games using Wine and Box64.\\n\\n" +
+                "Setup unpacks the included compatibility runtime into private app storage, prepares its components, " +
+                "and creates a local Windows environment with graphics, audio, and game settings.\\n\\n" +
+                "This is normally a one-time operation. It can require substantial storage. " +
+                "It does not download or install Touhou games, translate them, or change their original installer destinations.\\n\\n" +
+                "If the engine is already ready, no further setup is needed.")
+            .setPositiveButton("Got it", null)
+            .show();
+    }
+
+    private void showSection(int section) {
+        if (libraryScreen == null) return;
+        libraryScreen.setVisibility(section == 0 ? View.VISIBLE : View.GONE);
+        importScreen.setVisibility(section == 1 ? View.VISIBLE : View.GONE);
+        systemScreen.setVisibility(section == 2 ? View.VISIBLE : View.GONE);
+        styleTab(libraryTab, section == 0);
+        styleTab(importTab, section == 1);
+        styleTab(systemTab, section == 2);
+        if (mainScroll != null) mainScroll.smoothScrollTo(0, 0);
+    }
+
+    private void sectionTitle(LinearLayout screen, String heading, String subtitle) {
+        screen.addView(label(heading, 20, Color.WHITE, true));
+        screen.addView(label(subtitle, 13, SECONDARY, false));
+        spacerIn(screen, 13);
+    }
+
+    private LinearLayout.LayoutParams tabParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        params.setMargins(dp(2), 0, dp(2), 0);
+        return params;
+    }
+
+    private Button tabButton(String title, Runnable action) {
+        Button view = new Button(this);
+        view.setText(title);
+        view.setAllCaps(false);
+        view.setTextSize(13);
+        view.setMinHeight(0);
+        view.setMinimumHeight(0);
+        view.setPadding(dp(3), 0, dp(3), 0);
+        view.setOnClickListener(v -> action.run());
+        return view;
+    }
+
+    private void styleTab(Button tab, boolean selected) {
+        if (tab == null) return;
+        tab.setBackgroundTintList(null);
+        tab.setTextColor(selected ? Color.WHITE : 0xffDBC4CE);
+        tab.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
+        tab.setBackground(rounded(selected ? ACCENT : 0xff2B2030, 14, selected ? ACCENT : 0xff2B2030));
+    }
+
+    private LinearLayout card() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(16), dp(15), dp(16), dp(15));
+        layout.setBackground(rounded(PANEL, 18, LINE));
+        return layout;
+    }
+
+    private GradientDrawable rounded(int fill, int radius, int lineColor) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(fill);
+        drawable.setCornerRadius(dp(radius));
+        drawable.setStroke(dp(1), lineColor);
+        return drawable;
+    }
+
+    private GradientDrawable heroBackground() {
+        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{0xff70263E, 0xff3C1A3B, 0xff251631});
+        drawable.setCornerRadius(dp(22));
+        drawable.setStroke(dp(1), 0xffA05979);
+        return drawable;
+    }
+
+    private Button outlinedButton(String name, Runnable action) {
+        Button view = button(name, action);
+        view.setBackground(rounded(0xff3C293B, 14, 0xff8E526B));
+        view.setTextColor(0xffFFE9F0);
+        return view;
     }
 
     private void refreshReadyState() {
@@ -182,6 +366,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         RootFS root = RootFS.find(this);
         boolean ready = root.isValid() && root.getVersion() >= RootFSInstaller.LATEST_VERSION && containerId > 0;
         initButton.setEnabled(!busy);
+        initButton.setVisibility(ready ? View.GONE : View.VISIBLE);
+        if (runtimeLabel != null) runtimeLabel.setText(ready ?
+                "Ready to play. The Windows compatibility engine has already been prepared." :
+                "Setup required before importing or launching Windows Touhou games.");
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
@@ -581,30 +769,36 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryArea.removeAllViews();
         JSONArray library = loadLibrary();
         if (library.length() == 0) {
-            libraryArea.addView(label("No games imported yet. Use Import Game Folder to add one.", 13, SECONDARY, false));
+            LinearLayout empty = card();
+            empty.setGravity(Gravity.CENTER_HORIZONTAL);
+            empty.addView(label("✦", 35, SAKURA, true));
+            TextView title = label("Your Gensokyo library awaits", 17, Color.WHITE, true);
+            title.setGravity(Gravity.CENTER_HORIZONTAL);
+            empty.addView(title);
+            TextView hint = label("Import a game folder or installer to begin.", 13, SECONDARY, false);
+            hint.setGravity(Gravity.CENTER_HORIZONTAL);
+            empty.addView(hint);
+            libraryArea.addView(empty);
+            spacerIn(libraryArea, 12);
             return;
         }
         for (int i = 0; i < library.length(); i++) {
             JSONObject game = library.optJSONObject(i);
             if (game == null) continue;
-            LinearLayout item = new LinearLayout(this);
-            item.setOrientation(LinearLayout.VERTICAL);
-            item.setPadding(dp(12), dp(12), dp(12), dp(12));
-            item.setBackgroundColor(PANEL);
+            LinearLayout item = card();
             String path = game.optString("path", "");
             String name = game.optString("name", "Imported game");
-            item.addView(label(name, 16, Color.WHITE, true));
-            item.addView(label(game.optInt("files", 0) + " files · " +
-                    (game.optBoolean("installer") ? "Windows installer" : "Game folder"), 12, SECONDARY, false));
             boolean installer = game.optBoolean("installer");
-            Button play = button(installer ? "INSTALL" : "PLAY",
-                    () -> {
-                        launchGame(path);
-                    });
+            item.addView(label(installer ? "WINDOWS INSTALLER" : "TOUHOU GAME", 11, GOLD, true));
+            item.addView(label(name, 17, Color.WHITE, true));
+            item.addView(label(installer ?
+                    "Run the original Windows installer" :
+                    "Ready to launch from your game library", 12, SECONDARY, false));
+            Button play = button(installer ? "INSTALL GAME" : "▶  PLAY GAME", () -> launchGame(path));
             play.setEnabled(!busy && containerId > 0);
             item.addView(play);
             libraryArea.addView(item);
-            spacerIn(libraryArea, 10);
+            spacerIn(libraryArea, 12);
         }
     }
 
@@ -659,7 +853,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         button.setText(name);
         button.setAllCaps(false);
         button.setTextColor(Color.WHITE);
-        button.setBackgroundTintList(ColorStateList.valueOf(ACCENT));
+        button.setBackgroundTintList(null);
+        button.setTextSize(13);
+        button.setMinHeight(dp(48));
+        button.setBackground(rounded(ACCENT, 14, ACCENT));
         button.setOnClickListener(view -> action.run());
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
         params.topMargin = dp(8);

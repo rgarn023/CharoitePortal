@@ -23,9 +23,9 @@ public final class TouhouJapaneseSupport {
     private static final String FONT_NAME = "NotoSansCJKjp-Regular.otf";
     private static final String FONT_FAMILY = "Noto Sans CJK JP";
     private static final String ADDON = "japanese/japanese-support.tzst";
-    private static final String DIALOG_FALLBACK_VERSION = "v4";
-    private static final String IPA_GOTHIC = "IPA Gothic";
-    private static final String IPA_P_GOTHIC = "IPA P Gothic";
+    private static final String DIALOG_FALLBACK_VERSION = "v5";
+    private static final String IPA_GOTHIC = "IPAGothic";
+    private static final String IPA_P_GOTHIC = "IPAPGothic";
 
     private TouhouJapaneseSupport() {}
 
@@ -63,14 +63,14 @@ public final class TouhouJapaneseSupport {
             throw new IOException("Cannot create Windows Japanese Fonts folder");
         }
         File windowsFont = new File(windowsFonts, FONT_NAME);
-        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v4");
+        File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v5");
         File winIPA = new File(windowsFonts, "ipag.ttf");
         File winIPAP = new File(windowsFonts, "ipagp.ttf");
         if (registrationMarker.isFile() && windowsFont.isFile()
                 && windowsFont.length() == linuxFont.length()
                 && winIPA.isFile() && winIPA.length() == ipaGothic.length()
                 && winIPAP.isFile() && winIPAP.length() == ipaPGothic.length()) {
-            TouhouDiagnostics.recordLine("Japanese TrueType fonts installed (v4).");
+            TouhouDiagnostics.recordLine("Japanese TrueType fonts installed (v5).");
             return;
         }
         if (!FileUtils.copy(linuxFont, windowsFont)
@@ -154,15 +154,15 @@ public final class TouhouJapaneseSupport {
                 "<!DOCTYPE fontconfig SYSTEM \"fonts.dtd\">\n" +
                 "<fontconfig>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>MS Shell Dlg</family><prefer><family>IPA P Gothic</family></prefer>\n" +
+                "    <family>MS Shell Dlg</family><prefer><family>IPAPGothic</family></prefer>\n" +
                 "  </alias>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>MS Shell Dlg 2</family><prefer><family>IPA P Gothic</family></prefer>\n" +
+                "    <family>MS Shell Dlg 2</family><prefer><family>IPAPGothic</family></prefer>\n" +
                 "  </alias>\n" +
                 "  <alias binding=\"strong\">\n" +
-                "    <family>Tahoma</family><prefer><family>IPA P Gothic</family></prefer>\n" +
+                "    <family>Tahoma</family><prefer><family>IPAPGothic</family></prefer>\n" +
                 "  </alias>\n" +
-                "  <alias><family>sans-serif</family><prefer><family>IPA P Gothic</family></prefer></alias>\n" +
+                "  <alias><family>sans-serif</family><prefer><family>IPAPGothic</family></prefer></alias>\n" +
                 "</fontconfig>\n";
         if (!FileUtils.writeString(target, xml))
             throw new IOException("Unable to install Touhou Fontconfig fallback");

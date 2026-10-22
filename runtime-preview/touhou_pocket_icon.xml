@@ -1,46 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Original Touhou-inspired pocket console, shrine ribbon and sakura -->
-    <path android:fillColor="#151034"
-        android:pathData="M54,1 C83,1 107,25 107,54 C107,83 83,107 54,107 C25,107 1,83 1,54 C1,25 25,1 54,1Z"/>
-    <path android:fillColor="#7F3DAA"
-        android:pathData="M54,5 C81,5 103,27 103,54 C103,81 81,103 54,103 C27,103 5,81 5,54 C5,27 27,5 54,5Z"/>
-    <path android:fillColor="#2A1A55"
-        android:pathData="M54,8 C79.4,8 100,28.6 100,54 C100,79.4 79.4,100 54,100 C28.6,100 8,79.4 8,54 C8,28.6 28.6,8 54,8Z"/>
-    <!-- Moon -->
-    <path android:fillColor="#FBE2FE" android:pathData="M77,15 A12,12 0,1 1,76.9 15Z"/>
-    <path android:fillColor="#302051" android:pathData="M82,13 A10,10 0,1 1,81.9 13Z"/>
-    <!-- Torii shrine in the background -->
-    <path android:fillColor="#DF3656" android:pathData="M12,30 L96,30 L91,36 L17,36Z"/>
-    <path android:fillColor="#FC6373" android:pathData="M16,25 Q54,34 92,25 L95,29 Q54,38 13,29Z"/>
-    <path android:fillColor="#CE2A57" android:pathData="M29,34 L36,34 L36,59 L29,59ZM72,34 L79,34 L79,59 L72,59Z"/>
-    <path android:fillColor="#FF7AA1" android:pathData="M23,43 L85,43 L83,48 L25,48Z"/>
-    <!-- Red bow and white zigzag from shrine attire -->
-    <path android:fillColor="#F34362" android:pathData="M38,36 L14,17 L18,42 L11,56 L39,47 L54,40 L69,47 L97,56 L90,42 L94,17 L70,36 L54,40Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M17,20 L36,37 L35,42 L18,29ZM91,20 L72,37 L73,42 L90,29Z"/>
-    <path android:fillColor="#FFD6D6" android:pathData="M45,37 L63,37 L66,45 L54,51 L42,45Z"/>
-    <path android:fillColor="#A31441" android:pathData="M43,46 L32,68 L40,62 L46,74 L54,49ZM65,46 L76,68 L68,62 L62,74 L54,49Z"/>
-    <!-- Dark shadow underneath handheld device -->
-    <path android:fillColor="#110B24" android:pathData="M15,58 Q17,53 24,53 L83,53 Q92,54 92,62 L88,83 Q87,90 79,91 L27,91 Q18,90 17,83Z"/>
-    <!-- Golden trim -->
-    <path android:fillColor="#FFE097" android:pathData="M15,55 Q16,49 23,49 L85,49 Q93,49 94,57 L90,82 Q89,88 83,88 L24,88 Q17,88 16,81Z"/>
-    <path android:fillColor="#9052C8" android:pathData="M19,57 Q20,53 25,53 L83,53 Q90,53 90,59 L86,82 Q86,85 81,85 L26,85 Q21,85 20,81Z"/>
-    <!-- Console screen -->
-    <path android:fillColor="#140F36" android:pathData="M34,57 L74,57 Q77,57 77,60 L76,78 Q76,81 73,81 L35,81 Q32,81 32,78 L32,60 Q32,57 34,57Z"/>
-    <path android:fillColor="#482B80" android:pathData="M36,60 L73,60 L73,78 L36,78Z"/>
-    <!-- Glowing yin-yang -->
-    <path android:fillColor="#FFEFF8" android:pathData="M54,61 C62,61 69,65 69,70 C69,75 62,79 54,79 C46,79 39,75 39,70 C39,65 46,61 54,61 C59,61 62,64 62,66 C62,70 54,70 54,70 C50,70 47,72 47,75 C47,77 50,79 54,79 C46,79 39,75 39,70 C39,65 46,61 54,61Z"/>
-    <path android:fillColor="#FF529C" android:pathData="M54,61 C62,61 69,65 69,70 C69,75 62,79 54,79 C50,79 47,77 47,75 C47,72 50,70 54,70 C59,70 62,68 62,66 C62,64 59,61 54,61Z"/>
-    <path android:fillColor="#F34A89" android:pathData="M54,63 A2.8,2.8 0,1 1,53.9 63Z"/>
-    <path android:fillColor="#FFEDF5" android:pathData="M54,72 A2.8,2.8 0,1 1,53.9 72Z"/>
-    <!-- Cross pad -->
-    <path android:fillColor="#281C44" android:pathData="M25,63 L28,63 L28,60 L32,60 L32,63 L35,63 L35,67 L32,67 L32,70 L28,70 L28,67 L25,67Z"/>
-    <!-- Action buttons -->
-    <path android:fillColor="#1C123D" android:pathData="M80,66 A3,3 0,1 1,79.9 66Z M84,74 A3,3 0,1 1,83.9 74Z"/>
-    <path android:fillColor="#F9B0D8" android:pathData="M81,66 A1.3,1.3 0,1 1,80.9 66Z M85,74 A1.3,1.3 0,1 1,84.9 74Z"/>
-    <!-- Floating sakura petals -->
-    <path android:fillColor="#FFBDD7" android:pathData="M12,71 Q9,66 12,64 Q18,63 20,68 Q17,73 12,71Z M86,19 Q83,14 86,12 Q92,11 94,17 Q91,21 86,19Z M85,94 Q79,91 82,88 Q89,85 91,90 Q90,94 85,94Z"/>
-    <path android:fillColor="#FFD2E9" android:pathData="M29,16 Q27,11 31,9 Q35,11 34,14 Q39,12 41,16 Q39,19 34,18 Q35,23 31,23 Q28,21 30,18 Q26,21 24,18 Q24,15 29,16Z"/>
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Touhou OS: original Gensokyo-inspired moonlit shrine emblem, no console -->
+    <path android:fillColor="#160E25"
+        android:pathData="M54,1 A53,53 0,1 1,53.99 1Z"/>
+    <path android:fillColor="#8A2E52"
+        android:pathData="M54,5 A49,49 0,1 1,53.99 5Z"/>
+    <path android:fillColor="#281631"
+        android:pathData="M54,9 A45,45 0,1 1,53.99 9Z"/>
+
+    <!-- Starlit dusk and pale moon -->
+    <path android:fillColor="#FFDAE5"
+        android:pathData="M75,17 A13,13 0,1 1,74.99 17Z"/>
+    <path android:fillColor="#281631"
+        android:pathData="M81,13 A11,11 0,1 1,80.99 13Z"/>
+    <path android:fillColor="#FFE0AA"
+        android:pathData="M22,20 L24,24 L28,26 L24,28 L22,32 L20,28 L16,26 L20,24Z M85,43 L87,46 L90,47 L87,49 L85,52 L83,49 L80,47 L83,46Z"/>
+
+    <!-- Gold-lit shrine roof and vermilion torii -->
+    <path android:fillColor="#E8AF8F"
+        android:pathData="M12,34 Q54,43 96,34 L93,42 Q54,51 15,42Z"/>
+    <path android:fillColor="#F04867"
+        android:pathData="M12,29 Q54,39 96,29 L94,37 Q54,47 14,37Z"/>
+    <path android:fillColor="#AD2847"
+        android:pathData="M23,42 L85,42 L83,49 L25,49Z"/>
+    <path android:fillColor="#E34A5B"
+        android:pathData="M31,46 L40,46 L40,79 L31,79Z M68,46 L77,46 L77,79 L68,79Z"/>
+    <path android:fillColor="#8B254A"
+        android:pathData="M37,46 L40,46 L40,79 L37,79Z M74,46 L77,46 L77,79 L74,79Z"/>
+    <path android:fillColor="#FFD7A6"
+        android:pathData="M24,53 L84,53 L81,58 L27,58Z"/>
+
+    <!-- Protective yin-yang at the heart of Gensokyo -->
+    <path android:fillColor="#FFD6AD"
+        android:pathData="M54,59 A17,17 0,1 1,53.99 59Z"/>
+    <path android:fillColor="#FFF3E7"
+        android:pathData="M54,62 C62.8,62 69,68.6 69,76 C69,84.2 62.1,90 54,90 C45.6,90 39,83.5 39,76 C39,68.4 45.6,62 54,62Z"/>
+    <path android:fillColor="#CE315A"
+        android:pathData="M54,62 C62.8,62 69,68.6 69,76 C69,80 65,83 61,83 C57,83 54,80 54,76 C54,72 50,69 46,69 C42,69 39,72 39,76 C39,68.4 45.6,62 54,62Z"/>
+    <path android:fillColor="#FFF1E8"
+        android:pathData="M47,66 A2.9,2.9 0,1 1,46.99 66Z"/>
+    <path android:fillColor="#CE315A"
+        android:pathData="M61,82 A2.9,2.9 0,1 1,60.99 82Z"/>
+
+    <!-- Five-petal sakura and drifting petals -->
+    <path android:fillColor="#F7AFCB"
+        android:pathData="M18,55 C13,50 15,46 20,47 C23,44 27,46 25,51 C29,54 26,58 22,56 C19,60 15,58 18,55Z M84,74 C81,69 84,66 88,69 C93,68 94,72 90,75 C90,79 85,81 84,74Z"/>
+    <path android:fillColor="#FFD6E6"
+        android:pathData="M22,83 Q16,80 15,85 Q15,91 22,89 Q26,86 22,83Z M83,18 Q79,14 83,11 Q88,10 90,15 Q90,20 83,18Z"/>
 </vector>

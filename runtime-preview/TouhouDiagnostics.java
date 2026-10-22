@@ -51,11 +51,33 @@ public final class TouhouDiagnostics {
             .apply();
     }
 
+    public static void setProbePath(Context context, String file) {
+        prefs(context).edit().putString("touhou_probe_path", file == null ? "" : file).apply();
+    }
+
     public static String getReport(Context context) {
         SharedPreferences p = prefs(context);
-        return "Game: " + p.getString("touhou_launch_file", "(none)") +
+        String report = "Game: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
+        String probePath = p.getString("touhou_probe_path", "");
+        if (!probePath.isEmpty()) {
+            try {
+                java.io.File file = new java.io.File(probePath);
+                if (file.isFile()) {
+                    String details = new String(
+                        java.nio.file.Files.readAllBytes(file.toPath()),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                    report += "\n\nJAPANESE PATH / CODEPAGE PROBE:\n" +
+                        details.substring(0, Math.min(14000, details.length()));
+                } else {
+                    report += "\n\nJapanese probe report not present; keep the installer open on its destination page.";
+                }
+            } catch (Exception error) {
+                report += "\n\nJapanese probe report could not be read: " + error;
+            }
+        }
+        return report;
     }
 
     private static SharedPreferences prefs(Context context) {

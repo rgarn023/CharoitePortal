@@ -35,3 +35,15 @@ Earlier app was packaged as games.charoite.touhoupocket.runtime but embedded ARM
 New build from the latest successful Touhou Wine Runtime Preview workflow uses Android ID com.touhoupk and label Touhou Pocket Test. It rewrites runtime native binary paths, including the Box64 ELF loader and graphics cache paths.
 Keep the previous APK installed; the new ID installs separately and does not migrate old app-private files or saves. Install the new APK, Set Up Game Engine, import your original complete game or installer folder, and press Play or Run Installer.
 If it fails again, open View Last Launch Diagnostics > Copy Report and share full text. Report should include Box64 native exists/execute and glibc loader status. CI build success is not device success.
+
+
+## Japanese text support test (October 22, 2026)
+Once a newer `Touhou Pocket Test` APK with the Japanese language pack has successfully built:
+1. Keep a copy of imported games/saves before replacing any debug-signed APK. If the Android update fails due to signature conflict, **do not immediately uninstall**.
+2. Run `Set Up Game Engine` if asked. Existing prefixes should receive the Japanese locale/font addon without deleting game content.
+3. Select the imported full Puppet Dance Performance installer and press `Run Installer`.
+4. Verify the installer's **Japanese kana/kanji**, dialog buttons, and Japanese folder names display and install correctly rather than mojibake/squares.
+5. If display is still garbled, provide a screenshot and `View Last Launch Diagnostics` report. This helps distinguish codepage mismatch from missing glyphs.
+6. Do not apply translations or Shard of Dreams/Extended until unpatched base-game installation is stable.
+
+The font is Noto Sans CJK JP, SIL OFL 1.1, sourced from a pinned official revision and distributed with its license in the APK. Wine is configured for `ja_JP.UTF-8` and the Windows font faces MS Gothic / Meiryo alias to Noto; native Android app labels remain English.

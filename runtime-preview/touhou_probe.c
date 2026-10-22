@@ -1,5 +1,5 @@
 /*
- * Touhou Pocket Japanese installer diagnostic v2.
+ * Touhou Pocket Japanese installer diagnostic v3.
  *
  * Read-only Win32 probe. Does not alter game files, window text, locale,
  * registry or install directory. Inspects actual EDIT controls through
@@ -7,7 +7,7 @@
  *
  * v1 enumerated only the probe's own desktop. Winlator starts Windows
  * applications with explorer /desktop=nogui,... which can create a separate
- * Wine desktop. v2 uses EnumDesktopsW + EnumDesktopWindows as well as its own
+ * Wine desktop. v3 enumerates children even when Wine marks the parent not visible; also uses EnumDesktopsW + EnumDesktopWindows as well as its own
  * current desktop. It never changes the thread desktop or foreground window.
  */
 #define UNICODE
@@ -154,10 +154,12 @@ static BOOL CALLBACK window_callback(HWND hwnd, LPARAM context) {
                             "%04X ", (unsigned)title[i]);
         line(sample);
     }
-    /* Don't filter by translated Japanese window title: under Wine,
-       the title may belong to a desktop frame or be ANSI/Unicode-mangled. */
-    if (IsWindowVisible(hwnd))
-        EnumChildWindows(hwnd, child_callback, 0);
+    /* Wine's explorer /desktop=nogui can report an installer TWizardForm
+       as IsWindowVisible(FALSE) while it is displayed by the X server.
+       Always enumerate its children: Win32 EnumChildWindows can inspect
+       an invisible parent, and filtering it caused the exact v2 failure
+       where TWizardForm was found but child_controls stayed at zero. */
+    EnumChildWindows(hwnd, child_callback, 0);
     return TRUE;
 }
 
@@ -214,7 +216,7 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
     if (log_handle == INVALID_HANDLE_VALUE) return 2;
     char header[500];
     snprintf(header, sizeof(header),
-       "touhou-probe-v2 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
+       "touhou-probe-v3 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
        GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
        (unsigned)GetSystemDefaultUILanguage());
     line(header);

@@ -414,3 +414,32 @@ Important to validate latest GitHub Actions build (workflow `.github/workflows/r
 - Earlier run `39864023604` stalled on MinGW build dependencies. Commit `13d1809574e2bfad2da20b964a671cb6f2ff5fdc` capped apt-get update/install time and checks for existing compilers; new run successfully built full APK.
 - **Not yet physically tested on the user's Galaxy**: UI responsive navigation, automatic engine setup path (new installs), engine reuse (existing installs), icon visual quality, font timing, library install/play. Avoid claiming phone tested. Recommend install **over existing app without uninstalling or clearing data**; test Library/Import/System, Japanese install directory exact default, imported titles, graphics toggle, startup diagnostics. If Android update rejected due to signing, ask before doing anything that could erase user data.
 - Current implementation remains a *Touhou OS branded fork of Winlator* with Wine/Box64 backend, not a wholly independent engine. License attribution remains mandatory; complete runtime rewrite is future work only.
+
+
+## 2026-10-22 — Touhou OS rebrand, UI redesign, automatic first-launch engine, successful APK
+
+**User-confirmed prior success:** The rapid Japanese installer font helper fixed the original Windows TPDP installation path's boxes. User explicitly said "Works well now." This must remain working and original path `C:\\game\\FocasLens\\幻想人形演舞` must not be overridden. The fast font monitor (roughly 750ms initial start; roughly 300ms polling) is retained unchanged.
+
+**Name and architecture:** App user-facing name is now **Touhou OS**, Charoite Games. It is *not* an Android OS replacement; it is a dedicated Android Touhou launcher. Android package `com.touhoudr` is deliberately unchanged to preserve in-place upgrades and app data. The compatibility/runtime backend is **still a modified, LGPL-licensed Winlator source** with Wine and Box64; do not claim the codebase is independent of Winlator. Licensing/attribution retained.
+
+**New UI in `runtime-preview/TouhouEntryActivity.java`:**
+- Shrine-red/ink-purple/sakura mobile dashboard; Touhou OS hero heading and Japanese Gensokyo label.
+- Three sections: **Library** (existing game/installer cards and Play/Install actions), **Import** (complete game-folder picker, single-file EXE picker, scan previously installed games), and **System** (engine state, optional retry, compat graphics, last launch diagnostics, "What does setup do?" explainer).
+- The previous cluttered setup/import/debug button list is replaced by sections. New vector Android icon `runtime-preview/touhou_pocket_icon.xml` is Touhou-inspired moonlit shrine and yin-yang, without the handheld console. Installed application label, runtime notification branding updated to **Touhou OS**.
+- Existing library preferences, single installer slot, import data, game saves and original Wine prefix unchanged.
+
+**Automatic engine initialization:**
+- On activity creation the launcher checks `RootFS.find(...)`, `RootFSInstaller.LATEST_VERSION` and active container. If already ready, it opens directly into Library and **does not reinstall**. If runtime missing/outdated or no container exists, it opens System and calls `startSetup()` automatically.
+- Setup extracts the bundled rootfs only if needed and creates the game environment (Wine/Box64, compatible graphics/audio settings). No game download, translation, installer path overrides or automatic game installation.
+- Manual engine setup hidden when ready or busy; shown as **Retry Game Engine Setup** if engine is not ready after a failure. The System explainer describes first-launch behavior.
+- Important unresolved QA: test fresh install and in-place update on Android; ensure automatic setup does not touch existing imported game data or break callback/UI states.
+
+**Latest successful build:** GitHub Actions https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39865725869 , workflow `.github/workflows/runtime-preview.yml`, code commit `13d1809574e2bfad2da20b964a671cb6f2ff5fdc`, **completed successfully**. An earlier run `39864023604` stalled at the MinGW dependency step and was cancelled when the new run started; compilation step now checks tool availability, bounds apt-update/install time. No need to chase cancelled run.
+- APK artifact ID `12463852428` name `touhou-pocket-runtime-preview-apk`.
+- Legal artifact ID `12464041905` name `touhou-pocket-runtime-legal`.
+- Verified APK from successful build: `Touhou-OS-Android.apk`, **231,975,728 bytes**, SHA256 **`c1d93c1ac8639521b4eb3dd82b37543b4c2a815cbfd5a12a382ab41fe98ce858`**. Archive CRC valid, bundled Japanese support `japanese-support.tzst` (22,309,132 bytes), `touhou_probe.exe` (v6), 32-bit/64-bit matched Wine font helper EXEs and hook DLLs, 35 native libraries and LGPL license. Output accessible in current chat working container at `/mnt/data/Touhou-OS-Android.apk`.
+- The GitHub **build** passed, but the redesigned UI and first-run flow **have not yet been user-tested on device**. Do not claim verified functionality on Galaxy until user reports test.
+
+**Installation/testing:** Install the APK over current Touhou Pocket Launcher without uninstalling or clearing data. Because Android app ID remains `com.touhoudr`, current game data is intended to remain available, but OS signature acceptance must still be checked. Open Touhou OS: existing installed engine should display Library without setup or data loss. Verify imported game(s) and installer still listed, Japanese original default installer destination instantly renders `幻想人形演舞`, System works, Import works, and first-launch auto setup on a separate clean install/device when possible. No forced `/DIR` / ASCII path. Do not ask user to uninstall existing app to test from scratch.
+
+**Development workflow:** ChatGPT directly modifies GitHub `rgarn023/TouhouPocketLauncher` on **main** using connector tools under `mcp__GitHub__` accessed through `functions.exec`. Do not recommend other coding agents. Changes under `runtime-preview/**` or runtime workflow trigger GitHub Actions; `docs/HANDOFF.md` edits alone do not. Future improvements: refine touch UI/device QA, ensure launch resume and game selection are stable, expand Shard of Dreams/Extended support later. UI remains customized Winlator-derived Wine/Box64 stack; own completely independent runtime would be a separate major project.

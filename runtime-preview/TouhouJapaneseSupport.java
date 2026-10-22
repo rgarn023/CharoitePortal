@@ -67,7 +67,8 @@ public final class TouhouJapaneseSupport {
         // changes the original Windows setup.exe or its destination.
         File probe = new File(prefix, "drive_c/touhou_probe.exe");
         if (!probe.isFile() || probe.length() < 10000) {
-            if (!FileUtils.copy(context, "japanese/touhou_probe.exe", probe))
+            FileUtils.copy(context, "japanese/touhou_probe.exe", probe);
+            if (!probe.isFile() || probe.length() < 10000)
                 TouhouDiagnostics.recordLine("Optional Japanese probe asset copy failed.");
         }
         File previousProbe = new File(prefix, "drive_c/touhou_probe.log");

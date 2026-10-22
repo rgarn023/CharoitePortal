@@ -1,119 +1,240 @@
 /*
- * Touhou Pocket read-only Japanese installer diagnostic.
+ * Touhou Pocket Japanese installer diagnostic v2.
  *
- * No gameplay code, no registry writes, no changes to the installer, no network.
- * Reads the contents of target installer EDIT controls using WM_GETTEXTW.
- * Captures only UTF-16 code-unit hex plus selected font metadata (no
- * human-readable path text) and Win32 code pages into C:\touhou_probe.log.
- * Built with mingw-w64 by GitHub Actions and bundled as an independent .exe.
+ * Read-only Win32 probe. Does not alter game files, window text, locale,
+ * registry or install directory. Inspects actual EDIT controls through
+ * WM_GETTEXTW and outputs only code unit hex, window class names, GDI coverage.
  *
- * The diagnostic deliberately uses the same Win32 subsystem as the installer,
- * so the observed text reflects Wine's actual ANSI -> Unicode conversion.
+ * v1 enumerated only the probe's own desktop. Winlator starts Windows
+ * applications with explorer /desktop=nogui,... which can create a separate
+ * Wine desktop. v2 uses EnumDesktopsW + EnumDesktopWindows as well as its own
+ * current desktop. It never changes the thread desktop or foreground window.
  */
 #define UNICODE
 #define _UNICODE
 #include <windows.h>
 #include <wchar.h>
+#include <wctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const wchar_t *output_path = L"C:\\touhou_probe.log";
-static HANDLE out = INVALID_HANDLE_VALUE;
+static HANDLE log_handle = INVALID_HANDLE_VALUE;
 static int snapshots = 0;
+static int seen_windows = 0;
+static int seen_children = 0;
+static int edit_controls = 0;
+static int desktop_count = 0;
+static int debug_windows = 0;
+static int debug_children = 0;
 
-static void log_line(const char *line) {
-    if (out == INVALID_HANDLE_VALUE) return;
-    DWORD len = (DWORD)lstrlenA(line), written = 0;
-    WriteFile(out, line, len, &written, NULL);
-    WriteFile(out, "\r\n", 2, &written, NULL);
-    FlushFileBuffers(out);
+static void line(const char *value) {
+    if (log_handle == INVALID_HANDLE_VALUE) return;
+    DWORD written = 0;
+    DWORD len = (DWORD)strlen(value);
+    WriteFile(log_handle, value, len, &written, NULL);
+    WriteFile(log_handle, "\r\n", 2, &written, NULL);
+    FlushFileBuffers(log_handle);
 }
 
-static BOOL CALLBACK enumerate_edit(HWND hwnd, LPARAM lp) {
-    (void)lp;
-    wchar_t cls[128] = {0};
-    if (!GetClassNameW(hwnd, cls, 127)) return TRUE;
-    if (wcsstr(cls, L"Edit") == NULL && wcsstr(cls, L"EDIT") == NULL)
-        return TRUE;
-
-    wchar_t value[1024] = {0};
-    DWORD_PTR result = 0;
-    BOOL ok = SendMessageTimeoutW(hwnd, WM_GETTEXT, 1023, (LPARAM)value,
-                                  SMTO_ABORTIFHUNG | SMTO_BLOCK, 500, &result) != 0;
-    if (!ok || result == 0) return TRUE;
-
-    int hasDrive = (value[0] && value[1] == L':') ||
-                    wcsstr(value, L"FocasLens") != NULL;
-    if (!hasDrive) return TRUE;
-    char summary[4096];
-    int pos = snprintf(summary, sizeof(summary),
-                       "edit class=%ls utf16_units=%lu codepoints=",
-                       cls, (unsigned long)result);
-    for (unsigned i = 0; value[i] && i < 180 && pos < 3800; i++) {
-        pos += snprintf(summary + pos, sizeof(summary) - (size_t)pos,
-                        "%04X ", (unsigned)value[i]);
+static void utf8(const wchar_t *src, char *dest, int size) {
+    if (!src || !src[0] || size < 2) {
+        if (size) dest[0] = '\0';
+        return;
     }
-    if (pos < (int)sizeof(summary)) summary[pos] = 0;
-    log_line(summary);
+    if (!WideCharToMultiByte(CP_UTF8, 0, src, -1, dest, size, NULL, NULL))
+        dest[0] = '\0';
+}
 
-    // Check Japanese glyphs in a known Unicode string with Wine's GDI,
-    // independent of whatever the installer stored in its edit control.
+static int has_word(const wchar_t *text, const wchar_t *match) {
+    if (!text) return 0;
+    int n = (int)wcslen(match);
+    for (; *text; text++) {
+        if (_wcsnicmp(text, match, n) == 0) return 1;
+    }
+    return 0;
+}
+
+static int is_path(const wchar_t *value) {
+    if (!value || !value[0]) return 0;
+    if (iswalpha(value[0]) && value[1] == L':' && value[2] == L'\\') return 1;
+    return wcsstr(value, L"FocasLens") != NULL;
+}
+
+static void glyph_report(HWND hwnd) {
     HDC dc = GetDC(hwnd);
-    if (dc) {
-        HFONT requested = (HFONT)SendMessageW(hwnd, WM_GETFONT, 0, 0);
-        HFONT prior = requested ? (HFONT)SelectObject(dc, requested) : NULL;
-        wchar_t face[LF_FACESIZE] = {0};
-        GetTextFaceW(dc, LF_FACESIZE, face);
-        const wchar_t test[] = L"\x5E7B\x60F3\x4EBA\x5F62\x6F14\x821E";
-        WORD indices[6] = {0};
-        DWORD glyphResult = GetGlyphIndicesW(dc, test, 6, indices,
-                                               GGI_MARK_NONEXISTING_GLYPHS);
-        unsigned missing = 0;
-        if (glyphResult != GDI_ERROR) for (int i=0;i<6;i++) if (indices[i] == 0xFFFF) missing++;
-        char glyphLine[512];
-        snprintf(glyphLine, sizeof(glyphLine),
-                 "selected-face=%ls japanese-test-missing-glyphs=%u gdi-error=%d",
-                 face, missing, glyphResult == GDI_ERROR);
-        log_line(glyphLine);
-        if (prior) SelectObject(dc, prior);
-        ReleaseDC(hwnd, dc);
+    if (!dc) {
+        line("GDI: GetDC failed");
+        return;
     }
+    HFONT font = (HFONT)SendMessageW(hwnd, WM_GETFONT, 0, 0);
+    HGDIOBJ old = font ? SelectObject(dc, font) : NULL;
+    wchar_t faceW[LF_FACESIZE] = {0};
+    GetTextFaceW(dc, LF_FACESIZE, faceW);
+    char face[200]; utf8(faceW, face, sizeof(face));
+    const wchar_t text[] = L"\x5e7b\x60f3\x4eba\x5f62\x6f14\x821e";
+    WORD glyphs[6];
+    for (int i = 0; i < 6; i++) glyphs[i] = 0xffff;
+    DWORD result = GetGlyphIndicesW(dc, text, 6, glyphs, GGI_MARK_NONEXISTING_GLYPHS);
+    int missing = 0;
+    for (int i = 0; i < 6; i++) if (glyphs[i] == 0xffff) missing++;
+    char buffer[500];
+    snprintf(buffer, sizeof(buffer), "font: name=%s missing_known_japanese=%d gdi_error=%d",
+             face, missing, result == GDI_ERROR);
+    line(buffer);
+    if (old && old != HGDI_ERROR) SelectObject(dc, old);
+    ReleaseDC(hwnd, dc);
+}
+
+static BOOL CALLBACK child_callback(HWND hwnd, LPARAM context) {
+    (void)context;
+    seen_children++;
+    wchar_t classname[128] = {0};
+    if (!GetClassNameW(hwnd, classname, 127)) return TRUE;
+
+    /* Inno Setup uses VCL TEdit/TNewPathEdit as well as Edit controls.
+       Count visible classes to diagnose custom widgets even if no path found. */
+    int editor = has_word(classname, L"edit") || has_word(classname, L"combo");
+    if (editor) edit_controls++;
+    if (!editor) return TRUE;
+
+    wchar_t value[2048] = {0};
+    DWORD_PTR chars = 0;
+    SetLastError(0);
+    BOOL success = SendMessageTimeoutW(hwnd, WM_GETTEXT,
+                     (WPARAM)(sizeof(value) / sizeof(value[0])),
+                     (LPARAM)value, SMTO_ABORTIFHUNG | SMTO_BLOCK, 750,
+                     &chars) != 0;
+    if (!success || !chars || !is_path(value)) {
+        if (debug_children++ < 7) {
+            char cls[128]; utf8(classname, cls, sizeof(cls));
+            char info[280];
+            snprintf(info, sizeof(info),
+                     "edit-candidate class=%s read_ok=%d chars=%lu err=%lu looks_path=%d",
+                     cls, success, (unsigned long)chars,
+                     (unsigned long)GetLastError(), is_path(value));
+            line(info);
+        }
+        return TRUE;
+    }
+
+    char cls[128]; utf8(classname, cls, sizeof(cls));
+    char report[7200];
+    int pos = snprintf(report, sizeof(report),
+               "PATH FOUND class=%s utf16_units=%lu codepoints=",
+               cls, (unsigned long)chars);
+    for (unsigned i = 0; value[i] && i < 450 && pos < (int)sizeof(report)-16; i++) {
+        int n = snprintf(report + pos, sizeof(report) - (size_t)pos,
+                         "%04X ", (unsigned)value[i]);
+        if (n <= 0) break;
+        pos += n;
+    }
+    line(report);
+    glyph_report(hwnd);
     snapshots++;
     return TRUE;
 }
 
-static BOOL CALLBACK enumerate_window(HWND hwnd, LPARAM lp) {
-    (void)lp;
-    if (!IsWindowVisible(hwnd)) return TRUE;
-    wchar_t title[256] = {0};
-    GetWindowTextW(hwnd, title, 255);
-    if (!(wcsstr(title,L"\x30BB\x30C3\x30C8\x30A2\x30C3\x30D7") ||
-          wcsstr(title,L"\x5E7B\x60F3\x4EBA\x5F62") ||
-          wcsstr(title,L"Setup"))) return TRUE;
-    EnumChildWindows(hwnd, enumerate_edit, 0);
+static BOOL CALLBACK window_callback(HWND hwnd, LPARAM context) {
+    (void)context;
+    seen_windows++;
+    wchar_t clsW[128] = {0};
+    GetClassNameW(hwnd, clsW, 127);
+    if (debug_windows++ < 12) {
+        char cls[128]; utf8(clsW, cls, sizeof(cls));
+        wchar_t title[200] = {0};
+        GetWindowTextW(hwnd, title, 199);
+        char sample[500];
+        int pos = snprintf(sample, sizeof(sample),
+                 "top-window class=%s visible=%d title_units=%u title_prefix_utf16=",
+                 cls, IsWindowVisible(hwnd) ? 1 : 0, (unsigned)wcslen(title));
+        for (unsigned i = 0; title[i] && i < 12 && pos < 445; i++)
+            pos += snprintf(sample + pos, sizeof(sample) - (size_t)pos,
+                            "%04X ", (unsigned)title[i]);
+        line(sample);
+    }
+    /* Don't filter by translated Japanese window title: under Wine,
+       the title may belong to a desktop frame or be ANSI/Unicode-mangled. */
+    if (IsWindowVisible(hwnd))
+        EnumChildWindows(hwnd, child_callback, 0);
     return TRUE;
 }
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE prior, PWSTR cmdline, int show) {
-    (void)instance; (void)prior; (void)cmdline; (void)show;
-    out = CreateFileW(output_path, GENERIC_WRITE, FILE_SHARE_READ, NULL,
-                      CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (out == INVALID_HANDLE_VALUE) return 2;
-    char header[512];
-    snprintf(header, sizeof(header),
-             "touhou-probe-v1 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
-             GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
-             (unsigned)GetSystemDefaultUILanguage());
-    log_line(header);
-    for (int pass=0; pass<24; pass++) {
-        EnumWindows(enumerate_window, 0);
-        if (snapshots > 0) {
-            log_line("captured-edit-path; no installer data changed");
-            break;
-        }
-        Sleep(2500);
+static BOOL CALLBACK desktop_callback(LPWSTR name, LPARAM context) {
+    (void)context;
+    desktop_count++;
+    char label[200]; utf8(name, label, sizeof(label));
+    char msg[300];
+    snprintf(msg, sizeof(msg), "desktop: name=%s", label);
+    line(msg);
+
+    HDESK desktop = OpenDesktopW(name, 0, FALSE, DESKTOP_READOBJECTS);
+    if (!desktop) {
+        snprintf(msg, sizeof(msg), "desktop-open-error=%lu",
+                 (unsigned long)GetLastError());
+        line(msg);
+        return TRUE;
     }
-    if (snapshots == 0) log_line("No supported installer destination edit control found in 60 seconds.");
-    CloseHandle(out);
-    return snapshots ? 0 : 1;
+    int was = seen_windows;
+    if (!EnumDesktopWindows(desktop, window_callback, 0)) {
+        snprintf(msg, sizeof(msg), "desktop-enumerate-error=%lu",
+                 (unsigned long)GetLastError());
+        line(msg);
+    }
+    snprintf(msg, sizeof(msg), "desktop-window-count=%d", seen_windows - was);
+    line(msg);
+    CloseDesktop(desktop);
+    return TRUE;
+}
+
+static void enumerate_once(void) {
+    seen_windows = seen_children = edit_controls = desktop_count = 0;
+    if (!EnumWindows(window_callback, 0)) {
+        char err[100];
+        snprintf(err, sizeof(err), "EnumWindows error=%lu",
+                 (unsigned long)GetLastError());
+        line(err);
+    }
+    HWINSTA station = GetProcessWindowStation();
+    if (station) {
+        if (!EnumDesktopsW(station, desktop_callback, 0)) {
+            char err[120];
+            snprintf(err, sizeof(err), "EnumDesktops error=%lu",
+                     (unsigned long)GetLastError());
+            line(err);
+        }
+    } else line("GetProcessWindowStation failed");
+}
+
+int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
+    (void)a; (void)b; (void)cmdline; (void)show;
+    log_handle = CreateFileW(output_path, GENERIC_WRITE, FILE_SHARE_READ,
+                             NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (log_handle == INVALID_HANDLE_VALUE) return 2;
+    char header[500];
+    snprintf(header, sizeof(header),
+       "touhou-probe-v2 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
+       GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
+       (unsigned)GetSystemDefaultUILanguage());
+    line(header);
+    for (int pass=0; pass<30; pass++) {
+        /* Log detailed windows only at first scan to keep report compact. */
+        if (pass > 0) { debug_windows = 100; debug_children = 100; }
+        enumerate_once();
+        if (pass == 0 || pass == 5 || pass == 12 || snapshots > 0) {
+            snprintf(header, sizeof(header),
+                     "pass=%d desktops=%d windows=%d child_controls=%d edit_candidates=%d found=%d",
+                     pass, desktop_count, seen_windows, seen_children,
+                     edit_controls, snapshots);
+            line(header);
+        }
+        if (snapshots > 0) break;
+        Sleep(2000);
+    }
+    if (snapshots == 0) line(
+        "No destination control readable; desktop/window counts above distinguish virtual-desktop isolation from custom installer controls.");
+    else line("Read-only Japanese path captured; installer unchanged.");
+    CloseHandle(log_handle);
+    return snapshots > 0 ? 0 : 1;
 }

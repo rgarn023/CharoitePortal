@@ -1,0 +1,73 @@
+name: Touhou Wine Runtime Preview
+on:
+  push:
+    paths:
+      - '.github/workflows/runtime-preview.yml'
+      - 'runtime-preview/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-runtime-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get pinned LGPL Winlator upstream source
+        run: |
+          git clone --filter=blob:none --depth 1 https://github.com/brunodev85/winlator-app.git upstream
+          cd upstream
+          git fetch --depth 1 origin 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          git checkout --detach 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          test -f LICENSE
+          test -f app/src/main/assets/rootfs.tzst
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.5'
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install build dependencies
+        run: |
+          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0' 'ndk;24.0.8215888' 'cmake;3.22.1'
+
+      - name: Apply Touhou runtime preview overlay
+        run: python3 runtime-preview/overlay.py upstream
+
+      - name: Build integrated Windows runtime preview
+        working-directory: upstream
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Archive LGPL source and derivative patch
+        run: |
+          mkdir -p upstream/app/src/main/assets/licenses
+          cp upstream/LICENSE upstream/app/src/main/assets/licenses/Winlator-LGPL-2.1.txt
+          mkdir -p legal-bundle
+          cp upstream/LICENSE legal-bundle/Winlator-LGPL-2.1.txt
+          cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
+          cp runtime-preview/overlay.py legal-bundle/overlay.py
+
+      - name: Publish runtime preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: touhou-pocket-runtime-preview-apk
+          path: upstream/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Publish source attribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: touhou-pocket-runtime-legal
+          path: legal-bundle/
+          if-no-files-found: error

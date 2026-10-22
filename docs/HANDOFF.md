@@ -98,3 +98,10 @@ User reports **Box64 and the Touhou Windows installer now load** on the Galaxy S
 - Pinned source font and licensing: https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE and https://github.com/notofonts/noto-cjk/blob/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf
 
 **Important:** GitHub compilation alone does NOT establish fonts render correctly; need new APK test on Galaxy. When build succeeds: install updated Touhou Pocket Test (same app ID; watch for debug signature mismatch), run `setup.exe` and verify Japanese installer text and filenames. If failures, obtain new screenshot and `View Last Launch Diagnostics`; inspect addon extraction, font registry, locale `LC_CTYPE`.
+
+
+## 2026-10-22 current Japanese language-build identity
+
+Because previous `com.touhoupk` APKs were GitHub Actions debug-signed and reinstall/update may fail due to changing debug signatures, **the Japanese language test APK is intentionally a separate package**: `com.touhoujp` (label **Touhou Pocket JP Test**). The native Box64 ELF path rewrite and all package-path checks were also changed to `com.touhoujp`. KEEP earlier `com.touhoupk` installed and do not clear it; Japanese APK requires importing user-owned source game files again, and old private saves do not migrate. **Do not share font files individually**; the SIL-OFL Noto asset is incorporated only in the app with license notice.
+
+Live build after locale+font+package modifications: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39806100268. Check success and artifact before providing APK or claiming compatibility. Need verify ja_JP.UTF-8 generated and font extracted at runtime, Japanese Shift-JIS installer text shown correctly on Galaxy before adding Shard of Dreams expansion.

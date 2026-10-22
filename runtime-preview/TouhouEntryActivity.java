@@ -96,6 +96,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         getWindow().setNavigationBarColor(BG);
         render();
         refreshReadyState();
+        initializeEngineOnFirstLaunch();
     }
 
     @Override public void onDestroy() {
@@ -255,11 +256,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         new androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("What does Game Engine Setup do?")
             .setMessage("Touhou OS runs Windows Touhou games using Wine and Box64.\\n\\n" +
-                "Setup unpacks the included compatibility runtime into private app storage, prepares its components, " +
+                "The engine sets up automatically on first launch. It unpacks the included compatibility runtime into private app storage, prepares its components, " +
                 "and creates a local Windows environment with graphics, audio, and game settings.\\n\\n" +
-                "This is normally a one-time operation. It can require substantial storage. " +
+                "This is normally a one-time operation and can require substantial storage. Future launches reuse existing game files. " +
                 "It does not download or install Touhou games, translate them, or change their original installer destinations.\\n\\n" +
-                "If the engine is already ready, no further setup is needed.")
+                "If automatic setup fails, use Retry Game Engine Setup under System.")
             .setPositiveButton("Got it", null)
             .show();
     }
@@ -366,10 +367,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         RootFS root = RootFS.find(this);
         boolean ready = root.isValid() && root.getVersion() >= RootFSInstaller.LATEST_VERSION && containerId > 0;
         initButton.setEnabled(!busy);
-        initButton.setVisibility(ready ? View.GONE : View.VISIBLE);
+        // Automatic setup on first launch; expose only a manual retry on failure.
+        initButton.setVisibility(ready || busy ? View.GONE : View.VISIBLE);
+        initButton.setText("RETRY GAME ENGINE SETUP");
         if (runtimeLabel != null) runtimeLabel.setText(ready ?
-                "Ready to play. The Windows compatibility engine has already been prepared." :
-                "Setup required before importing or launching Windows Touhou games.");
+                "Ready to play. Your existing Windows game environment is preserved." :
+                busy ? "Setting up Touhou OS automatically. Preparing Wine, Box64 and game storage…" :
+                "Engine not ready. Retry initialization here if necessary.");
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
@@ -428,10 +432,24 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             .show();
     }
 
+    /**
+     * Touhou OS prepares its bundled engine automatically only when needed.
+     * Never erase an existing Wine prefix or recreate an existing container.
+     */
+    private void initializeEngineOnFirstLaunch() {
+        if (busy) return;
+        RootFS root = RootFS.find(this);
+        boolean runtimeMissing = !root.isValid() ||
+                root.getVersion() < RootFSInstaller.LATEST_VERSION;
+        if (!runtimeMissing && containerId > 0) return;
+        showSection(2);
+        startSetup();
+    }
+
     private void startSetup() {
         if (busy) return;
         busy = true;
-        setStatus("Preparing private Windows game engine. This may use substantial storage.");
+        setStatus("Touhou OS is preparing your game environment. First launch may require substantial storage.");
         updateButtons();
         worker.execute(() -> {
             try {
@@ -842,6 +860,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         refreshReadyState();
         // Preserve the meaningful operation result instead of overwriting with generic ready text.
         setStatus(message);
+        if (runtimeLabel != null && (message.contains("failed") || message.contains("Could not")))
+            runtimeLabel.setText(message + " You can retry here.");
     }
 
     private void setStatus(String message) {

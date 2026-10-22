@@ -82,3 +82,19 @@ Actions status may be queued/in progress. Check https://github.com/rgarn023/Touh
 - Confirmed APK ZIP integrity, bundled Wine rootfs and LGPL notices, 35 native `.so` files none containing stale `/data/data/com.winlator`, and Box64 ELF PT_INTERP ` /data/data/com.touhoupk/files/rootfs/lib/ld-linux-aarch64.so.1`. Rootfs has `./lib -> usr/lib` symlink and `./usr/lib/ld-linux-aarch64.so.1` exists.
 - **Not tested on Galaxy yet**. This is a separate Android package (`com.touhoupk`) labeled `Touhou Pocket Test`. Install it without uninstalling older `games.charoite.touhoupocket.runtime` package; saves/data don't auto-migrate. Import owned original game files to new app.
 - Next user action: open Touhou Pocket Test, Set Up Game Engine, import full base TPDP game or full installer directory with data, run; if it fails, collect View Last Launch Diagnostics > Copy Report. Confirm Box64 no longer has EACCES before addressing game-specific compatibility.
+
+
+## 2026-10-22 Japanese font and locale compatibility milestone
+
+User reports **Box64 and the Touhou Windows installer now load** on the Galaxy S26 Ultra in **Touhou Pocket Test** (`com.touhoupk`), but installer and Wine display garbled Japanese text. This is progress: the previous native `EACCES` startup blocker is solved on actual hardware.
+
+**Diagnosis (confirmed from unpacked APK):** Winlator's pinned Wine rootfs provides compiled locales only for `en_US.utf8`, `pt_BR.utf8` and `ru_RU.utf8`. Its guest environment defaults to `LC_ALL=en_US.UTF-8`. No Japanese CJK font was bundled/registered. Japanese Shift-JIS CP932 game installers generally need the Japanese locale **and** a font capable of drawing Japanese characters; supplying a font alone cannot fix mojibake.
+
+**Changes on main:** 
+- `runtime-preview/build_japanese_support.py` downloads *only during GitHub Actions* official `notofonts/noto-cjk` regular Japanese OpenType (pinned commit `f8d157532fbfaeda587e826d4cd5b21a49186f7c`, verified Git blob `f56224957fb13a81b4c14bac34f2f058a017f9fb`), checks SIL Open Font License and bundles full license. Compiles `ja_JP.utf8` with `localedef` from the **pinned Winlator rootfs i18n definitions** and packs `japanese/japanese-support.tzst`. No font binary is committed to repo; bundled only inside APK.
+- `runtime-preview/TouhouJapaneseSupport.java` idempotently installs addon into *existing* private rootfs, copies Japanese font into each Wine `C:\\windows\\Fonts`, writes Win32 font registry and old MS Gothic/Meiryo alias substitutions, configures user locale ja-JP, and reuses markers to protect existing game files.
+- `runtime-preview/overlay.py` sets Wine guest `LANG/LC_ALL/LC_CTYPE=ja_JP.UTF-8` for CP932 behavior and calls support installer from `XServerDisplayActivity.setupWineSystemFiles` **before guest execution**. The native Android Touhou interface stays English.
+- `.github/workflows/runtime-preview.yml` generates and verifies the locale/font pack and OFL license, plus existing Box64 path integrity checks.
+- Pinned source font and licensing: https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE and https://github.com/notofonts/noto-cjk/blob/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf
+
+**Important:** GitHub compilation alone does NOT establish fonts render correctly; need new APK test on Galaxy. When build succeeds: install updated Touhou Pocket Test (same app ID; watch for debug signature mismatch), run `setup.exe` and verify Japanese installer text and filenames. If failures, obtain new screenshot and `View Last Launch Diagnostics`; inspect addon extraction, font registry, locale `LC_CTYPE`.

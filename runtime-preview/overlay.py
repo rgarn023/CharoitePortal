@@ -67,6 +67,21 @@ assert not target.exists(), "Upstream has a colliding Touhou entry activity"
 overlay = Path(__file__).resolve().parent / "TouhouEntryActivity.java"
 target.write_bytes(overlay.read_bytes())
 
+
+# JNI entrypoints retain the com.winlator Java package, but native C/C++
+# files also bake in app-private cache locations. Rewrite ONLY absolute
+# /data/data/... paths (not JNI symbol names).
+native_path_changes = 0
+cpp_root = root / "app/src/main/cpp"
+for native_source in cpp_root.rglob("*"):
+    if native_source.is_file() and native_source.suffix in (".c", ".cc", ".cpp", ".h", ".hpp"):
+        before = native_source.read_bytes()
+        if b"/data/data/com.winlator" in before:
+            native_source.write_bytes(before.replace(
+                b"/data/data/com.winlator", b"/data/data/com.touhoupk"))
+            native_path_changes += 1
+print(f"Rebased {native_path_changes} C/C++ app-private path sources")
+
 # Instrument the Wine renderer instead of leaving "Starting up" forever.
 display = java_root / "com/winlator/XServerDisplayActivity.java"
 code = display.read_text(encoding="utf-8")

@@ -330,3 +330,28 @@ font: name=System missing_known_japanese=6 gdi_error=0
 **Device validation remains necessary**: Existing Android package `com.touhoudr`, intended in-place update but debug signing may vary; do not uninstall or clear previous app because imported game files/saves are app-private. User should install updated APK if Android permits, open original `setup.exe`, show Japanese destination page, keep it visible ~15-30 seconds; see whether original Japanese characters render. Return to launcher > View Last Launch Diagnostics > Copy Report and share lines beginning `font-fix:` plus screenshot if necessary. If `font-fix: SUCCESS` but squares remain, cross-process GDI font handle/rendering may be unsupported; do not claim success until screenshot. If new font not selected, consider in-process Wine GDI fix or Windows font-link registration, preserving original pathname; avoid restarting blind alias guessing.
 
 **Architecture reminder:** APK remains an adaptation of Winlator for Wine/Box64 rendering. Do not misrepresent it as a fresh independent Wine stack; front-end is Touhou themed, backend still Winlator-derived. User previously requested a more Touhou themed icon; an illustrative mockup was generated but that artwork is not included in this font-repair build. The Japanese rendering issue is still prioritized.
+
+
+## October 22, 2026 — v4 failure, v5 in-process font shim (CURRENT)
+
+Actual user report:
+```
+touhou-probe-v4 GetACP=932 GetOEMCP=932 Japanese UILanguage=0411
+PATH FOUND class=TEdit utf16_units=24 ... 5E7B 60F3 4EBA 5F62 6F14 821E
+font: name=System missing_known_japanese=6 gdi_error=0
+font-fix: failed to read current EDIT font; unchanged
+```
+This **definitively confirms only that v4 never attempted the font change** because external Win32 SendMessageTimeoutW(WM_GETFONT) failed. The codepage and original Japanese Unicode destination `C:\\game\\FocasLens\\幻想人形演舞` are correct. Do not alter the original installer destination or introduce ASCII `/DIR` override.
+
+New v5 source uses in-process targeted Win32 GDI patch rather than cross-process HFONT (MS docs: handles and hooks are process/desktop/bitness sensitive):
+- `runtime-preview/touhou_font_hook.c`: a thread-only WH_GETMESSAGE DLL hook running on the original installer's GUI thread; enumerates only TWizardForm's TEdit child whose text matches the untouched full Japanese path. Creates `IPAPGothic` HFONT **inside installer process**, checks all Japanese glyphs and exact face, sends WM_SETFONT, verifies WM_GETFONT == new HFONT and GetWindowTextW identical, reverts if mismatched. Logs `hook-v1: SUCCESS` or failures to `C:\\touhou_font_hook.log`. Does not touch installer folder, files, registry or install arguments.
+- `runtime-preview/touhou_font_helper.c`: opens Wine's `nogui` desktop and attaches **thread-specific**, not global, WH_GETMESSAGE hook to installer GUI TID, wakes thread with WM_NULL, unhooks after ~18 seconds. Paired 32/64 bit DLL and helper builds for bitness compatibility. Logs to `C:\\touhou_font_helper.log`.
+- `runtime-preview/touhou_probe.c` upgraded v5: safely detects target installer GUI thread and process bitness, starts only matching 32/64 font helper exe instead of attempting unsafe cross-process WM_SETFONT; logs `font-fix: launched in-process helper`. Still records codepage, path codepoints, selected font GDI probe.
+- `runtime-preview/TouhouJapaneseSupport.java`: bundles helpers from APK to private Wine C drive and clears old logs at installer startup; `TouhouDiagnostics.java` shows all three files in Copy Report.
+- `runtime-preview/overlay.py` copies helper exe and dll assets to package. `.github/workflows/runtime-preview.yml` compiles with both `gcc-mingw-w64-i686` and x86_64 and verifies APK includes each.
+- Hooks are localized to TPDP setup.exe when user explicitly runs it in existing launcher; no stock Wine files patched or global Windows hooks. Users must keep originals/backups; don't suggest uninstalling old app due to app-private saves/imports.
+- Relevant commits in order: `07226684857535da7eb1792cf8b277ac1928414d`, `78a63a24f6cae759f0169c5d9a89077455b7ad6c`, `2fe993029ac691c5ffda8ad6bda948064d4a6beb`, `6c64983dfd00172f41b1d192043e1885558c1139`, `ae91da92ba5f05e5a06c099ff0d8904df1567229`, `b39dca9154859f332000e2d6a7048404deefaa71`, `28e9b6f99a9fc7ef19e1e335adae9d31fe6873bd`, `257f98d49c89cac1d9828dea24e438a984bdef57`.
+- Latest CI run: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39852815210 . **Confirm completed/success and artifact extraction** before presenting build to user. This is an experimental fix: **do not claim on-device success** before screenshot and hook log.
+- Test: after successful APK installed (same `com.touhoudr` may have debug-signing update issues), open original `setup.exe`, navigate to Japanese original destination; stay ~20-30 sec, check if blocks now rendered. Back to launcher > View Last Launch Diagnostics > Copy Report. Look for `touhou-probe-v5`, `font-fix: launched...32bit=`, `helper-v1: thread-specific hook installed`, `hook-v1: SUCCESS`, or failure code. If hook fails, investigate Wine cross-desktop SetWindowsHookEx and bitness instead of guessing fonts again.
+- User also asked earlier for a more Touhou-specific launcher icon; no icon changes in v5, focus remains Japanese rendering.
+- Architecture remains **Winlator-derived** (Wine/Box64/Winlator XServer and controls beneath Touhou launcher). Be transparent.

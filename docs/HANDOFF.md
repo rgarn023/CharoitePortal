@@ -159,3 +159,23 @@ GitHub Actions successful on 2026-10-22, run https://github.com/rgarn023/TouhouP
 Artifact `touhou-pocket-runtime-preview-apk` (ID `12440597508`), extracted APK `TouhouPocketLauncher-FontControlFix.apk` 222,029,800 bytes, SHA256 `23b906015794d1f2f735397144e40db9364c748ab652d068e51781371dfe4350`. Container ZIP test passed. Package `com.touhoudr` (separate from user's previous `com.touhouv2`), preserves old app data on device; requires importing user-owned game files again.
 
 The new runtime patch specifically maps MS Shell Dlg / MS Shell Dlg 2 / Tahoma / Microsoft Sans Serif to Noto Sans CJK JP in registry and adds a Touhou-private fontconfig fallback. Dialog-box Japanese rendering is **not yet confirmed on Galaxy**, only compile/package. If the install path still renders squares, debug possible replacement characters in the actual ANSI string (not merely missing GDI glyphs) and leverage the validated `/DIR` ASCII override from native installer destination prompt as a temporary fallback. Do not state problem definitively solved until real screenshot shows it.
+
+
+## October 22 — duplicate installer cards and unreadable install path
+
+User supplied two screenshots: Touhou Pocket library contained **two separate entries both named "Windows installer: setup.exe"**, and the Windows Japanese installer continued to show squares in destination after `C:\\game\\FocasLens\\`. User explicitly wants **one installer once a path is chosen**.
+
+### Root cause and fix committed to main
+- `TouhouEntryActivity.saveEntry()` used to simply append every imported installer to JSON library. This caused all imports to accumulate. It now **replaces any previous installer entry with the newest selection** and preserves existing actual game entries. Older library versions are **migrated on load**, collapsing duplicate installer entries (keeping newest), but **without deleting private imported files**, to protect source game files and saves.
+- Each installer now has **one "INSTALL" button**, not two separate installer actions. It opens an Android destination dialog, default `C:\\Touhou\\TPDP`, with **Install to this folder**, **Use installer's original path** (fallback), and Cancel. Installed game cards remain Play.
+- `overlay.py` adds a quoted, validated `/DIR="C:\\Touhou\\TPDP"` option for compatible Inno Setup installers to override their original Japanese path *before* edit field appears, and records locally that an override was requested. Official Inno Setup documentation: https://documentation.help/Inno-Setup/topic_setupcmdline.htm .
+- The screenshot shows body Japanese labels render while destination field stays boxes **despite Noto CJK + Wine GDI aliases**. This might be a legacy installer using damaged ANSI encoding, not simply missing glyphs; **do not promise /DIR fixes underlying Japanese text rendering.** Focus on preserving a valid ASCII installation path and verify installer actually accepts /DIR on the Galaxy.
+- Current app package remains `com.touhoudr` to attempt in-place update; however GitHub debug signing can vary, so **avoid uninstalling app with valuable imported files** unless user has their originals/backups.
+- Commit `a816ccd81dfca9f4ba2660226ab10ea0a83f33b7` dedupes, commit `4cfad6d2f19a4d36fb3267cb59686083d92af723` improves /DIR log/quoting. Latest active workflow run https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39813693166 ; **verify result and artifact before distributing APK**.
+
+### Next device acceptance
+1. Install/update successful APK and open library: exactly one installer entry despite two legacy setup.exe imports, existing TPDP game card still present.
+2. Tap INSTALL, accept `C:\\Touhou\\TPDP`, verify destination field now displays ASCII rather than boxes and installation proceeds.
+3. If still shows Japanese blocks, open View Last Launch Diagnostics and confirm the `Installer /DIR override requested` line; investigate whether installer supports Inno Setup /DIR and its launcher command assembly.
+4. If user selects full install folder with multiple files, preserve installer resources; `Find Installed Touhou Games` should locate executable after install.
+5. Keep next priority TPDP base gameplay, then Shard of Dreams, Extended, and English patches.

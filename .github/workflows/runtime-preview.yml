@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify game folder import never auto-launches
+        run: python3 -m unittest discover -s runtime-preview/tests -p 'test_*.py' -v
+
       - name: Get pinned LGPL Winlator upstream source
         run: |
           git clone --filter=blob:none --depth 1 https://github.com/brunodev85/winlator-app.git upstream

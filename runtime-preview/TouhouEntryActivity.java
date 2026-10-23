@@ -241,32 +241,40 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setContentView(wallpaperHost);
         refreshWallpaperViews();
 
-        main.addView(label("C H A R O I T E   G A M E S", 11, SECONDARY, true));
-        spacer(14);
+        // Portal identifies the whole app only once, quietly at the top.
+        // Realm identity belongs in its own large themed banner below.
+        main.addView(label("Charoite Portal", 17, FOREGROUND, true));
+        TextView coreIdentity = label("Charoite Core", 12, SECONDARY, false);
+        main.addView(coreIdentity);
+        spacer(18);
 
-        LinearLayout hero = new LinearLayout(this);
-        hero.setGravity(Gravity.CENTER_VERTICAL);
-        hero.setOrientation(LinearLayout.HORIZONTAL);
-        hero.setPadding(dp(20), dp(22), dp(17), dp(22));
-        hero.setBackground(heroBackground());
+        FrameLayout realmBanner = new FrameLayout(this);
+        realmBanner.setBackground(CharoiteThemes.realmBanner(
+                CharoiteEnvironments.activeTheme(this)));
+        realmBanner.setContentDescription("Active environment: "
+                + CharoiteEnvironments.activeName(this));
+        realmBanner.setPadding(dp(22), dp(18), dp(18), dp(18));
 
-        LinearLayout headline = new LinearLayout(this);
-        headline.setOrientation(LinearLayout.VERTICAL);
-        headline.addView(label("C H A R O I T E   P O R T A L", 12, GOLD, true));
-        headline.addView(label("Charoite Portal", 32, FOREGROUND, true));
-        headline.addView(label(CharoiteEnvironments.activeName(this)
-                + "  •  Charoite Core " + CharoiteCore.VERSION, 13, SECONDARY, false));
-        hero.addView(headline, new LinearLayout.LayoutParams(0, -2, 1f));
+        LinearLayout realmHeadings = new LinearLayout(this);
+        realmHeadings.setOrientation(LinearLayout.VERTICAL);
+        realmHeadings.setGravity(Gravity.CENTER_VERTICAL);
+        TextView realmCaption = label("CURRENT REALM", 11, 0xffF7DEFA, true);
+        realmHeadings.addView(realmCaption);
+        TextView realmTitle = label(CharoiteEnvironments.activeName(this),
+                34, Color.WHITE, true);
+        realmTitle.setMaxLines(2);
+        realmTitle.setEllipsize(TextUtils.TruncateAt.END);
+        realmTitle.setShadowLayer(dp(3), 0, dp(1), 0x66000000);
+        LinearLayout.LayoutParams realmTitleParams = new LinearLayout.LayoutParams(-1, -2);
+        realmTitleParams.topMargin = dp(7);
+        realmHeadings.addView(realmTitle, realmTitleParams);
 
-        ImageView brand = new ImageView(this);
-        brand.setImageResource(R.drawable.charoite_portal_icon);
-        brand.setContentDescription("Charoite Portal app icon");
-        brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(68), dp(68));
-        imageParams.leftMargin = dp(6);
-        hero.addView(brand, imageParams);
-        main.addView(hero);
-        spacer(16);
+        // The large artwork is the background of the *text*, not an icon beside it.
+        FrameLayout.LayoutParams headingParams = new FrameLayout.LayoutParams(
+                -1, -2, Gravity.CENTER_VERTICAL | Gravity.START);
+        realmBanner.addView(realmHeadings, headingParams);
+        main.addView(realmBanner, new LinearLayout.LayoutParams(-1, dp(164)));
+        spacer(19);
 
         libraryScreen = new LinearLayout(this);
         libraryScreen.setOrientation(LinearLayout.VERTICAL);
@@ -524,15 +532,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         drawable.setColor(fill);
         drawable.setCornerRadius(dp(radius));
         drawable.setStroke(dp(1), lineColor);
-        return drawable;
-    }
-
-    private GradientDrawable heroBackground() {
-        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                darkMode ? new int[]{0xff30293B, 0xff272732, 0xff29202B}
-                         : new int[]{0xffF4EAF6, 0xffF1F2FE, 0xffFDECF4});
-        drawable.setCornerRadius(dp(30));
-        drawable.setStroke(dp(1), LINE);
         return drawable;
     }
 

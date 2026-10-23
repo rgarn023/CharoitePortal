@@ -196,13 +196,15 @@ static BOOL font_has_japanese(HWND hwnd, HFONT font) {
 
 static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
     (void)data;
-    if (patched_count >= MAX_PATCHED_CONTROLS || already_patched(hwnd))
-        return TRUE;
+    if (patched_count >= MAX_PATCHED_CONTROLS) return TRUE;
     wchar_t klass[128]={0}, before[1024]={0}, after[1024]={0};
     if (!GetClassNameW(hwnd,klass,127) || !is_text_control(klass))
         return TRUE;
     BOOL task = is_task_list(klass);
+    // A task list can be created before its items; retry diagnostics even
+    // after its font has been patched, once options have populated.
     if (task) task_list_diagnostics(hwnd,klass);
+    if (already_patched(hwnd)) return TRUE;
 
     int units=GetWindowTextW(hwnd,before,1023);
     BOOL text_japanese=(units > 0 && contains_japanese(before));

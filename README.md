@@ -1,35 +1,36 @@
-# Touhou Launcher for Android
+# Charoite Portal for Android
 
-**Touhou Launcher for Android** is an experimental Charoite Games application for installing, organizing, and launching user-owned Windows Touhou games on Android, including Samsung Galaxy devices and Samsung DeX. The launcher includes **Charoite Core v0.1**, a reusable runtime-coordination module built alongside the launcher. Neither product replaces Android or Samsung One UI.
+**Charoite Portal** is a Charoite Games Windows gaming environment manager running entirely inside Android / Samsung One UI, with **Charoite Core v0.3** and a pinned, appropriately attributed Winlator-derived Wine/Box64 runtime. It is **not** a custom Android OS, a Windows installation, or a proprietary Wine/Box64 replacement.
 
-Primary game targets: **Touhou Puppet Dance Performance**, **Shard of Dreams**, and **Extended**, followed by other Touhou titles. Standalone English patches may be added later; **thcrap is not a supported integration**.
+The application was previously **Touhou Launcher for Android**. Android package ID remains **`com.touhoudr`** intentionally, to protect access to existing Touhou game files and saves on upgrade. Do not uninstall an older installation just to rename the app.
 
-## Architecture
+## Features in this version
 
-- **Touhou Launcher:** Native Android, One UI-inspired library/setup/system UI, reorderable game tiles, imports, executable discovery, direct game launching, setup wizard support and diagnostics.
-- **Charoite Core:** `runtime-preview/charoite-core/CharoiteCore.java` currently owns the bundled Wine/Box64 preparation policy, compatibility graphics/default container profiles, and phone/DeX display and pointer settings. It is compiled into this APK through `runtime-preview/overlay.py`. Read its [architecture and preservation contract](runtime-preview/charoite-core/README.md).
-- **Compatibility backend:** Attributed, pinned LGPL Winlator-derived Android runtime, bundled Wine and Box64, upstream graphics/input systems, and Touhou-targeted Japanese locale and Windows font compatibility helpers.
-- **Android:** All components run inside a normal Android application sandbox. App ID **`com.touhoudr`** is deliberately unchanged; no root or standalone OS is required. No Windows games are packaged.
+- **Environments — System tab:** Switch installed environments; install the built-in offline **General Gaming** environment; create up to 20 named custom Windows gaming environments. Environment creation provisions a separate Wine container asynchronously using the bundled Charoite Core runtime. These are isolated Windows *compatibility environments*, not complete Windows OS installations.
+- **Touhou Realm:** Migrates the existing Touhou installation *in place*. Keeps its previous Wine container, `game_library` settings, imported `C:\TouhouPocket\` games, saved tile order, Japanese font installer compatibility hooks, and any existing custom wallpaper. It uses an original built-in sakura-themed wallpaper and Touhou-specific executable discovery.
+- **General Gaming:** A second built-in template with an original purple/cosmic background, independent Wine container, and generic Windows executable discovery. Japanese guest locale/font hooks are scoped to Touhou Realm rather than applied globally.
+- **Custom environments:** User-provided names, separate library preferences, separate `C:\CharoitePortal\` staging folders within each independent Wine container, separate graphics/display/DeX pointer preferences and wallpaper overrides.
+- **Library, Setup, System:** Core-owned, connected page-tab UI, touch/DeX compatible. Library shows one environment at a time. Setup imports a complete Windows game or installer folder, or standalone installer; a Windows installer chooses its own installation destination. System provides Windows compatibility settings, diagnostics and launcher wallpaper selection.
+- **Themes & wallpaper:** Environment-specific default artwork, plus independent phone-image wallpaper overrides with Fit / Crop to Fill and Remove. Selecting a wallpaper never alters Android/One UI or the source image. The new official Charoite Portal app icon is a purple crystal/cosmic gateway with no Touhou branding.
+- **Wine/Box64:** Reuses pinned upstream open-source runtime, graphics compatibility modes, Japanese text support where applicable, and per-launch DeX virtual resolution. New upstream Wine versions are **not** downloaded automatically; the included engine prepares/refreshed on APK install or update.
 
-**Charoite Core is not yet a separate downloadable SDK, AAR, installed app, game engine download service, Wine fork or Proton implementation.** It is source code actively used by the launcher and intended for gradual reuse by other Charoite Games projects.
+## Environment limitations and safety
 
-## Current Android features
+The **Install Environment** command currently offers **offline built-in templates only**. It does not download unreviewed executable packages or import arbitrary archives. **Create Environment** builds a new isolated Wine container using the bundled engine; Wine compatibility varies from title to title. Automatic detection of the best Wine/graphics profile for every Windows game is a future feature.
 
-- **Library:** Shows playable Windows games, not installer executables. Tap to launch; touch and hold to rearrange game tiles. Tile positions persist locally. Setup instructions are in the Setup tab.
-- **Setup:** Import a complete game or installer folder, or a standalone Windows installer. The original Windows wizard runs in Wine. Return to Setup to scan installed games in the private Wine C: drive.
-- **System:** Retry game-engine preparation if required, compatibility graphics, diagnostic log, and **External display & DeX** resolution and mouse-capture settings.
-- **Automatic runtime preparation:** On the first launch after installing or updating the APK, the bundled root filesystem is prepared or refreshed. This does **not** download newer upstream Wine versions automatically and must not erase the existing private Wine prefixes.
-- **DeX:** The launcher and game window are declared resizable; the launcher is centered on larger windows. Windows virtual display size can be chosen automatically or set to 1280x720, 1600x900, 1920x1080, or compatibility 800x600. Mouse and keyboard use the Winlator-derived event handling. Display changes apply at the next game launch rather than live-changing the guest X server resolution.
-- **Japanese installers:** A pinned, licensed Japanese font/locale pack and thread-scoped Win32 font helper address legacy CP932 Japanese text. Installer destinations are not overridden.
+The migration preserves game data paths but **real-device validation is still required** for UI behavior, per-title games, and Samsung DeX. Debug-signed CI APKs may have different signing certificates, preventing in-place updates; do not uninstall if your Wine prefix contains important saves. Future releases require a persistent release-signing key and appropriately incremented version codes.
 
-The interface, drag-and-drop, DeX behavior, game rendering, and completeness of individual Touhou game compatibility still need physical Galaxy verification. Do not assume all expansions or installers work until tested.
+## Development
 
-## Building / APK
+Existing GitHub repository: `rgarn023/TouhouPocketLauncher` (historical name; avoid renaming it automatically). Development continues on `main`. The combined APK is built through the [Windows runtime workflow](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml). Select the newest **successful** run and extract `app-debug.apk` from `touhou-pocket-runtime-preview-apk`.
 
-[Android GitHub Actions workflow](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml) builds the combined launcher plus Charoite Core from the pinned upstream source. Choose the latest **successful** run, download `touhou-pocket-runtime-preview-apk` and extract `app-debug.apk`.
+Source structure:
+- `runtime-preview/TouhouEntryActivity.java`: Main Charoite Portal native Android shell, with Touhou game import logic retained in its environment.
+- `runtime-preview/charoite-core/CharoiteEnvironments.java`: Registry and non-destructive Touhou migration.
+- `runtime-preview/charoite-core/CharoiteCore.java`: Wine engine preparation, default container profiles, graphics and DeX policy.
+- `runtime-preview/charoite-core/CharoiteWallpaper.java`: Per-environment image storage and Fit/Crop preferences.
+- `runtime-preview/charoite-core/CharoiteThemes.java`: Original built-in Touhou sakura / general cosmic wallpaper artwork.
+- `runtime-preview/charoite-core/CharoitePageTabs.java`: Shared connected page tab UI.
+- `runtime-preview/overlay.py`: Packages the app and Core into the pinned upstream Android source, retains original `com.touhoudr` identity and license notices.
 
-**Signing warning:** This currently uses CI debug signing, which may change between builds and prevent updating an already-installed APK in place. Uninstalling the app deletes its private Windows game files and saves; do not uninstall without a backup. The long-term release pipeline needs a persistent, securely managed signing key and increasing version codes.
-
-## Compatibility and legal notes
-
-No proprietary Touhou games, translations, expansions, or unauthorized copyrighted game files are bundled. Winlator and other third-party open-source components retain their notices and applicable source license obligations. See [runtime attribution](runtime-preview/NOTICE.md) and [development handoff](docs/HANDOFF.md). The launcher currently builds on the existing branch and keeps its existing private storage mappings, including `C:\TouhouPocket\`, regardless of the visible rebranding.
+No proprietary Touhou or Windows game executables, translations or expansions are bundled. Respect all applicable Wine/Winlator/Box64/graphics/font licenses. See [runtime attribution](runtime-preview/NOTICE.md), [Core documentation](runtime-preview/charoite-core/README.md), and [development handoff](docs/HANDOFF.md).

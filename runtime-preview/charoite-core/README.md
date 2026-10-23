@@ -65,3 +65,15 @@ New `CharoiteThemes.java` draws distinct offline **Touhou sakura** and **Charoit
 The Android icon and public brand are now **Charoite Portal** (original purple gemstone/space gateway, no Touhou icon). Android package `com.touhoudr` must remain unchanged to protect user-owned game storage. All of these modules remain within one APK, without replacing Android or One UI.
 
 **Validation:** Native Android compilation and APK artifact integrity can verify the source integration, but real-device testing is still required. Creating arbitrary environments consumes substantial phone storage, and Wine game compatibility is not guaranteed. A stable APK signing pipeline is needed before safe, reliable in-place releases.
+
+
+## Compact Portal header and themed realm banner
+
+The Charoite Portal shell displays **Charoite Portal** only once as a small, bold heading at the top, with **Charoite Core** directly underneath. Beneath those labels, it shows the *active environment name* as large, bold, accessible Android text over a wide, rounded, themed graphic banner. **There is no app icon beside the realm name.**
+
+The reusable `CharoiteThemes.realmBanner(template)` method supplies a background drawable to the Portal UI:
+- Touhou Realm gets original sakura blossoms and branch illustration on a dark plum-to-rose banner.
+- General Gaming and user-created custom environments get original violet cosmic rings, light points, and a portal arc composition.
+- Both are suitable for legible white titles over a darker left-hand gradient and independent of user-selected full-screen wallpapers. Switching environments re-renders the matching banner.
+
+Implemented in `runtime-preview/TouhouEntryActivity.java`; Android/One UI home-screen adaptive icon is unchanged.

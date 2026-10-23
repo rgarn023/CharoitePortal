@@ -32,3 +32,15 @@ The current `CharoiteCore.java` is a shared **source module**, not yet an indepe
 ## Future work (not yet implemented)
 
 Define stable versioned APIs; separate engine assets from launcher-specific content; regression tests for container preservation; per-game compatibility profiles; durable signing for in-place APK upgrades; additional consumer launcher(s); optional independent source packaging. Test on physical Galaxy + Samsung DeX before promising full device compatibility.
+
+## Charoite Wallpaper (implemented October 23, 2026)
+
+The reusable wallpaper storage/display policy lives in `runtime-preview/charoite-core/CharoiteWallpaper.java`, compiled into the same APK through `runtime-preview/overlay.py`. It does not manage Android system wallpaper or require Android storage permissions.
+
+- `importImage(context, uri)` uses Android's system `ACTION_OPEN_DOCUMENT` image picker from the Touhou Launcher front end and copies an image (max 50 MiB) to a temporary app-private file. It validates image MIME where available and decodable image dimensions before replacing the saved wallpaper. A failed import leaves the previous image intact.
+- `loadBitmap(context, maxDimension)` downsamples large camera images for safe display. `hasWallpaper` and `removeWallpaper` manage the app-private image only.
+- `getMode(prefs)` and `setMode(prefs, mode)` persist **Crop to Fill** (center crop) or **Fit Whole Image** (letterbox) in the existing Touhou activity-private preferences.
+- Touhou Launcher alone owns the image picker, wallpaper preview, UI tint/contrast, and layering. Wallpaper appears behind the Library, Setup and System screens, not inside a Wine game, and never changes the Samsung One UI / Android system wallpaper.
+- The bottom navigation bar was lifted ~14dp with extra bottom padding in this release to improve separation from Samsung's system navigation area.
+
+GitHub Actions run [39948092801](https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39948092801) for code SHA `a2036ec07e11a0c8009da4c3c24b79310bcaa9db` completed **success**. APK SHA256: `b702c5be1b62bf529934acbb5abd322d1df41faf9f729cc89120bfd9d7886502`. Japanese font helpers and 35 JNI libraries intact. Real-device wallpaper picker/DeX resizing remain untested.

@@ -497,3 +497,22 @@ Code commit `99fa1566a73a6ae363a4d5ebbfe27e16add93b63` on existing `main` update
 - GitHub Actions **success**: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39893443118, source SHA `c1df3f93da8343274deb18131df0e43fa59047a3` (fixes Android `LinearLayout.setMinHeight` compile error to `setMinimumHeight`).
 - Artifact `touhou-pocket-runtime-preview-apk` ID `12475916999` contains `app-debug.apk`, extracted as `Touhou-OS-Game-Library-Update.apk` (231,979,996 bytes), SHA256 `58000d0f9a250e04d3037368475e2f52d8ef60eb4c83358e8cbb0a2ca5`. Artifact ZIP CRC and APK CRC pass; 35 JNI libraries and both architecture pairs of Japanese font hooks/helpers present.
 - **Not Galaxy-tested yet**: drag/drop tile reordering, device layouts, light/dark mode, and actual game launch still require user device validation. No installed game files or saves changed by GitHub source edits. New app APK may be signed with different temporary debug key than previously installed; require Android signature match for an in-place update. Do not uninstall without confirming user has no irreplaceable private data.
+
+
+## Samsung DeX desktop / external-monitor support — Oct 23, 2026
+
+**User request:** Make Touhou OS work in Samsung DeX with resizable window UI, external mouse/keyboard and monitor-adapted game resolution. Continue `main` only. Preserve Japanese game compatibility and mobile behavior.
+
+**Implementation committed:**
+- `5ed0e4b6c2ef86354aa9ab2fbd976fecd79e2899`, `runtime-preview/TouhouEntryActivity.java`:
+  - On Android configuration changes (size, orientation, dark mode), re-render native launcher WITHOUT recreating the activity/import worker or resetting active Library/Setup/System tab. Launcher content max width ~940dp centered on desktop, three-column game tiles on phones and four columns for width >=600dp.
+  - Detect external display via `Display.getDisplayId() != DEFAULT_DISPLAY` or multi-window via `isInMultiWindowMode()` (not a Samsung-private API). New System card **External display & DeX**, auto/preset Wine resolution choices `1280x720`, `1600x900`, `1920x1080`, `800x600`. Auto defaults to `1280x720` on phone, uses 1600x900 or 1920x1080 based on current desktop window bounds when large enough, and honors compatibility graphics 800x600.
+  - Free DeX pointer by default; toggle **DEX MOUSE: CAPTURE IN GAME** for apps needing relative mouse control. Regular phone launch preserves existing Winlator pointer capture preference.
+  - On game launch pass intent extras `touhou_desktop_window`, `touhou_display_size`, `touhou_pointer_capture`. Do NOT overwrite `container.screenSize` or make irreversible Wine prefix changes when switching displays.
+- `071ca8ffd7dbf53bd6d9f46ca64683aed6f55c06`, `runtime-preview/overlay.py`:
+  - Set Android application, Touhou entry activity, and XServer activity resizeable. Launcher `configChanges` includes desktop window dimensions, orientation, keyboard changes, density, and `uiMode`. Remove manifest forced landscape from XServer; request sensor-landscape at runtime on phone, keep XServer unrestricted in external/DeX windows.
+  - For external desktop sessions do not call immersive `AppUtils.hideSystemUI`, leaving DeX window decorations in place.
+  - Inject per-session XServer `screenInfo = resolveScreenInfo(requested)` for trusted specific resolutions from intent and override `capturePointerOnExternalMouse` from intent; existing Winlator `dispatchKeyEvent` and `dispatchGenericMotionEvent` continue handling keyboard and mouse.
+- Desktop resizing can scale an already running GL display. The internal Windows X screen resolution is selected **when the game launches**; to pick a new guest resolution after resizing, relaunch game. No hot virtual desktop resolution switching has been implemented.
+- Do not claim fully tested DeX compatibility without actual S26 Ultra + external monitor verification. Also no physical validation yet of all input paths or resizable Wine graphics.
+- Build workflow run for `071ca8ff`: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39941688879 . Confirm success, artifact and extracted APK integrity before handing out.

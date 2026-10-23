@@ -125,6 +125,33 @@ jobs:
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
 
+      - name: Verify Charoite Portal adaptive icon and approved artwork
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as archive:
+              files = set(archive.namelist())
+              expected = {
+                  "res/drawable-nodpi-v4/charoite_portal_icon.jpg",
+                  "res/mipmap-anydpi-v26/ic_launcher.xml",
+                  "res/mipmap-anydpi-v26/ic_launcher_round.xml",
+              }
+              missing = expected - files
+              assert not missing, f"Required Android launcher icon resources missing: {missing}"
+              image = archive.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
+              digest = hashlib.sha256(image).hexdigest()
+              assert digest == "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5", (
+                  "Charoite Portal icon artwork was damaged during build: " + digest)
+              assert any(p.endswith("/charoite_portal_foreground.xml") for p in files)
+              print("Valid approved artwork; modern adaptive and round icon assets packaged")
+          PY
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            upstream/app/build/outputs/apk/debug/app-debug.apk | \
+            grep -F "application-label:'Charoite Portal'"
+
       - name: Verify APK JNI native cache paths
         run: |
           python3 - <<'PY'

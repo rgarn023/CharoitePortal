@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.7";
+    public static final String VERSION = "0.8";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"
@@ -55,6 +55,39 @@ public final class CharoiteCore {
     private static String scopedKey(AppCompatActivity host, String key) {
         return CharoiteEnvironments.isTouhou(host)
                 ? key : "portal_" + CharoiteEnvironments.activeId(host) + "_" + key;
+    }
+
+    /**
+     * Charoite Core locale policy (per environment): Touhou Realm defaults to
+     * Japanese CP932 / IPA Gothic for existing users, whereas other realms
+     * default to their original English Wine locale until the user opts in.
+     * This setting lives in the historical activity preferences to preserve
+     * existing containers and avoid changing Android's system language.
+     */
+    public static boolean japaneseCompatibilityEnabled(Context host) {
+        android.content.SharedPreferences preferences = host.getSharedPreferences(
+                "TouhouEntryActivity", Context.MODE_PRIVATE);
+        String environmentId = preferences.getString(
+                "charoite_active_environment_v1", CharoiteEnvironments.TOUHOU);
+        return preferences.getBoolean("charoite_japanese_support_" + environmentId,
+                CharoiteEnvironments.TOUHOU.equals(environmentId));
+    }
+
+    public static void setJapaneseCompatibilityEnabled(AppCompatActivity host, boolean enabled) {
+        String environmentId = CharoiteEnvironments.activeId(host);
+        host.getSharedPreferences("TouhouEntryActivity", Context.MODE_PRIVATE)
+                .edit().putBoolean("charoite_japanese_support_" + environmentId, enabled).apply();
+    }
+
+    /** The special installer font probe is only for the original Touhou
+     * setup.exe. The generic Japanese fonts/locale work in other realms too.
+     */
+    public static boolean useTouhouInstallerFontProbe(Context host) {
+        android.content.SharedPreferences prefs = host.getSharedPreferences(
+                "TouhouEntryActivity", Context.MODE_PRIVATE);
+        return japaneseCompatibilityEnabled(host)
+                && CharoiteEnvironments.TOUHOU.equals(prefs.getString(
+                        "charoite_active_environment_v1", CharoiteEnvironments.TOUHOU));
     }
 
     public static boolean compatibleGraphics(AppCompatActivity host) {

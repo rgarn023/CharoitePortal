@@ -128,6 +128,12 @@ environment_destination = java_root / "com/charoitegames/core/CharoiteEnvironmen
 assert not environment_destination.exists(), "Environment source collides with upstream"
 environment_destination.write_bytes(environment_source.read_bytes())
 
+theme_source = overlay.parent / "charoite-core/CharoiteThemes.java"
+assert theme_source.is_file(), "Charoite theme source missing"
+theme_destination = java_root / "com/charoitegames/core/CharoiteThemes.java"
+assert not theme_destination.exists(), "Upstream Charoite theme path conflict"
+theme_destination.write_bytes(theme_source.read_bytes())
+
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and
 # bundled as an asset, never committed as a binary to the source repository.

@@ -37,6 +37,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
+import com.charoitegames.core.CharoiteGameImport;
 import com.charoitegames.core.CharoiteEnvironments;
 import com.charoitegames.core.CharoiteEnvironmentFiles;
 import com.charoitegames.core.CharoiteThemes;
@@ -94,8 +95,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private int FOREGROUND = 0xff1A1B22;
     private int SELECTED_BG = 0xffE8EBFD;
     private boolean darkMode = false;
-    private static final long MAX_GAME_BYTES = 6L * 1024 * 1024 * 1024;
-    private static final int MAX_FILES = 12000;
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private TextView statusText;
@@ -1142,7 +1141,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     if (name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe") ||
                             name.matches("th(0[6-9]|1[0-9]|20)\\.exe"))
                         matches.add(file);
-                } else if (name.endsWith(".exe") && !isLikelyInstaller(name)
+                } else if (name.endsWith(".exe") && !CharoiteGameImport.isLikelyInstaller(name)
                         && !name.equals("unins000.exe") && !name.equals("uninstall.exe")
                         && !name.equals("winecfg.exe") && !name.equals("explorer.exe")
                         && !name.equals("regedit.exe")) {
@@ -1152,159 +1151,51 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Thin Portal UI adapter. All Windows file copying, executable detection,
+     * cleanup and the no-autolaunch policy belong to shared Charoite Core.
+     */
     private void importGame(Uri uri, boolean folder) {
         if (busy || containerId <= 0) return;
         busy = true;
-        setStatus(folder ? "Preparing game or installer folder…" : "Preparing standalone Windows installer…");
+        setStatus(folder ? "Importing selected game folder…" : "Importing Windows installer…");
         updateButtons();
+        final CharoiteGameImport.Selection selection = folder
+                ? CharoiteGameImport.Selection.GAME_FOLDER
+                : CharoiteGameImport.Selection.STANDALONE_INSTALLER;
         worker.execute(() -> {
-            File destination = null;
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);
                 if (current == null) throw new IllegalStateException("Game environment missing");
-                File gameBase = new File(current.getRootDir(), CharoiteEnvironments.isTouhou(this)
-                        ? ".wine/drive_c/TouhouPocket" : ".wine/drive_c/CharoitePortal");
-                if (!gameBase.isDirectory() && !gameBase.mkdirs())
-                    throw new IllegalStateException("Unable to create game library storage");
-                destination = new File(gameBase, "game-" + System.currentTimeMillis());
-                if (!destination.mkdir()) throw new IllegalStateException("Game directory already exists");
-                int count;
-                if (folder) {
-                    DocumentFile source = DocumentFile.fromTreeUri(this, uri);
-                    if (source == null || !source.isDirectory())
-                        throw new IllegalArgumentException("Please select a game folder");
-                    Counter counter = new Counter();
-                    copyFolder(source, destination, counter, 0);
-                    count = counter.files;
-                } else {
-                    DocumentFile file = DocumentFile.fromSingleUri(this, uri);
-                    String name = file != null ? file.getName() : null;
-                    if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".exe"))
-                        throw new IllegalArgumentException("Select a Windows .exe installer");
-                    writeFile(uri, new File(destination, safeName(name)), new Counter());
-                    count = 1;
-                }
-                String executable = detectExe(destination, !folder);
-                if (executable == null)
-                    throw new IllegalArgumentException("No executable found in selected game files");
-                File exe = new File(destination, executable);
+                CharoiteGameImport.Result imported = CharoiteGameImport.importSelected(
+                        this, uri, selection, current.getRootDir(), CharoiteEnvironments.isTouhou(this));
                 JSONObject entry = new JSONObject();
-                boolean installer = !folder || isLikelyInstaller(executable);
-                entry.put("name", installer ? "Windows installer: " + new File(executable).getName() : gameName(executable));
-                entry.put("path", exe.getAbsolutePath());
-                entry.put("installer", installer);
-                entry.put("files", count);
+                entry.put("name", imported.installer
+                        ? "Windows installer: " + imported.executableName
+                        : gameName(imported.executableName));
+                entry.put("path", imported.executablePath);
+                entry.put("installer", imported.installer);
+                entry.put("files", imported.fileCount);
                 saveEntry(entry);
-                final String selectedPath = exe.getAbsolutePath();
-                final boolean isInstaller = installer;
-                final boolean standaloneExeSelection = !folder;
                 runOnUiThread(() -> {
-                    if (isInstaller) {
-                        finishOperation(standaloneExeSelection
-                            ? "Installer imported. Opening the Windows setup wizard…"
-                            : "Installer folder imported. Open Setup and tap RUN INSTALLER when ready.");
+                    if (imported.installer) {
+                        finishOperation(CharoiteGameImport.shouldLaunchAfterImport(selection)
+                                ? "Installer imported. Opening the Windows setup wizard…"
+                                : "Installer folder imported. Open Setup and tap RUN INSTALLER when ready.");
                         showSection(1);
-                        // Only the separate "SELECT INSTALLER .EXE" action
-                        // explicitly requests an installer launch.
-                        // Selecting "Use this folder" must NEVER execute code.
-                        if (standaloneExeSelection) launchGame(selectedPath, true);
+                        // The shared Core policy is the single authority:
+                        // selecting "Use this folder" can NEVER launch an EXE.
+                        if (CharoiteGameImport.shouldLaunchAfterImport(selection))
+                            launchGame(imported.executablePath, true);
                     } else {
                         finishOperation("Game imported into Library. Tap its tile to play.");
                         showSection(0);
                     }
                 });
             } catch (Exception ex) {
-                if (destination != null) deleteTree(destination);
                 runOnUiThread(() -> finishOperation("Import failed: " + ex.getMessage()));
             }
         });
-    }
-
-    private static final class Counter { long bytes; int files; }
-
-    private void copyFolder(DocumentFile source, File target, Counter counter, int depth) throws Exception {
-        if (depth > 12) throw new IllegalArgumentException("Game folder is too deeply nested");
-        for (DocumentFile child : source.listFiles()) {
-            String name = safeName(child.getName());
-            File to = new File(target, name);
-            if (!to.getCanonicalPath().startsWith(target.getCanonicalPath() + File.separator))
-                throw new IllegalArgumentException("Unsafe filename in game folder");
-            if (child.isDirectory()) {
-                if (!to.mkdir()) throw new IllegalStateException("Duplicate or inaccessible game folder: " + name);
-                copyFolder(child, to, counter, depth + 1);
-            } else if (child.isFile()) {
-                writeFile(child.getUri(), to, counter);
-            }
-        }
-    }
-
-    private void writeFile(Uri uri, File target, Counter counter) throws Exception {
-        counter.files++;
-        if (counter.files > MAX_FILES)
-            throw new IllegalArgumentException("Game exceeds file count limit");
-        try (InputStream input = getContentResolver().openInputStream(uri)) {
-            if (input == null) throw new IllegalArgumentException("Cannot read selected file");
-            try (FileOutputStream out = new FileOutputStream(target)) {
-                byte[] buffer = new byte[65536];
-                int n;
-                while ((n = input.read(buffer)) != -1) {
-                    counter.bytes += n;
-                    if (counter.bytes > MAX_GAME_BYTES)
-                        throw new IllegalArgumentException("Game exceeds 6 GB import limit");
-                    out.write(buffer, 0, n);
-                }
-            }
-        }
-    }
-
-    private String safeName(String original) {
-        if (original == null || original.isEmpty() || original.equals(".") || original.equals("..")
-                || original.contains("/") || original.contains("\\") || original.indexOf('\0') >= 0)
-            throw new IllegalArgumentException("Unsupported filename in imported game");
-        return original;
-    }
-
-    private String detectExe(File root, boolean installer) {
-        List<String> candidates = new ArrayList<>();
-        collectExecutables(root, root, candidates, 0);
-        if (candidates.isEmpty()) return null;
-        if (installer) return candidates.get(0);
-        if (CharoiteEnvironments.isTouhou(this))
-        for (String priority : new String[]{"enbu_ap.exe", "gn_enbu.exe", "th20.exe", "th19.exe"}) {
-            for (String value : candidates)
-                if (new File(value).getName().equalsIgnoreCase(priority)) return value;
-        }
-        if (CharoiteEnvironments.isTouhou(this))
-        for (String value : candidates) {
-            String n = new File(value).getName().toLowerCase(Locale.ROOT);
-            if (n.matches("th(0[6-9]|1[0-9]|20)\\.exe")) return value;
-        }
-        // A folder can contain both setup.exe and a playable game.exe.
-        // Prefer playable executables; importing a folder never runs either.
-        // Only installer-only folders are shown under the Setup tab.
-        for (String value : candidates) {
-            if (!isLikelyInstaller(value)) return value;
-        }
-        return candidates.get(0);
-    }
-
-    private boolean isLikelyInstaller(String path) {
-        String name = new File(path).getName().toLowerCase(Locale.ROOT);
-        return name.equals("setup.exe") || name.startsWith("setup_") ||
-            name.startsWith("install") || name.contains("installer");
-    }
-
-    private void collectExecutables(File root, File folder, List<String> matches, int depth) {
-        if (depth > 12 || matches.size() > 150) return;
-        File[] files = folder.listFiles();
-        if (files == null) return;
-        for (File file : files) {
-            if (file.isDirectory()) collectExecutables(root, file, matches, depth + 1);
-            else if (file.getName().toLowerCase(Locale.ROOT).endsWith(".exe")) {
-                String rel = file.getAbsolutePath().substring(root.getAbsolutePath().length() + 1);
-                matches.add(rel);
-            }
-        }
     }
 
     private String gameName(String executable) {
@@ -1607,12 +1498,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             }
             setStatus("Unable to launch Windows program: " + error.getMessage());
         }
-    }
-
-    private static void deleteTree(File path) {
-        File[] children = path.listFiles();
-        if (children != null) for (File child : children) deleteTree(child);
-        path.delete();
     }
 
     private void finishOperation(String message) {

@@ -1040,11 +1040,18 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) return;
+        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
+            if (requestCode == ENVIRONMENT_CREATE_REQUEST) pendingEnvironmentName = null;
+            if (requestCode == ENVIRONMENT_EXPORT_REQUEST) pendingExportEnvironmentId = null;
+            return;
+        }
         Uri uri = data.getData();
         if (requestCode == FOLDER_REQUEST) importGame(uri, true);
         else if (requestCode == EXE_REQUEST) importGame(uri, false);
         else if (requestCode == WALLPAPER_REQUEST) importLauncherWallpaper(uri);
+        else if (requestCode == ENVIRONMENT_OPEN_REQUEST) openEnvironmentDocument(uri);
+        else if (requestCode == ENVIRONMENT_CREATE_REQUEST) saveEnvironmentDocument(uri, true);
+        else if (requestCode == ENVIRONMENT_EXPORT_REQUEST) saveEnvironmentDocument(uri, false);
     }
 
 

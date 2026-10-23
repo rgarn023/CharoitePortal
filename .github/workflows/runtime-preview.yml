@@ -128,18 +128,53 @@ jobs:
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
 
-      # Cache the debug certificate so future builds signed from main have
-      # the same upgrade identity. Do not clear app data or alter package id.
-      # The first cached certificate cannot match previously ephemeral keys.
-      - name: Preserve debug signing identity
+      # Persist the one debug signing key used by Gradle for future APK
+      # upgrades. actions/cache does not save nonexistent files, so create
+      # the key BEFORE invoking Gradle (previous builds missed this step).
+      # This cannot retroactively match earlier ephemeral APK certificates.
+      - name: Restore Charoite APK signing identity
+        id: signing-keystore
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: charoite-portal-debug-signing-v1
+          key: charoite-portal-debug-signing-v2
+
+      - name: Create signing key on first build only
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -noprompt \
+              -keystore "$HOME/.android/debug.keystore" \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Charoite Games,C=US"
+          fi
+          test -s "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey -storepass android > /dev/null
+          echo "Signing key present before Android build."
+
 
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify APK signing matches persisted Charoite key
+        run: |
+          set -euo pipefail
+          APK=upstream/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          ACTUAL=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" |
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 |
+            tr '[:upper:]' '[:lower:]')
+          KEY=$(keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey -storepass android |
+            sed -n 's/^[[:space:]]*SHA256: //p' | head -1 |
+            tr -d ':' | tr '[:upper:]' '[:lower:]')
+          test -n "$ACTUAL" && test "$ACTUAL" = "$KEY"
+          echo "APK signing certificate matches cached signing key: $ACTUAL"
 
       - name: Verify Charoite Portal adaptive icon and approved artwork
         run: |

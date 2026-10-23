@@ -113,6 +113,15 @@ wallpaper_destination = java_root / "com/charoitegames/core/CharoiteWallpaper.ja
 assert not wallpaper_destination.exists(), "Upstream Charoite Wallpaper path conflict"
 wallpaper_destination.write_bytes(wallpaper_source.read_bytes())
 
+# Connected Library / Setup / System page tabs are a reusable Core widget,
+# with host-supplied titles/palette/selection callback. No duplicate UI logic
+# should remain in the Touhou-specific launcher.
+tabs_source = overlay.parent / "charoite-core/CharoitePageTabs.java"
+assert tabs_source.is_file(), "Charoite Core page tabs source missing"
+tabs_destination = java_root / "com/charoitegames/core/CharoitePageTabs.java"
+assert not tabs_destination.exists(), "Upstream Charoite page tabs path conflict"
+tabs_destination.write_bytes(tabs_source.read_bytes())
+
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and
 # bundled as an asset, never committed as a binary to the source repository.

@@ -1,5 +1,5 @@
 /*
- * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v3.
+ * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v4.
  *
  * The original v1 hook only updated the installation-path TEdit. Screens
  * farther into the Inno wizard (notably Select Additional Tasks) use owner-
@@ -28,7 +28,10 @@ static unsigned patched_count = 0;
 static DWORD last_scan_tick = 0;
 static BOOL installer_verified = FALSE;
 static BOOL scan_started = FALSE;
-static BOOL task_list_logged = FALSE;
+static HWND diagnosed_lists[12] = {0};
+static int diagnosed_count[12] = {0};
+static BOOL draw_seen = FALSE;
+static BOOL undrawable_reported = FALSE;
 
 static void report(const char *message) {
     HANDLE f = CreateFileW(L"C:\\touhou_font_hook.log", FILE_APPEND_DATA,
@@ -89,33 +92,46 @@ static BOOL read_task_caption(HWND, UINT, wchar_t *, int);
 /* Used to differentiate a font failure from already-mojibake Unicode data.
  * Records hex codes, not user text or file paths. */
 static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
-    if (task_list_logged || !(contains(klass,L"CheckListBox") || contains(klass,L"ChecklistBox"))) return;
-    int count = (int)SendMessageW(hwnd, LB_GETCOUNT, 0, 0);
-    if (count <= 0 || count > 200) return; // A hidden, empty page may precede the task page.
-    task_list_logged = TRUE;
-    char info[320];
+    if (!(contains(klass,L"CheckListBox") || contains(klass,L"ChecklistBox"))) return;
+    int count=(int)SendMessageW(hwnd,LB_GETCOUNT,0,0);
+    if(count<=0 || count>200) return;
+    int slot=-1;
+    for(int i=0;i<12;i++) {
+        if(diagnosed_lists[i]==hwnd) { slot=i; break; }
+        if(!diagnosed_lists[i] && slot<0) slot=i;
+    }
+    if(slot<0 || (diagnosed_lists[slot]==hwnd && diagnosed_count[slot]==count))
+        return;
+    diagnosed_lists[slot]=hwnd;
+    diagnosed_count[slot]=count;
+
+    LONG_PTR style=GetWindowLongPtrW(hwnd,GWL_STYLE);
+    char info[512];
     snprintf(info,sizeof(info),
-        "hook-v3 task list found class=CheckListBox item_count=%d",count);
+        "hook-v4 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
+        slot,count,(unsigned long long)style,
+        !!(style & LBS_HASSTRINGS),
+        !!(style & (LBS_OWNERDRAWFIXED|LBS_OWNERDRAWVARIABLE)));
     report(info);
-    for (int item=0; item<count && item<4; item++) {
-        wchar_t value[304] = {0};
-        if (!read_task_caption(hwnd, (UINT)item, value, 304)) {
-            report("hook-v3 task item text not accessible through LB_GETTEXT; no edit attempted");
+    for(int item=0;item<count && item<8;item++) {
+        wchar_t value[512]={0};
+        if(!read_task_caption(hwnd,(UINT)item,value,512)) {
+            report("hook-v4 list label unavailable through LB_GETTEXT; no unsafe item-data access");
             continue;
         }
-        size_t at=0;
-        at += (size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
-        for (unsigned i=0; value[i] && i<32 && at+7 < sizeof(info); i++)
-            at += (size_t)snprintf(info+at,sizeof(info)-at,"%04X ",(unsigned)value[i]);
+        size_t at=(size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
+        for(unsigned i=0;value[i] && i<52 && at+7<sizeof(info);i++)
+            at+=(size_t)snprintf(info+at,sizeof(info)-at,"%04X ",(unsigned)value[i]);
         report(info);
-        wchar_t recovered[304]={0};
-        if (restore_shiftjis_caption(value,recovered,304))
-            report("hook-v3 task item has losslessly recoverable CP1252/CP932 text");
-        else
-            report("hook-v3 task item not losslessly CP1252/CP932 recoverable");
+        wchar_t recovered[512]={0};
+        if(restore_shiftjis_caption(value,recovered,512)) {
+            size_t pos=(size_t)snprintf(info,sizeof(info),"task-%d recovered_utf16=",item);
+            for(unsigned i=0;recovered[i] && i<52 && pos+7<sizeof(info);i++)
+                pos+=(size_t)snprintf(info+pos,sizeof(info)-pos,"%04X ",(unsigned)recovered[i]);
+            report(info);
+        } else report("hook-v4 task not losslessly recoverable as CP1252-to-CP932");
     }
 }
-
 
 /*
  * Some ANSI Inno task captions reach VCL as CP932 bytes decoded as CP1252.
@@ -219,10 +235,10 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
                     wcscmp(repaired,after)==0) {
                 lstrcpynW(before,repaired,1024);
                 text_japanese=TRUE;
-                report("hook-v3 repaired reversible mojibake on static caption");
+                report("hook-v4 repaired reversible mojibake on static caption");
             } else {
                 SetWindowTextW(hwnd,before);
-                report("hook-v3 static caption repair verification failed; restored");
+                report("hook-v4 static caption repair verification failed; restored");
             }
         }
     }
@@ -254,7 +270,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
             (HFONT)SendMessageW(hwnd,WM_GETFONT,0,0)!=japanese) {
         SendMessageW(hwnd,WM_SETFONT,(WPARAM)original,TRUE);
         DeleteObject(japanese);
-        report("hook-v3 control verification failed; original font restored");
+        report("hook-v4 control verification failed; original font restored");
         return TRUE;
     }
     patched_windows[patched_count]=hwnd;
@@ -263,7 +279,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
     if (patched_count < 25 || patched_count % 25 == 0) {
         char info[200];
         snprintf(info,sizeof(info),
-            "hook-v3 installed Japanese font on control=%u task_list=%d",
+            "hook-v4 installed Japanese font on control=%u task_list=%d",
             patched_count,(int)task);
         report(info);
     }
@@ -280,7 +296,7 @@ static BOOL CALLBACK wizard_callback(HWND hwnd, LPARAM data) {
     // This can never affect an unrelated Wine application's UI.
     if (!installer_verified) {
         installer_verified=TRUE;
-        report("hook-v3 Japanese installer TWizardForm found; scanning ALL text controls");
+        report("hook-v4 Japanese installer TWizardForm found; scanning ALL text controls");
     }
     EnumChildWindows(hwnd,control_callback,0);
     return TRUE;
@@ -350,10 +366,23 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
     if(nCode>=0 && lParam) {
         const CWPRETSTRUCT *event=(const CWPRETSTRUCT *)lParam;
         if(event->message==WM_DRAWITEM && event->lParam) {
+            const DRAWITEMSTRUCT *item=(const DRAWITEMSTRUCT *)event->lParam;
+            if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
+                    installer_task_list(item->hwndItem) && !draw_seen) {
+                draw_seen=TRUE;
+                report("hook-v4 owner-draw checklist paint event detected");
+            }
+            if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
+                    installer_task_list(item->hwndItem) &&
+                    !(GetWindowLongPtrW(item->hwndItem,GWL_STYLE)&LBS_HASSTRINGS) &&
+                    !undrawable_reported) {
+                undrawable_reported=TRUE;
+                report("hook-v4 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
+            }
             static BOOL logged=FALSE;
             if(draw_recovered_task((const DRAWITEMSTRUCT *)event->lParam) && !logged) {
                 logged=TRUE;
-                report("hook-v3: rendered recovered CP932 task label; installer data unchanged");
+                report("hook-v4: rendered recovered CP932 task label; installer data unchanged");
             }
         }
     }

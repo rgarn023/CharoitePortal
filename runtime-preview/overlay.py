@@ -171,6 +171,20 @@ assert not target.exists(), "Upstream has a colliding Touhou entry activity"
 overlay = Path(__file__).resolve().parent / "TouhouEntryActivity.java"
 target.write_bytes(overlay.read_bytes())
 
+# The Windows bootstrap has a Portal-owned startup presentation, not a
+# second Winlator launcher. It replaces only the full-screen preloader view.
+startup_source = overlay.parent / "CharoiteStartupScreen.java"
+startup_target = java_root / "com/winlator/CharoiteStartupScreen.java"
+assert startup_source.is_file() and not startup_target.exists()
+startup_target.write_bytes(startup_source.read_bytes())
+preloader_path = java_root / "com/winlator/core/PreloaderDialog.java"
+preloader_code = preloader_path.read_text(encoding="utf-8")
+old_preloader = "        dialog.setContentView(R.layout.preloader_dialog);"
+assert preloader_code.count(old_preloader) == 1, "Upstream PreloaderDialog changed"
+preloader_code = preloader_code.replace(old_preloader,
+    "        dialog.setContentView(com.winlator.CharoiteStartupScreen.create(activity));")
+preloader_path.write_text(preloader_code, encoding="utf-8")
+
 # Charoite Core is a reusable source module packaged INSIDE the same APK.
 # Unlike a new Android OS or a separate background app it shares the existing
 # process, Wine storage, package ID, and native runtime. Compile the real source

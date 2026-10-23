@@ -124,6 +124,15 @@ jobs:
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
 
+      # Cache the debug certificate so future builds signed from main have
+      # the same upgrade identity. Do not clear app data or alter package id.
+      # The first cached certificate cannot match previously ephemeral keys.
+      - name: Preserve debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: charoite-portal-debug-signing-v1
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug

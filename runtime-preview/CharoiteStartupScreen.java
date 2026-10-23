@@ -47,7 +47,13 @@ public final class CharoiteStartupScreen {
     }
 
     public static View create(Activity activity) {
-        String theme = CharoiteEnvironments.activeTheme(activity);
+        // PreloaderDialog is typed as Activity upstream; the real game
+        // renderer is AppCompatActivity. Keep a safe fallback for other callers.
+        androidx.appcompat.app.AppCompatActivity portalHost =
+                activity instanceof androidx.appcompat.app.AppCompatActivity
+                        ? (androidx.appcompat.app.AppCompatActivity) activity : null;
+        String theme = portalHost == null ? "cosmic"
+                : CharoiteEnvironments.activeTheme(portalHost);
         boolean sakura = "sakura".equals(theme) || "touhou".equals(theme);
         int highlight = sakura ? 0xffffb6d6 : 0xffcfb0ff;
         int secondary = 0xffd7cfe4;
@@ -92,7 +98,8 @@ public final class CharoiteStartupScreen {
         ruleParams.bottomMargin = dp(activity, 18);
         content.addView(rule, ruleParams);
 
-        String realm = CharoiteEnvironments.activeName(activity);
+        String realm = portalHost == null ? "Gaming Environment"
+                : CharoiteEnvironments.activeName(portalHost);
         TextView environment = text(activity, realm, 19, Color.WHITE, true);
         environment.setMaxLines(2);
         content.addView(environment);

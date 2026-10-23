@@ -183,6 +183,12 @@ swipe_destination = java_root / "com/charoitegames/core/CharoiteSwipePager.java"
 assert not swipe_destination.exists(), "Upstream swipe navigation path conflict"
 swipe_destination.write_bytes(swipe_source.read_bytes())
 
+profile_source = overlay.parent / "charoite-core/CharoiteEnvironmentFiles.java"
+assert profile_source.is_file(), "Portable Charoite .cenv profile module missing"
+profile_destination = java_root / "com/charoitegames/core/CharoiteEnvironmentFiles.java"
+assert not profile_destination.exists(), "Upstream portable profile conflict"
+profile_destination.write_bytes(profile_source.read_bytes())
+
 environment_source = overlay.parent / "charoite-core/CharoiteEnvironments.java"
 assert environment_source.is_file(), "Charoite Environment registry missing"
 environment_destination = java_root / "com/charoitegames/core/CharoiteEnvironments.java"

@@ -9,6 +9,30 @@ if len(sys.argv) != 2:
 root = Path(sys.argv[1]).resolve()
 assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator Android source tree"
 
+# Force Gradle's debug signing to use the app-specific cached keystore.
+# Upgrades must not rotate keys unexpectedly or change com.touhoudr.
+gradle_path = root / "app/build.gradle"
+gradle_source = gradle_path.read_text(encoding="utf-8")
+gradle_marker = "    buildTypes {"
+assert gradle_source.count(gradle_marker) == 1, "Upstream signing config changed"
+gradle_source = gradle_source.replace(gradle_marker, """
+    signingConfigs {
+        debug {
+            storeFile file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
+""" + gradle_marker)
+gradle_marker = "    buildTypes {\n        debug {"
+assert gradle_source.count(gradle_marker) == 1, "Upstream buildTypes.debug changed"
+gradle_source = gradle_source.replace(gradle_marker,
+    "    buildTypes {\n        debug {\n            signingConfig signingConfigs.debug")
+gradle_path.write_text(gradle_source, encoding="utf-8")
+
+
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"

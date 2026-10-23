@@ -169,12 +169,13 @@ jobs:
           ACTUAL=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" |
             sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 |
             tr '[:upper:]' '[:lower:]')
-          KEY=$(keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+          KEY=$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" \
             -alias androiddebugkey -storepass android |
-            sed -n 's/^[[:space:]]*SHA256: //p' | head -1 |
-            tr -d ':' | tr '[:upper:]' '[:lower:]')
+            sha256sum | awk '{print $1}')
+          echo "APK cert fingerprint: $ACTUAL"
+          echo "Persisted key fingerprint: $KEY"
           test -n "$ACTUAL" && test "$ACTUAL" = "$KEY"
-          echo "APK signing certificate matches cached signing key: $ACTUAL"
+          echo "APK signing certificate matches cached signing key."
 
       - name: Verify Charoite Portal adaptive icon and approved artwork
         run: |

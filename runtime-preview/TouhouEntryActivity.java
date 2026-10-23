@@ -534,6 +534,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void saveEnvironmentDocument(Uri uri, boolean creating) {
         String name = creating ? pendingEnvironmentName :
                 CharoiteEnvironments.activeName(this);
+        if (!creating && (pendingExportEnvironmentId == null ||
+                !pendingExportEnvironmentId.equals(CharoiteEnvironments.activeId(this)))) {
+            showEnvironmentError(new IllegalStateException("Active environment changed. Export again."));
+            return;
+        }
         if (name == null || name.isEmpty()) {
             showEnvironmentError(new IllegalStateException("Missing environment to save."));
             return;
@@ -612,6 +617,21 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             }
             runOnUiThread(() -> {
                 busy = false;
+                updateButtons();
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Install environment from file?")
+                        .setMessage("Name: " + manifest.optString("name") +
+                                "\nTheme: " + manifest.optString("theme") +
+                                "\n\nA new isolated Windows container will be prepared. The .cenv profile contains settings, not games or saved data.")
+                        .setPositiveButton("Install", (dialog, which) ->
+                                installValidatedEnvironment(manifest))
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            });
+        });
+    }
+
+    private void installValidatedEnvironment(JSONObject manifest) {
                 try {
                     JSONObject installed = CharoiteEnvironments.installFromFile(this, manifest);
                     String id = installed.getString("id");
@@ -632,8 +652,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     updateButtons();
                     showEnvironmentError(error);
                 }
-            });
-        });
     }
 
     private void showEnvironmentError(Exception error) {

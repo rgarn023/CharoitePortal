@@ -18,7 +18,7 @@ public final class CharoiteThemes {
     private CharoiteThemes() {}
 
     public static Drawable defaultWallpaper(String template, boolean dark) {
-        return new PortalWallpaper("touhou".equals(template), dark);
+        return new PortalWallpaper(("touhou".equals(template) || "sakura".equals(template)), dark);
     }
 
 
@@ -29,7 +29,7 @@ public final class CharoiteThemes {
      * The host overlays the realm name as real accessible TextView text.
      */
     public static Drawable realmBanner(String template) {
-        return new RealmBanner("touhou".equals(template));
+        return new RealmBanner(("touhou".equals(template) || "sakura".equals(template)));
     }
 
     private static final class RealmBanner extends Drawable {

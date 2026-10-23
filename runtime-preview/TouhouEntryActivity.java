@@ -36,6 +36,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
+import com.charoitegames.core.CharoitePageTabs;
 import com.charoitegames.core.CharoiteWallpaper;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
@@ -112,9 +113,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Bitmap wallpaperBitmap;
     private boolean wallpaperBusy = false;
     private Button diagnosticButton;
-    private Button libraryTab;
-    private Button importTab;
-    private Button systemTab;
+    private CharoitePageTabs pageTabs;
     private LinearLayout libraryScreen;
     private LinearLayout importScreen;
     private LinearLayout systemScreen;
@@ -208,21 +207,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         mainScroll.addView(contentHost);
         rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        // A single connected row of page tabs, not separate floating buttons.
-        // The selected tab rises into the page; the bottom margin keeps the
-        // tab strip clear of Samsung's gesture/three-button navigation area.
-        LinearLayout navigation = new LinearLayout(this);
-        navigation.setOrientation(LinearLayout.HORIZONTAL);
-        navigation.setGravity(Gravity.BOTTOM);
-        navigation.setPadding(dp(16), dp(7), dp(16), dp(21));
-        navigation.setBackgroundColor(PANEL);
-        libraryTab = tabButton("Library", () -> showSection(0));
-        importTab = tabButton("Setup", () -> showSection(1));
-        systemTab = tabButton("System", () -> showSection(2));
-        navigation.addView(libraryTab, tabParams());
-        navigation.addView(importTab, tabParams());
-        navigation.addView(systemTab, tabParams());
-        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(88)));
+        // Touhou owns the pages; reusable Charoite Core owns tab appearance,
+        // selection, input, and Samsung navigation-bar clearance.
+        pageTabs = new CharoitePageTabs(this,
+                new String[]{"Library", "Setup", "System"}, this::showSection);
+        pageTabs.setPalette(PANEL, ACCENT, SECONDARY, SELECTED_BG, LINE, darkMode);
+        rootLayout.addView(pageTabs, new LinearLayout.LayoutParams(
+                -1, CharoitePageTabs.preferredHeight(this)));
 
         // Keep the wallpaper behind the scrollable content; the navigation
         // buttons remain solid for contrast and easy touch/DeX mouse access.
@@ -392,9 +383,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryScreen.setVisibility(section == 0 ? View.VISIBLE : View.GONE);
         importScreen.setVisibility(section == 1 ? View.VISIBLE : View.GONE);
         systemScreen.setVisibility(section == 2 ? View.VISIBLE : View.GONE);
-        styleTab(libraryTab, section == 0);
-        styleTab(importTab, section == 1);
-        styleTab(systemTab, section == 2);
+        if (pageTabs != null) pageTabs.setSelectedIndex(section);
         if (mainScroll != null) mainScroll.smoothScrollTo(0, 0);
     }
 
@@ -402,54 +391,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         screen.addView(label(heading, 29, FOREGROUND, true));
         screen.addView(label(subtitle, 13, SECONDARY, false));
         spacerIn(screen, 13);
-    }
-
-    private LinearLayout.LayoutParams tabParams() {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1f);
-        // Touching edges produces the visual rhythm of attached page tabs.
-        params.setMargins(0, 0, 0, 0);
-        return params;
-    }
-
-    private Button tabButton(String title, Runnable action) {
-        Button view = new Button(this);
-        view.setText(title);
-        view.setAllCaps(false);
-        view.setTextSize(14);
-        view.setGravity(Gravity.CENTER);
-        view.setMinHeight(dp(48));
-        view.setMinimumHeight(dp(48));
-        view.setPadding(dp(6), dp(9), dp(6), dp(7));
-        view.setContentDescription(title + " page");
-        view.setStateListAnimator(null);
-        view.setElevation(0);
-        view.setOnClickListener(v -> action.run());
-        return view;
-    }
-
-    /** Flat-bottom, rounded-top file/page tabs with a raised active page. */
-    private void styleTab(Button tab, boolean selected) {
-        if (tab == null) return;
-        tab.setBackgroundTintList(null);
-        tab.setTextColor(selected ? ACCENT : SECONDARY);
-        tab.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL),
-                selected ? Typeface.BOLD : Typeface.NORMAL);
-        GradientDrawable page = new GradientDrawable();
-        page.setColor(selected ? SELECTED_BG : (darkMode ? 0xff282930 : 0xffECEEF4));
-        page.setCornerRadii(new float[]{
-                dp(17), dp(17), dp(17), dp(17),
-                0, 0, 0, 0
-        });
-        page.setStroke(dp(1), selected ? ACCENT : LINE);
-        tab.setBackground(page);
-        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) tab.getLayoutParams();
-        if (p != null) {
-            // The active tab sticks up slightly like a selected notebook page.
-            p.topMargin = selected ? 0 : dp(8);
-            p.bottomMargin = 0;
-            tab.setLayoutParams(p);
-        }
-        tab.setSelected(selected);
     }
 
     private LinearLayout card() {

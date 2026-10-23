@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.2";
+    public static final String VERSION = "0.3";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"
@@ -51,9 +51,25 @@ public final class CharoiteCore {
     private static final String DESKTOP_CAPTURE_KEY = "desktop_pointer_capture";
 
     private CharoiteCore() {}
+    /** Existing Touhou preference keys remain unchanged; other profiles isolate settings. */
+    private static String scopedKey(AppCompatActivity host, String key) {
+        return CharoiteEnvironments.isTouhou(host)
+                ? key : "portal_" + CharoiteEnvironments.activeId(host) + "_" + key;
+    }
+
+    public static boolean compatibleGraphics(AppCompatActivity host) {
+        return host.getPreferences(Context.MODE_PRIVATE)
+                .getBoolean(scopedKey(host, "compat_graphics"), false);
+    }
+
+    public static void setCompatibleGraphics(AppCompatActivity host, boolean enabled) {
+        host.getPreferences(Context.MODE_PRIVATE).edit()
+                .putBoolean(scopedKey(host, "compat_graphics"), enabled).apply();
+    }
+
 
     public static int getDisplayModeIndex(AppCompatActivity host) {
-        int index = host.getPreferences(Context.MODE_PRIVATE).getInt(DISPLAY_MODE_KEY, 0);
+        int index = host.getPreferences(Context.MODE_PRIVATE).getInt(scopedKey(host, DISPLAY_MODE_KEY), 0);
         return (index >= 0 && index < DISPLAY_MODES.length) ? index : 0;
     }
 
@@ -61,7 +77,7 @@ public final class CharoiteCore {
         if (index < 0 || index >= DISPLAY_MODES.length)
             throw new IllegalArgumentException("Unsupported game resolution");
         host.getPreferences(Context.MODE_PRIVATE).edit()
-                .putInt(DISPLAY_MODE_KEY, index).apply();
+                .putInt(scopedKey(host, DISPLAY_MODE_KEY), index).apply();
     }
 
     public static boolean isDesktopWindow(AppCompatActivity host) {
@@ -71,7 +87,7 @@ public final class CharoiteCore {
     }
 
     public static String automaticGameResolution(AppCompatActivity host) {
-        if (host.getPreferences(Context.MODE_PRIVATE).getBoolean("compat_graphics", false))
+        if (host.getPreferences(Context.MODE_PRIVATE).getBoolean(scopedKey(host, "compat_graphics"), false))
             return "800x600";
         if (!isDesktopWindow(host)) return "1280x720";
         int width = host.getResources().getDisplayMetrics().widthPixels;
@@ -97,12 +113,12 @@ public final class CharoiteCore {
 
     public static boolean isDesktopPointerCaptured(AppCompatActivity host) {
         return host.getPreferences(Context.MODE_PRIVATE)
-                .getBoolean(DESKTOP_CAPTURE_KEY, false);
+                .getBoolean(scopedKey(host, DESKTOP_CAPTURE_KEY), false);
     }
 
     public static void setDesktopPointerCaptured(AppCompatActivity host, boolean capture) {
         host.getPreferences(Context.MODE_PRIVATE).edit()
-                .putBoolean(DESKTOP_CAPTURE_KEY, capture).apply();
+                .putBoolean(scopedKey(host, DESKTOP_CAPTURE_KEY), capture).apply();
     }
 
     public static boolean shouldCapturePointer(AppCompatActivity host) {

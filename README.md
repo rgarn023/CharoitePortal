@@ -1,43 +1,35 @@
-# Touhou Pocket Launcher
+# Touhou Launcher for Android
 
-Touhou Pocket Launcher is an experimental **standalone Android launcher** by Charoite Games for user-owned Windows Touhou games. The first compatibility targets are **Touhou Puppet Dance Performance**, **Shard of Dreams**, and **Shard of Dreams Extended**. Independent English patch support is planned; **thcrap is not part of the design**.
+**Touhou Launcher for Android** is an experimental Charoite Games application for installing, organizing, and launching user-owned Windows Touhou games on Android, including Samsung Galaxy devices and Samsung DeX. The launcher includes **Charoite Core v0.1**, a reusable runtime-coordination module built alongside the launcher. Neither product replaces Android or Samsung One UI.
 
-## Builds
+Primary game targets: **Touhou Puppet Dance Performance**, **Shard of Dreams**, and **Extended**, followed by other Touhou titles. Standalone English patches may be added later; **thcrap is not a supported integration**.
 
-- **Touhou-integrated runtime APK** — a dedicated Android Touhou library screen, automatic private Wine/Box64 setup, imported game-folder and EXE support, installed-game scan, and direct Play actions. Does **not** show Winlator's container-manager interface. Its in-game renderer still derives from Winlator. **Phone/game compatibility remains unverified.**
-- **Earlier Kotlin import-only alpha** — separate smaller APK without Windows execution, retained for testing and reference.
+## Architecture
 
-The integrated APK is built by [Touhou Wine Runtime Preview](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml) in GitHub Actions. Select the latest **successful** workflow run, download the `touhou-pocket-runtime-preview-apk` artifact, and extract `app-debug.apk`.
+- **Touhou Launcher:** Native Android, One UI-inspired library/setup/system UI, reorderable game tiles, imports, executable discovery, direct game launching, setup wizard support and diagnostics.
+- **Charoite Core:** `runtime-preview/charoite-core/CharoiteCore.java` currently owns the bundled Wine/Box64 preparation policy, compatibility graphics/default container profiles, and phone/DeX display and pointer settings. It is compiled into this APK through `runtime-preview/overlay.py`. Read its [architecture and preservation contract](runtime-preview/charoite-core/README.md).
+- **Compatibility backend:** Attributed, pinned LGPL Winlator-derived Android runtime, bundled Wine and Box64, upstream graphics/input systems, and Touhou-targeted Japanese locale and Windows font compatibility helpers.
+- **Android:** All components run inside a normal Android application sandbox. App ID **`com.touhoudr`** is deliberately unchanged; no root or standalone OS is required. No Windows games are packaged.
 
-## First-time Android testing
+**Charoite Core is not yet a separate downloadable SDK, AAR, installed app, game engine download service, Wine fork or Proton implementation.** It is source code actively used by the launcher and intended for gradual reuse by other Charoite Games projects.
 
-1. Install the **new** runtime APK (not the previous runtime preview which still opened Winlator's container manager).
-2. Open Touhou Pocket Launcher and tap **Set Up Game Engine**. Allow extraction and game-environment creation to complete (requires free storage).
-3. Choose **Import Game Folder** and select a complete, legally obtained portable TPDP game folder. The files are copied into an isolated Windows C: drive owned by the app.
-4. Tap **Play** in the Touhou library. The selected executable is launched directly through Wine without navigating a container manager.
-5. If you have a Windows **installer EXE** instead, choose **Import Windows Game Installer**, tap **Run Installer**, complete its prompts, then tap **Find Installed Touhou Games** to index recognized game executables.
+## Current Android features
 
-**Do not test Shard of Dreams, Extended, or patches before the base game is working.** Installer compatibility, graphics, audio, and performance all require real-device validation. English patch application, `notkey` automation, backup/restore, and custom touch controls are not implemented in this build.
+- **Library:** Shows playable Windows games, not installer executables. Tap to launch; touch and hold to rearrange game tiles. Tile positions persist locally. Setup instructions are in the Setup tab.
+- **Setup:** Import a complete game or installer folder, or a standalone Windows installer. The original Windows wizard runs in Wine. Return to Setup to scan installed games in the private Wine C: drive.
+- **System:** Retry game-engine preparation if required, compatibility graphics, diagnostic log, and **External display & DeX** resolution and mouse-capture settings.
+- **Automatic runtime preparation:** On the first launch after installing or updating the APK, the bundled root filesystem is prepared or refreshed. This does **not** download newer upstream Wine versions automatically and must not erase the existing private Wine prefixes.
+- **DeX:** The launcher and game window are declared resizable; the launcher is centered on larger windows. Windows virtual display size can be chosen automatically or set to 1280x720, 1600x900, 1920x1080, or compatibility 800x600. Mouse and keyboard use the Winlator-derived event handling. Display changes apply at the next game launch rather than live-changing the guest X server resolution.
+- **Japanese installers:** A pinned, licensed Japanese font/locale pack and thread-scoped Win32 font helper address legacy CP932 Japanese text. Installer destinations are not overridden.
 
-See [Android testing guide](docs/RUNTIME-TEST.md) and [project handoff](docs/HANDOFF.md).
+The interface, drag-and-drop, DeX behavior, game rendering, and completeness of individual Touhou game compatibility still need physical Galaxy verification. Do not assume all expansions or installers work until tested.
 
-## How it works
+## Building / APK
 
-The APK builds from pinned, openly licensed [Winlator Android source](https://github.com/brunodev85/winlator-app) and uses its Wine/Box64 display/backend, but replaces the app's initial entry screen and hides the original container-manager launcher from users. There is **no requirement to install Winlator as a separate app**.
+[Android GitHub Actions workflow](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml) builds the combined launcher plus Charoite Core from the pinned upstream source. Choose the latest **successful** run, download `touhou-pocket-runtime-preview-apk` and extract `app-debug.apk`.
 
-The development overlay is in [runtime-preview](runtime-preview/). Upstream LGPL-2.1 and additional third-party license notices must be preserved. No proprietary games, expansions, or English translations are distributed.
+**Signing warning:** This currently uses CI debug signing, which may change between builds and prevent updating an already-installed APK in place. Uninstalling the app deletes its private Windows game files and saves; do not uninstall without a backup. The long-term release pipeline needs a persistent, securely managed signing key and increasing version codes.
 
+## Compatibility and legal notes
 
-## Box64 native-path repair (October 22, 2026)
-The original APK was unable to execute Box64 on a Galaxy S26 Ultra (error=13 Permission denied). The packaged ARM64 ELF interpreter and runtime assets contained absolute paths to com.winlator even though the app used a different Android ID.
-New runtime build is labeled Touhou Pocket Test with separate Android ID com.touhoupk. The build rewrites hardcoded paths in upstream runtime tarballs, preserves ELF sizes, corrects native C++ cache paths, and verifies the loader. This is a separate test app, not an in-place upgrade; keep your old installation and any stored games/saves.
-Install only the APK artifact from the latest successful runtime workflow, run Set Up Game Engine and retry game installation. If it fails, use View Last Launch Diagnostics to retrieve the Box64 preflight report. Real Android gameplay remains unverified.
-
-
-## Japanese support for Puppet Dance Performance (October 22, 2026)
-
-The Touhou Pocket Test runtime includes an optional-on-install (enabled by default) **Japanese font/locale addon** for Windows game installers and menus. It supplies licensed Noto Sans CJK JP OpenType glyphs, a compiled `ja_JP.UTF-8` glibc locale, Win32 font aliases for MS Gothic/Meiryo/Yu Gothic, and Japanese Wine guest process language settings to support Japanese legacy installer text and filenames.
-
-The font is pinned to official [Noto CJK](https://github.com/notofonts/noto-cjk), subject to its included SIL Open Font License (packaged inside the APK). Fonts and locale files are installed to app-private Wine directories with per-prefix markers; no user's game files are intentionally overwritten.
-
-If your previously working Touhou `setup.exe` displayed random Japanese characters, try the next successful [runtime build](https://github.com/rgarn023/TouhouPocketLauncher/actions/workflows/runtime-preview.yml) and verify a kana/kanji dialog and paths. **Android game execution and correct rendering still require on-device testing.**
+No proprietary Touhou games, translations, expansions, or unauthorized copyrighted game files are bundled. Winlator and other third-party open-source components retain their notices and applicable source license obligations. See [runtime attribution](runtime-preview/NOTICE.md) and [development handoff](docs/HANDOFF.md). The launcher currently builds on the existing branch and keeps its existing private storage mappings, including `C:\TouhouPocket\`, regardless of the visible rebranding.

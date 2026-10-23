@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,12 +29,6 @@ public final class CharoiteWallpaper {
     public static boolean hasWallpaper(Context context) {
         File file = new File(context.getFilesDir(), FILE_NAME);
         return file.isFile() && file.length() > 0;
-    }
-
-    public static int getMode(Context context) {
-        int mode = context.getSharedPreferences("TouhouEntryActivity",
-                Context.MODE_PRIVATE).getInt(MODE_KEY, MODE_CROP);
-        return mode == MODE_FIT ? MODE_FIT : MODE_CROP;
     }
 
     // Same activity-private preferences used by existing Touhou Launcher UI.

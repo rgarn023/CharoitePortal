@@ -47,15 +47,24 @@ public final class CharoiteEnvironmentFiles {
 
     public static JSONObject create(String name, String theme, boolean compat,
                                     int displayMode, boolean pointerCapture) throws JSONException {
-        return create(name, theme, compat, displayMode, pointerCapture, false);
+        return create(name, theme, compat, displayMode, pointerCapture, false, false);
     }
 
     /** The language flag is optional in v1 for backward-compatible downloads. */
     public static JSONObject create(String name, String theme, boolean compat,
                                     int displayMode, boolean pointerCapture,
                                     boolean japaneseText) throws JSONException {
+        return create(name, theme, compat, displayMode, pointerCapture,
+                japaneseText, false);
+    }
+
+    public static JSONObject create(String name, String theme, boolean compat,
+                                    int displayMode, boolean pointerCapture,
+                                    boolean japaneseText, boolean installerFontRepair)
+            throws JSONException {
         JSONObject settings = new JSONObject();
         settings.put("japaneseText", japaneseText);
+        settings.put("installerFontRepair", japaneseText && installerFontRepair);
         settings.put("compatibilityGraphics", compat);
         settings.put("displayMode", displayMode);
         settings.put("capturePointer", pointerCapture);
@@ -119,7 +128,14 @@ public final class CharoiteEnvironmentFiles {
         normalizeTheme((String)theme);
         JSONObject settings = profile.optJSONObject("settings");
         if (settings == null) throw new JSONException("Missing compatibility settings.");
-        onlyKeys(settings, "compatibilityGraphics", "displayMode", "capturePointer", "japaneseText");
+        onlyKeys(settings, "compatibilityGraphics", "displayMode", "capturePointer",
+                "japaneseText", "installerFontRepair");
+        if (settings.has("installerFontRepair") &&
+                !(settings.opt("installerFontRepair") instanceof Boolean))
+            throw new JSONException("Invalid installer font repair setting.");
+        if (settings.optBoolean("installerFontRepair", false) &&
+                !settings.optBoolean("japaneseText", false))
+            throw new JSONException("Installer font repair requires Japanese text support.");
         if (settings.has("japaneseText") && !(settings.opt("japaneseText") instanceof Boolean))
             throw new JSONException("Invalid Japanese compatibility setting.");
         if (!(settings.opt("compatibilityGraphics") instanceof Boolean) ||

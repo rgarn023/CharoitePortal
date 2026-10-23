@@ -27,7 +27,7 @@ src = src.replace('<string name="app_name">Winlator</string>',
 # This does NOT change the runtime's original Winlator-derived architecture.
 for original, branded in (
     ('<string name="starting_up">Starting up...</string>',
-     '<string name="starting_up">Launching Touhou game...</string>'),
+     '<string name="starting_up">Launching Windows game...</string>'),
     ('<string name="fgs_notification_content_else">Winlator is running in the background</string>',
      '<string name="fgs_notification_content_else">Charoite Portal is running</string>'),
     ('<string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\\\'s background process management.</string>',
@@ -214,7 +214,7 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
                     TouhouDiagnostics.fail(this, "No Windows game window appeared after 45 seconds. Check Wine/Box64 and graphics compatibility.");
                     preloaderDialog.closeOnUiThread();
                     new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Touhou game did not start")
+                        .setTitle("Windows game did not start")
                         .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Charoite Portal and open Launch Diagnostics, or switch to Compatibility Graphics.")
                         .setCancelable(false)
                         .setPositiveButton("Return to Charoite Portal", (d, which) -> exit())
@@ -346,8 +346,9 @@ locale_java = java_root / "com/winlator/core/LocaleHelper.java"
 locale_code = locale_java.read_text(encoding="utf-8")
 locale_marker = '        envVars.put("LC_ALL", "en_US.UTF-8");'
 assert locale_code.count(locale_marker) == 1, "Winlator language fallback changed"
-locale_code = locale_code.replace(locale_marker,
-    '        envVars.put("LC_ALL", "ja_JP.UTF-8");')
+# The default remains English for General Gaming. Touhou opts into Japanese
+# in its own Wine guest, without modifying Android device locale.
+# Wine guest scoped locale is chosen below from the current environment.
 locale_java.write_text(locale_code, encoding="utf-8")
 
 launcher = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
@@ -357,9 +358,16 @@ assert launch_code.count(launch_marker) == 1, "Guest process locale hook changed
 launch_code = launch_code.replace(launch_marker, launch_marker + """
         // Override English Android UI locale and custom container settings only
         // for the Wine guest. Most Japanese Touhou setup programs use CP932.
-        envVars.put("LANG", "ja_JP.UTF-8");
-        envVars.put("LC_ALL", "ja_JP.UTF-8");
-        envVars.put("LC_CTYPE", "ja_JP.UTF-8");
+        android.content.Context portalContext = environment.getContext();
+        boolean useJapanese = "touhou-realm".equals(
+                portalContext.getSharedPreferences("TouhouEntryActivity",
+                    android.content.Context.MODE_PRIVATE)
+                    .getString("charoite_active_environment_v1", "touhou-realm"));
+        if (useJapanese) {
+            envVars.put("LANG", "ja_JP.UTF-8");
+            envVars.put("LC_ALL", "ja_JP.UTF-8");
+            envVars.put("LC_CTYPE", "ja_JP.UTF-8");
+        }
 """)
 launcher.write_text(launch_code, encoding="utf-8")
 
@@ -373,7 +381,10 @@ fonts_marker = '        if (containerDataChanged) container.saveData();'
 assert display_code.count(fonts_marker) == 1, "Wine registry setup hook changed"
 display_code = display_code.replace(fonts_marker, fonts_marker + """
         try {
-            TouhouJapaneseSupport.ensure(this, rootFS, container);
+            if ("touhou-realm".equals(
+                    getSharedPreferences("TouhouEntryActivity", MODE_PRIVATE)
+                        .getString("charoite_active_environment_v1", "touhou-realm")))
+                TouhouJapaneseSupport.ensure(this, rootFS, container);
         } catch (Exception error) {
             TouhouDiagnostics.recordLine("Japanese locale/font initialization failed: " + error);
         }
@@ -385,4 +396,4 @@ license_dir = root / "app/src/main/assets/licenses"
 license_dir.mkdir(parents=True, exist_ok=True)
 (license_dir / "Winlator-LGPL-2.1.txt").write_bytes((root / "LICENSE").read_bytes())
 (license_dir / "Touhou-Pocket-NOTICE.md").write_bytes((overlay.parent / "NOTICE.md").read_bytes())
-print("Applied Touhou Launcher + Charoite Core overlay and preserved license notices")
+print("Applied Charoite Portal + Charoite Core overlay and preserved license notices")

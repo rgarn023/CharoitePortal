@@ -260,7 +260,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         ImageView brand = new ImageView(this);
         brand.setImageResource(R.drawable.touhou_pocket_icon);
-        brand.setContentDescription("Touhou Launcher shrine emblem");
+        brand.setContentDescription("Charoite Portal app icon");
         brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
         LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(68), dp(68));
         imageParams.leftMargin = dp(6);
@@ -405,6 +405,96 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         showSection(selectedSection);
     }
 
+    /** Select a registered environment without moving or deleting its Wine prefix. */
+    private void showEnvironmentSwitcher() {
+        if (busy || wallpaperBusy) return;
+        JSONArray items = CharoiteEnvironments.list(this);
+        String[] names = new String[items.length()];
+        String[] ids = new String[items.length()];
+        int selected = 0;
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            ids[i] = item == null ? "" : item.optString("id");
+            names[i] = item == null ? "Environment" : item.optString("name");
+            if (CharoiteEnvironments.activeId(this).equals(ids[i])) selected = i;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Switch environment")
+                .setSingleChoiceItems(names, selected, (dialog, which) -> {
+                    dialog.dismiss();
+                    activateEnvironment(ids[which]);
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    /** Install a verified offline profile, never download untrusted code. */
+    private void showEnvironmentInstaller() {
+        if (busy || wallpaperBusy) return;
+        JSONArray installed = CharoiteEnvironments.list(this);
+        for (int i = 0; i < installed.length(); i++) {
+            JSONObject env = installed.optJSONObject(i);
+            if (env != null && CharoiteEnvironments.GENERAL.equals(env.optString("id"))) {
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Environment templates")
+                        .setMessage("Touhou Realm and General Gaming are installed. Use Create Environment for additional isolated Windows gaming profiles.")
+                        .setPositiveButton("OK", null).show();
+                return;
+            }
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Install environment")
+                .setItems(new String[]{"General Gaming — standard Windows games"}, (dialog, which) -> {
+                    try {
+                        CharoiteEnvironments.installPreset(this, CharoiteEnvironments.GENERAL);
+                        activateEnvironment(CharoiteEnvironments.GENERAL);
+                    } catch (Exception error) { showEnvironmentError(error); }
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void showEnvironmentCreator() {
+        if (busy || wallpaperBusy) return;
+        EditText nameInput = new EditText(this);
+        nameInput.setSingleLine(true);
+        nameInput.setHint("e.g. Classic RPGs");
+        nameInput.setPadding(dp(22), dp(12), dp(22), dp(12));
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Create Windows environment")
+                .setMessage("Creates an isolated Wine container, private game library and customizable wallpaper. Existing environments and games are preserved.")
+                .setView(nameInput)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    try {
+                        JSONObject added = CharoiteEnvironments.create(this,
+                                nameInput.getText().toString());
+                        activateEnvironment(added.optString("id"));
+                    } catch (Exception error) { showEnvironmentError(error); }
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void showEnvironmentError(Exception error) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Environment error")
+                .setMessage(error.getMessage() == null ? "Could not save environment."
+                        : error.getMessage())
+                .setPositiveButton("OK", null).show();
+    }
+
+    private void activateEnvironment(String id) {
+        if (busy || wallpaperBusy) return;
+        if (!CharoiteEnvironments.switchTo(this, id)) {
+            showEnvironmentError(new IllegalStateException("Could not select environment."));
+            return;
+        }
+        containerId = 0;
+        wallpaperBitmap = null;
+        selectedSection = 2;
+        applyGalaxyPalette();
+        render();
+        refreshReadyState();
+        initializeEngineOnFirstLaunch();
+    }
+
     private void showSection(int section) {
         if (libraryScreen == null) return;
         selectedSection = section;
@@ -463,7 +553,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         updateWallpaperControls();
         worker.execute(() -> {
             try {
-                CharoiteWallpaper.importImage(this, selected);
+                CharoiteWallpaper.importImage(this, selected, CharoiteEnvironments.activeId(this));
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     wallpaperBitmap = null;
@@ -491,11 +581,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 "Crop to fill — cover the display",
                 "Fit whole image — may leave empty borders"
         };
-        int current = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE));
+        int current = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE), CharoiteEnvironments.activeId(this));
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("How should wallpaper fit?")
                 .setSingleChoiceItems(options, current, (dialog, which) -> {
-                    CharoiteWallpaper.setMode(getPreferences(MODE_PRIVATE), which);
+                    CharoiteWallpaper.setMode(getPreferences(MODE_PRIVATE), CharoiteEnvironments.activeId(this), which);
                     refreshWallpaperViews();
                     dialog.dismiss();
                 })
@@ -505,7 +595,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     private void removeLauncherWallpaper() {
         if (wallpaperBusy) return;
-        if (!CharoiteWallpaper.removeWallpaper(this)) {
+        if (!CharoiteWallpaper.removeWallpaper(this, CharoiteEnvironments.activeId(this))) {
             Toast.makeText(this, "Cannot remove wallpaper", Toast.LENGTH_LONG).show();
             return;
         }
@@ -515,12 +605,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     private void updateWallpaperControls() {
-        boolean present = CharoiteWallpaper.hasWallpaper(this);
+        boolean present = CharoiteWallpaper.hasWallpaper(this, CharoiteEnvironments.activeId(this));
         if (wallpaperSelectButton != null) wallpaperSelectButton.setEnabled(!wallpaperBusy);
         if (wallpaperModeButton != null) {
             wallpaperModeButton.setVisibility(present ? View.VISIBLE : View.GONE);
             wallpaperModeButton.setEnabled(!wallpaperBusy);
-            wallpaperModeButton.setText(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+            wallpaperModeButton.setText(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE), CharoiteEnvironments.activeId(this))
                     == CharoiteWallpaper.MODE_FIT ? "DISPLAY: FIT WHOLE IMAGE" : "DISPLAY: CROP TO FILL");
         }
         if (wallpaperRemoveButton != null) {
@@ -531,18 +621,18 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             wallpaperPreview.setVisibility(present ? View.VISIBLE : View.GONE);
         if (wallpaperDescription != null)
             wallpaperDescription.setText(wallpaperBusy ? "Copying your image privately…"
-                    : present ? "Wallpaper saved inside Touhou Launcher. Original photo is unchanged."
+                    : present ? "Wallpaper saved for " + CharoiteEnvironments.activeName(this) + ". Original photo is unchanged."
                     : "No wallpaper selected. Your default theme is active.");
     }
 
     private void refreshWallpaperViews() {
         if (wallpaperBackground == null || wallpaperTint == null) return;
-        boolean present = CharoiteWallpaper.hasWallpaper(this);
+        boolean present = CharoiteWallpaper.hasWallpaper(this, CharoiteEnvironments.activeId(this));
         if (present && wallpaperBitmap == null)
-            wallpaperBitmap = CharoiteWallpaper.loadBitmap(this, 2560);
+            wallpaperBitmap = CharoiteWallpaper.loadBitmap(this, 2560, CharoiteEnvironments.activeId(this));
         present = present && wallpaperBitmap != null;
         if (present) {
-            ImageView.ScaleType style = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+            ImageView.ScaleType style = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE), CharoiteEnvironments.activeId(this))
                     == CharoiteWallpaper.MODE_FIT
                     ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP;
             wallpaperBackground.setImageBitmap(wallpaperBitmap);
@@ -550,12 +640,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             // Readable text/buttons even over vibrant backgrounds.
             wallpaperTint.setBackgroundColor(darkMode ? 0xA9101116 : 0xA8F5F6FA);
         } else {
-            wallpaperBackground.setImageDrawable(null);
-            wallpaperTint.setBackgroundColor(Color.TRANSPARENT);
+            wallpaperBackground.setImageDrawable(CharoiteThemes.defaultWallpaper(
+                    CharoiteEnvironments.activeTheme(this), darkMode));
+            wallpaperBackground.setScaleType(ImageView.ScaleType.FIT_XY);
+            wallpaperTint.setBackgroundColor(darkMode ? 0x40101116 : 0x55F5F6FA);
         }
         if (wallpaperPreview != null) {
             wallpaperPreview.setImageBitmap(present ? wallpaperBitmap : null);
-            wallpaperPreview.setScaleType(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+            wallpaperPreview.setScaleType(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE), CharoiteEnvironments.activeId(this))
                     == CharoiteWallpaper.MODE_FIT
                     ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
         }
@@ -583,10 +675,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 Container selected = getActiveContainer(manager);
                 containerId = selected != null ? selected.id : 0;
                 setStatus(engineRefreshRequired()
-                        ? "Touhou Launcher was installed or updated. Refreshing the engine automatically…"
+                        ? "Charoite Portal was updated. Preparing the bundled engine…"
                         : selected == null
                             ? "Finishing your automatic Windows game environment setup…"
-                            : "Game engine ready • Your Touhou games are in Library.");
+                            : "Game engine ready • Games are in the active environment Library.");
             } catch (Exception ex) {
                 containerId = 0;
                 setStatus("Engine check failed: " + ex.getMessage());

@@ -1,6 +1,5 @@
 package com.charoitegames.core;
 
-import com.winlator.TouhouDiagnostics;
 
 import android.content.Context;
 
@@ -39,7 +38,7 @@ public final class CharoiteJapaneseSupport {
         File ipaGothic = new File(root, "usr/share/fonts/truetype/ipa/ipag.ttf");
         File ipaPGothic = new File(root, "usr/share/fonts/truetype/ipa/ipagp.ttf");
         if (!locale.isFile() || !linuxFont.isFile() || !ipaGothic.isFile() || !ipaPGothic.isFile()) {
-            TouhouDiagnostics.recordLine("Installing bundled Japanese locale and Noto font...");
+            CharoiteDiagnostics.recordLine("Installing bundled Japanese locale and Noto font...");
             if (!TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD,
                     context, ADDON, root)) {
                 throw new IOException("Unable to extract Japanese locale/font pack");
@@ -71,7 +70,7 @@ public final class CharoiteJapaneseSupport {
         if (!probe.isFile() || probe.length() < 10000) {
             FileUtils.copy(context, "japanese/touhou_probe.exe", probe);
             if (!probe.isFile() || probe.length() < 10000)
-                TouhouDiagnostics.recordLine("Optional Japanese probe asset copy failed.");
+                CharoiteDiagnostics.recordLine("Optional Japanese probe asset copy failed.");
         }
         // Older installations keep app-owned helper binaries in C: across
         // APK updates. Refresh them once per helper release, not only when
@@ -90,13 +89,13 @@ public final class CharoiteJapaneseSupport {
             }
             if (!FileUtils.writeString(helperVersion, "v2\n"))
                 throw new IOException("Cannot mark Japanese helper upgrade complete");
-            TouhouDiagnostics.recordLine("Japanese installer font helpers upgraded to v2.");
+            CharoiteDiagnostics.recordLine("Japanese installer font helpers upgraded to v2.");
         }
         for (String logName : new String[]{
                 "touhou_probe.log", "touhou_font_hook.log", "touhou_font_helper.log"}) {
             File previousLog = new File(prefix, "drive_c/" + logName);
             if (previousLog.isFile() && !previousLog.delete())
-                TouhouDiagnostics.recordLine("Previous report could not be cleared: " + logName);
+                CharoiteDiagnostics.recordLine("Previous report could not be cleared: " + logName);
         }
         File registrationMarker = new File(prefix, ".touhou-japanese-fonts-v5");
         File winIPA = new File(windowsFonts, "ipag.ttf");
@@ -105,7 +104,7 @@ public final class CharoiteJapaneseSupport {
                 && windowsFont.length() == linuxFont.length()
                 && winIPA.isFile() && winIPA.length() == ipaGothic.length()
                 && winIPAP.isFile() && winIPAP.length() == ipaPGothic.length()) {
-            TouhouDiagnostics.recordLine("Japanese TrueType fonts installed (v5).");
+            CharoiteDiagnostics.recordLine("Japanese TrueType fonts installed (v5).");
             return;
         }
         if (!FileUtils.copy(linuxFont, windowsFont)
@@ -172,7 +171,7 @@ public final class CharoiteJapaneseSupport {
         if (!FileUtils.writeString(registrationMarker, DIALOG_FALLBACK_VERSION + "\n")) {
             throw new IOException("Could not mark Japanese font registration complete");
         }
-        TouhouDiagnostics.recordLine("Japanese UI fonts registered (" + DIALOG_FALLBACK_VERSION +
+        CharoiteDiagnostics.recordLine("Japanese UI fonts registered (" + DIALOG_FALLBACK_VERSION +
                 "): IPA Gothic/IPA P Gothic, ACP=932, MS Shell Dlg.");
     }
 

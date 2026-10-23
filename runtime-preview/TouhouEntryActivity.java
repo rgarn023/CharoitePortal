@@ -317,9 +317,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         importScreen.addView(setupArea);
 
         LinearLayout folderCard = card();
-        folderCard.addView(label("01   GAME OR INSTALLER FOLDER", 12, GOLD, true));
-        folderCard.addView(label("Choose a complete Windows game or installer folder. Charoite Portal runs the installer or adds a playable game to this environment.", 13, SECONDARY, false));
-        folderButton = button("SELECT GAME FOLDER", () -> {
+        folderCard.addView(label("01   IMPORT GAME OR INSTALLER FOLDER", 12, GOLD, true));
+        folderCard.addView(label("Select a complete folder to copy into this environment. Importing never launches an .exe. Play imported games from Library, or start an installer explicitly from Setup.", 13, SECONDARY, false));
+        folderButton = button("IMPORT GAME FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             startActivityForResult(picker, FOLDER_REQUEST);
@@ -1196,13 +1196,22 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 entry.put("files", count);
                 saveEntry(entry);
                 final String selectedPath = exe.getAbsolutePath();
-                final boolean launchInstaller = installer;
+                final boolean isInstaller = installer;
+                final boolean standaloneExeSelection = !folder;
                 runOnUiThread(() -> {
-                    finishOperation(launchInstaller
-                        ? "Setup files are ready. Opening the original Windows installer…"
-                        : "Game imported successfully and added to Library.");
-                    showSection(launchInstaller ? 1 : 0);
-                    if (launchInstaller) launchGame(selectedPath, true);
+                    if (isInstaller) {
+                        finishOperation(standaloneExeSelection
+                            ? "Installer imported. Opening the Windows setup wizard…"
+                            : "Installer folder imported. Open Setup and tap RUN INSTALLER when ready.");
+                        showSection(1);
+                        // Only the separate "SELECT INSTALLER .EXE" action
+                        // explicitly requests an installer launch.
+                        // Selecting "Use this folder" must NEVER execute code.
+                        if (standaloneExeSelection) launchGame(selectedPath, true);
+                    } else {
+                        finishOperation("Game imported into Library. Tap its tile to play.");
+                        showSection(0);
+                    }
                 });
             } catch (Exception ex) {
                 if (destination != null) deleteTree(destination);
@@ -1270,8 +1279,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             String n = new File(value).getName().toLowerCase(Locale.ROOT);
             if (n.matches("th(0[6-9]|1[0-9]|20)\\.exe")) return value;
         }
+        // A folder can contain both setup.exe and a playable game.exe.
+        // Prefer playable executables; importing a folder never runs either.
+        // Only installer-only folders are shown under the Setup tab.
         for (String value : candidates) {
-            if (isLikelyInstaller(value)) return value;
+            if (!isLikelyInstaller(value)) return value;
         }
         return candidates.get(0);
     }
@@ -1546,8 +1558,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout installerCard = card();
         installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
         installerCard.addView(label(new File(path).getName(), 16, FOREGROUND, true));
-        installerCard.addView(label("If setup was interrupted, reopen the original installer here. Imported files are preserved.", 12, SECONDARY, false));
-        Button rerun = outlinedButton("RUN INSTALLER AGAIN", () -> launchGame(path, true));
+        installerCard.addView(label("The imported installer is saved here. Run it when you choose; imported files are preserved.", 12, SECONDARY, false));
+        Button rerun = outlinedButton("RUN INSTALLER", () -> launchGame(path, true));
         rerun.setEnabled(!busy && containerId > 0 && new File(path).isFile());
         installerCard.addView(rerun);
         setupArea.addView(installerCard);

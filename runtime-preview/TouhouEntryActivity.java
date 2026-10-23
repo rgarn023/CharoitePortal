@@ -800,7 +800,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void showDiagnostics() {
         final String report = TouhouDiagnostics.getReport(this);
         new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Touhou startup diagnostics")
+            .setTitle("Windows game startup diagnostics")
             .setMessage(report)
             .setPositiveButton("Copy report", (dialog, which) -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -900,7 +900,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void findInstalledGames(boolean afterInstaller) {
         if (busy || containerId <= 0) return;
         busy = true;
-        setStatus("Searching for installed Touhou games…");
+        setStatus("Searching for installed games in " + CharoiteEnvironments.activeName(this) + "…");
         updateButtons();
         worker.execute(() -> {
             try {
@@ -929,7 +929,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     library.put(entry);
                     added++;
                 }
-                getPreferences(MODE_PRIVATE).edit().putString("game_library", library.toString()).commit();
+                getPreferences(MODE_PRIVATE).edit().putString(CharoiteEnvironments.libraryKey(this), library.toString()).commit();
                 final int newGames = added;
                 runOnUiThread(() -> {
                     finishOperation(newGames == 0
@@ -957,9 +957,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 if (name.equals("windows") || name.equals("programdata") || name.equals("$recycle.bin")) continue;
                 scanInstalled(driveRoot, file, matches, depth + 1, visited);
             } else if (file.isFile()) {
-                if (name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe") ||
-                    name.matches("th(0[6-9]|1[0-9]|20)\\.exe"))
+                if (CharoiteEnvironments.isTouhou(this)) {
+                    if (name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe") ||
+                            name.matches("th(0[6-9]|1[0-9]|20)\\.exe"))
+                        matches.add(file);
+                } else if (name.endsWith(".exe") && !isLikelyInstaller(name)
+                        && !name.equals("unins000.exe") && !name.equals("uninstall.exe")
+                        && !name.equals("winecfg.exe") && !name.equals("explorer.exe")
+                        && !name.equals("regedit.exe")) {
                     matches.add(file);
+                }
             }
         }
     }
@@ -974,7 +981,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);
                 if (current == null) throw new IllegalStateException("Game environment missing");
-                File gameBase = new File(current.getRootDir(), ".wine/drive_c/TouhouPocket");
+                File gameBase = new File(current.getRootDir(), CharoiteEnvironments.isTouhou(this)
+                        ? ".wine/drive_c/TouhouPocket" : ".wine/drive_c/CharoitePortal");
                 if (!gameBase.isDirectory() && !gameBase.mkdirs())
                     throw new IllegalStateException("Unable to create game library storage");
                 destination = new File(gameBase, "game-" + System.currentTimeMillis());
@@ -1071,10 +1079,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         collectExecutables(root, root, candidates, 0);
         if (candidates.isEmpty()) return null;
         if (installer) return candidates.get(0);
+        if (CharoiteEnvironments.isTouhou(this))
         for (String priority : new String[]{"enbu_ap.exe", "gn_enbu.exe", "th20.exe", "th19.exe"}) {
             for (String value : candidates)
                 if (new File(value).getName().equalsIgnoreCase(priority)) return value;
         }
+        if (CharoiteEnvironments.isTouhou(this))
         for (String value : candidates) {
             String n = new File(value).getName().toLowerCase(Locale.ROOT);
             if (n.matches("th(0[6-9]|1[0-9]|20)\\.exe")) return value;
@@ -1108,7 +1118,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         String value = new File(executable).getName().toLowerCase(Locale.ROOT);
         if (value.equals("enbu_ap.exe")) return "Touhou Puppet Dance Performance: Shard of Dreams";
         if (value.equals("gn_enbu.exe")) return "Touhou Puppet Dance Performance";
-        return "Touhou game: " + new File(executable).getName();
+        return CharoiteEnvironments.isTouhou(this)
+                ? "Touhou game: " + new File(executable).getName()
+                : new File(executable).getName().replaceFirst("(?i)\\.exe$", "");
     }
 
     /**
@@ -1130,7 +1142,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
         updated.put(entry);
         if (!getPreferences(MODE_PRIVATE).edit()
-                .putString("game_library", updated.toString()).commit())
+                .putString(CharoiteEnvironments.libraryKey(this), updated.toString()).commit())
             throw new IllegalStateException("Cannot save the selected installer");
     }
 
@@ -1141,7 +1153,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private synchronized JSONArray loadLibrary() {
         JSONArray original;
         try {
-            original = new JSONArray(getPreferences(MODE_PRIVATE).getString("game_library", "[]"));
+            original = new JSONArray(getPreferences(MODE_PRIVATE).getString(CharoiteEnvironments.libraryKey(this), "[]"));
         } catch (Exception ignored) {
             return new JSONArray();
         }
@@ -1162,7 +1174,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         for (int i = reverse.size() - 1; i >= 0; i--) canonical.put(reverse.get(i));
         if (canonical.length() != original.length()) {
             getPreferences(MODE_PRIVATE).edit()
-                .putString("game_library", canonical.toString()).apply();
+                .putString(CharoiteEnvironments.libraryKey(this), canonical.toString()).apply();
         }
         return canonical;
     }
@@ -1188,7 +1200,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             TextView title = label("Your Gensokyo library awaits", 17, FOREGROUND, true);
             title.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(title);
-            TextView hint = label("Use Setup to install your first Touhou game.", 13, SECONDARY, false);
+            TextView hint = label("Use Setup to install a Windows game in this environment.", 13, SECONDARY, false);
             hint.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(hint);
             libraryArea.addView(empty);
@@ -1203,7 +1215,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             for (int i = 0; i < games.size(); i++) {
                 JSONObject game = games.get(i);
                 String path = game.optString("path", "");
-                String name = game.optString("name", "Touhou game");
+                String name = game.optString("name", "Windows game");
                 boolean exists = new File(path).isFile();
 
                 LinearLayout tile = new LinearLayout(this);
@@ -1325,7 +1337,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             updated.put(entry.optBoolean("installer") ? entry : games.get(gameIndex++));
         }
         if (getPreferences(MODE_PRIVATE).edit()
-                .putString("game_library", updated.toString()).commit()) {
+                .putString(CharoiteEnvironments.libraryKey(this), updated.toString()).commit()) {
             libraryArea.post(this::refreshLibrary);
             setStatus("Library icon order saved.");
         } else setStatus("Could not save your Library icon order.");

@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.7
+# Charoite Core (Android runtime module) — v0.8
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -123,3 +123,16 @@ New scope-limited helper v2:
 - Refreshes bundled app-owned 32/64-bit hook and helper executables in existing Touhou Wine prefixes using a `.touhou-japanese-helpers-v2` marker, so upgrading the APK really installs the new helper binaries. Games and saves remain untouched.
 
 Compiled into `Charoite Portal v0.7` via GitHub Actions. Device validation is still required.
+
+
+## Charoite Core v0.8 — shared game importer + Japanese compatibility
+
+**All cross-environment game-folder import behavior lives in Core**, not the historical `TouhouEntryActivity.java` shell. `CharoiteGameImport.java` owns Android Storage Access Framework folder/file copying, 6 GB/12,000-file limits, canonical safe-name checks, cleanup of only the new failed import, EXE discovery, selection of playable EXEs ahead of setup.exe, and **`shouldLaunchAfterImport(Selection)`**. Folder selection always produces an import-only result; only deliberately selecting a standalone installer EXE allows Portal to start the Windows wizard. The launcher remains a thin adapter for library UI, saved tile metadata, and explicit `XServerDisplayActivity` launches. The original Touhou C: drive staging location is preserved.
+
+**All Japanese character-compatibility implementation is now Core-owned.** `CharoiteJapaneseSupport.java` handles licensed Noto/IPA Japanese fonts, `ja_JP.utf8`, Wine CP932/locale registry, font substitutes, and upgrading per-prefix Win32 helpers without touching games/saves. `charoite-core/japanese/` owns the reproducible Japanese support pack build script, 32/64-bit Inno font hook/helper source, and read-only Win32 codepage probe. GitHub Actions compiles these from Core, and `overlay.py` bundles the resulting assets unchanged. Duplicated historical root-level files were removed so fixes cannot drift between copies.
+
+`CharoiteCore.japaneseCompatibilityEnabled(Context)` centrally selects Japanese settings per environment: **Touhou Realm defaults ON**, other realms default OFF, and the **System → Japanese Text Support** button enables/disables Japanese support for the currently selected realm. The opt-in choice persists in the established activity preferences. A backward-compatible optional `japaneseText` setting in version-1 `.cenv` profile files allows exporting/importing Japanese text compatibility with a portable realm.
+
+The original Touhou-specific font hook still runs **only** with Japanese support enabled in Touhou Realm and when launching the known original `setup.exe`; it does not globally inject hooks into arbitrary games. Other realms can use Core's ordinary Japanese codepage/font support without the special Touhou installer helper. Existing Touhou Japanese installation folders, game files and saves remain in place.
+
+Verification: GitHub Android CI first runs Core ownership/import regression tests, builds both arch Win32 font helpers from Core and finally compiles the combined Android APK. Real-device Japanese optional-task text and folder-picker behavior must be tested separately.

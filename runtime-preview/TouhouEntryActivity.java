@@ -8,15 +8,20 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.Display;
+import android.view.WindowMetrics;
 import android.view.DragEvent;
 import android.text.TextUtils;
 import android.widget.ImageView;
 import android.widget.GridLayout;
+import android.widget.FrameLayout;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.provider.OpenableColumns;
 import android.view.View;
 import android.widget.Button;
@@ -88,6 +93,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button installerButton;
     private Button scanButton;
     private Button compatButton;
+    private Button displayButton;
+    private Button desktopPointerButton;
+    private TextView displayDescription;
     private Button diagnosticButton;
     private Button libraryTab;
     private Button importTab;
@@ -99,6 +107,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private TextView runtimeLabel;
     private boolean busy = false;
     private int containerId = 0;
+    private int selectedSection = 0;
+    private static final String[] DISPLAY_MODES = {
+        "Automatic (recommended)", "1280 × 720", "1600 × 900",
+        "1920 × 1080", "800 × 600 (compatibility)"
+    };
+    private static final String[] WINE_RESOLUTIONS = {
+        "", "1280x720", "1600x900", "1920x1080", "800x600"
+    };
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -129,20 +145,35 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         worker.shutdown();
     }
 
+    /** Keep active import workers alive while resizing a DeX launcher window. */
+    @Override public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applyGalaxyPaletteForConfig(newConfig);
+        getWindow().setStatusBarColor(BG);
+        getWindow().setNavigationBarColor(PANEL);
+        getWindow().getDecorView().setSystemUiVisibility(darkMode ? 0 :
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        render();
+        refreshReadyState();
+    }
+
     /** Follow the phone's light/dark preference for the One UI-inspired launcher. */
     private void applyGalaxyPalette() {
-        darkMode = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+        applyGalaxyPaletteForConfig(getResources().getConfiguration());
+    }
+
+    private void applyGalaxyPaletteForConfig(Configuration config) {
+        darkMode = (config.uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
-        if (!darkMode) return;
-        BG = 0xff101116;
-        PANEL = 0xff202127;
-        SECONDARY = 0xffB7B8C5;
-        ACCENT = 0xffB0B9FF;
-        GOLD = 0xffF2B5CD;
-        SAKURA = 0xffE89BBC;
-        LINE = 0xff363840;
-        FOREGROUND = 0xffF6F6FB;
-        SELECTED_BG = 0xff333959;
+        BG = darkMode ? 0xff101116 : 0xffF5F6FA;
+        PANEL = darkMode ? 0xff202127 : 0xffffffff;
+        SECONDARY = darkMode ? 0xffB7B8C5 : 0xff626877;
+        ACCENT = darkMode ? 0xffB0B9FF : 0xff5667D8;
+        GOLD = darkMode ? 0xffF2B5CD : 0xff8B4668;
+        SAKURA = darkMode ? 0xffE89BBC : 0xffC95884;
+        LINE = darkMode ? 0xff363840 : 0xffE7E9F0;
+        FOREGROUND = darkMode ? 0xffF6F6FB : 0xff1A1B22;
+        SELECTED_BG = darkMode ? 0xff333959 : 0xffE8EBFD;
     }
 
     /** Large readable headers, soft surfaces and a thumb-reachable bottom bar. */
@@ -158,7 +189,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
         main.setPadding(dp(22), dp(22), dp(22), dp(35));
-        mainScroll.addView(main);
+        // On DeX-sized windows, center the content rather than stretching
+        // every card across the entire monitor. Recomputed on window resize.
+        FrameLayout contentHost = new FrameLayout(this);
+        int hostWidthDp = Math.max(280, getResources().getConfiguration().screenWidthDp - 8);
+        FrameLayout.LayoutParams mainParams = new FrameLayout.LayoutParams(
+                dp(Math.min(hostWidthDp, 940)), -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        contentHost.addView(main, mainParams);
+        mainScroll.addView(contentHost);
         rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         // Bottom navigation stays visible when the setup page is scrolled.
@@ -278,6 +316,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         systemScreen.addView(graphicsCard);
         spacerIn(systemScreen, 12);
 
+        LinearLayout desktopCard = card();
+        desktopCard.addView(label("External display & DeX", 17, FOREGROUND, true));
+        desktopCard.addView(label("Choose the virtual Windows screen resolution for new game sessions. Automatic adapts to the available DeX window or phone display.", 12, SECONDARY, false));
+        displayDescription = label("", 12, SECONDARY, false);
+        desktopCard.addView(displayDescription);
+        displayButton = outlinedButton("GAME RESOLUTION: AUTOMATIC", this::chooseDisplayMode);
+        desktopCard.addView(displayButton);
+        desktopCard.addView(label("In DeX, leave the mouse free for the desktop, or capture it inside the game for relative mouse movement.", 12, SECONDARY, false));
+        desktopPointerButton = outlinedButton("DEX MOUSE: FREE POINTER", this::toggleDesktopPointer);
+        desktopCard.addView(desktopPointerButton);
+        systemScreen.addView(desktopCard);
+        spacerIn(systemScreen, 12);
+
         LinearLayout debugCard = card();
         debugCard.addView(label("Support & diagnostics", 17, FOREGROUND, true));
         debugCard.addView(label("Review local Windows launch information. Nothing is sent automatically.", 12, SECONDARY, false));
@@ -288,11 +339,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         systemScreen.addView(label("Touhou OS by Charoite Games. Uses Wine, Box64 and a modified, LGPL-licensed Winlator runtime. No games included.", 11, SECONDARY, false));
 
         refreshLibrary();
-        showSection(0);
+        showSection(selectedSection);
     }
 
     private void showSection(int section) {
         if (libraryScreen == null) return;
+        selectedSection = section;
         libraryScreen.setVisibility(section == 0 ? View.VISIBLE : View.GONE);
         importScreen.setVisibility(section == 1 ? View.VISIBLE : View.GONE);
         systemScreen.setVisibility(section == 2 ? View.VISIBLE : View.GONE);
@@ -416,6 +468,18 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         compatButton.setText(getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
         diagnosticButton.setEnabled(!busy);
+        if (displayButton != null) {
+            int mode = getDisplayModeIndex();
+            displayButton.setText("GAME RESOLUTION: " + DISPLAY_MODES[mode]);
+        }
+        if (desktopPointerButton != null)
+            desktopPointerButton.setText(getPreferences(MODE_PRIVATE)
+                    .getBoolean("desktop_pointer_capture", false)
+                    ? "DEX MOUSE: CAPTURE IN GAME" : "DEX MOUSE: FREE POINTER");
+        if (displayDescription != null)
+            displayDescription.setText((isDesktopWindow() ? "Desktop/external window" : "Phone window")
+                + " detected · Automatic: " + automaticGameResolution()
+                + "\nChanges take effect when you next launch a game.");
         refreshLibrary();
     }
 
@@ -427,6 +491,68 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return container;
     }
 
+
+    /** DeX may run on a secondary screen or in a resizable desktop window. */
+    private boolean isDesktopWindow() {
+        Display display = getDisplay();
+        return (display != null && display.getDisplayId() != Display.DEFAULT_DISPLAY)
+                || isInMultiWindowMode();
+    }
+
+    private int getDisplayModeIndex() {
+        int index = getPreferences(MODE_PRIVATE).getInt("game_display_mode", 0);
+        return (index >= 0 && index < DISPLAY_MODES.length) ? index : 0;
+    }
+
+    private String automaticGameResolution() {
+        if (getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false))
+            return "800x600";
+        if (!isDesktopWindow()) return "1280x720";
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowMetrics metrics = getWindowManager().getCurrentWindowMetrics();
+            Rect bounds = metrics.getBounds();
+            width = bounds.width();
+            height = bounds.height();
+        }
+        int longSide = Math.max(width, height);
+        int shortSide = Math.min(width, height);
+        if (longSide >= 1850 && shortSide >= 980) return "1920x1080";
+        if (longSide >= 1450 && shortSide >= 780) return "1600x900";
+        return "1280x720";
+    }
+
+    /** The virtual Wine screen is per-launch: never overwrite container size. */
+    private String chosenGameResolution() {
+        int mode = getDisplayModeIndex();
+        return mode == 0 ? automaticGameResolution() : WINE_RESOLUTIONS[mode];
+    }
+
+    private void chooseDisplayMode() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Windows game display resolution")
+                .setSingleChoiceItems(DISPLAY_MODES, getDisplayModeIndex(), (dialog, which) -> {
+                    getPreferences(MODE_PRIVATE).edit().putInt("game_display_mode", which).apply();
+                    updateButtons();
+                    setStatus("Game display resolution set to " + chosenGameResolution()
+                            + ". Relaunch the game to apply.");
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void toggleDesktopPointer() {
+        boolean capture = !getPreferences(MODE_PRIVATE)
+                .getBoolean("desktop_pointer_capture", false);
+        getPreferences(MODE_PRIVATE).edit()
+                .putBoolean("desktop_pointer_capture", capture).apply();
+        updateButtons();
+        setStatus(capture
+                ? "DeX mouse capture enabled for the next game. Release it using Android's pointer capture controls."
+                : "DeX mouse remains free when launching your next game.");
+    }
 
     /** Preferences adjust only this app's private game environment. */
     private void toggleCompatibility() {
@@ -1068,6 +1194,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Intent play = new Intent(this, XServerDisplayActivity.class);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", path);
+        boolean desktop = isDesktopWindow();
+        play.putExtra("touhou_desktop_window", desktop);
+        play.putExtra("touhou_display_size", chosenGameResolution());
+        play.putExtra("touhou_pointer_capture", desktop
+                ? getPreferences(MODE_PRIVATE).getBoolean("desktop_pointer_capture", false)
+                : androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                        .getBoolean("capture_pointer_on_external_mouse", true));
         try {
             if (path.toLowerCase(java.util.Locale.ROOT).endsWith("setup.exe")) {
                 Container current = new ContainerManager(this).getContainerById(containerId);

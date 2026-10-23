@@ -181,6 +181,15 @@ core_destination = java_root / "com/charoitegames/core/CharoiteCore.java"
 assert not core_destination.exists(), "Upstream Charoite Core path conflict"
 core_destination.parent.mkdir(parents=True, exist_ok=True)
 core_destination.write_bytes(core_source.read_bytes())
+
+# Shared Charoite Core owns all game import and Japanese compatibility,
+# including Japanese locale/font registration independent of Touhou UI.
+for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java"):
+    module_source = overlay.parent / "charoite-core" / module
+    module_dest = java_root / "com/charoitegames/core" / module
+    assert module_source.is_file(), f"Missing Core module: {module}"
+    assert not module_dest.exists(), f"Upstream Core source collision: {module}"
+    module_dest.write_bytes(module_source.read_bytes())
 wallpaper_source = overlay.parent / "charoite-core/CharoiteWallpaper.java"
 assert wallpaper_source.is_file(), "Charoite Wallpaper module missing"
 wallpaper_destination = java_root / "com/charoitegames/core/CharoiteWallpaper.java"
@@ -223,7 +232,7 @@ theme_destination.write_bytes(theme_source.read_bytes())
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and
 # bundled as an asset, never committed as a binary to the source repository.
-probe_binary = overlay.parent / "touhou_probe.exe"
+probe_binary = overlay.parent / "charoite-core/japanese/touhou_probe.exe"
 assert probe_binary.is_file(), "Compile touhou_probe.exe before applying overlay"
 probe_asset = root / "app/src/main/assets/japanese/touhou_probe.exe"
 probe_asset.parent.mkdir(parents=True, exist_ok=True)
@@ -233,7 +242,7 @@ probe_asset.write_bytes(probe_binary.read_bytes())
 for arch in ("32", "64"):
     for suffix in (".exe", ".dll"):
         stem = "touhou_font_helper" if suffix == ".exe" else "touhou_font_hook"
-        original = overlay.parent / f"{stem}{arch}{suffix}"
+        original = overlay.parent / "charoite-core/japanese" / f"{stem}{arch}{suffix}"
         assert original.is_file(), f"Missing compiled scoped font asset: {original}"
         (probe_asset.parent / original.name).write_bytes(original.read_bytes())
 
@@ -428,9 +437,7 @@ assert guest_code.count(return_end) == 1, "Box64 Windows callback ending changed
 guest_code = guest_code.replace(return_end, return_end + """
         if (guestExecutable != null &&
                 guestExecutable.toLowerCase(java.util.Locale.ROOT).contains("setup.exe") &&
-                "touhou-realm".equals(environment.getContext()
-                        .getSharedPreferences("TouhouEntryActivity", android.content.Context.MODE_PRIVATE)
-                        .getString("charoite_active_environment_v1", "touhou-realm")) &&
+                com.charoitegames.core.CharoiteCore.useTouhouInstallerFontProbe(environment.getContext()) &&
                 mainPid > 0) {
             final EnvVars probeEnv = new EnvVars();
             probeEnv.putAll(envVars);
@@ -506,11 +513,8 @@ assert launch_code.count(launch_marker) == 1, "Guest process locale hook changed
 launch_code = launch_code.replace(launch_marker, launch_marker + """
         // Override English Android UI locale and custom container settings only
         // for the Wine guest. Most Japanese Touhou setup programs use CP932.
-        android.content.Context portalContext = environment.getContext();
-        boolean useJapanese = "touhou-realm".equals(
-                portalContext.getSharedPreferences("TouhouEntryActivity",
-                    android.content.Context.MODE_PRIVATE)
-                    .getString("charoite_active_environment_v1", "touhou-realm"));
+        boolean useJapanese = com.charoitegames.core.CharoiteCore.japaneseCompatibilityEnabled(
+                environment.getContext());
         if (useJapanese) {
             envVars.put("LANG", "ja_JP.UTF-8");
             envVars.put("LC_ALL", "ja_JP.UTF-8");
@@ -519,20 +523,14 @@ launch_code = launch_code.replace(launch_marker, launch_marker + """
 """)
 launcher.write_text(launch_code, encoding="utf-8")
 
-japanese_file = java_root / "com/winlator/TouhouJapaneseSupport.java"
-assert not japanese_file.exists(), "Upstream Japanese support class conflict"
-japanese_file.write_bytes((overlay.parent / "TouhouJapaneseSupport.java").read_bytes())
-
 display_code = display.read_text(encoding="utf-8")
 
 fonts_marker = '        if (containerDataChanged) container.saveData();'
 assert display_code.count(fonts_marker) == 1, "Wine registry setup hook changed"
 display_code = display_code.replace(fonts_marker, fonts_marker + """
         try {
-            if ("touhou-realm".equals(
-                    getSharedPreferences("TouhouEntryActivity", MODE_PRIVATE)
-                        .getString("charoite_active_environment_v1", "touhou-realm")))
-                TouhouJapaneseSupport.ensure(this, rootFS, container);
+            if (com.charoitegames.core.CharoiteCore.japaneseCompatibilityEnabled(this))
+                com.charoitegames.core.CharoiteJapaneseSupport.ensure(this, rootFS, container);
         } catch (Exception error) {
             TouhouDiagnostics.recordLine("Japanese locale/font initialization failed: " + error);
         }

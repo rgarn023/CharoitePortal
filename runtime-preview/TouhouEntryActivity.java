@@ -432,7 +432,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         debugCard.addView(diagnosticButton);
         systemScreen.addView(debugCard);
         spacerIn(systemScreen, 18);
-        systemScreen.addView(label("Charoite Portal · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Windows gaming environments use Wine, Box64 and LGPL-licensed Winlator-derived code. No games included.", 11, SECONDARY, false));
+        systemScreen.addView(label("Charoite Portal · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Windows compatibility powered by Wine and Box64. Third-party source credits and license notices are included with the app. No games included.", 11, SECONDARY, false));
 
         refreshLibrary();
         refreshWallpaperViews();

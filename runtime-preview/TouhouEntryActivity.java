@@ -10,7 +10,10 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.DragEvent;
+import android.text.TextUtils;
 import android.widget.ImageView;
+import android.widget.GridLayout;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -200,13 +203,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         main.addView(hero);
         spacer(16);
 
-        LinearLayout engineStrip = card();
-        engineStrip.addView(label("●   GAME ENGINE", 12, ACCENT, true));
-        statusText = label("Preparing your Touhou environment…", 13, FOREGROUND, false);
-        engineStrip.addView(statusText);
-        main.addView(engineStrip);
-        spacer(13);
-
         libraryScreen = new LinearLayout(this);
         libraryScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(libraryScreen);
@@ -214,10 +210,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryArea = new LinearLayout(this);
         libraryArea.setOrientation(LinearLayout.VERTICAL);
         libraryScreen.addView(libraryArea);
-        Button add = outlinedButton("＋  SET UP A GAME", () -> showSection(1));
-        libraryScreen.addView(add);
+        libraryScreen.addView(label("To install a game, open the Setup tab below.", 13, SECONDARY, false));
         spacerIn(libraryScreen, 12);
-        libraryScreen.addView(label("Select Setup to install another game.", 12, SECONDARY, false));
 
         importScreen = new LinearLayout(this);
         importScreen.setOrientation(LinearLayout.VERTICAL);
@@ -269,10 +263,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout runtimeCard = card();
         runtimeCard.addView(label("Game engine", 17, FOREGROUND, true));
         runtimeLabel = label("Checking your game environment…", 13, SECONDARY, false);
+        statusText = runtimeLabel;
         runtimeCard.addView(runtimeLabel);
-        initButton = button("SET UP GAME ENGINE", this::startSetup);
+        initButton = button("RETRY GAME ENGINE SETUP", this::startSetup);
         runtimeCard.addView(initButton);
-        runtimeCard.addView(outlinedButton("WHAT DOES GAME ENGINE SETUP DO?", this::showEngineInfo));
         systemScreen.addView(runtimeCard);
         spacerIn(systemScreen, 12);
 
@@ -295,19 +289,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         refreshLibrary();
         showSection(0);
-    }
-
-    private void showEngineInfo() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("What does Game Engine Setup do?")
-            .setMessage("Touhou OS runs Windows Touhou games with bundled Wine and Box64.\\n\\n" +
-                "When you install or update the Touhou OS APK, the app automatically refreshes the bundled game engine and checks your game container on the next launch. " +
-                "No manual engine setup is needed unless automatic preparation fails.\\n\\n" +
-                "Installed games, Wine prefixes, saves and original Japanese game paths are preserved during an engine update. " +
-                "Game installations themselves use their original Windows installer wizard.\\n\\n" +
-                "The engine does not download or supply copyrighted games or translation patches.")
-            .setPositiveButton("Got it", null)
-            .show();
     }
 
     private void showSection(int section) {
@@ -884,43 +865,168 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return canonical;
     }
 
-    /** Only playable game entries belong in Library; installers live in Setup. */
+    /**
+     * Game icons work like home-screen tiles. A tap opens the game;
+     * long-press and drag rearranges tile order without moving files.
+     */
     private void refreshLibrary() {
         if (libraryArea == null) return;
         libraryArea.removeAllViews();
         JSONArray library = loadLibrary();
-        int playable = 0;
+        ArrayList<JSONObject> games = new ArrayList<>();
         for (int i = 0; i < library.length(); i++) {
             JSONObject game = library.optJSONObject(i);
-            if (game == null || game.optBoolean("installer")) continue;
-            playable++;
-            String path = game.optString("path", "");
-            LinearLayout item = card();
-            item.addView(label("TOUHOU GAME", 11, GOLD, true));
-            item.addView(label(game.optString("name", "Imported game"), 17, FOREGROUND, true));
-            item.addView(label(new File(path).isFile()
-                    ? "Ready to launch from your library"
-                    : "Game executable missing; find or re-import game files", 12, SECONDARY, false));
-            Button play = button("▶  PLAY GAME", () -> launchGame(path, false));
-            play.setEnabled(!busy && containerId > 0 && new File(path).isFile());
-            item.addView(play);
-            libraryArea.addView(item);
-            spacerIn(libraryArea, 12);
+            if (game != null && !game.optBoolean("installer")) games.add(game);
         }
-        if (playable == 0) {
+
+        if (games.isEmpty()) {
             LinearLayout empty = card();
             empty.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(label("✦", 35, SAKURA, true));
             TextView title = label("Your Gensokyo library awaits", 17, FOREGROUND, true);
             title.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(title);
-            TextView hint = label("Open Setup to install or import a Touhou game.", 13, SECONDARY, false);
+            TextView hint = label("Use Setup to install your first Touhou game.", 13, SECONDARY, false);
             hint.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(hint);
             libraryArea.addView(empty);
-            spacerIn(libraryArea, 12);
+        } else {
+            libraryArea.addView(label("Tap an icon to play · Touch and hold to rearrange", 12, SECONDARY, false));
+            spacerIn(libraryArea, 10);
+            int columns = getResources().getConfiguration().screenWidthDp >= 600 ? 4 : 3;
+            GridLayout grid = new GridLayout(this);
+            grid.setColumnCount(columns);
+            grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+            grid.setUseDefaultMargins(false);
+            for (int i = 0; i < games.size(); i++) {
+                JSONObject game = games.get(i);
+                String path = game.optString("path", "");
+                String name = game.optString("name", "Touhou game");
+                boolean exists = new File(path).isFile();
+
+                LinearLayout tile = new LinearLayout(this);
+                tile.setOrientation(LinearLayout.VERTICAL);
+                tile.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+                tile.setPadding(dp(5), dp(12), dp(5), dp(11));
+                tile.setBackground(rounded(PANEL, 22, LINE));
+                tile.setMinHeight(dp(138));
+                tile.setContentDescription(name + (exists
+                        ? ", tap to play, long press to move" : ", executable missing, long press to move"));
+
+                TextView gameIcon = label(gameIconCharacter(path), 29, Color.WHITE, true);
+                gameIcon.setGravity(Gravity.CENTER);
+                GradientDrawable iconBack = new GradientDrawable(
+                        GradientDrawable.Orientation.TL_BR, gameIconColors(path));
+                iconBack.setCornerRadius(dp(22));
+                gameIcon.setBackground(iconBack);
+                tile.addView(gameIcon, new LinearLayout.LayoutParams(dp(69), dp(69)));
+
+                TextView gameTitle = label(name, 12, FOREGROUND, true);
+                gameTitle.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+                gameTitle.setMaxLines(2);
+                gameTitle.setEllipsize(TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, -2);
+                nameParams.topMargin = dp(9);
+                tile.addView(gameTitle, nameParams);
+
+                if (exists && !busy && containerId > 0)
+                    tile.setOnClickListener(v -> launchGame(path, false));
+                if (!busy) {
+                    tile.setOnLongClickListener(v -> {
+                        ClipData clip = ClipData.newPlainText("touhou-game", path);
+                        return v.startDragAndDrop(clip, new View.DragShadowBuilder(v), path, 0);
+                    });
+                }
+                tile.setOnDragListener((v, event) -> {
+                    switch (event.getAction()) {
+                        case DragEvent.ACTION_DRAG_STARTED:
+                            return event.getLocalState() instanceof String;
+                        case DragEvent.ACTION_DRAG_ENTERED:
+                            v.setBackground(rounded(SELECTED_BG, 22, ACCENT));
+                            return true;
+                        case DragEvent.ACTION_DRAG_EXITED:
+                        case DragEvent.ACTION_DRAG_ENDED:
+                            v.setBackground(rounded(PANEL, 22, LINE));
+                            return true;
+                        case DragEvent.ACTION_DROP:
+                            v.setBackground(rounded(PANEL, 22, LINE));
+                            if (event.getLocalState() instanceof String)
+                                reorderGame((String) event.getLocalState(), path);
+                            return true;
+                        default:
+                            return true;
+                    }
+                });
+                GridLayout.LayoutParams params = new GridLayout.LayoutParams(
+                        GridLayout.spec(i / columns), GridLayout.spec(i % columns, 1f));
+                params.width = 0;
+                params.height = -2;
+                params.setMargins(dp(3), dp(3), dp(3), dp(3));
+                grid.addView(tile, params);
+            }
+            libraryArea.addView(grid);
+            grid.setOnDragListener((v, event) -> {
+                if (event.getAction() == DragEvent.ACTION_DRAG_STARTED)
+                    return event.getLocalState() instanceof String;
+                if (event.getAction() == DragEvent.ACTION_DROP &&
+                        event.getLocalState() instanceof String) {
+                    // Dropping between tiles moves the game to the end.
+                    reorderGame((String) event.getLocalState(),
+                            games.get(games.size() - 1).optString("path", ""));
+                    return true;
+                }
+                return true;
+            });
         }
         refreshSetup(library);
+    }
+
+    private String gameIconCharacter(String path) {
+        String exe = new File(path).getName().toLowerCase(Locale.ROOT);
+        if (exe.equals("gn_enbu.exe")) return "東";
+        if (exe.equals("enbu_ap.exe")) return "夢";
+        if (exe.matches("th\\d+\\.exe")) return "弾";
+        return "✦";
+    }
+
+    private int[] gameIconColors(String path) {
+        int[][] colors = {
+            {0xffCD5077, 0xff8D3974}, {0xff8172CE, 0xff4A61BD},
+            {0xffDD8659, 0xffB44F71}, {0xff568EAE, 0xff5461A6},
+            {0xffA278B6, 0xff634E96}
+        };
+        return colors[(path.hashCode() & 0x7fffffff) % colors.length];
+    }
+
+    /** Save only visual ordering; the original installer entry stays intact. */
+    private synchronized void reorderGame(String sourcePath, String targetPath) {
+        if (busy || sourcePath.equals(targetPath)) return;
+        JSONArray original = loadLibrary();
+        ArrayList<JSONObject> games = new ArrayList<>();
+        for (int i = 0; i < original.length(); i++) {
+            JSONObject entry = original.optJSONObject(i);
+            if (entry != null && !entry.optBoolean("installer")) games.add(entry);
+        }
+        int from = -1, to = -1;
+        for (int i = 0; i < games.size(); i++) {
+            if (sourcePath.equals(games.get(i).optString("path"))) from = i;
+            if (targetPath.equals(games.get(i).optString("path"))) to = i;
+        }
+        if (from < 0 || to < 0) return;
+        JSONObject moved = games.remove(from);
+        games.add(to, moved);
+        JSONArray updated = new JSONArray();
+        int gameIndex = 0;
+        for (int i = 0; i < original.length(); i++) {
+            JSONObject entry = original.optJSONObject(i);
+            if (entry == null) continue;
+            updated.put(entry.optBoolean("installer") ? entry : games.get(gameIndex++));
+        }
+        if (getPreferences(MODE_PRIVATE).edit()
+                .putString("game_library", updated.toString()).commit()) {
+            libraryArea.post(this::refreshLibrary);
+            setStatus("Library icon order saved.");
+        } else setStatus("Could not save your Library icon order.");
     }
 
     /** Preserve the existing imported installer for re-run, outside of Library. */

@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.4
+# Charoite Core (Android runtime module) — v0.5
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -86,3 +86,14 @@ Implemented in `runtime-preview/TouhouEntryActivity.java`; Android/One UI home-s
 The Portal has environment-aware messaging across Library, Setup and System. Only Touhou Realm shows the Gensokyo-specific empty-library caption or the explanation about its original Touhou game storage. Generic/created environments display their own realm name and neutral storage guidance. The System environment help message and already-installed General Gaming message are not Touhou-specific.
 
 The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the banner is 120dp tall rather than 164dp, with reduced padding and still-large bold realm lettering. These are UI-only changes: Wine/Box64, package ID, Touhou prefix paths, per-environment registry and wallpaper data are not modified.
+
+
+## Charoite Core v0.5 — portable environment files and repaired tab swipes
+
+**Portable environments:** The app uses human-readable, versioned `.cenv` profiles in UTF-8 JSON. `CharoiteEnvironmentFiles.java` validates the schema, size (at most 16 KiB), keys, environment names, themes and supported compatibility values. It never loads scripts, external code, absolute paths or executables from a portable profile. `CharoiteEnvironments.installFromFile()` adds a fresh local environment with a new isolated Wine container ID; repeated imports are renamed rather than overwriting existing profiles. The user's installed Windows games, Wine prefix, existing environmental preferences and saves are not serialized or moved.
+
+**Android Storage Access Framework:** `Install Environment` uses `ACTION_OPEN_DOCUMENT` to select a downloaded `.cenv` on the phone, followed by a validation/confirmation preview. `Create Environment` asks the user to save a `.cenv` via `ACTION_CREATE_DOCUMENT` before creating a new local realm. `Export Environment (.CENV)` saves the selected realm's settings to a user-chosen document. Users need no broad file/storage permissions. Export does *not* include user-installed games, saves, or custom wallpaper images. Android document providers choose the final folder/name.
+
+**Swipe correction:** `CharoiteSwipePager` now observes `dispatchTouchEvent` rather than relying on `onInterceptTouchEvent`, which was unreliable when child buttons/layouts handled events. It recognizes a completed horizontal finger/stylus gesture anywhere in the scrollable content, including over child controls, while preserving vertical scrolling, touches, game-tile drag/drop and DeX mouse. Edge gestures and multipointer gestures are ignored. The page index still clamps to Library / Setup / System.
+
+The built-in General Gaming preset is **no longer installed automatically by the Install button**; a sample downloadable `environment-profiles/General-Gaming.cenv` is provided in the repository. Original Charoite Portal icon, installed game paths, and package ID `com.touhoudr` remain unchanged.

@@ -88,7 +88,7 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         DWORD error=GetLastError();
         char msg[220];
         snprintf(msg,sizeof(msg),
-            "helper-v5: draw export not found name=%s error=%lu",
+            "helper-v6: draw export not found name=%s error=%lu",
             drawExport,(unsigned long)error);
         report(msg);
         // Compatibility aliases for other MinGW linkers.
@@ -102,35 +102,35 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         if(!drawHook) {
             char msg[160];
             snprintf(msg,sizeof(msg),
-                "helper-v5: post-draw hook attach failed win32_error=%lu",
+                "helper-v6: post-draw hook attach failed win32_error=%lu",
                 (unsigned long)GetLastError());
             report(msg);
         }
     }
-    if(drawHook) report("helper-v5: Unicode checklist post-draw hook installed");
-    else report("helper-v5: post-draw hook unavailable; Unicode checklist remains unmodified");
-    report("helper-v5: thread-local font hook installed; keeping later wizard pages active");
+    if(drawHook) report("helper-v6: Unicode checklist post-draw hook installed");
+    else report("helper-v6: post-draw hook unavailable; Unicode checklist remains unmodified");
+    report("helper-v6: thread-local font hook installed; keeping later wizard pages active");
     // An Inno Setup user can spend much longer than 18 seconds on the path,
     // shortcuts and optional-task pages. Continue checking the same installer
     // GUI thread without rewriting its strings or touching other processes.
     // Stop automatically when the target Windows thread exits or after 5 min.
     HANDLE targetThread=OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION,
                                   FALSE,threadId);
-    for(int count=0;count<600;count++) {
+    for(int count=0;count<1500;count++) {
         if(targetThread && WaitForSingleObject(targetThread,0)==WAIT_OBJECT_0) {
-            report("helper-v5: installer GUI thread exited");
+            report("helper-v6: installer GUI thread exited");
             break;
         }
         if(!PostThreadMessageW(threadId,WM_NULL,0,0)) {
-            report("helper-v5: installer thread no longer accepts messages");
+            report("helper-v6: installer thread no longer accepts messages");
             break;
         }
-        Sleep(500);
+        Sleep(200);
     }
     if(targetThread) CloseHandle(targetThread);
     if(drawHook) UnhookWindowsHookEx(drawHook);
     UnhookWindowsHookEx(hook);
-    report("helper-v5: scoped hooks uninstalled after installer session");
+    report("helper-v6: scoped hooks uninstalled after installer session");
     FreeLibrary(module);
     if(desktop) CloseDesktop(desktop);
     return 0;

@@ -486,7 +486,7 @@ guest_code = guest_code.replace(return_end, return_end + """
                 try {
                     // Start near Wine launch; monitor waits for the original
                     // Japanese destination control to be created.
-                    Thread.sleep(750);
+                    Thread.sleep(100);
                     if (pid != mainPid) return;
                     String commandProbe = rootDir + "/usr/local/bin/box64 wine C:\\\\touhou_probe.exe";
                     probePid = ProcessHelper.exec(commandProbe, probeEnv, rootDir,

@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v5', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v5\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v6', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v6\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 
@@ -80,6 +80,24 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
         self.assertIn('const char *drawExport="TouhouDrawHook"', HELPER)
         self.assertIn("WH_CALLWNDPROCRET", HELPER)
         self.assertIn("post-draw hook attach failed win32_error=", HELPER)
+
+    def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):
+        # Phone screenshot shows erroneous '|A|C|' before the correct
+        # Unicode section heading. It is not part of LB_GETTEXT.
+        self.assertIn('BOOL section_header=(item->itemID==0', HOOK)
+        self.assertIn("!(item->itemState & ODS_SELECTED)", HOOK)
+        self.assertIn("label[label_len-1]==L':'", HOOK)
+        self.assertIn("region.left+=section_header ? 2 : GetSystemMetrics(SM_CXMENUCHECK)+14;", HOOK)
+        self.assertIn("complete unselected section heading repainted", HOOK)
+        self.assertNotIn("SendMessageW(hwnd,LB_SETITEMDATA", HOOK)
+
+    def test_faster_scoped_repair_setup(self):
+        probe = (ROOT / "charoite-core/japanese/touhou_probe.c").read_text(encoding="utf-8")
+        overlay = (ROOT / "overlay.py").read_text(encoding="utf-8")
+        self.assertIn("Thread.sleep(100)", overlay)
+        self.assertIn("Sleep(pass < 120 ? 150 : 500);", probe)
+        self.assertIn("interval=(diagnosed_count[0]>0 ? 300 : 100)", HOOK)
+        self.assertIn("Sleep(200);", HELPER)
 
 
 if __name__ == "__main__":

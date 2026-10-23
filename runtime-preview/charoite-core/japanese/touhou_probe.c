@@ -297,9 +297,9 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
             line(header);
         }
         if (snapshots > 0) break;
-        // 300 ms for the first minute, then 850 ms until the control
-        // is available. This avoids a visible multi-second font swap.
-        Sleep(pass < 200 ? 300 : 850);
+        // Scan more rapidly while the installer initially appears. The
+        // probe only reads control metadata; it never changes installer text.
+        Sleep(pass < 120 ? 150 : 500);
     }
     if (snapshots == 0) line(
         "No destination control readable; desktop/window counts above distinguish virtual-desktop isolation from custom installer controls.");

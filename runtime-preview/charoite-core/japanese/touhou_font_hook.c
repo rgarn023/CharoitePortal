@@ -1,5 +1,5 @@
 /*
- * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v5.
+ * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v6.
  *
  * The original v1 hook only updated the installation-path TEdit. Screens
  * farther into the Inno wizard (notably Select Additional Tasks) use owner-
@@ -32,6 +32,7 @@ static HWND diagnosed_lists[12] = {0};
 static int diagnosed_count[12] = {0};
 static BOOL draw_seen = FALSE;
 static BOOL undrawable_reported = FALSE;
+static BOOL group_header_logged = FALSE;
 
 static void report(const char *message) {
     HANDLE f = CreateFileW(L"C:\\touhou_font_hook.log", FILE_APPEND_DATA,
@@ -108,7 +109,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     LONG_PTR style=GetWindowLongPtrW(hwnd,GWL_STYLE);
     char info[512];
     snprintf(info,sizeof(info),
-        "hook-v5 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
+        "hook-v6 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
         slot,count,(unsigned long long)style,
         !!(style & LBS_HASSTRINGS),
         !!(style & (LBS_OWNERDRAWFIXED|LBS_OWNERDRAWVARIABLE)));
@@ -116,7 +117,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     for(int item=0;item<count && item<8;item++) {
         wchar_t value[512]={0};
         if(!read_task_caption(hwnd,(UINT)item,value,512)) {
-            report("hook-v5 list label unavailable through LB_GETTEXT; no unsafe item-data access");
+            report("hook-v6 list label unavailable through LB_GETTEXT; no unsafe item-data access");
             continue;
         }
         size_t at=(size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
@@ -129,7 +130,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
             for(unsigned i=0;recovered[i] && i<52 && pos+7<sizeof(info);i++)
                 pos+=(size_t)snprintf(info+pos,sizeof(info)-pos,"%04X ",(unsigned)recovered[i]);
             report(info);
-        } else report("hook-v5 task not losslessly recoverable as CP1252-to-CP932");
+        } else report("hook-v6 task not losslessly recoverable as CP1252-to-CP932");
     }
 }
 
@@ -235,10 +236,10 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
                     wcscmp(repaired,after)==0) {
                 lstrcpynW(before,repaired,1024);
                 text_japanese=TRUE;
-                report("hook-v5 repaired reversible mojibake on static caption");
+                report("hook-v6 repaired reversible mojibake on static caption");
             } else {
                 SetWindowTextW(hwnd,before);
-                report("hook-v5 static caption repair verification failed; restored");
+                report("hook-v6 static caption repair verification failed; restored");
             }
         }
     }
@@ -270,7 +271,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
             (HFONT)SendMessageW(hwnd,WM_GETFONT,0,0)!=japanese) {
         SendMessageW(hwnd,WM_SETFONT,(WPARAM)original,TRUE);
         DeleteObject(japanese);
-        report("hook-v5 control verification failed; original font restored");
+        report("hook-v6 control verification failed; original font restored");
         return TRUE;
     }
     patched_windows[patched_count]=hwnd;
@@ -279,7 +280,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
     if (patched_count < 25 || patched_count % 25 == 0) {
         char info[200];
         snprintf(info,sizeof(info),
-            "hook-v5 installed Japanese font on control=%u task_list=%d",
+            "hook-v6 installed Japanese font on control=%u task_list=%d",
             patched_count,(int)task);
         report(info);
     }
@@ -296,7 +297,7 @@ static BOOL CALLBACK wizard_callback(HWND hwnd, LPARAM data) {
     // This can never affect an unrelated Wine application's UI.
     if (!installer_verified) {
         installer_verified=TRUE;
-        report("hook-v5 Japanese installer TWizardForm found; scanning ALL text controls");
+        report("hook-v6 Japanese installer TWizardForm found; scanning ALL text controls");
     }
     EnumChildWindows(hwnd,control_callback,0);
     return TRUE;
@@ -306,7 +307,10 @@ __declspec(dllexport) LRESULT CALLBACK TouhouFontHook(int nCode, WPARAM wParam, 
     (void)wParam; (void)lParam;
     if (nCode>=0) {
         DWORD now=GetTickCount();
-        if (!scan_started || now-last_scan_tick >= 500) {
+        // Quickly attach a Japanese-capable font while the Inno wizard is
+        // still constructing the page; throttle scans once tasks are present.
+        DWORD interval=(diagnosed_count[0]>0 ? 300 : 100);
+        if (!scan_started || now-last_scan_tick >= interval) {
             scan_started=TRUE;
             last_scan_tick=now;
             EnumThreadWindows(GetCurrentThreadId(),wizard_callback,0);
@@ -346,8 +350,21 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
         label=repaired;
     }
 
+    /*
+     * Inno task-list row zero is a plain section header ("Add icons:"),
+     * not a selectable checkbox. The previous overlay erased only text to
+     * the RIGHT of the checkbox gutter, leaving the Wine-rendered "|A|C|"
+     * debris in the header's left edge. Repaint the entire header text area
+     * only for an unselected, colon-terminated first row. All checkbox
+     * rows retain their original checkbox gutter and clickable state.
+     */
+    size_t label_len=wcslen(label);
+    BOOL section_header=(item->itemID==0 &&
+            !(item->itemState & ODS_SELECTED) &&
+            label_len>0 &&
+            (label[label_len-1]==L':' || label[label_len-1]==0xff1a));
     RECT region=item->rcItem;
-    region.left+=GetSystemMetrics(SM_CXMENUCHECK)+14;
+    region.left+=section_header ? 2 : GetSystemMetrics(SM_CXMENUCHECK)+14;
     region.top+=2;
     region.bottom-=2;
     region.right-=2;
@@ -385,6 +402,10 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
     int drawn=DrawTextW(dc,label,-1,&region,
             DT_SINGLELINE|DT_VCENTER|DT_LEFT|DT_NOPREFIX|DT_END_ELLIPSIS);
     RestoreDC(dc,saved);
+    if(section_header && drawn>0 && !group_header_logged) {
+        group_header_logged=TRUE;
+        report("hook-v6: complete unselected section heading repainted; no checkbox area modified");
+    }
     return drawn>0;
 }
 
@@ -398,19 +419,19 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) && !draw_seen) {
                 draw_seen=TRUE;
-                report("hook-v5 owner-draw checklist paint event detected");
+                report("hook-v6 owner-draw checklist paint event detected");
             }
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) &&
                     !(GetWindowLongPtrW(item->hwndItem,GWL_STYLE)&LBS_HASSTRINGS) &&
                     !undrawable_reported) {
                 undrawable_reported=TRUE;
-                report("hook-v5 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
+                report("hook-v6 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
             }
             static BOOL logged=FALSE;
             if(draw_recovered_task((const DRAWITEMSTRUCT *)event->lParam) && !logged) {
                 logged=TRUE;
-                report("hook-v5: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
+                report("hook-v6: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
             }
         }
     }

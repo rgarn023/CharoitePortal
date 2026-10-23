@@ -76,7 +76,7 @@ public final class CharoiteJapaneseSupport {
         // APK updates. Refresh them once per helper release, not only when
         // missing, so the multi-page Japanese font repair actually upgrades.
         // Do not touch the user's games, installers, directories or saves.
-        File helperVersion = new File(prefix, ".touhou-japanese-helpers-v5");
+        File helperVersion = new File(prefix, ".touhou-japanese-helpers-v6");
         if (!helperVersion.isFile()) {
             for (String helper : new String[]{
                     "touhou_font_helper32.exe", "touhou_font_helper64.exe",
@@ -87,9 +87,9 @@ public final class CharoiteJapaneseSupport {
                         !target.isFile() || target.length() < 5000)
                     throw new IOException("Unable to refresh Japanese compatibility helper: " + helper);
             }
-            if (!FileUtils.writeString(helperVersion, "v5\n"))
+            if (!FileUtils.writeString(helperVersion, "v6\n"))
                 throw new IOException("Cannot mark Japanese helper upgrade complete");
-            CharoiteDiagnostics.recordLine("Japanese installer text helpers upgraded to v5.");
+            CharoiteDiagnostics.recordLine("Japanese installer text helpers upgraded to v6.");
         }
         for (String logName : new String[]{
                 "touhou_probe.log", "touhou_font_hook.log", "touhou_font_helper.log"}) {

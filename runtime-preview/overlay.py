@@ -283,6 +283,9 @@ assert guest_code.count(return_end) == 1, "Box64 Windows callback ending changed
 guest_code = guest_code.replace(return_end, return_end + """
         if (guestExecutable != null &&
                 guestExecutable.toLowerCase(java.util.Locale.ROOT).contains("setup.exe") &&
+                "touhou-realm".equals(environment.getContext()
+                        .getSharedPreferences("TouhouEntryActivity", android.content.Context.MODE_PRIVATE)
+                        .getString("charoite_active_environment_v1", "touhou-realm")) &&
                 mainPid > 0) {
             final EnvVars probeEnv = new EnvVars();
             probeEnv.putAll(envVars);

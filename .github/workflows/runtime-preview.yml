@@ -88,24 +88,24 @@ jobs:
         if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
         timeout-minutes: 12
         run: |
-          # Install only the Win32 variants rather than the large GCC meta-
-          # packages that pull in both threading toolchains. Cache binaries
-          # keyed by source so normal Android-only updates skip apt entirely.
-          if ! command -v x86_64-w64-mingw32-gcc >/dev/null ||
-             ! command -v i686-w64-mingw32-gcc >/dev/null; then
-            timeout 180s sudo DEBIAN_FRONTEND=noninteractive apt-get update \
-              -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -qq
-            timeout 420s sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              -o Acquire::Retries=2 -o DPkg::Lock::Timeout=90 \
-              gcc-mingw-w64-x86-64-win32 gcc-mingw-w64-i686-win32
-          fi
-          command -v x86_64-w64-mingw32-gcc
-          command -v i686-w64-mingw32-gcc
-          x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+          # Ubuntu's Azure apt mirror stalled on 120 MB of MinGW packages
+          # (exit code 124). Download a pinned, verified LLVM-MinGW toolchain.
+          TOOLCHAIN=/tmp/charoite-llvm-mingw
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-msvcrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --connect-timeout 25 --max-time 240 \
+            "$URL" -o /tmp/charoite-llvm-mingw.tar.xz
+          echo "ceb8c5acc6f76e143f9c714772d2fa677027802561ce68c396e8dc990a80f0b6  /tmp/charoite-llvm-mingw.tar.xz" | sha256sum --check
+          mkdir -p "$TOOLCHAIN"
+          tar -xJf /tmp/charoite-llvm-mingw.tar.xz -C "$TOOLCHAIN" --strip-components=1
+          CC32="$TOOLCHAIN/bin/i686-w64-mingw32-clang"
+          CC64="$TOOLCHAIN/bin/x86_64-w64-mingw32-clang"
+          test -x "$CC32" && test -x "$CC64"
+          "$CC64" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
             runtime-preview/charoite-core/japanese/touhou_probe.c -o runtime-preview/charoite-core/japanese/touhou_probe.exe \
             -luser32 -lgdi32
           for arch in 32 64; do
-            if [ "$arch" = 32 ]; then cc=i686-w64-mingw32-gcc; else cc=x86_64-w64-mingw32-gcc; fi
+            if [ "$arch" = 32 ]; then cc="$CC32"; else cc="$CC64"; fi
             "$cc" -std=c11 -O2 -Wall -Wextra -shared \
               runtime-preview/charoite-core/japanese/touhou_font_hook.c \
               -o "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" \

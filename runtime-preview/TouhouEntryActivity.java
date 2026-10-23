@@ -40,6 +40,7 @@ import com.charoitegames.core.CharoiteCore;
 import com.charoitegames.core.CharoiteEnvironments;
 import com.charoitegames.core.CharoiteThemes;
 import com.charoitegames.core.CharoitePageTabs;
+import com.charoitegames.core.CharoiteSwipePager;
 import com.charoitegames.core.CharoiteWallpaper;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
@@ -120,7 +121,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private LinearLayout libraryScreen;
     private LinearLayout importScreen;
     private LinearLayout systemScreen;
-    private ScrollView mainScroll;
+    private CharoiteSwipePager mainScroll;
     private TextView runtimeLabel;
     private TextView environmentStatus;
     private Button environmentSwitchButton;
@@ -203,7 +204,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setBackgroundColor(Color.TRANSPARENT);
 
-        mainScroll = new ScrollView(this);
+        // Core handles horizontal page swipes without stealing vertical scroll,
+        // long-press game tile moves, buttons, or DeX mouse drags.
+        mainScroll = new CharoiteSwipePager(this, direction -> {
+            int next = selectedSection + direction;
+            if (next >= 0 && next <= 2) showSection(next);
+        });
         mainScroll.setFillViewport(true);
         mainScroll.setClipToPadding(false);
         mainScroll.setBackgroundColor(Color.TRANSPARENT);
@@ -220,7 +226,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         mainScroll.addView(contentHost);
         rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        // Touhou owns the pages; reusable Charoite Core owns tab appearance,
+        // Portal owns page content; reusable Charoite Core owns tab appearance,
         // selection, input, and Samsung navigation-bar clearance.
         pageTabs = new CharoitePageTabs(this,
                 new String[]{"Library", "Setup", "System"}, this::showSection);
@@ -241,40 +247,39 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setContentView(wallpaperHost);
         refreshWallpaperViews();
 
-        // Portal identifies the whole app only once, quietly at the top.
-        // Realm identity belongs in its own large themed banner below.
+        // Keep the Portal header compact and the active realm clearly named.
         main.addView(label("Charoite Portal", 17, FOREGROUND, true));
         TextView coreIdentity = label("Charoite Core", 12, SECONDARY, false);
         main.addView(coreIdentity);
-        spacer(18);
+        spacer(10);
 
         FrameLayout realmBanner = new FrameLayout(this);
         realmBanner.setBackground(CharoiteThemes.realmBanner(
                 CharoiteEnvironments.activeTheme(this)));
         realmBanner.setContentDescription("Active environment: "
                 + CharoiteEnvironments.activeName(this));
-        realmBanner.setPadding(dp(22), dp(18), dp(18), dp(18));
+        realmBanner.setPadding(dp(18), dp(12), dp(15), dp(12));
 
         LinearLayout realmHeadings = new LinearLayout(this);
         realmHeadings.setOrientation(LinearLayout.VERTICAL);
         realmHeadings.setGravity(Gravity.CENTER_VERTICAL);
-        TextView realmCaption = label("CURRENT REALM", 11, 0xffF7DEFA, true);
+        TextView realmCaption = label("CURRENT REALM", 10, 0xffF7DEFA, true);
         realmHeadings.addView(realmCaption);
         TextView realmTitle = label(CharoiteEnvironments.activeName(this),
-                34, Color.WHITE, true);
+                30, Color.WHITE, true);
         realmTitle.setMaxLines(2);
         realmTitle.setEllipsize(TextUtils.TruncateAt.END);
         realmTitle.setShadowLayer(dp(3), 0, dp(1), 0x66000000);
         LinearLayout.LayoutParams realmTitleParams = new LinearLayout.LayoutParams(-1, -2);
-        realmTitleParams.topMargin = dp(7);
+        realmTitleParams.topMargin = dp(3);
         realmHeadings.addView(realmTitle, realmTitleParams);
 
         // The large artwork is the background of the *text*, not an icon beside it.
         FrameLayout.LayoutParams headingParams = new FrameLayout.LayoutParams(
                 -1, -2, Gravity.CENTER_VERTICAL | Gravity.START);
         realmBanner.addView(realmHeadings, headingParams);
-        main.addView(realmBanner, new LinearLayout.LayoutParams(-1, dp(164)));
-        spacer(19);
+        main.addView(realmBanner, new LinearLayout.LayoutParams(-1, dp(120)));
+        spacer(12);
 
         libraryScreen = new LinearLayout(this);
         libraryScreen.setOrientation(LinearLayout.VERTICAL);
@@ -326,7 +331,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         scanCard.addView(scanButton);
         importScreen.addView(scanCard);
         spacerIn(importScreen, 15);
-        importScreen.addView(label("Each environment has its own private Windows container. Existing Touhou games remain in their original C:\\TouhouPocket\\ location. Installer-selected destinations are preserved; games are not bundled.", 12, SECONDARY, false));
+        importScreen.addView(label(CharoiteEnvironments.isTouhou(this)
+                ? "Touhou Realm uses its original Windows storage. Existing installed games and saves remain in place, and installer-selected destinations are preserved."
+                : "This environment has a separate Windows C: drive and game library. Installer-selected destinations are preserved; no games are bundled.", 12, SECONDARY, false));
 
         systemScreen = new LinearLayout(this);
         systemScreen.setOrientation(LinearLayout.VERTICAL);
@@ -343,7 +350,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         environmentCard.addView(environmentInstallButton);
         environmentCreateButton = outlinedButton("CREATE ENVIRONMENT", this::showEnvironmentCreator);
         environmentCard.addView(environmentCreateButton);
-        environmentCard.addView(label("Touhou Realm preserves your existing games. New environments get separate Windows containers, game libraries and wallpapers. Install uses built-in offline templates.", 12, SECONDARY, false));
+        environmentCard.addView(label("Each environment has its own Windows container, game library, theme and wallpaper. Switching environments never moves game files. Install currently offers offline built-in templates.", 12, SECONDARY, false));
         systemScreen.addView(environmentCard);
         spacerIn(systemScreen, 12);
 
@@ -444,7 +451,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             if (env != null && CharoiteEnvironments.GENERAL.equals(env.optString("id"))) {
                 new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle("Environment templates")
-                        .setMessage("Touhou Realm and General Gaming are installed. Use Create Environment for additional isolated Windows gaming profiles.")
+                        .setMessage("General Gaming is already installed. Switch environments to use it, or create another isolated Windows gaming profile.")
                         .setPositiveButton("OK", null).show();
                 return;
             }
@@ -803,7 +810,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             .setMessage(report)
             .setPositiveButton("Copy report", (dialog, which) -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                clipboard.setPrimaryClip(ClipData.newPlainText("Touhou startup report", report));
+                clipboard.setPrimaryClip(ClipData.newPlainText("Charoite Portal startup report", report));
                 setStatus("Startup report copied. Share the error text for troubleshooting.");
             })
             .setNegativeButton("Close", null)
@@ -1196,7 +1203,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             LinearLayout empty = card();
             empty.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(label("✦", 35, SAKURA, true));
-            TextView title = label("Your Gensokyo library awaits", 17, FOREGROUND, true);
+            TextView title = label(CharoiteEnvironments.isTouhou(this)
+                    ? "Your Gensokyo library awaits"
+                    : "Your " + CharoiteEnvironments.activeName(this) + " library awaits",
+                    17, FOREGROUND, true);
+            title.setMaxLines(2);
+            title.setEllipsize(TextUtils.TruncateAt.END);
             title.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(title);
             TextView hint = label("Use Setup to install a Windows game in this environment.", 13, SECONDARY, false);

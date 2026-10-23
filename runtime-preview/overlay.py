@@ -300,7 +300,7 @@ assert code.count(old_guest_screen) == 1, "Upstream container screenInfo marker 
 code = code.replace(old_guest_screen, old_guest_screen + """
             if (getIntent().hasExtra("touhou_display_size")) {
                 String requested = getIntent().getStringExtra("touhou_display_size");
-                if (requested != null && requested.matches("800x600|1280x720|1600x900|1920x1080"))
+                if (requested != null && requested.matches("800x600|1280x720|1600x900|1920x1080|600x800|720x1280|900x1600|1080x1920"))
                     screenInfo = resolveScreenInfo(requested);
             }""")
 
@@ -351,7 +351,12 @@ code = code.replace(old_exit, """        if (intent.hasExtra("exec_path")) {
             startActivity(home);
             finish();
         }
-        else AppUtils.restartApplication(this);""")
+        else {
+             Intent home = new Intent(this, TouhouEntryActivity.class);
+             home.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+             startActivity(home);
+             finish();
+         }""")
 old_callback = "        guestProgramLauncherComponent.setTerminationCallback((status) -> exit());"
 assert code.count(old_callback) == 1, "Guest-process exit callback changed"
 code = code.replace(old_callback, """        guestProgramLauncherComponent.setTerminationCallback((status) -> {

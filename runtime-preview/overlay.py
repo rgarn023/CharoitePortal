@@ -44,12 +44,13 @@ a = "{http://schemas.android.com/apk/res/android}"
 manifest = ET.parse(manifest_path)
 app = manifest.getroot().find("application")
 assert app is not None
-# Dedicated Touhou OS shrine emblem (original vector) replaces stock launcher icon.
-icon_destination = root / "app/src/main/res/drawable/touhou_pocket_icon.xml"
+# New user-selected Charoite Portal crystal gateway icon; independent of Touhou.
+# Android derives icon from the packaged original approved artwork thumbnail.
+icon_destination = root / "app/src/main/res/drawable-nodpi/charoite_portal_icon.jpg"
 icon_destination.parent.mkdir(parents=True, exist_ok=True)
-icon_destination.write_bytes((Path(__file__).resolve().parent / "touhou_pocket_icon.xml").read_bytes())
-app.set(a + "icon", "@drawable/touhou_pocket_icon")
-app.set(a + "roundIcon", "@drawable/touhou_pocket_icon")
+icon_destination.write_bytes((Path(__file__).resolve().parent / "charoite_portal_icon.jpg").read_bytes())
+app.set(a + "icon", "@drawable/charoite_portal_icon")
+app.set(a + "roundIcon", "@drawable/charoite_portal_icon")
 # Explicit freeform/multi-window support for DeX on external displays.
 app.set(a + "resizeableActivity", "true")
 original_main = next((activity for activity in app.findall("activity")

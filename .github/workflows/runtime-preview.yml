@@ -70,19 +70,19 @@ jobs:
         run: |
           command -v localedef
           command -v fc-scan
-          python3 runtime-preview/build_japanese_support.py upstream
+          python3 runtime-preview/charoite-core/japanese/build_japanese_support.py upstream
 
       - name: Restore compiled Japanese installer helpers
         id: japanese-helper-cache
         uses: actions/cache@v4
         with:
           path: |
-            runtime-preview/touhou_probe.exe
-            runtime-preview/touhou_font_hook32.dll
-            runtime-preview/touhou_font_hook64.dll
-            runtime-preview/touhou_font_helper32.exe
-            runtime-preview/touhou_font_helper64.exe
-          key: touhou-japanese-helpers-v1-${{ hashFiles('runtime-preview/touhou_probe.c', 'runtime-preview/touhou_font_hook.c', 'runtime-preview/touhou_font_helper.c') }}
+            runtime-preview/charoite-core/japanese/touhou_probe.exe
+            runtime-preview/charoite-core/japanese/touhou_font_hook32.dll
+            runtime-preview/charoite-core/japanese/touhou_font_hook64.dll
+            runtime-preview/charoite-core/japanese/touhou_font_helper32.exe
+            runtime-preview/charoite-core/japanese/touhou_font_helper64.exe
+          key: touhou-japanese-helpers-v1-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c') }}
 
       - name: Compile Japanese installer font helpers
         if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
@@ -102,24 +102,24 @@ jobs:
           command -v x86_64-w64-mingw32-gcc
           command -v i686-w64-mingw32-gcc
           x86_64-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -municode -mwindows \
-            runtime-preview/touhou_probe.c -o runtime-preview/touhou_probe.exe \
+            runtime-preview/charoite-core/japanese/touhou_probe.c -o runtime-preview/charoite-core/japanese/touhou_probe.exe \
             -luser32 -lgdi32
           for arch in 32 64; do
             if [ "$arch" = 32 ]; then cc=i686-w64-mingw32-gcc; else cc=x86_64-w64-mingw32-gcc; fi
             "$cc" -std=c11 -O2 -Wall -Wextra -shared \
-              runtime-preview/touhou_font_hook.c \
-              -o "runtime-preview/touhou_font_hook${arch}.dll" \
+              runtime-preview/charoite-core/japanese/touhou_font_hook.c \
+              -o "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" \
               -luser32 -lgdi32
             "$cc" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
-              runtime-preview/touhou_font_helper.c \
-              -o "runtime-preview/touhou_font_helper${arch}.exe" \
+              runtime-preview/charoite-core/japanese/touhou_font_helper.c \
+              -o "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe" \
               -luser32
-            file "runtime-preview/touhou_font_hook${arch}.dll" "runtime-preview/touhou_font_helper${arch}.exe"
-            test $(stat -c %s "runtime-preview/touhou_font_hook${arch}.dll") -gt 5000
-            test $(stat -c %s "runtime-preview/touhou_font_helper${arch}.exe") -gt 5000
+            file "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe"
+            test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll") -gt 5000
+            test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe") -gt 5000
           done
-          file runtime-preview/touhou_probe.exe
-          test $(stat -c %s runtime-preview/touhou_probe.exe) -gt 10000
+          file runtime-preview/charoite-core/japanese/touhou_probe.exe
+          test $(stat -c %s runtime-preview/charoite-core/japanese/touhou_probe.exe) -gt 10000
 
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
@@ -215,10 +215,10 @@ jobs:
           cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
           cp runtime-preview/overlay.py legal-bundle/overlay.py
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
-          cp runtime-preview/build_japanese_support.py legal-bundle/build_japanese_support.py
-          cp runtime-preview/touhou_probe.c legal-bundle/touhou_probe.c
-          cp runtime-preview/touhou_font_hook.c legal-bundle/touhou_font_hook.c
-          cp runtime-preview/touhou_font_helper.c legal-bundle/touhou_font_helper.c
+          cp runtime-preview/charoite-core/japanese/build_japanese_support.py legal-bundle/build_japanese_support.py
+          cp runtime-preview/charoite-core/japanese/touhou_probe.c legal-bundle/touhou_probe.c
+          cp runtime-preview/charoite-core/japanese/touhou_font_hook.c legal-bundle/touhou_font_hook.c
+          cp runtime-preview/charoite-core/japanese/touhou_font_helper.c legal-bundle/touhou_font_helper.c
           cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
           cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
 

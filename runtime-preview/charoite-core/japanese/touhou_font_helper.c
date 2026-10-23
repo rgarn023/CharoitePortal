@@ -72,7 +72,20 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         FreeLibrary(module);
         return 5;
     }
-    report("helper-v2: thread-local hook installed; keeping later wizard pages active");
+    // Post-draw hook corrects only reversible task-label mojibake in memory.
+    // The previous font hook remains active as a safe fallback.
+#ifdef _WIN64
+    const char *drawExport="TouhouDrawHook";
+#else
+    const char *drawExport="_TouhouDrawHook@12";
+#endif
+    HOOKPROC drawCallback=(HOOKPROC)GetProcAddress(module,drawExport);
+    if(!drawCallback) drawCallback=(HOOKPROC)GetProcAddress(module,"TouhouDrawHook");
+    HHOOK drawHook=drawCallback
+            ? SetWindowsHookExW(WH_CALLWNDPROCRET,drawCallback,module,threadId) : NULL;
+    if(drawHook) report("helper-v3: task-label post-draw hook installed");
+    else report("helper-v3: post-draw hook unavailable; standard Japanese font hook remains active");
+    report("helper-v3: thread-local font hook installed; keeping later wizard pages active");
     // An Inno Setup user can spend much longer than 18 seconds on the path,
     // shortcuts and optional-task pages. Continue checking the same installer
     // GUI thread without rewriting its strings or touching other processes.
@@ -91,8 +104,9 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         Sleep(500);
     }
     if(targetThread) CloseHandle(targetThread);
+    if(drawHook) UnhookWindowsHookEx(drawHook);
     UnhookWindowsHookEx(hook);
-    report("helper-v2: scoped hook uninstalled after installer session");
+    report("helper-v3: scoped hooks uninstalled after installer session");
     FreeLibrary(module);
     if(desktop) CloseDesktop(desktop);
     return 0;

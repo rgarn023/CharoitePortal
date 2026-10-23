@@ -81,7 +81,8 @@ public final class TouhouJapaneseSupport {
                     "touhou_font_helper32.exe", "touhou_font_helper64.exe",
                     "touhou_font_hook32.dll", "touhou_font_hook64.dll"}) {
                 File target = new File(prefix, "drive_c/" + helper);
-                if (!FileUtils.copy(context, "japanese/" + helper, target) ||
+                FileUtils.copy(context, "japanese/" + helper, target);
+                if (
                         !target.isFile() || target.length() < 5000)
                     throw new IOException("Unable to refresh Japanese compatibility helper: " + helper);
             }

@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.5
+# Charoite Core (Android runtime module) — v0.6
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -97,3 +97,14 @@ The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the 
 **Swipe correction:** `CharoiteSwipePager` now observes `dispatchTouchEvent` rather than relying on `onInterceptTouchEvent`, which was unreliable when child buttons/layouts handled events. It recognizes a completed horizontal finger/stylus gesture anywhere in the scrollable content, including over child controls, while preserving vertical scrolling, touches, game-tile drag/drop and DeX mouse. Edge gestures and multipointer gestures are ignored. The page index still clamps to Library / Setup / System.
 
 The built-in General Gaming preset is **no longer installed automatically by the Install button**; a sample downloadable `environment-profiles/General-Gaming.cenv` is provided in the repository. Original Charoite Portal icon, installed game paths, and package ID `com.touhoudr` remain unchanged.
+
+
+## Charoite Core v0.6 — branding isolation and device rotation
+
+**Branding:** The main Charoite Portal/Charoite Core UI is the only app-level launcher. `runtime-preview/overlay.py` removes old upstream home-screen launcher intents, makes the hidden upstream MainActivity internal, replaces user-facing Winlator notification titles and taps, translates locale overrides for app labels/notifications, and changes the optional About website reference to Charoite Portal branding. Original upstream legal notices and LGPL copyright/licensing assets remain bundled as required. The pinned Wine/Box64/Winlator-derived **implementation is still present** for compatibility; don't describe this as a native independent Wine replacement.
+
+**Rotation:** `TouhouEntryActivity` and `XServerDisplayActivity` have `fullSensor` activity orientation, with `configChanges` configured to keep the active Wine/XServer session alive on phone rotation. The old `SCREEN_ORIENTATION_SENSOR_LANDSCAPE` runtime override is gone. On configuration changes the game view/touch overlays are relaid out, while Android's `GLSurfaceView` automatically invokes the `GLRenderer.onSurfaceChanged` viewport transform to fit the existing Wine framebuffer to the rotated screen. The game process is **not** intentionally restarted when rotating.
+
+**Wine desktop orientation:** `CharoiteCore.automaticGameResolution` and `chosenGameResolution` choose portrait variants of the supported game sizes (600×800, 720×1280, 900×1600, 1080×1920) for new sessions in portrait, and the corresponding landscape sizes otherwise; this applies to both installers and gameplay. It doesn't alter the persistent container's fixed resolution. Because the upstream X11 root-screen size is fixed at launch and has no dynamic RandR implementation, **rotating an already-running Wine game scales the view to fit but does not change that game's native Windows desktop resolution until its next launch**. Fixed-resolution games may letterbox. Changing this would require a significant additional Wine/X11 resizing implementation.
+
+**Testing:** GitHub Actions compiles and integrity-checks the Android APK; physical Samsung Galaxy phone and DeX tests are still needed to confirm orientation, input-controls layout and app visibility. Keep the historical Android package ID `com.touhoudr` intact to protect user-owned Wine prefixes/games/saves. Debug signing can impede an in-place APK update.

@@ -177,6 +177,12 @@ tabs_destination = java_root / "com/charoitegames/core/CharoitePageTabs.java"
 assert not tabs_destination.exists(), "Upstream Charoite page tabs path conflict"
 tabs_destination.write_bytes(tabs_source.read_bytes())
 
+swipe_source = overlay.parent / "charoite-core/CharoiteSwipePager.java"
+assert swipe_source.is_file(), "Charoite swipe navigation module missing"
+swipe_destination = java_root / "com/charoitegames/core/CharoiteSwipePager.java"
+assert not swipe_destination.exists(), "Upstream swipe navigation path conflict"
+swipe_destination.write_bytes(swipe_source.read_bytes())
+
 environment_source = overlay.parent / "charoite-core/CharoiteEnvironments.java"
 assert environment_source.is_file(), "Charoite Environment registry missing"
 environment_destination = java_root / "com/charoitegames/core/CharoiteEnvironments.java"

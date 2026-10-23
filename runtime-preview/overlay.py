@@ -184,7 +184,10 @@ core_destination.write_bytes(core_source.read_bytes())
 
 # Shared Charoite Core owns all game import and Japanese compatibility,
 # including Japanese locale/font registration independent of Touhou UI.
-for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java"):
+for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
+               "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
+               "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
+               "CharoiteDiagnostics.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"
@@ -324,11 +327,11 @@ old_show = "        preloaderDialog.show(R.string.starting_up);"
 assert code.count(old_show) == 1, "Startup dialog marker changed"
 code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {false};
         if (getIntent().hasExtra("exec_path")) {
-            TouhouDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
-            ProcessHelper.addDebugCallback(TouhouDiagnostics.CALLBACK);
+            com.charoitegames.core.CharoiteDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
+            ProcessHelper.addDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                 if (!isFinishing() && !touhouWindowOpened[0]) {
-                    TouhouDiagnostics.fail(this, "No Windows game window appeared after 45 seconds. Check Wine/Box64 and graphics compatibility.");
+                    com.charoitegames.core.CharoiteDiagnostics.fail(this, "No Windows game window appeared after 45 seconds. Check Wine/Box64 and graphics compatibility.");
                     preloaderDialog.closeOnUiThread();
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle("Windows game did not start")
@@ -343,7 +346,7 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
 old_cursor = "                    xServerView.getRenderer().setCursorVisible(true);"
 assert code.count(old_cursor) == 1, "Window-open marker changed"
 code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;
-                    if (getIntent().hasExtra("exec_path")) TouhouDiagnostics.windowOpened(XServerDisplayActivity.this);
+                    if (getIntent().hasExtra("exec_path")) com.charoitegames.core.CharoiteDiagnostics.windowOpened(XServerDisplayActivity.this);
 """ + old_cursor)
 old_exit = """        if (intent.hasExtra("exec_path")) {
             AppUtils.RestartApplicationOptions options = new AppUtils.RestartApplicationOptions();
@@ -354,7 +357,7 @@ old_exit = """        if (intent.hasExtra("exec_path")) {
         else AppUtils.restartApplication(this);"""
 assert code.count(old_exit) == 1, "Upstream exit routing marker changed"
 code = code.replace(old_exit, """        if (intent.hasExtra("exec_path")) {
-            ProcessHelper.removeDebugCallback(TouhouDiagnostics.CALLBACK);
+            ProcessHelper.removeDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
             Intent home = new Intent(this, TouhouEntryActivity.class);
             home.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(home);
@@ -370,7 +373,7 @@ old_callback = "        guestProgramLauncherComponent.setTerminationCallback((st
 assert code.count(old_callback) == 1, "Guest-process exit callback changed"
 code = code.replace(old_callback, """        guestProgramLauncherComponent.setTerminationCallback((status) -> {
             if (getIntent().hasExtra("exec_path") && status != 0)
-                TouhouDiagnostics.fail(this, "Wine/Box64 process exited with status " + status + ". See logs below.");
+                com.charoitegames.core.CharoiteDiagnostics.fail(this, "Wine/Box64 process exited with status " + status + ". See logs below.");
             runOnUiThread(this::exit);
         });""")
 display.write_text(code, encoding="utf-8")
@@ -450,12 +453,12 @@ guest_code = guest_code.replace(return_end, return_end + """
                     String commandProbe = rootDir + "/usr/local/bin/box64 wine C:\\\\touhou_probe.exe";
                     probePid = ProcessHelper.exec(commandProbe, probeEnv, rootDir,
                             (status) -> probePid = -1);
-                    com.winlator.TouhouDiagnostics.recordLine(
+                    com.charoitegames.core.CharoiteDiagnostics.recordLine(
                             "Japanese installer font monitor started (pid=" + probePid + ").");
                 } catch (InterruptedException ignored) {
                     Thread.currentThread().interrupt();
                 } catch (Exception error) {
-                    com.winlator.TouhouDiagnostics.recordLine(
+                    com.charoitegames.core.CharoiteDiagnostics.recordLine(
                             "Japanese installer probe could not start: " + error);
                 }
             }, "touhou-wine-japanese-probe").start();
@@ -469,13 +472,13 @@ guest_code = guest_code.replace(exec_marker, """        File box64File = new Fil
         if (box64File.isFile() && !box64File.canExecute()) {
             FileUtils.chmod(box64File, 0755);
         }
-        com.winlator.TouhouDiagnostics.recordLine("Box64 native path: exists=" +
+        com.charoitegames.core.CharoiteDiagnostics.recordLine("Box64 native path: exists=" +
             box64File.isFile() + ", execute=" + box64File.canExecute() +
             "; glibc loader exists=" + glibcLoader.isFile() +
             ", execute=" + glibcLoader.canExecute() +
             "; Android appId=" + environment.getContext().getPackageName());
         if (!box64File.isFile() || !box64File.canExecute() || !glibcLoader.isFile()) {
-            com.winlator.TouhouDiagnostics.recordLine("Wine launch blocked before exec: missing or non-executable Box64/loader");
+            com.charoitegames.core.CharoiteDiagnostics.recordLine("Wine launch blocked before exec: missing or non-executable Box64/loader");
             return -1;
         }
 
@@ -488,12 +491,9 @@ process_code = log_file.read_text(encoding="utf-8")
 old_catch = "        catch (Exception e) {}\n        return pid;"
 assert process_code.count(old_catch) == 1, "Process failure marker changed"
 process_code = process_code.replace(old_catch,
-    "        catch (Exception e) { com.winlator.TouhouDiagnostics.recordLine(\"Native Windows process start failed: \" + e); }\n        return pid;")
+    "        catch (Exception e) { com.charoitegames.core.CharoiteDiagnostics.recordLine(\"Native Windows process start failed: \" + e); }\n        return pid;")
 log_file.write_text(process_code, encoding="utf-8")
 
-diagnostics = java_root / "com/winlator/TouhouDiagnostics.java"
-assert not diagnostics.exists(), "Conflicting upstream diagnostics class"
-diagnostics.write_bytes((overlay.parent / "TouhouDiagnostics.java").read_bytes())
 
 
 # Japanese Shift-JIS locale is set for the guest process, not Android itself.
@@ -532,7 +532,7 @@ display_code = display_code.replace(fonts_marker, fonts_marker + """
             if (com.charoitegames.core.CharoiteCore.japaneseCompatibilityEnabled(this))
                 com.charoitegames.core.CharoiteJapaneseSupport.ensure(this, rootFS, container);
         } catch (Exception error) {
-            TouhouDiagnostics.recordLine("Japanese locale/font initialization failed: " + error);
+            com.charoitegames.core.CharoiteDiagnostics.recordLine("Japanese locale/font initialization failed: " + error);
         }
 """)
 display.write_text(display_code, encoding="utf-8")

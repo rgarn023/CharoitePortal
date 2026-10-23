@@ -72,6 +72,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private TextView statusText;
     private LinearLayout libraryArea;
+    private LinearLayout setupArea;
+    private boolean pendingInstallerScan = false;
     private LinearLayout main;
     private Button initButton;
     private Button folderButton;
@@ -94,9 +96,21 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
+        pendingInstallerScan = getPreferences(MODE_PRIVATE).getBoolean("pending_installer_scan", false);
         render();
         refreshReadyState();
         initializeEngineOnFirstLaunch();
+    }
+
+    /** Scan the Windows C: drive after returning from a game installer. */
+    @Override protected void onResume() {
+        super.onResume();
+        if (pendingInstallerScan && !busy && containerId > 0) {
+            pendingInstallerScan = false;
+            getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", false).apply();
+            showSection(1);
+            findInstalledGames(true);
+        }
     }
 
     @Override public void onDestroy() {
@@ -157,7 +171,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         tabs.setPadding(dp(3), dp(3), dp(3), dp(3));
         tabs.setBackground(rounded(0xff2B2030, 18, 0xff523548));
         libraryTab = tabButton("Library", () -> showSection(0));
-        importTab = tabButton("Import", () -> showSection(1));
+        importTab = tabButton("Setup", () -> showSection(1));
         systemTab = tabButton("System", () -> showSection(2));
         tabs.addView(libraryTab, tabParams());
         tabs.addView(importTab, tabParams());
@@ -168,24 +182,27 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryScreen = new LinearLayout(this);
         libraryScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(libraryScreen);
-        sectionTitle(libraryScreen, "YOUR LIBRARY", "Choose a game to play or install.");
+        sectionTitle(libraryScreen, "YOUR LIBRARY", "Only playable Touhou games appear here.");
         libraryArea = new LinearLayout(this);
         libraryArea.setOrientation(LinearLayout.VERTICAL);
         libraryScreen.addView(libraryArea);
-        Button add = outlinedButton("＋  ADD TOUHOU GAME", () -> showSection(1));
+        Button add = outlinedButton("＋  SET UP A GAME", () -> showSection(1));
         libraryScreen.addView(add);
         spacerIn(libraryScreen, 12);
-        libraryScreen.addView(label("Games and installers are stored locally on your device.", 12, SECONDARY, false));
+        libraryScreen.addView(label("Select Setup to install another game.", 12, SECONDARY, false));
 
         importScreen = new LinearLayout(this);
         importScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(importScreen);
-        sectionTitle(importScreen, "ADD A GAME", "Bring your existing Touhou games into your library.");
+        sectionTitle(importScreen, "GAME SETUP", "Import files, start installation, and discover playable games.");
+        setupArea = new LinearLayout(this);
+        setupArea.setOrientation(LinearLayout.VERTICAL);
+        importScreen.addView(setupArea);
 
         LinearLayout folderCard = card();
-        folderCard.addView(label("01   COMPLETE GAME FOLDER", 12, GOLD, true));
-        folderCard.addView(label("Recommended for setups containing an EXE plus data files.", 13, SECONDARY, false));
-        folderButton = button("IMPORT GAME FOLDER", () -> {
+        folderCard.addView(label("01   GAME OR INSTALLER FOLDER", 12, GOLD, true));
+        folderCard.addView(label("Choose an entire game or installer folder, including its data files. Touhou OS opens an installer automatically, or adds an already playable game to Library.", 13, SECONDARY, false));
+        folderButton = button("SELECT GAME FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             startActivityForResult(picker, FOLDER_REQUEST);
@@ -195,9 +212,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         spacerIn(importScreen, 12);
 
         LinearLayout exeCard = card();
-        exeCard.addView(label("02   SINGLE-FILE SETUP", 12, GOLD, true));
-        exeCard.addView(label("For standalone Windows installers. The installer keeps its original destination.", 13, SECONDARY, false));
-        installerButton = button("IMPORT SETUP.EXE", () -> {
+        exeCard.addView(label("02   STANDALONE WINDOWS INSTALLER", 12, GOLD, true));
+        exeCard.addView(label("For a self-contained .exe installer. The original Windows wizard opens without changing the installation directory.", 13, SECONDARY, false));
+        installerButton = button("SELECT INSTALLER .EXE", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             picker.addCategory(Intent.CATEGORY_OPENABLE);
             picker.setType("*/*");
@@ -208,13 +225,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         spacerIn(importScreen, 12);
 
         LinearLayout scanCard = card();
-        scanCard.addView(label("ALREADY INSTALLED?", 12, GOLD, true));
-        scanCard.addView(label("Search the private Windows drive for supported Touhou games.", 13, SECONDARY, false));
-        scanButton = outlinedButton("FIND INSTALLED GAMES", this::findInstalledGames);
+        scanCard.addView(label("03   FIND INSTALLED GAMES", 12, GOLD, true));
+        scanCard.addView(label("Touhou OS checks C: after an installer closes. You can also scan manually for games installed earlier.", 13, SECONDARY, false));
+        scanButton = outlinedButton("FIND INSTALLED GAMES", () -> findInstalledGames(false));
         scanCard.addView(scanButton);
         importScreen.addView(scanCard);
         spacerIn(importScreen, 15);
-        importScreen.addView(label("Games and translations are not included. Import copies you own.", 12, SECONDARY, false));
+        importScreen.addView(label("C: is stored privately by Touhou OS. Setup files are copied under C:\\TouhouPocket\\; original Windows installation destinations are preserved. No games or translations are bundled.", 12, SECONDARY, false));
 
         systemScreen = new LinearLayout(this);
         systemScreen.setOrientation(LinearLayout.VERTICAL);
@@ -524,7 +541,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
      * import folder. Recognize installed game executables inside C: without
      * making users browse the Windows desktop or container manager.
      */
-    private void findInstalledGames() {
+    private void findInstalledGames(boolean afterInstaller) {
         if (busy || containerId <= 0) return;
         busy = true;
         setStatus("Searching for installed Touhou games…");
@@ -558,9 +575,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 }
                 getPreferences(MODE_PRIVATE).edit().putString("game_library", library.toString()).commit();
                 final int newGames = added;
-                runOnUiThread(() -> finishOperation(
-                    newGames == 0 ? "No new supported games found. Import a complete game folder or run an installer." :
-                    "Found " + newGames + " new game(s). Tap Play in your library."));
+                runOnUiThread(() -> {
+                    finishOperation(newGames == 0
+                        ? (afterInstaller ? "Installer closed. No supported new game found yet; confirm installation completed and try scanning again." : "No new supported games found on C:.")
+                        : "Found " + newGames + " game(s) on C:. Ready to play.");
+                    if (newGames > 0) showSection(0);
+                    else if (afterInstaller) showSection(1);
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> finishOperation("Game search failed: " + e.getMessage()));
             }
@@ -590,7 +611,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void importGame(Uri uri, boolean folder) {
         if (busy || containerId <= 0) return;
         busy = true;
-        setStatus(folder ? "Copying game folder into Touhou library…" : "Importing EXE installer…");
+        setStatus(folder ? "Preparing game or installer folder…" : "Preparing standalone Windows installer…");
         updateButtons();
         worker.execute(() -> {
             File destination = null;
@@ -629,7 +650,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 entry.put("installer", installer);
                 entry.put("files", count);
                 saveEntry(entry);
-                runOnUiThread(() -> finishOperation("Imported successfully. Select Play from your library."));
+                final String selectedPath = exe.getAbsolutePath();
+                final boolean launchInstaller = installer;
+                runOnUiThread(() -> {
+                    finishOperation(launchInstaller
+                        ? "Setup files are ready. Opening the original Windows installer…"
+                        : "Game imported successfully and added to Library.");
+                    showSection(launchInstaller ? 1 : 0);
+                    if (launchInstaller) launchGame(selectedPath, true);
+                });
             } catch (Exception ex) {
                 if (destination != null) deleteTree(destination);
                 runOnUiThread(() -> finishOperation("Import failed: " + ex.getMessage()));
@@ -782,42 +811,68 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return canonical;
     }
 
+    /** Only playable game entries belong in Library; installers live in Setup. */
     private void refreshLibrary() {
         if (libraryArea == null) return;
         libraryArea.removeAllViews();
         JSONArray library = loadLibrary();
-        if (library.length() == 0) {
+        int playable = 0;
+        for (int i = 0; i < library.length(); i++) {
+            JSONObject game = library.optJSONObject(i);
+            if (game == null || game.optBoolean("installer")) continue;
+            playable++;
+            String path = game.optString("path", "");
+            LinearLayout item = card();
+            item.addView(label("TOUHOU GAME", 11, GOLD, true));
+            item.addView(label(game.optString("name", "Imported game"), 17, Color.WHITE, true));
+            item.addView(label(new File(path).isFile()
+                    ? "Ready to launch from your library"
+                    : "Game executable missing; find or re-import game files", 12, SECONDARY, false));
+            Button play = button("▶  PLAY GAME", () -> launchGame(path, false));
+            play.setEnabled(!busy && containerId > 0 && new File(path).isFile());
+            item.addView(play);
+            libraryArea.addView(item);
+            spacerIn(libraryArea, 12);
+        }
+        if (playable == 0) {
             LinearLayout empty = card();
             empty.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(label("✦", 35, SAKURA, true));
             TextView title = label("Your Gensokyo library awaits", 17, Color.WHITE, true);
             title.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(title);
-            TextView hint = label("Import a game folder or installer to begin.", 13, SECONDARY, false);
+            TextView hint = label("Open Setup to install or import a Touhou game.", 13, SECONDARY, false);
             hint.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(hint);
             libraryArea.addView(empty);
             spacerIn(libraryArea, 12);
-            return;
         }
-        for (int i = 0; i < library.length(); i++) {
-            JSONObject game = library.optJSONObject(i);
-            if (game == null) continue;
-            LinearLayout item = card();
-            String path = game.optString("path", "");
-            String name = game.optString("name", "Imported game");
-            boolean installer = game.optBoolean("installer");
-            item.addView(label(installer ? "WINDOWS INSTALLER" : "TOUHOU GAME", 11, GOLD, true));
-            item.addView(label(name, 17, Color.WHITE, true));
-            item.addView(label(installer ?
-                    "Run the original Windows installer" :
-                    "Ready to launch from your game library", 12, SECONDARY, false));
-            Button play = button(installer ? "INSTALL GAME" : "▶  PLAY GAME", () -> launchGame(path));
-            play.setEnabled(!busy && containerId > 0);
-            item.addView(play);
-            libraryArea.addView(item);
-            spacerIn(libraryArea, 12);
+        refreshSetup(library);
+    }
+
+    /** Preserve the existing imported installer for re-run, outside of Library. */
+    private void refreshSetup(JSONArray library) {
+        if (setupArea == null) return;
+        setupArea.removeAllViews();
+        JSONObject lastInstaller = null;
+        for (int i = library.length() - 1; i >= 0; i--) {
+            JSONObject entry = library.optJSONObject(i);
+            if (entry != null && entry.optBoolean("installer")) {
+                lastInstaller = entry;
+                break;
+            }
         }
+        if (lastInstaller == null) return;
+        String path = lastInstaller.optString("path", "");
+        LinearLayout installerCard = card();
+        installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
+        installerCard.addView(label(new File(path).getName(), 16, Color.WHITE, true));
+        installerCard.addView(label("If setup was interrupted, reopen the original installer here. Imported files are preserved.", 12, SECONDARY, false));
+        Button rerun = outlinedButton("RUN INSTALLER AGAIN", () -> launchGame(path, true));
+        rerun.setEnabled(!busy && containerId > 0 && new File(path).isFile());
+        installerCard.addView(rerun);
+        setupArea.addView(installerCard);
+        spacerIn(setupArea, 12);
     }
 
 
@@ -825,7 +880,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
      * Launch the selected original Windows installer without adding /DIR or
      * any destination override. The Windows installer chooses its own path.
      */
-    private void launchGame(String path) {
+    private void launchGame(String path, boolean installer) {
         if (busy || containerId <= 0) return;
         if (!new File(path).isFile()) {
             setStatus("Game file is missing. Re-import the game.");
@@ -845,7 +900,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         } catch (Exception error) {
             TouhouDiagnostics.recordLine("Could not configure local Japanese path diagnostics: " + error);
         }
-        startActivity(play);
+        if (installer) {
+            pendingInstallerScan = true;
+            getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", true).apply();
+        }
+        try {
+            startActivity(play);
+        } catch (Exception error) {
+            if (installer) {
+                pendingInstallerScan = false;
+                getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", false).apply();
+            }
+            setStatus("Unable to launch Windows program: " + error.getMessage());
+        }
     }
 
     private static void deleteTree(File path) {

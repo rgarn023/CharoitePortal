@@ -28,3 +28,5 @@ The `General-Gaming.cenv` file in this folder is an example you can download and
 ```
 
 Valid themes are `cosmic` and `sakura`. `displayMode` indexes supported Charoite Core modes (0 = Automatic). Imported files are limited to 16 KiB and reject unknown keys, external paths, scripts and unsupported versions. The app itself still requires the included Wine/Box64 runtime. `.cenv` is *not* an APK, ZIP, Windows environment backup or executable package.
+
+Japanese text support (Shift-JIS/CP932, licensed fonts) may be enabled per realm and exported as the optional boolean `settings.japaneseText` in schema v1; missing value defaults to off for imported custom realms. Touhou Realm continues to default on automatically.

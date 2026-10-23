@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.4";
+    public static final String VERSION = "0.5";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"

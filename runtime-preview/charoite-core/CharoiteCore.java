@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.5";
+    public static final String VERSION = "0.6";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"
@@ -86,10 +86,8 @@ public final class CharoiteCore {
                 || host.isInMultiWindowMode();
     }
 
+    /** Select a Wine desktop resolution for the CURRENT phone/window orientation. */
     public static String automaticGameResolution(AppCompatActivity host) {
-        if (host.getPreferences(Context.MODE_PRIVATE).getBoolean(scopedKey(host, "compat_graphics"), false))
-            return "800x600";
-        if (!isDesktopWindow(host)) return "1280x720";
         int width = host.getResources().getDisplayMetrics().widthPixels;
         int height = host.getResources().getDisplayMetrics().heightPixels;
         if (Build.VERSION.SDK_INT >= 30) {
@@ -98,17 +96,45 @@ public final class CharoiteCore {
             width = bounds.width();
             height = bounds.height();
         }
+        // Phone rotation can arrive before WindowMetrics catches up; the
+        // Configuration orientation is authoritative for phone display.
+        boolean portrait = host.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_PORTRAIT;
+        if (isDesktopWindow(host)) portrait = height > width;
+        boolean conservative = compatibleGraphics(host);
+        if (conservative) return portrait ? "600x800" : "800x600";
+        if (!isDesktopWindow(host)) return portrait ? "720x1280" : "1280x720";
         int longSide = Math.max(width, height);
         int shortSide = Math.min(width, height);
-        if (longSide >= 1850 && shortSide >= 980) return "1920x1080";
-        if (longSide >= 1450 && shortSide >= 780) return "1600x900";
-        return "1280x720";
+        String chosen = (longSide >= 1850 && shortSide >= 980) ? "1920x1080" :
+                (longSide >= 1450 && shortSide >= 780) ? "1600x900" : "1280x720";
+        return adaptToOrientation(chosen, portrait);
     }
 
-    /** Changes Wine's virtual X screen only for the next launch. */
+    private static String adaptToOrientation(String resolution, boolean portrait) {
+        String[] parts = resolution.split("x");
+        if (parts.length != 2) return resolution;
+        int a = Integer.parseInt(parts[0]);
+        int b = Integer.parseInt(parts[1]);
+        int longest = Math.max(a, b), shortest = Math.min(a, b);
+        return portrait ? shortest + "x" + longest : longest + "x" + shortest;
+    }
+
+    /** Resolves each launch in the active orientation without changing user settings.
+     * A running Wine app stays open during rotation; its surface is fitted live by
+     * XServer, while the Wine desktop mode itself is selected on the next launch.
+     */
     public static String chosenGameResolution(AppCompatActivity host) {
         int mode = getDisplayModeIndex(host);
-        return mode == 0 ? automaticGameResolution(host) : WINE_RESOLUTIONS[mode];
+        if (mode == 0) return automaticGameResolution(host);
+        boolean portrait = host.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_PORTRAIT;
+        if (isDesktopWindow(host)) {
+            WindowMetrics metrics = Build.VERSION.SDK_INT >= 30
+                    ? host.getWindowManager().getCurrentWindowMetrics() : null;
+            if (metrics != null) portrait = metrics.getBounds().height() > metrics.getBounds().width();
+        }
+        return adaptToOrientation(WINE_RESOLUTIONS[mode], portrait);
     }
 
     public static boolean isDesktopPointerCaptured(AppCompatActivity host) {

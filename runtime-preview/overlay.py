@@ -22,16 +22,16 @@ strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 src = src.replace('<string name="app_name">Winlator</string>',
-                  '<string name="app_name">Touhou OS</string>')
+                  '<string name="app_name">Touhou Launcher</string>')
 # Remove upstream branding from visible startup and background notifications.
 # This does NOT change the runtime's original Winlator-derived architecture.
 for original, branded in (
     ('<string name="starting_up">Starting up...</string>',
      '<string name="starting_up">Launching Touhou game...</string>'),
     ('<string name="fgs_notification_content_else">Winlator is running in the background</string>',
-     '<string name="fgs_notification_content_else">Touhou OS is running</string>'),
+     '<string name="fgs_notification_content_else">Touhou Launcher is running</string>'),
     ('<string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\\\'s background process management.</string>',
-     '<string name="fgs_notification_channel_desc">Keeps Touhou OS active while a Windows game is running.</string>'),
+     '<string name="fgs_notification_channel_desc">Keeps Touhou Launcher active while a Windows game is running.</string>'),
 ):
     assert original in src, f"Upstream string changed: {original[:58]}"
     src = src.replace(original, branded)
@@ -96,6 +96,17 @@ target = java_root / "com/winlator/TouhouEntryActivity.java"
 assert not target.exists(), "Upstream has a colliding Touhou entry activity"
 overlay = Path(__file__).resolve().parent / "TouhouEntryActivity.java"
 target.write_bytes(overlay.read_bytes())
+
+# Charoite Core is a reusable source module packaged INSIDE the same APK.
+# Unlike a new Android OS or a separate background app it shares the existing
+# process, Wine storage, package ID, and native runtime. Compile the real source
+# with the launcher so CI catches API or integration regressions.
+core_source = overlay.parent / "charoite-core/CharoiteCore.java"
+assert core_source.is_file(), "Charoite Core runtime source missing"
+core_destination = java_root / "com/charoitegames/core/CharoiteCore.java"
+assert not core_destination.exists(), "Upstream Charoite Core path conflict"
+core_destination.parent.mkdir(parents=True, exist_ok=True)
+core_destination.write_bytes(core_source.read_bytes())
 
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and
@@ -347,4 +358,4 @@ license_dir = root / "app/src/main/assets/licenses"
 license_dir.mkdir(parents=True, exist_ok=True)
 (license_dir / "Winlator-LGPL-2.1.txt").write_bytes((root / "LICENSE").read_bytes())
 (license_dir / "Touhou-Pocket-NOTICE.md").write_bytes((overlay.parent / "NOTICE.md").read_bytes())
-print("Applied Touhou runtime preview overlay and preserved license notices")
+print("Applied Touhou Launcher + Charoite Core overlay and preserved license notices")

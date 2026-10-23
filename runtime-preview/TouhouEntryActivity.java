@@ -38,6 +38,11 @@ import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
 import com.charoitegames.core.CharoiteGameImport;
+import com.charoitegames.core.CharoiteGameLibrary;
+import com.charoitegames.core.CharoiteGameDiscovery;
+import com.charoitegames.core.CharoiteGameProfiles;
+import com.charoitegames.core.CharoiteGameSessions;
+import com.charoitegames.core.CharoiteDiagnostics;
 import com.charoitegames.core.CharoiteEnvironments;
 import com.charoitegames.core.CharoiteEnvironmentFiles;
 import com.charoitegames.core.CharoiteThemes;
@@ -100,7 +105,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private TextView statusText;
     private LinearLayout libraryArea;
     private LinearLayout setupArea;
-    private boolean pendingInstallerScan = false;
     private LinearLayout main;
     private Button initButton;
     private Button folderButton;
@@ -151,7 +155,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         getWindow().setNavigationBarColor(PANEL);
         getWindow().getDecorView().setSystemUiVisibility(darkMode ? 0 :
                 View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        pendingInstallerScan = getPreferences(MODE_PRIVATE).getBoolean("pending_installer_scan", false);
         render();
         refreshReadyState();
         initializeEngineOnFirstLaunch();
@@ -160,9 +163,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     /** Scan the Windows C: drive after returning from a game installer. */
     @Override protected void onResume() {
         super.onResume();
-        if (pendingInstallerScan && !busy && containerId > 0) {
-            pendingInstallerScan = false;
-            getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", false).apply();
+        if (!busy && containerId > 0 && CharoiteGameSessions.consumePendingInstallerScan(this)) {
             showSection(1);
             findInstalledGames(true);
         }
@@ -993,7 +994,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     /** Diagnostic details remain on-device until the user explicitly copies them. */
     private void showDiagnostics() {
-        final String report = TouhouDiagnostics.getReport(this);
+        final String report = CharoiteDiagnostics.getReport(this);
         new androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Windows game startup diagnostics")
             .setMessage(report)
@@ -1104,73 +1105,28 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         busy = true;
         setStatus("Searching for installed games in " + CharoiteEnvironments.activeName(this) + "…");
         updateButtons();
+        final boolean touhou = CharoiteEnvironments.isTouhou(this);
         worker.execute(() -> {
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);
                 if (current == null) throw new IllegalStateException("Game environment missing");
-                File drive = new File(current.getRootDir(), ".wine/drive_c");
-                if (!drive.isDirectory()) throw new IllegalStateException("Windows game directory is not ready");
-                List<File> matches = new ArrayList<>();
-                int[] visited = {0};
-                scanInstalled(drive, drive, matches, 0, visited);
-
-                JSONArray library = loadLibrary();
-                Set<String> existing = new HashSet<>();
-                for (int i = 0; i < library.length(); i++) {
-                    JSONObject entry = library.optJSONObject(i);
-                    if (entry != null) existing.add(entry.optString("path"));
-                }
-                int added = 0;
-                for (File game : matches) {
-                    if (!existing.add(game.getAbsolutePath())) continue;
-                    JSONObject entry = new JSONObject();
-                    entry.put("name", gameName(game.getName()));
-                    entry.put("path", game.getAbsolutePath());
-                    entry.put("installer", false);
-                    entry.put("files", 0);
-                    library.put(entry);
-                    added++;
-                }
-                getPreferences(MODE_PRIVATE).edit().putString(CharoiteEnvironments.libraryKey(this), library.toString()).commit();
-                final int newGames = added;
+                int count = CharoiteGameLibrary.mergeInstalled(this,
+                        CharoiteGameDiscovery.scan(current.getRootDir(),
+                                CharoiteGameProfiles.forEnvironment(
+                                        CharoiteEnvironments.activeId(this))));
                 runOnUiThread(() -> {
-                    finishOperation(newGames == 0
-                        ? (afterInstaller ? "Installer closed. No supported new game found yet; confirm installation completed and try scanning again." : "No new supported games found on C:.")
-                        : "Found " + newGames + " game(s) on C:. Ready to play.");
-                    if (newGames > 0) showSection(0);
+                    finishOperation(count == 0
+                            ? (afterInstaller
+                                ? "Installer closed. No supported new game found yet; confirm installation completed and try scanning again."
+                                : "No new supported games found on C:.")
+                            : "Found " + count + " game(s) on C:. Ready to play.");
+                    if (count > 0) showSection(0);
                     else if (afterInstaller) showSection(1);
                 });
-            } catch (Exception e) {
-                runOnUiThread(() -> finishOperation("Game search failed: " + e.getMessage()));
+            } catch (Exception error) {
+                runOnUiThread(() -> finishOperation("Game search failed: " + error.getMessage()));
             }
         });
-    }
-
-    private void scanInstalled(File driveRoot, File folder, List<File> matches, int depth, int[] visited) {
-        if (depth > 14 || visited[0] >= 25000 || matches.size() >= 100) return;
-        File[] children = folder.listFiles();
-        if (children == null) return;
-        for (File file : children) {
-            if (++visited[0] > 25000) break;
-            if (java.nio.file.Files.isSymbolicLink(file.toPath())) continue;
-            if (!file.getAbsolutePath().startsWith(driveRoot.getAbsolutePath() + File.separator)) continue;
-            String name = file.getName().toLowerCase(Locale.ROOT);
-            if (file.isDirectory()) {
-                if (name.equals("windows") || name.equals("programdata") || name.equals("$recycle.bin")) continue;
-                scanInstalled(driveRoot, file, matches, depth + 1, visited);
-            } else if (file.isFile()) {
-                if (CharoiteEnvironments.isTouhou(this)) {
-                    if (name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe") ||
-                            name.matches("th(0[6-9]|1[0-9]|20)\\.exe"))
-                        matches.add(file);
-                } else if (name.endsWith(".exe") && !CharoiteGameImport.isLikelyInstaller(name)
-                        && !name.equals("unins000.exe") && !name.equals("uninstall.exe")
-                        && !name.equals("winecfg.exe") && !name.equals("explorer.exe")
-                        && !name.equals("regedit.exe")) {
-                    matches.add(file);
-                }
-            }
-        }
     }
 
     /**
@@ -1194,7 +1150,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 JSONObject entry = new JSONObject();
                 entry.put("name", imported.installer
                         ? "Windows installer: " + imported.executableName
-                        : gameName(imported.executableName));
+                        : CharoiteGameProfiles.forEnvironment(CharoiteEnvironments.activeId(this)).displayName(imported.executableName));
                 entry.put("path", imported.executablePath);
                 entry.put("installer", imported.installer);
                 entry.put("files", imported.fileCount);
@@ -1220,69 +1176,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         });
     }
 
-    private String gameName(String executable) {
-        String value = new File(executable).getName().toLowerCase(Locale.ROOT);
-        if (value.equals("enbu_ap.exe")) return "Touhou Puppet Dance Performance: Shard of Dreams";
-        if (value.equals("gn_enbu.exe")) return "Touhou Puppet Dance Performance";
-        return CharoiteEnvironments.isTouhou(this)
-                ? "Touhou game: " + new File(executable).getName()
-                : new File(executable).getName().replaceFirst("(?i)\\.exe$", "");
+    /** All library metadata persistence lives in Core. */
+    private void saveEntry(JSONObject entry) {
+        CharoiteGameLibrary.save(this, entry);
     }
 
-    /**
-     * One current installer slot, not a growing history of setup.exe imports.
-     * Reimporting an installer replaces the *library entry* only: previously
-     * imported folders are not deleted, because game data may be present.
-     */
-    private synchronized void saveEntry(JSONObject entry) throws Exception {
-        JSONArray existing = loadLibrary();
-        JSONArray updated = new JSONArray();
-        boolean newInstaller = entry.optBoolean("installer");
-        String newPath = entry.optString("path", "");
-        for (int i = 0; i < existing.length(); i++) {
-            JSONObject item = existing.optJSONObject(i);
-            if (item == null) continue;
-            if (item.optString("path").equals(newPath)) continue;
-            if (newInstaller && item.optBoolean("installer")) continue;
-            updated.put(item);
-        }
-        updated.put(entry);
-        if (!getPreferences(MODE_PRIVATE).edit()
-                .putString(CharoiteEnvironments.libraryKey(this), updated.toString()).commit())
-            throw new IllegalStateException("Cannot save the selected installer");
-    }
-
-    /**
-     * Migrate already-imported libraries: only the newest setup.exe is shown,
-     * while previously indexed *games* are preserved. Avoid deleting files.
-     */
-    private synchronized JSONArray loadLibrary() {
-        JSONArray original;
-        try {
-            original = new JSONArray(getPreferences(MODE_PRIVATE).getString(CharoiteEnvironments.libraryKey(this), "[]"));
-        } catch (Exception ignored) {
-            return new JSONArray();
-        }
-        java.util.ArrayList<JSONObject> reverse = new java.util.ArrayList<>();
-        java.util.Set<String> paths = new java.util.HashSet<>();
-        boolean keptInstaller = false;
-        for (int i = original.length() - 1; i >= 0; i--) {
-            JSONObject game = original.optJSONObject(i);
-            if (game == null) continue;
-            boolean installer = game.optBoolean("installer");
-            if (installer && keptInstaller) continue;
-            String path = game.optString("path", "");
-            if (path.isEmpty() || !paths.add(path)) continue;
-            if (installer) keptInstaller = true;
-            reverse.add(game);
-        }
-        JSONArray canonical = new JSONArray();
-        for (int i = reverse.size() - 1; i >= 0; i--) canonical.put(reverse.get(i));
-        if (canonical.length() != original.length()) {
-            getPreferences(MODE_PRIVATE).edit()
-                .putString(CharoiteEnvironments.libraryKey(this), canonical.toString()).apply();
-        }
-        return canonical;
+    private JSONArray loadLibrary() {
+        return CharoiteGameLibrary.load(this);
     }
 
     /**
@@ -1423,32 +1323,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         return colors[(path.hashCode() & 0x7fffffff) % colors.length];
     }
 
-    /** Save only visual ordering; the original installer entry stays intact. */
-    private synchronized void reorderGame(String sourcePath, String targetPath) {
+    /** UI-only tile drag handler; the reorder contract lives in Core. */
+    private void reorderGame(String sourcePath, String targetPath) {
         if (busy || sourcePath.equals(targetPath)) return;
-        JSONArray original = loadLibrary();
-        ArrayList<JSONObject> games = new ArrayList<>();
-        for (int i = 0; i < original.length(); i++) {
-            JSONObject entry = original.optJSONObject(i);
-            if (entry != null && !entry.optBoolean("installer")) games.add(entry);
-        }
-        int from = -1, to = -1;
-        for (int i = 0; i < games.size(); i++) {
-            if (sourcePath.equals(games.get(i).optString("path"))) from = i;
-            if (targetPath.equals(games.get(i).optString("path"))) to = i;
-        }
-        if (from < 0 || to < 0) return;
-        JSONObject moved = games.remove(from);
-        games.add(to, moved);
-        JSONArray updated = new JSONArray();
-        int gameIndex = 0;
-        for (int i = 0; i < original.length(); i++) {
-            JSONObject entry = original.optJSONObject(i);
-            if (entry == null) continue;
-            updated.put(entry.optBoolean("installer") ? entry : games.get(gameIndex++));
-        }
-        if (getPreferences(MODE_PRIVATE).edit()
-                .putString(CharoiteEnvironments.libraryKey(this), updated.toString()).commit()) {
+        if (CharoiteGameLibrary.reorder(this, sourcePath, targetPath)) {
             libraryArea.post(this::refreshLibrary);
             setStatus("Library icon order saved.");
         } else setStatus("Could not save your Library icon order.");
@@ -1486,38 +1364,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
      */
     private void launchGame(String path, boolean installer) {
         if (busy || containerId <= 0) return;
-        if (!new File(path).isFile()) {
-            setStatus("Game file is missing. Re-import the game.");
-            return;
-        }
-        Intent play = new Intent(this, XServerDisplayActivity.class);
-        play.putExtra("container_id", containerId);
-        play.putExtra("exec_path", path);
-        play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(this));
-        play.putExtra("touhou_display_size", CharoiteCore.chosenGameResolution(this));
-        play.putExtra("touhou_pointer_capture", CharoiteCore.shouldCapturePointer(this));
         try {
-            if (path.toLowerCase(java.util.Locale.ROOT).endsWith("setup.exe")) {
-                Container current = new ContainerManager(this).getContainerById(containerId);
-                if (current != null) {
-                    File log = new File(current.getRootDir(), ".wine/drive_c/touhou_probe.log");
-                    TouhouDiagnostics.setProbePath(this, log.getAbsolutePath());
-                }
-            } else TouhouDiagnostics.setProbePath(this, "");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, path, installer);
         } catch (Exception error) {
-            TouhouDiagnostics.recordLine("Could not configure local Japanese path diagnostics: " + error);
-        }
-        if (installer) {
-            pendingInstallerScan = true;
-            getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", true).apply();
-        }
-        try {
-            startActivity(play);
-        } catch (Exception error) {
-            if (installer) {
-                pendingInstallerScan = false;
-                getPreferences(MODE_PRIVATE).edit().putBoolean("pending_installer_scan", false).apply();
-            }
             setStatus("Unable to launch Windows program: " + error.getMessage());
         }
     }

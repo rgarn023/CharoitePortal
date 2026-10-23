@@ -29,6 +29,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -36,6 +37,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
+import com.charoitegames.core.CharoiteEnvironments;
+import com.charoitegames.core.CharoiteThemes;
 import com.charoitegames.core.CharoitePageTabs;
 import com.charoitegames.core.CharoiteWallpaper;
 import com.winlator.container.Container;
@@ -119,6 +122,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private LinearLayout systemScreen;
     private ScrollView mainScroll;
     private TextView runtimeLabel;
+    private TextView environmentStatus;
+    private Button environmentSwitchButton;
+    private Button environmentInstallButton;
+    private Button environmentCreateButton;
     private boolean busy = false;
     private int containerId = 0;
     private int selectedSection = 0;
@@ -126,6 +133,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        CharoiteEnvironments.initialize(this);
         applyGalaxyPalette();
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(PANEL);
@@ -176,12 +184,17 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         BG = darkMode ? 0xff101116 : 0xffF5F6FA;
         PANEL = darkMode ? 0xff202127 : 0xffffffff;
         SECONDARY = darkMode ? 0xffB7B8C5 : 0xff626877;
-        ACCENT = darkMode ? 0xffB0B9FF : 0xff5667D8;
-        GOLD = darkMode ? 0xffF2B5CD : 0xff8B4668;
-        SAKURA = darkMode ? 0xffE89BBC : 0xffC95884;
+        boolean touhouTheme = CharoiteEnvironments.isTouhou(this);
+        ACCENT = touhouTheme ? (darkMode ? 0xffFFB0D3 : 0xffB34477)
+                : (darkMode ? 0xffC4A9FF : 0xff7548C1);
+        GOLD = touhouTheme ? (darkMode ? 0xffF2B5CD : 0xff8B4668)
+                : (darkMode ? 0xffD2BAFF : 0xff6040A4);
+        SAKURA = touhouTheme ? 0xffC95884 : 0xff9169D8;
         LINE = darkMode ? 0xff363840 : 0xffE7E9F0;
         FOREGROUND = darkMode ? 0xffF6F6FB : 0xff1A1B22;
-        SELECTED_BG = darkMode ? 0xff333959 : 0xffE8EBFD;
+        SELECTED_BG = CharoiteEnvironments.isTouhou(this)
+                ? (darkMode ? 0xff533447 : 0xffFBE3EF)
+                : (darkMode ? 0xff3A315D : 0xffECE3FF);
     }
 
     /** Large readable headers, soft surfaces and a thumb-reachable bottom bar. */
@@ -239,9 +252,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         LinearLayout headline = new LinearLayout(this);
         headline.setOrientation(LinearLayout.VERTICAL);
-        headline.addView(label("東方  •  幻想郷", 12, GOLD, true));
-        headline.addView(label("Touhou Launcher", 34, FOREGROUND, true));
-        headline.addView(label("For Android  •  Powered by Charoite Core", 13, SECONDARY, false));
+        headline.addView(label("C H A R O I T E   P O R T A L", 12, GOLD, true));
+        headline.addView(label("Charoite Portal", 32, FOREGROUND, true));
+        headline.addView(label(CharoiteEnvironments.activeName(this)
+                + "  •  Charoite Core " + CharoiteCore.VERSION, 13, SECONDARY, false));
         hero.addView(headline, new LinearLayout.LayoutParams(0, -2, 1f));
 
         ImageView brand = new ImageView(this);
@@ -257,7 +271,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryScreen = new LinearLayout(this);
         libraryScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(libraryScreen);
-        sectionTitle(libraryScreen, "Library", "All your playable Touhou games, in one place.");
+        sectionTitle(libraryScreen, "Library", "Your games in " + CharoiteEnvironments.activeName(this) + ".");
         libraryArea = new LinearLayout(this);
         libraryArea.setOrientation(LinearLayout.VERTICAL);
         libraryScreen.addView(libraryArea);
@@ -267,14 +281,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         importScreen = new LinearLayout(this);
         importScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(importScreen);
-        sectionTitle(importScreen, "Setup", "Add a game and Touhou Launcher will handle the installation steps.");
+        sectionTitle(importScreen, "Setup", "Install games into " + CharoiteEnvironments.activeName(this) + ".");
         setupArea = new LinearLayout(this);
         setupArea.setOrientation(LinearLayout.VERTICAL);
         importScreen.addView(setupArea);
 
         LinearLayout folderCard = card();
         folderCard.addView(label("01   GAME OR INSTALLER FOLDER", 12, GOLD, true));
-        folderCard.addView(label("Choose an entire game or installer folder, including its data files. Touhou Launcher opens an installer automatically, or adds an already playable game to Library.", 13, SECONDARY, false));
+        folderCard.addView(label("Choose a complete Windows game or installer folder. Charoite Portal runs the installer or adds a playable game to this environment.", 13, SECONDARY, false));
         folderButton = button("SELECT GAME FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -299,17 +313,31 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         LinearLayout scanCard = card();
         scanCard.addView(label("03   FIND INSTALLED GAMES", 12, GOLD, true));
-        scanCard.addView(label("Touhou Launcher checks C: after an installer closes. You can also scan manually for games installed earlier.", 13, SECONDARY, false));
+        scanCard.addView(label("Search this environment's Windows C: drive after installation or scan previously installed games.", 13, SECONDARY, false));
         scanButton = outlinedButton("FIND INSTALLED GAMES", () -> findInstalledGames(false));
         scanCard.addView(scanButton);
         importScreen.addView(scanCard);
         spacerIn(importScreen, 15);
-        importScreen.addView(label("C: is stored privately by Touhou Launcher. Setup files are copied under C:\\TouhouPocket\\; original Windows installation destinations are preserved. No games or translations are bundled.", 12, SECONDARY, false));
+        importScreen.addView(label("Each environment has its own private Windows container. Existing Touhou games remain in their original C:\\TouhouPocket\\ location. Installer-selected destinations are preserved; games are not bundled.", 12, SECONDARY, false));
 
         systemScreen = new LinearLayout(this);
         systemScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(systemScreen);
-        sectionTitle(systemScreen, "System", "Keep your Touhou experience running smoothly.");
+        sectionTitle(systemScreen, "System", "Manage environments, compatibility and appearance.");
+
+        LinearLayout environmentCard = card();
+        environmentCard.addView(label("Environments", 17, FOREGROUND, true));
+        environmentStatus = label("", 13, SECONDARY, false);
+        environmentCard.addView(environmentStatus);
+        environmentSwitchButton = outlinedButton("SWITCH ENVIRONMENT", this::showEnvironmentSwitcher);
+        environmentCard.addView(environmentSwitchButton);
+        environmentInstallButton = outlinedButton("INSTALL ENVIRONMENT", this::showEnvironmentInstaller);
+        environmentCard.addView(environmentInstallButton);
+        environmentCreateButton = outlinedButton("CREATE ENVIRONMENT", this::showEnvironmentCreator);
+        environmentCard.addView(environmentCreateButton);
+        environmentCard.addView(label("Touhou Realm preserves your existing games. New environments get separate Windows containers, game libraries and wallpapers. Install uses built-in offline templates.", 12, SECONDARY, false));
+        systemScreen.addView(environmentCard);
+        spacerIn(systemScreen, 12);
 
         LinearLayout runtimeCard = card();
         runtimeCard.addView(label("Game engine", 17, FOREGROUND, true));
@@ -370,7 +398,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         debugCard.addView(diagnosticButton);
         systemScreen.addView(debugCard);
         spacerIn(systemScreen, 18);
-        systemScreen.addView(label("Touhou Launcher for Android · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Runtime uses Wine, Box64 and LGPL-licensed Winlator-derived code; no games included.", 11, SECONDARY, false));
+        systemScreen.addView(label("Charoite Portal · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Windows gaming environments use Wine, Box64 and LGPL-licensed Winlator-derived code. No games included.", 11, SECONDARY, false));
 
         refreshLibrary();
         refreshWallpaperViews();
@@ -575,6 +603,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         // Automatic setup on first launch; expose only a manual retry on failure.
         initButton.setVisibility(ready || busy ? View.GONE : View.VISIBLE);
         initButton.setText("RETRY GAME ENGINE SETUP");
+        if (environmentStatus != null) environmentStatus.setText("Active: "
+                + CharoiteEnvironments.activeName(this) + "  •  "
+                + (containerId > 0 ? "Windows container ready" : "Preparing environment"));
+        if (environmentSwitchButton != null) environmentSwitchButton.setEnabled(!busy && !wallpaperBusy);
+        if (environmentInstallButton != null) environmentInstallButton.setEnabled(!busy && !wallpaperBusy);
+        if (environmentCreateButton != null) environmentCreateButton.setEnabled(!busy && !wallpaperBusy);
         if (runtimeLabel != null) runtimeLabel.setText(ready ?
                 "Up to date • Wine and Box64 are ready for your games." :
                 busy ? "Preparing this APK's bundled Wine / Box64 runtime automatically…" :
@@ -602,9 +636,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     private Container getActiveContainer(ContainerManager manager) {
-        int saved = getPreferences(MODE_PRIVATE).getInt("touhou_container", 0);
+        int saved = CharoiteEnvironments.activeContainerId(this);
+        // Only Touhou Realm can inherit the old app's first Windows container.
+        // Never reuse another environment's prefix for newly created worlds.
         Container container = saved > 0 ? manager.getContainerById(saved) : null;
-        if (container == null && !manager.getContainers().isEmpty())
+        if (container == null && CharoiteEnvironments.isTouhou(this)
+                && saved == 0 && !manager.getContainers().isEmpty())
             container = manager.getContainers().get(0);
         return container;
     }
@@ -704,7 +741,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void startSetup() {
         if (busy) return;
         busy = true;
-        setStatus("Preparing the game engine included in this Touhou Launcher version…");
+        setStatus("Preparing the Charoite Core Windows runtime…");
         updateButtons();
         worker.execute(() -> {
             try {
@@ -723,22 +760,29 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             Container existing = getActiveContainer(manager);
             if (existing != null) {
                 containerId = existing.id;
+                CharoiteEnvironments.attachContainer(this, CharoiteEnvironments.activeId(this), containerId);
                 markEnginePrepared();
-                finishOperation("Game engine updated for this Touhou Launcher version. Existing games and saves were preserved.");
+                finishOperation("Environment ready. Existing games and saves were preserved.");
                 return;
             }
             boolean conservative = getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
+            final String environmentId = CharoiteEnvironments.activeId(this);
             JSONObject profile = CharoiteCore.createContainerProfile(
-                    this, "Touhou Games", conservative);
+                    this, CharoiteEnvironments.activeName(this), conservative);
             manager.createContainerAsync(profile, container -> {
                 if (isFinishing() || isDestroyed()) return;
                 if (container == null) {
                     finishOperation("Game environment creation failed; retry setup.");
                 } else {
-                    containerId = container.id;
-                    getPreferences(MODE_PRIVATE).edit().putInt("touhou_container", containerId).apply();
-                    markEnginePrepared();
-                    finishOperation("Game engine prepared automatically. Open Setup to install your games.");
+                    try {
+                        CharoiteEnvironments.attachContainer(this, environmentId, container.id);
+                        containerId = container.id;
+                        markEnginePrepared();
+                        finishOperation(CharoiteEnvironments.activeName(this)
+                                + " prepared. Open Setup to install Windows games.");
+                    } catch (Exception saveError) {
+                        finishOperation("Environment created but registration failed: " + saveError.getMessage());
+                    }
                 }
             });
         } catch (Exception ex) {

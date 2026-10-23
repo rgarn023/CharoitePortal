@@ -72,13 +72,27 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         FreeLibrary(module);
         return 5;
     }
-    report("helper-v1: thread-specific hook installed; waking installer thread");
-    for(int count=0;count<18;count++) {
-        PostThreadMessageW(threadId,WM_NULL,0,0);
-        Sleep(1000);
+    report("helper-v2: thread-local hook installed; keeping later wizard pages active");
+    // An Inno Setup user can spend much longer than 18 seconds on the path,
+    // shortcuts and optional-task pages. Continue checking the same installer
+    // GUI thread without rewriting its strings or touching other processes.
+    // Stop automatically when the target Windows thread exits or after 5 min.
+    HANDLE targetThread=OpenThread(SYNCHRONIZE | THREAD_QUERY_INFORMATION,
+                                  FALSE,threadId);
+    for(int count=0;count<600;count++) {
+        if(targetThread && WaitForSingleObject(targetThread,0)==WAIT_OBJECT_0) {
+            report("helper-v2: installer GUI thread exited");
+            break;
+        }
+        if(!PostThreadMessageW(threadId,WM_NULL,0,0)) {
+            report("helper-v2: installer thread no longer accepts messages");
+            break;
+        }
+        Sleep(500);
     }
+    if(targetThread) CloseHandle(targetThread);
     UnhookWindowsHookEx(hook);
-    report("helper-v1: hook uninstalled (font stays assigned to live installer edit)");
+    report("helper-v2: scoped hook uninstalled after installer session");
     FreeLibrary(module);
     if(desktop) CloseDesktop(desktop);
     return 0;

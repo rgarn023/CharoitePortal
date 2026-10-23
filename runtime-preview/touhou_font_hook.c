@@ -84,7 +84,7 @@ static BOOL contains_japanese(const wchar_t *value) {
 /* Used to differentiate a font failure from already-mojibake Unicode data.
  * Records hex codes, not user text or file paths. */
 static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
-    if (task_list_logged || !is_task_list(klass)) return;
+    if (task_list_logged || !(contains(klass,L"CheckListBox") || contains(klass,L"ChecklistBox"))) return;
     task_list_logged = TRUE;
     int count = (int)SendMessageW(hwnd, LB_GETCOUNT, 0, 0);
     char info[320];

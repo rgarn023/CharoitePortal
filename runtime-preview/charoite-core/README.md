@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.2
+# Charoite Core (Android runtime module) — v0.3
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -53,3 +53,15 @@ GitHub Actions run [39948092801](https://github.com/rgarn023/TouhouPocketLaunche
 - Light/dark palette updates, selection state and screen-size-independent bottom navigation clearance (88dp bar with 21dp bottom padding).
 
 Touhou Launcher constructs `new CharoitePageTabs(this, new String[]{"Library", "Setup", "System"}, this::showSection)`, supplies its palette and current selection, and controls the actual Library, Setup and System screens. Those page names and their content remain app-specific; **all tab visuals and selection handling are in Charoite Core**. The Android overlay copies the Java class into the app's core package so the packaged APK compiles it. Future launchers may reuse this class with different page names.
+
+## Charoite Portal environment manager (v0.3)
+
+New `CharoiteEnvironments.java` registers independent Windows Wine containers under stable IDs and tracks an active environment. First-run migration registers **Touhou Realm** from the original `touhou_container` ID or pre-existing first Wine container, without relocating/deleting files. Touhou continues using its original `game_library` preference and `C:\TouhouPocket\` staging folder. Each later environment uses its own container ID, game list preference and `C:\CharoitePortal\` staging folder.
+
+The Portal System UI can **Switch** between environments; **Install** the built-in offline General Gaming template; and **Create** a custom environment with its own name. Both installation/creation add a registry record, switch to that record, and asynchronously prepare a new Wine container when needed. There is no untrusted remote environment installer or arbitrary archive import in this version. No environment deletion or destructive migration implemented.
+
+New `CharoiteThemes.java` draws distinct offline **Touhou sakura** and **Charoite cosmic** default wallpapers; CharoiteWallpaper has environment-id overloads for image selection, saved Fit/Crop mode, preview and removal. Existing Touhou wallpaper file and setting keys are preserved. `CharoiteCore.java` maintains separate graphics/DeX preferences for non-Touhou environments but retains the original preference keys for Touhou. Existing Japan-specific CP932/font hooks are scoped to Touhou Realm; general Windows profiles use the upstream English locale default.
+
+The Android icon and public brand are now **Charoite Portal** (original purple gemstone/space gateway, no Touhou icon). Android package `com.touhoudr` must remain unchanged to protect user-owned game storage. All of these modules remain within one APK, without replacing Android or One UI.
+
+**Validation:** Native Android compilation and APK artifact integrity can verify the source integration, but real-device testing is still required. Creating arbitrary environments consumes substantial phone storage, and Wine game compatibility is not guaranteed. A stable APK signing pipeline is needed before safe, reliable in-place releases.

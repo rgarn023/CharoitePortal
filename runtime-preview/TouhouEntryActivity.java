@@ -709,7 +709,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         installerButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
         compatButton.setEnabled(!busy && ready);
-        compatButton.setText(getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false) ?
+        compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
         diagnosticButton.setEnabled(!busy);
         if (displayButton != null) {
@@ -782,11 +782,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void toggleCompatibility() {
         if (busy || containerId <= 0) return;
         try {
-            boolean compatible = !getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
+            boolean compatible = !CharoiteCore.compatibleGraphics(this);
             Container current = new ContainerManager(this).getContainerById(containerId);
             if (current == null) throw new IllegalStateException("Windows game environment missing");
             CharoiteCore.applyGraphicsProfile(this, current, compatible);
-            getPreferences(MODE_PRIVATE).edit().putBoolean("compat_graphics", compatible).apply();
+            CharoiteCore.setCompatibleGraphics(this, compatible);
             updateButtons();
             setStatus(compatible ?
                 "Compatibility graphics enabled (Vortek/VirGL, WineD3D, conservative Box64). Try Play again." :
@@ -857,7 +857,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 finishOperation("Environment ready. Existing games and saves were preserved.");
                 return;
             }
-            boolean conservative = getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
+            boolean conservative = CharoiteCore.compatibleGraphics(this);
             final String environmentId = CharoiteEnvironments.activeId(this);
             JSONObject profile = CharoiteCore.createContainerProfile(
                     this, CharoiteEnvironments.activeName(this), conservative);

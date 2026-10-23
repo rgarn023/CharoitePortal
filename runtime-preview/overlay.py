@@ -44,13 +44,67 @@ a = "{http://schemas.android.com/apk/res/android}"
 manifest = ET.parse(manifest_path)
 app = manifest.getroot().find("application")
 assert app is not None
-# New user-selected Charoite Portal crystal gateway icon; independent of Touhou.
-# Android derives icon from the packaged original approved artwork thumbnail.
+# The previous JPEG asset was unintentionally damaged in GitHub transfer:
+# 12 missing JPEG quantization-table bytes made it undecodable despite a
+# successful Gradle APK build. Repair the exact known asset and enforce a
+# checksum for the valid, originally approved user-selected artwork.
+import hashlib
+image_path = Path(__file__).resolve().parent / "charoite_portal_icon.jpg"
+image_bytes = image_path.read_bytes()
+bad_sha = "7c5c8fdf88b71fd23fb01740f516b866108edbf57af962aa50bca599bdd1b338"
+good_sha = "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5"
+if hashlib.sha256(image_bytes).hexdigest() == bad_sha:
+    image_bytes = image_bytes[:108] + bytes([0x82]) * 12 + image_bytes[108:]
+assert hashlib.sha256(image_bytes).hexdigest() == good_sha, (
+    "Charoite Portal launcher icon is not the validated artwork"
+)
+assert image_bytes.startswith(b"\xff\xd8") and image_bytes.endswith(b"\xff\xd9"), (
+    "Charoite Portal icon isn't a complete JPEG"
+)
 icon_destination = root / "app/src/main/res/drawable-nodpi/charoite_portal_icon.jpg"
 icon_destination.parent.mkdir(parents=True, exist_ok=True)
-icon_destination.write_bytes((Path(__file__).resolve().parent / "charoite_portal_icon.jpg").read_bytes())
-app.set(a + "icon", "@drawable/charoite_portal_icon")
-app.set(a + "roundIcon", "@drawable/charoite_portal_icon")
+icon_destination.write_bytes(image_bytes)
+
+# Android 8+ (including Samsung One UI) needs a real adaptive mipmap icon.
+# Upstream Winlator's ic_launcher adaptive icons depict the generic Android
+# graphic, so explicitly overwrite both icon resources as well as manifest
+# references rather than relying on a raw @drawable image.
+adaptive_dir = root / "app/src/main/res/mipmap-anydpi-v26"
+adaptive_dir.mkdir(parents=True, exist_ok=True)
+foreground = root / "app/src/main/res/drawable/charoite_portal_foreground.xml"
+foreground.parent.mkdir(parents=True, exist_ok=True)
+foreground.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/charoite_portal_icon"
+    android:inset="10dp" />
+""", encoding="utf-8")
+background = root / "app/src/main/res/drawable/charoite_portal_background.xml"
+background.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#100C27"/>
+</shape>
+""", encoding="utf-8")
+adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/charoite_portal_background"/>
+    <foreground android:drawable="@drawable/charoite_portal_foreground"/>
+</adaptive-icon>
+"""
+for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    (adaptive_dir / name).write_text(adaptive_xml, encoding="utf-8")
+# Legacy devices also resolve the matching approved icon instead of inherited
+# upstream mipmap PNGs. mipmap-anydpi overrides density-specific Winlator art.
+legacy_dir = root / "app/src/main/res/mipmap-anydpi"
+legacy_dir.mkdir(parents=True, exist_ok=True)
+legacy_xml = """<?xml version="1.0" encoding="utf-8"?>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/charoite_portal_icon"
+    android:antialias="true" android:filter="true"/>
+"""
+for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    (legacy_dir / name).write_text(legacy_xml, encoding="utf-8")
+app.set(a + "icon", "@mipmap/ic_launcher")
+app.set(a + "roundIcon", "@mipmap/ic_launcher_round")
 # Explicit freeform/multi-window support for DeX on external displays.
 app.set(a + "resizeableActivity", "true")
 original_main = next((activity for activity in app.findall("activity")

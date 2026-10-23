@@ -71,18 +71,23 @@ public final class TouhouJapaneseSupport {
             if (!probe.isFile() || probe.length() < 10000)
                 TouhouDiagnostics.recordLine("Optional Japanese probe asset copy failed.");
         }
-        // The font handles for Wine's installer are process-local. Bundle
-        // matching 32/64-bit thread-hook helpers rather than sending a
-        // different process's HFONT through WM_SETFONT.
-        for (String helper : new String[]{
-                "touhou_font_helper32.exe", "touhou_font_helper64.exe",
-                "touhou_font_hook32.dll", "touhou_font_hook64.dll"}) {
-            File target = new File(prefix, "drive_c/" + helper);
-            if (!target.isFile() || target.length() < 5000) {
-                FileUtils.copy(context, "japanese/" + helper, target);
-                if (!target.isFile() || target.length() < 5000)
-                    TouhouDiagnostics.recordLine("Japanese scoped font helper not copied: " + helper);
+        // Older installations keep app-owned helper binaries in C: across
+        // APK updates. Refresh them once per helper release, not only when
+        // missing, so the multi-page Japanese font repair actually upgrades.
+        // Do not touch the user's games, installers, directories or saves.
+        File helperVersion = new File(prefix, ".touhou-japanese-helpers-v2");
+        if (!helperVersion.isFile()) {
+            for (String helper : new String[]{
+                    "touhou_font_helper32.exe", "touhou_font_helper64.exe",
+                    "touhou_font_hook32.dll", "touhou_font_hook64.dll"}) {
+                File target = new File(prefix, "drive_c/" + helper);
+                if (!FileUtils.copy(context, "japanese/" + helper, target) ||
+                        !target.isFile() || target.length() < 5000)
+                    throw new IOException("Unable to refresh Japanese compatibility helper: " + helper);
             }
+            if (!FileUtils.writeString(helperVersion, "v2\n"))
+                throw new IOException("Cannot mark Japanese helper upgrade complete");
+            TouhouDiagnostics.recordLine("Japanese installer font helpers upgraded to v2.");
         }
         for (String logName : new String[]{
                 "touhou_probe.log", "touhou_font_hook.log", "touhou_font_helper.log"}) {

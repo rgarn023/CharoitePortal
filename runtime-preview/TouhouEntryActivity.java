@@ -33,6 +33,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
+import com.charoitegames.core.CharoiteCore;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.container.GraphicsDrivers;
@@ -108,13 +109,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private boolean busy = false;
     private int containerId = 0;
     private int selectedSection = 0;
-    private static final String[] DISPLAY_MODES = {
-        "Automatic (recommended)", "1280 × 720", "1600 × 900",
-        "1920 × 1080", "800 × 600 (compatibility)"
-    };
-    private static final String[] WINE_RESOLUTIONS = {
-        "", "1280x720", "1600x900", "1920x1080", "800x600"
-    };
+    private static final String[] DISPLAY_MODES = CharoiteCore.DISPLAY_MODES;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -227,13 +222,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout headline = new LinearLayout(this);
         headline.setOrientation(LinearLayout.VERTICAL);
         headline.addView(label("東方  •  幻想郷", 12, GOLD, true));
-        headline.addView(label("Touhou OS", 34, FOREGROUND, true));
-        headline.addView(label("Gensokyo, right in your pocket", 13, SECONDARY, false));
+        headline.addView(label("Touhou Launcher", 34, FOREGROUND, true));
+        headline.addView(label("For Android  •  Powered by Charoite Core", 13, SECONDARY, false));
         hero.addView(headline, new LinearLayout.LayoutParams(0, -2, 1f));
 
         ImageView brand = new ImageView(this);
         brand.setImageResource(R.drawable.touhou_pocket_icon);
-        brand.setContentDescription("Touhou OS shrine emblem");
+        brand.setContentDescription("Touhou Launcher shrine emblem");
         brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
         LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(68), dp(68));
         imageParams.leftMargin = dp(6);
@@ -254,14 +249,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         importScreen = new LinearLayout(this);
         importScreen.setOrientation(LinearLayout.VERTICAL);
         main.addView(importScreen);
-        sectionTitle(importScreen, "Setup", "Add a game and Touhou OS will handle the installation steps.");
+        sectionTitle(importScreen, "Setup", "Add a game and Touhou Launcher will handle the installation steps.");
         setupArea = new LinearLayout(this);
         setupArea.setOrientation(LinearLayout.VERTICAL);
         importScreen.addView(setupArea);
 
         LinearLayout folderCard = card();
         folderCard.addView(label("01   GAME OR INSTALLER FOLDER", 12, GOLD, true));
-        folderCard.addView(label("Choose an entire game or installer folder, including its data files. Touhou OS opens an installer automatically, or adds an already playable game to Library.", 13, SECONDARY, false));
+        folderCard.addView(label("Choose an entire game or installer folder, including its data files. Touhou Launcher opens an installer automatically, or adds an already playable game to Library.", 13, SECONDARY, false));
         folderButton = button("SELECT GAME FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -286,12 +281,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         LinearLayout scanCard = card();
         scanCard.addView(label("03   FIND INSTALLED GAMES", 12, GOLD, true));
-        scanCard.addView(label("Touhou OS checks C: after an installer closes. You can also scan manually for games installed earlier.", 13, SECONDARY, false));
+        scanCard.addView(label("Touhou Launcher checks C: after an installer closes. You can also scan manually for games installed earlier.", 13, SECONDARY, false));
         scanButton = outlinedButton("FIND INSTALLED GAMES", () -> findInstalledGames(false));
         scanCard.addView(scanButton);
         importScreen.addView(scanCard);
         spacerIn(importScreen, 15);
-        importScreen.addView(label("C: is stored privately by Touhou OS. Setup files are copied under C:\\TouhouPocket\\; original Windows installation destinations are preserved. No games or translations are bundled.", 12, SECONDARY, false));
+        importScreen.addView(label("C: is stored privately by Touhou Launcher. Setup files are copied under C:\\TouhouPocket\\; original Windows installation destinations are preserved. No games or translations are bundled.", 12, SECONDARY, false));
 
         systemScreen = new LinearLayout(this);
         systemScreen.setOrientation(LinearLayout.VERTICAL);
@@ -336,7 +331,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         debugCard.addView(diagnosticButton);
         systemScreen.addView(debugCard);
         spacerIn(systemScreen, 18);
-        systemScreen.addView(label("Touhou OS by Charoite Games. Uses Wine, Box64 and a modified, LGPL-licensed Winlator runtime. No games included.", 11, SECONDARY, false));
+        systemScreen.addView(label("Touhou Launcher for Android · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Runtime uses Wine, Box64 and LGPL-licensed Winlator-derived code; no games included.", 11, SECONDARY, false));
 
         refreshLibrary();
         showSection(selectedSection);
@@ -437,7 +432,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 Container selected = getActiveContainer(manager);
                 containerId = selected != null ? selected.id : 0;
                 setStatus(engineRefreshRequired()
-                        ? "Touhou OS was installed or updated. Refreshing the engine automatically…"
+                        ? "Touhou Launcher was installed or updated. Refreshing the engine automatically…"
                         : selected == null
                             ? "Finishing your automatic Windows game environment setup…"
                             : "Game engine ready • Your Touhou games are in Library.");
@@ -473,8 +468,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             displayButton.setText("GAME RESOLUTION: " + DISPLAY_MODES[mode]);
         }
         if (desktopPointerButton != null)
-            desktopPointerButton.setText(getPreferences(MODE_PRIVATE)
-                    .getBoolean("desktop_pointer_capture", false)
+            desktopPointerButton.setText(CharoiteCore.isDesktopPointerCaptured(this)
                     ? "DEX MOUSE: CAPTURE IN GAME" : "DEX MOUSE: FREE POINTER");
         if (displayDescription != null)
             displayDescription.setText((isDesktopWindow() ? "Desktop/external window" : "Phone window")
@@ -492,48 +486,27 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
 
-    /** DeX may run on a secondary screen or in a resizable desktop window. */
     private boolean isDesktopWindow() {
-        Display display = getDisplay();
-        return (display != null && display.getDisplayId() != Display.DEFAULT_DISPLAY)
-                || isInMultiWindowMode();
+        return CharoiteCore.isDesktopWindow(this);
     }
 
     private int getDisplayModeIndex() {
-        int index = getPreferences(MODE_PRIVATE).getInt("game_display_mode", 0);
-        return (index >= 0 && index < DISPLAY_MODES.length) ? index : 0;
+        return CharoiteCore.getDisplayModeIndex(this);
     }
 
     private String automaticGameResolution() {
-        if (getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false))
-            return "800x600";
-        if (!isDesktopWindow()) return "1280x720";
-        int width = getResources().getDisplayMetrics().widthPixels;
-        int height = getResources().getDisplayMetrics().heightPixels;
-        if (Build.VERSION.SDK_INT >= 30) {
-            WindowMetrics metrics = getWindowManager().getCurrentWindowMetrics();
-            Rect bounds = metrics.getBounds();
-            width = bounds.width();
-            height = bounds.height();
-        }
-        int longSide = Math.max(width, height);
-        int shortSide = Math.min(width, height);
-        if (longSide >= 1850 && shortSide >= 980) return "1920x1080";
-        if (longSide >= 1450 && shortSide >= 780) return "1600x900";
-        return "1280x720";
+        return CharoiteCore.automaticGameResolution(this);
     }
 
-    /** The virtual Wine screen is per-launch: never overwrite container size. */
     private String chosenGameResolution() {
-        int mode = getDisplayModeIndex();
-        return mode == 0 ? automaticGameResolution() : WINE_RESOLUTIONS[mode];
+        return CharoiteCore.chosenGameResolution(this);
     }
 
     private void chooseDisplayMode() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Windows game display resolution")
                 .setSingleChoiceItems(DISPLAY_MODES, getDisplayModeIndex(), (dialog, which) -> {
-                    getPreferences(MODE_PRIVATE).edit().putInt("game_display_mode", which).apply();
+                    CharoiteCore.setDisplayMode(this, which);
                     updateButtons();
                     setStatus("Game display resolution set to " + chosenGameResolution()
                             + ". Relaunch the game to apply.");
@@ -544,10 +517,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     private void toggleDesktopPointer() {
-        boolean capture = !getPreferences(MODE_PRIVATE)
-                .getBoolean("desktop_pointer_capture", false);
-        getPreferences(MODE_PRIVATE).edit()
-                .putBoolean("desktop_pointer_capture", capture).apply();
+        boolean capture = !CharoiteCore.isDesktopPointerCaptured(this);
+        CharoiteCore.setDesktopPointerCaptured(this, capture);
         updateButtons();
         setStatus(capture
                 ? "DeX mouse capture enabled for the next game. Release it using Android's pointer capture controls."
@@ -561,13 +532,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             boolean compatible = !getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
             Container current = new ContainerManager(this).getContainerById(containerId);
             if (current == null) throw new IllegalStateException("Windows game environment missing");
-            current.setGraphicsDriver(compatible ?
-                GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL :
-                GraphicsDrivers.getDefaultDriver(this));
-            current.setDXWrapper(compatible ? DXWrappers.WINED3D : Container.DEFAULT_DXWRAPPER);
-            current.setBox64Preset(compatible ? Box64Preset.CONSERVATIVE : Box64Preset.STABILITY);
-            current.setScreenSize(compatible ? "800x600" : "1280x720");
-            current.saveData();
+            CharoiteCore.applyGraphicsProfile(this, current, compatible);
             getPreferences(MODE_PRIVATE).edit().putBoolean("compat_graphics", compatible).apply();
             updateButtons();
             setStatus(compatible ?
@@ -593,29 +558,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             .show();
     }
 
-    /**
-     * Treat each Android APK install/update as a new bundled engine delivery.
-     * The Android package's last update timestamp changes even when the pinned
-     * upstream rootfs version number stays the same. Only record successful
-     * preparation so a failed extraction is retried on the next app launch.
-     */
-    private long installedApkTimestamp() {
-        try {
-            return getPackageManager().getPackageInfo(getPackageName(), 0).lastUpdateTime;
-        } catch (Exception e) {
-            TouhouDiagnostics.recordLine("Could not read installed APK timestamp: " + e);
-            return 0L;
-        }
-    }
-
+    /** Preserve existing engine markers in this Activity's private preferences. */
     private boolean engineRefreshRequired() {
-        return getPreferences(MODE_PRIVATE).getLong("engine_prepared_apk_timestamp", -1L)
-                != installedApkTimestamp();
+        return CharoiteCore.engineRefreshRequired(this);
     }
 
     private void markEnginePrepared() {
-        getPreferences(MODE_PRIVATE).edit()
-                .putLong("engine_prepared_apk_timestamp", installedApkTimestamp()).apply();
+        CharoiteCore.markEnginePrepared(this);
     }
 
     /** Auto-refresh the bundled engine on every APK install or update. */
@@ -631,38 +580,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void startSetup() {
         if (busy) return;
         busy = true;
-        setStatus("Preparing the game engine included in this Touhou OS version…");
+        setStatus("Preparing the game engine included in this Touhou Launcher version…");
         updateButtons();
         worker.execute(() -> {
             try {
-                RootFS root = RootFS.find(this);
-                boolean freshRoot = !root.isValid();
-                boolean rootOutdated = root.getVersion() < RootFSInstaller.LATEST_VERSION;
-                boolean apkChanged = engineRefreshRequired();
-                if (freshRoot || rootOutdated || apkChanged) {
-                    // Preserve user preferences on APK upgrades. Only initialize
-                    // defaults for an incomplete/older upstream engine.
-                    if (freshRoot || rootOutdated) {
-                        SettingsFragment.resetPreferenceVersions(this);
-                        PreferenceManager.getDefaultSharedPreferences(this).edit()
-                                .putString("box64_version", DefaultVersion.BOX64).apply();
-                    }
-                    // Force the bundled Box64 binary to be reconciled by the
-                    // runtime; the prior build's binary may no longer match.
-                    PreferenceManager.getDefaultSharedPreferences(this).edit()
-                            .remove("current_box64_version").apply();
-                    File rootDir = root.getRootDir();
-                    if (!rootDir.isDirectory() && !rootDir.mkdirs())
-                        throw new IllegalStateException("Cannot create private engine storage");
-                    // rootfs.tzst contains an empty /home/ entry only, not
-                    // /home/xuser-N/.wine prefixes. Never delete or recreate
-                    // existing game containers, imported files or save data.
-                    boolean ok = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this,
-                            "rootfs.tzst", rootDir);
-                    if (!ok) throw new IllegalStateException("Could not extract Windows engine resources");
-                    root.createRFSVersionFile(RootFSInstaller.LATEST_VERSION);
-                    if (!root.isValid()) throw new IllegalStateException("Engine verification failed");
-                }
+                CharoiteCore.prepareBundledEngine(this);
                 runOnUiThread(this::ensureGameEnvironment);
             } catch (Exception ex) {
                 runOnUiThread(() -> finishOperation("Setup failed: " + ex.getMessage()));
@@ -678,19 +600,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             if (existing != null) {
                 containerId = existing.id;
                 markEnginePrepared();
-                finishOperation("Game engine updated for this Touhou OS version. Existing games and saves were preserved.");
+                finishOperation("Game engine updated for this Touhou Launcher version. Existing games and saves were preserved.");
                 return;
             }
-            JSONObject profile = new JSONObject();
-            profile.put("name", "Touhou Games");
             boolean conservative = getPreferences(MODE_PRIVATE).getBoolean("compat_graphics", false);
-            profile.put("screenSize", conservative ? "800x600" : "1280x720");
-            profile.put("graphicsDriver", conservative ?
-                GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL :
-                GraphicsDrivers.getDefaultDriver(this));
-            profile.put("dxwrapper", conservative ? DXWrappers.WINED3D : Container.DEFAULT_DXWRAPPER);
-            profile.put("box64Preset", conservative ? Box64Preset.CONSERVATIVE : Box64Preset.STABILITY);
-            profile.put("audioDriver", Container.DEFAULT_AUDIO_DRIVER);
+            JSONObject profile = CharoiteCore.createContainerProfile(
+                    this, "Touhou Games", conservative);
             manager.createContainerAsync(profile, container -> {
                 if (isFinishing() || isDestroyed()) return;
                 if (container == null) {
@@ -1194,13 +1109,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Intent play = new Intent(this, XServerDisplayActivity.class);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", path);
-        boolean desktop = isDesktopWindow();
-        play.putExtra("touhou_desktop_window", desktop);
-        play.putExtra("touhou_display_size", chosenGameResolution());
-        play.putExtra("touhou_pointer_capture", desktop
-                ? getPreferences(MODE_PRIVATE).getBoolean("desktop_pointer_capture", false)
-                : androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
-                        .getBoolean("capture_pointer_on_external_mouse", true));
+        play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(this));
+        play.putExtra("touhou_display_size", CharoiteCore.chosenGameResolution(this));
+        play.putExtra("touhou_pointer_capture", CharoiteCore.shouldCapturePointer(this));
         try {
             if (path.toLowerCase(java.util.Locale.ROOT).endsWith("setup.exe")) {
                 Container current = new ContainerManager(this).getContainerById(containerId);

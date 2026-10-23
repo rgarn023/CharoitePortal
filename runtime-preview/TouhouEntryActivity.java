@@ -537,7 +537,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 fromCurrent && CharoiteCore.compatibleGraphics(this),
                 fromCurrent ? CharoiteCore.getDisplayModeIndex(this) : 0,
                 fromCurrent && CharoiteCore.isDesktopPointerCaptured(this),
-                fromCurrent && CharoiteCore.japaneseCompatibilityEnabled(this));
+                fromCurrent && CharoiteCore.japaneseCompatibilityEnabled(this),
+                fromCurrent && CharoiteCore.installerFontRepairEnabled(this));
     }
 
     private void saveEnvironmentDocument(Uri uri, boolean creating) {
@@ -656,6 +657,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                             settings.getBoolean("capturePointer"));
                     CharoiteCore.setJapaneseCompatibilityEnabled(this,
                             settings.optBoolean("japaneseText", false));
+                    CharoiteCore.setInstallerFontRepairEnabled(this,
+                            settings.optBoolean("installerFontRepair", false));
                     activateEnvironment(id);
                     Toast.makeText(this, "Environment installed from .cenv",
                             Toast.LENGTH_LONG).show();

@@ -214,7 +214,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout navigation = new LinearLayout(this);
         navigation.setOrientation(LinearLayout.HORIZONTAL);
         navigation.setGravity(Gravity.BOTTOM);
-        navigation.setPadding(dp(16), dp(7), dp(16), dp(17));
+        navigation.setPadding(dp(16), dp(7), dp(16), dp(21));
         navigation.setBackgroundColor(PANEL);
         libraryTab = tabButton("Library", () -> showSection(0));
         importTab = tabButton("Setup", () -> showSection(1));
@@ -222,7 +222,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         navigation.addView(libraryTab, tabParams());
         navigation.addView(importTab, tabParams());
         navigation.addView(systemTab, tabParams());
-        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(78)));
+        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(88)));
 
         // Keep the wallpaper behind the scrollable content; the navigation
         // buttons remain solid for contrast and easy touch/DeX mouse access.

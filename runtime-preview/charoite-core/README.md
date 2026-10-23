@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.1
+# Charoite Core (Android runtime module) — v0.2
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -44,3 +44,12 @@ The reusable wallpaper storage/display policy lives in `runtime-preview/charoite
 - The bottom navigation bar was lifted ~14dp with extra bottom padding in this release to improve separation from Samsung's system navigation area.
 
 GitHub Actions run [39948092801](https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39948092801) for code SHA `a2036ec07e11a0c8009da4c3c24b79310bcaa9db` completed **success**. APK SHA256: `b702c5be1b62bf529934acbb5abd322d1df41faf9f729cc89120bfd9d7886502`. Japanese font helpers and 35 JNI libraries intact. Real-device wallpaper picker/DeX resizing remain untested.
+
+## Reusable page tabs — Charoite Core v0.2
+
+`CharoitePageTabs.java` is a reusable native Android connected-page-tab view owned by Charoite Core, **not** by Touhou Launcher. It accepts arbitrary tab names, a selection callback, and a palette supplied by the host app. Core handles:
+- A single attached page-tab strip with equal-width buttons, rounded **top** corners and flat bottom edges.
+- An elevated and accent-highlighted active tab, contrasting inactive pages, 48dp touch targets, and accessibility descriptions.
+- Light/dark palette updates, selection state and screen-size-independent bottom navigation clearance (88dp bar with 21dp bottom padding).
+
+Touhou Launcher constructs `new CharoitePageTabs(this, new String[]{"Library", "Setup", "System"}, this::showSection)`, supplies its palette and current selection, and controls the actual Library, Setup and System screens. Those page names and their content remain app-specific; **all tab visuals and selection handling are in Charoite Core**. The Android overlay copies the Java class into the app's core package so the packaged APK compiles it. Future launchers may reuse this class with different page names.

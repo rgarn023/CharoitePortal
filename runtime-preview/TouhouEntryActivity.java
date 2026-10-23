@@ -909,7 +909,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 tile.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
                 tile.setPadding(dp(5), dp(12), dp(5), dp(11));
                 tile.setBackground(rounded(PANEL, 22, LINE));
-                tile.setMinHeight(dp(138));
+                tile.setMinimumHeight(dp(138));
                 tile.setContentDescription(name + (exists
                         ? ", tap to play, long press to move" : ", executable missing, long press to move"));
 

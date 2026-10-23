@@ -361,6 +361,38 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
         });""")
 display.write_text(code, encoding="utf-8")
 
+# Existing game foreground notifications were still hardcoded "Winlator"
+# even after app_name changed, and their Open action targeted old MainActivity.
+# Change presentation/target only; retain internal class names for native ABI.
+service_path = java_root / "com/winlator/services/ForegroundService.java"
+service_code = service_path.read_text(encoding="utf-8")
+old_target = "Class<?> targetActivity = containerActive ? XServerDisplayActivity.class : MainActivity.class;"
+assert service_code.count(old_target) == 1, "Upstream notification destination changed"
+service_code = service_code.replace(old_target,
+    "Class<?> targetActivity = containerActive ? XServerDisplayActivity.class : com.winlator.TouhouEntryActivity.class;")
+assert service_code.count('"Winlator",') == 1, "Upstream notification title changed"
+service_code = service_code.replace('"Winlator",', '"Charoite Portal",')
+assert service_code.count('"Winlator is running in the background"') == 1
+service_code = service_code.replace('"Winlator is running in the background"',
+    '"Charoite Portal is running in the background"')
+service_code = service_code.replace('"Winlator:ForegroundService"',
+    '"CharoitePortal:ForegroundService"')
+# A fresh channel prevents carrying the previous name as a legacy channel.
+service_code = service_code.replace('"winlator.FGS"', '"charoiteportal.FGS"')
+service_path.write_text(service_code, encoding="utf-8")
+
+# The legacy third-party About dialog isn't on the Portal path; if an internal
+# runtime menu opens it, show Charoite identity, not upstream product website.
+# Source attributions and upstream LGPL license must stay in assets/licenses.
+about_path = java_root / "com/winlator/contentdialog/AboutDialog.java"
+about_code = about_path.read_text(encoding="utf-8")
+webpage_old = 'tvWebpage.setText(Html.fromHtml("<a href=\\"https://www.winlator.org\\">winlator.org</a>", Html.FROM_HTML_MODE_LEGACY));'
+assert about_code.count(webpage_old) == 1, "Upstream About website changed"
+about_code = about_code.replace(webpage_old,
+    'tvWebpage.setText("Charoite Games · Charoite Portal");')
+about_path.write_text(about_code, encoding="utf-8")
+
+
 # Report Box64/loader existence and mode before attempting Android execve.
 guest = java_root / "com/winlator/xenvironment/components/GuestProgramLauncherComponent.java"
 guest_code = guest.read_text(encoding="utf-8")

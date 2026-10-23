@@ -115,6 +115,10 @@ jobs:
               -o "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe" \
               -luser32
             file "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe"
+            # Fail CI if callback decoration drifts from the helper lookup.
+            if [ "$arch" = 32 ]; then symbol="TouhouDrawHook@12"; else symbol="TouhouDrawHook"; fi
+            objdump -p "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" |
+              grep -F " $symbol"
             test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll") -gt 5000
             test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe") -gt 5000
           done

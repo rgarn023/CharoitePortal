@@ -55,10 +55,31 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v4', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v4\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v5', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v5\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
+
+    def test_original_unicode_japanese_is_redrawn_without_decoding(self):
+        # Real v4 phone diagnostics show already-correct Japanese LB_GETTEXT.
+        for codepoints, expected in (
+            ([0x30A2,0x30A4,0x30B3,0x30F3,0x3092,0x8FFD,0x52A0,0x3059,0x308B,0x003A], "アイコンを追加する:"),
+            ([0x30C7,0x30B9,0x30AF,0x30C8,0x30C3,0x30D7,0x306B,0x30A2,0x30A4,0x30B3,0x30F3,0x3092,0x4F5C,0x6210], "デスクトップにアイコンを作成"),
+            ([0x30B9,0x30BF,0x30FC,0x30C8,0x30E1,0x30CB,0x30E5,0x30FC,0x306B,0x767B,0x9332], "スタートメニューに登録"),
+        ):
+            self.assertEqual("".join(map(chr,codepoints)),expected)
+        self.assertIn("originally_japanese=contains_japanese(original)", HOOK)
+        self.assertIn("const wchar_t *label=original", HOOK)
+        self.assertIn("DrawTextW(dc,label,-1", HOOK)
+        self.assertIn("font_has_japanese(item->hwndItem,selected)", HOOK)
+
+    def test_x86_callback_export_matches_real_pe_dll(self):
+        # v4's 32-bit DLL exports TouhouDrawHook@12; v4 looked up a
+        # leading-underscore name and failed silently.
+        self.assertIn('const char *drawExport="TouhouDrawHook@12"', HELPER)
+        self.assertIn('const char *drawExport="TouhouDrawHook"', HELPER)
+        self.assertIn("WH_CALLWNDPROCRET", HELPER)
+        self.assertIn("post-draw hook attach failed win32_error=", HELPER)
 
 
 if __name__ == "__main__":

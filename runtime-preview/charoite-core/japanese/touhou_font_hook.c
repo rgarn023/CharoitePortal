@@ -1,5 +1,5 @@
 /*
- * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v4.
+ * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v5.
  *
  * The original v1 hook only updated the installation-path TEdit. Screens
  * farther into the Inno wizard (notably Select Additional Tasks) use owner-
@@ -10,9 +10,9 @@
  * repairs reversible CP1252-to-CP932 mojibake on installer task labels at
  * paint time, without modifying listbox data, checkbox state or game files.
  *
- * This code runs exclusively when the Touhou-specific local font probe has
- * discovered a TWizardForm for the known Japanese installer and started a
- * thread-local WH_GETMESSAGE hook. Original Win32 text is never rewritten.
+ * This code runs exclusively when the local scoped font probe has discovered
+ * the Inno TWizardForm and started a thread-local hook. Original listbox items,
+ * Win32 text, game files and checkbox states are never rewritten.
  */
 #define UNICODE
 #define _UNICODE
@@ -108,7 +108,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     LONG_PTR style=GetWindowLongPtrW(hwnd,GWL_STYLE);
     char info[512];
     snprintf(info,sizeof(info),
-        "hook-v4 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
+        "hook-v5 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
         slot,count,(unsigned long long)style,
         !!(style & LBS_HASSTRINGS),
         !!(style & (LBS_OWNERDRAWFIXED|LBS_OWNERDRAWVARIABLE)));
@@ -116,7 +116,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     for(int item=0;item<count && item<8;item++) {
         wchar_t value[512]={0};
         if(!read_task_caption(hwnd,(UINT)item,value,512)) {
-            report("hook-v4 list label unavailable through LB_GETTEXT; no unsafe item-data access");
+            report("hook-v5 list label unavailable through LB_GETTEXT; no unsafe item-data access");
             continue;
         }
         size_t at=(size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
@@ -129,7 +129,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
             for(unsigned i=0;recovered[i] && i<52 && pos+7<sizeof(info);i++)
                 pos+=(size_t)snprintf(info+pos,sizeof(info)-pos,"%04X ",(unsigned)recovered[i]);
             report(info);
-        } else report("hook-v4 task not losslessly recoverable as CP1252-to-CP932");
+        } else report("hook-v5 task not losslessly recoverable as CP1252-to-CP932");
     }
 }
 
@@ -235,10 +235,10 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
                     wcscmp(repaired,after)==0) {
                 lstrcpynW(before,repaired,1024);
                 text_japanese=TRUE;
-                report("hook-v4 repaired reversible mojibake on static caption");
+                report("hook-v5 repaired reversible mojibake on static caption");
             } else {
                 SetWindowTextW(hwnd,before);
-                report("hook-v4 static caption repair verification failed; restored");
+                report("hook-v5 static caption repair verification failed; restored");
             }
         }
     }
@@ -270,7 +270,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
             (HFONT)SendMessageW(hwnd,WM_GETFONT,0,0)!=japanese) {
         SendMessageW(hwnd,WM_SETFONT,(WPARAM)original,TRUE);
         DeleteObject(japanese);
-        report("hook-v4 control verification failed; original font restored");
+        report("hook-v5 control verification failed; original font restored");
         return TRUE;
     }
     patched_windows[patched_count]=hwnd;
@@ -279,7 +279,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
     if (patched_count < 25 || patched_count % 25 == 0) {
         char info[200];
         snprintf(info,sizeof(info),
-            "hook-v4 installed Japanese font on control=%u task_list=%d",
+            "hook-v5 installed Japanese font on control=%u task_list=%d",
             patched_count,(int)task);
         report(info);
     }
@@ -296,7 +296,7 @@ static BOOL CALLBACK wizard_callback(HWND hwnd, LPARAM data) {
     // This can never affect an unrelated Wine application's UI.
     if (!installer_verified) {
         installer_verified=TRUE;
-        report("hook-v4 Japanese installer TWizardForm found; scanning ALL text controls");
+        report("hook-v5 Japanese installer TWizardForm found; scanning ALL text controls");
     }
     EnumChildWindows(hwnd,control_callback,0);
     return TRUE;
@@ -330,9 +330,21 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
             !installer_task_list(item->hwndItem)) return FALSE;
     if (GetWindowThreadProcessId(item->hwndItem,NULL)!=GetCurrentThreadId())
         return FALSE;
-    wchar_t original[512]={0}, fixed[512]={0};
-    if (!read_task_caption(item->hwndItem,item->itemID,original,512) ||
-            !restore_shiftjis_caption(original,fixed,512)) return FALSE;
+    wchar_t original[512]={0}, repaired[512]={0};
+    if (!read_task_caption(item->hwndItem,item->itemID,original,512))
+        return FALSE;
+    /*
+     * The FocasLens installer provides VALID Japanese UTF-16 in LB_GETTEXT.
+     * Its checkbox captions are corrupted only by Delphi/Wine owner drawing.
+     * Always prioritize that exact original UTF-16 over ANSI recovery.
+     * Only use reversible CP1252->CP932 as fallback for a different installer.
+     */
+    const wchar_t *label=original;
+    BOOL originally_japanese=contains_japanese(original);
+    if (!originally_japanese) {
+        if (!restore_shiftjis_caption(original,repaired,512)) return FALSE;
+        label=repaired;
+    }
 
     RECT region=item->rcItem;
     region.left+=GetSystemMetrics(SM_CXMENUCHECK)+14;
@@ -343,21 +355,37 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
 
     // Keep the checkmark, selection state and focus border drawn by Inno.
     HDC dc=item->hDC;
-    COLORREF bg=GetBkColor(dc);
+    HFONT selected=(HFONT)SendMessageW(item->hwndItem,WM_GETFONT,0,0);
+    if(!selected || !font_has_japanese(item->hwndItem,selected))
+        return FALSE;
+    int saved=SaveDC(dc);
+    if(!saved) return FALSE;
+    HGDIOBJ prior=SelectObject(dc,selected);
+    if(!prior || prior==HGDI_ERROR) {
+        RestoreDC(dc,saved);
+        return FALSE;
+    }
+
+    // Paint the text portion only; preserve the existing checkmark, row
+    // selection, focus outline, item data and item check state.
+    COLORREF bg=(item->itemState & ODS_SELECTED)
+            ? GetSysColor(COLOR_HIGHLIGHT) : GetBkColor(dc);
     if(bg==CLR_INVALID) bg=GetSysColor(COLOR_WINDOW);
+    COLORREF fg=(item->itemState & ODS_SELECTED)
+            ? GetSysColor(COLOR_HIGHLIGHTTEXT) : GetTextColor(dc);
     HBRUSH brush=CreateSolidBrush(bg);
-    if(!brush) return FALSE;
+    if(!brush) {
+        RestoreDC(dc,saved);
+        return FALSE;
+    }
     FillRect(dc,&region,brush);
     DeleteObject(brush);
-
-    int previous=SetBkMode(dc,TRANSPARENT);
-    HFONT selected=(HFONT)SendMessageW(item->hwndItem,WM_GETFONT,0,0);
-    HGDIOBJ prior=selected ? SelectObject(dc,selected) : NULL;
-    DrawTextW(dc,fixed,-1,&region,
+    SetBkMode(dc,TRANSPARENT);
+    SetTextColor(dc,fg==CLR_INVALID ? GetSysColor(COLOR_WINDOWTEXT) : fg);
+    int drawn=DrawTextW(dc,label,-1,&region,
             DT_SINGLELINE|DT_VCENTER|DT_LEFT|DT_NOPREFIX|DT_END_ELLIPSIS);
-    if(prior && prior!=HGDI_ERROR) SelectObject(dc,prior);
-    SetBkMode(dc,previous);
-    return TRUE;
+    RestoreDC(dc,saved);
+    return drawn>0;
 }
 
 __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
@@ -370,19 +398,19 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) && !draw_seen) {
                 draw_seen=TRUE;
-                report("hook-v4 owner-draw checklist paint event detected");
+                report("hook-v5 owner-draw checklist paint event detected");
             }
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) &&
                     !(GetWindowLongPtrW(item->hwndItem,GWL_STYLE)&LBS_HASSTRINGS) &&
                     !undrawable_reported) {
                 undrawable_reported=TRUE;
-                report("hook-v4 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
+                report("hook-v5 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
             }
             static BOOL logged=FALSE;
             if(draw_recovered_task((const DRAWITEMSTRUCT *)event->lParam) && !logged) {
                 logged=TRUE;
-                report("hook-v4: rendered recovered CP932 task label; installer data unchanged");
+                report("hook-v5: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
             }
         }
     }

@@ -112,6 +112,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button scanButton;
     private Button compatButton;
     private Button japaneseButton;
+    private Button installerFontButton;
     private Button displayButton;
     private Button desktopPointerButton;
     private TextView displayDescription;
@@ -392,6 +393,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
         japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
         graphicsCard.addView(japaneseButton);
+        graphicsCard.addView(label("Optional: repair Japanese text in supported Inno Setup installer dialogs. Uses a scoped font helper while the installer runs; leave off for other Windows installers unless needed.", 12, SECONDARY, false));
+        installerFontButton = outlinedButton("INSTALLER FONT REPAIR: OFF", this::toggleInstallerFontRepair);
+        graphicsCard.addView(installerFontButton);
         systemScreen.addView(graphicsCard);
         spacerIn(systemScreen, 12);
 
@@ -897,6 +901,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             japaneseButton.setText(CharoiteCore.japaneseCompatibilityEnabled(this)
                     ? "JAPANESE TEXT SUPPORT: ON" : "JAPANESE TEXT SUPPORT: OFF");
         }
+        if (installerFontButton != null) {
+            installerFontButton.setEnabled(!busy && ready && CharoiteCore.japaneseCompatibilityEnabled(this));
+            installerFontButton.setText(CharoiteCore.installerFontRepairEnabled(this)
+                    ? "INSTALLER FONT REPAIR: ON" : "INSTALLER FONT REPAIR: OFF");
+        }
         diagnosticButton.setEnabled(!busy);
         if (displayButton != null) {
             int mode = getDisplayModeIndex();
@@ -973,6 +982,17 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setStatus(enabled
                 ? "Japanese support enabled for this realm. Restart Windows apps to apply."
                 : "Japanese support disabled for this realm. Restart Windows apps to apply.");
+    }
+
+    private void toggleInstallerFontRepair() {
+        if (busy || containerId <= 0 ||
+                !CharoiteCore.japaneseCompatibilityEnabled(this)) return;
+        boolean enabled = !CharoiteCore.installerFontRepairEnabled(this);
+        CharoiteCore.setInstallerFontRepairEnabled(this, enabled);
+        updateButtons();
+        setStatus(enabled
+                ? "Scoped Japanese installer font repair enabled for this environment."
+                : "Installer font repair disabled. Standard Japanese fonts remain available.");
     }
 
     private void toggleCompatibility() {

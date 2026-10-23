@@ -1,6 +1,6 @@
 # Charoite Portal for Android
 
-**Charoite Portal** is a Charoite Games Windows gaming environment manager running entirely inside Android / Samsung One UI, with **Charoite Core v0.6** and a pinned, appropriately attributed Winlator-derived Wine/Box64 runtime. It is **not** a custom Android OS, a Windows installation, or a proprietary Wine/Box64 replacement.
+**Charoite Portal** is a Charoite Games Windows gaming environment manager running entirely inside Android / Samsung One UI, with **Charoite Core v0.8** and a pinned, appropriately attributed Winlator-derived Wine/Box64 runtime. It is **not** a custom Android OS, a Windows installation, or a proprietary Wine/Box64 replacement.
 
 The application was previously **Touhou Launcher for Android**. Android package ID remains **`com.touhoudr`** intentionally, to protect access to existing Touhou game files and saves on upgrade. Do not uninstall an older installation just to rename the app.
 
@@ -42,3 +42,6 @@ Source structure:
 - `runtime-preview/overlay.py`: Packages the app and Core into the pinned upstream Android source, retains original `com.touhoudr` identity and license notices.
 
 No proprietary Touhou or Windows game executables, translations or expansions are bundled. Respect all applicable Wine/Winlator/Box64/graphics/font licenses. See [runtime attribution](runtime-preview/NOTICE.md), [Core documentation](runtime-preview/charoite-core/README.md), and [development handoff](docs/HANDOFF.md).
+
+
+**Core v0.8 update:** Folder importing, executable selection and never-autolaunch rules now live in `runtime-preview/charoite-core/CharoiteGameImport.java`, shared by Touhou and other environments. Japanese codepage/fonts and the scoped Windows compatibility helpers now live exclusively in `runtime-preview/charoite-core/CharoiteJapaneseSupport.java` and `charoite-core/japanese/`. System offers per-realm **Japanese Text Support** (Touhou ON by default). Exported `.cenv` files can include an optional `japaneseText` value while remaining backward-compatible.

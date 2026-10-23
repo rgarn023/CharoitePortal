@@ -127,6 +127,7 @@ original_main = next((activity for activity in app.findall("activity")
     if activity.get(a + "name") == "com.winlator.MainActivity"), None)
 assert original_main is not None, "Winlator launcher activity not found"
 original_main.set(a + "exported", "false")
+original_main.set(a + "label", "@string/app_name")
 filters = original_main.findall("intent-filter")
 assert len(filters) == 1, "Unexpected Winlator launcher intent filters"
 for filt in filters:
@@ -137,7 +138,7 @@ for provider in app.findall("provider"):
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
-    a + "screenOrientation": "unspecified",
+    a + "screenOrientation": "fullSensor",
     a + "configChanges": "keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation|uiMode",
     a + "resizeableActivity": "true",
     a + "theme": "@style/AppThemeDark"
@@ -151,8 +152,10 @@ app.insert(0, entry)
 xserver_activity = next((activity for activity in app.findall("activity")
     if activity.get(a + "name") == "com.winlator.XServerDisplayActivity"), None)
 assert xserver_activity is not None, "Upstream game window activity missing"
-xserver_activity.set(a + "screenOrientation", "unspecified")
+xserver_activity.set(a + "screenOrientation", "fullSensor")
+xserver_activity.set(a + "configChanges", "keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation|uiMode")
 xserver_activity.set(a + "resizeableActivity", "true")
+xserver_activity.set(a + "label", "@string/app_name")
 manifest.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
 # Account for FileProvider authority referenced in Java code (none may be present).
@@ -262,7 +265,8 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
             // Non-immersive external-window mode: leave DeX window chrome intact.
             getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         } else {
-            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            // Windows installers/games follow the phone's physical orientation,
+            // preserving the existing Wine/XServer session and its game saves.
             AppUtils.hideSystemUI(this);
         }
         AppUtils.keepScreenOn(this);""")

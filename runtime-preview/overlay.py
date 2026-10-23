@@ -107,6 +107,11 @@ core_destination = java_root / "com/charoitegames/core/CharoiteCore.java"
 assert not core_destination.exists(), "Upstream Charoite Core path conflict"
 core_destination.parent.mkdir(parents=True, exist_ok=True)
 core_destination.write_bytes(core_source.read_bytes())
+wallpaper_source = overlay.parent / "charoite-core/CharoiteWallpaper.java"
+assert wallpaper_source.is_file(), "Charoite Wallpaper module missing"
+wallpaper_destination = java_root / "com/charoitegames/core/CharoiteWallpaper.java"
+assert not wallpaper_destination.exists(), "Upstream Charoite Wallpaper path conflict"
+wallpaper_destination.write_bytes(wallpaper_source.read_bytes())
 
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and

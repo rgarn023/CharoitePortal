@@ -38,6 +38,7 @@ import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
 import com.charoitegames.core.CharoiteEnvironments;
+import com.charoitegames.core.CharoiteEnvironmentFiles;
 import com.charoitegames.core.CharoiteThemes;
 import com.charoitegames.core.CharoitePageTabs;
 import com.charoitegames.core.CharoiteSwipePager;
@@ -77,6 +78,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private static final int FOLDER_REQUEST = 1001;
     private static final int EXE_REQUEST = 1002;
     private static final int WALLPAPER_REQUEST = 1003;
+    private static final int ENVIRONMENT_OPEN_REQUEST = 1004;
+    private static final int ENVIRONMENT_CREATE_REQUEST = 1005;
+    private static final int ENVIRONMENT_EXPORT_REQUEST = 1006;
 
     // Samsung One UI-inspired spacing, surfaces and bottom navigation, with
     // an original Touhou/Charoite identity rather than copied Samsung assets.
@@ -127,6 +131,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button environmentSwitchButton;
     private Button environmentInstallButton;
     private Button environmentCreateButton;
+    private Button environmentExportButton;
+    private String pendingEnvironmentName;
+    private String pendingExportEnvironmentId;
     private boolean busy = false;
     private int containerId = 0;
     private int selectedSection = 0;
@@ -135,6 +142,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         CharoiteEnvironments.initialize(this);
+        if (savedInstanceState != null) {
+            pendingEnvironmentName = savedInstanceState.getString("pending_portal_environment_name");
+            pendingExportEnvironmentId = savedInstanceState.getString("pending_portal_export_id");
+        }
         applyGalaxyPalette();
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(PANEL);
@@ -155,6 +166,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             showSection(1);
             findInstalledGames(true);
         }
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("pending_portal_environment_name", pendingEnvironmentName);
+        state.putString("pending_portal_export_id", pendingExportEnvironmentId);
+        super.onSaveInstanceState(state);
     }
 
     @Override public void onDestroy() {
@@ -350,7 +367,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         environmentCard.addView(environmentInstallButton);
         environmentCreateButton = outlinedButton("CREATE ENVIRONMENT", this::showEnvironmentCreator);
         environmentCard.addView(environmentCreateButton);
-        environmentCard.addView(label("Each environment has its own Windows container, game library, theme and wallpaper. Switching environments never moves game files. Install currently offers offline built-in templates.", 12, SECONDARY, false));
+        environmentExportButton = outlinedButton("EXPORT ENVIRONMENT (.CENV)", this::showEnvironmentExporter);
+        environmentCard.addView(environmentExportButton);
+        environmentCard.addView(label("Install opens a downloaded .cenv file from your phone. Create saves a reusable .cenv profile to a folder you choose. Export an existing realm to share its settings. These files contain no Windows games or saves.", 12, SECONDARY, false));
         systemScreen.addView(environmentCard);
         spacerIn(systemScreen, 12);
 
@@ -442,31 +461,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null).show();
     }
 
-    /** Install a verified offline profile, never download untrusted code. */
+    /** Install only a user-selected, validated .cenv file from Android storage. */
     private void showEnvironmentInstaller() {
         if (busy || wallpaperBusy) return;
-        JSONArray installed = CharoiteEnvironments.list(this);
-        for (int i = 0; i < installed.length(); i++) {
-            JSONObject env = installed.optJSONObject(i);
-            if (env != null && CharoiteEnvironments.GENERAL.equals(env.optString("id"))) {
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Environment templates")
-                        .setMessage("General Gaming is already installed. Switch environments to use it, or create another isolated Windows gaming profile.")
-                        .setPositiveButton("OK", null).show();
-                return;
-            }
-        }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Install environment")
-                .setItems(new String[]{"General Gaming — standard Windows games"}, (dialog, which) -> {
-                    try {
-                        CharoiteEnvironments.installPreset(this, CharoiteEnvironments.GENERAL);
-                        activateEnvironment(CharoiteEnvironments.GENERAL);
-                    } catch (Exception error) { showEnvironmentError(error); }
-                })
-                .setNegativeButton("Cancel", null).show();
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        picker.addCategory(Intent.CATEGORY_OPENABLE);
+        // Android's document providers do not have a universal MIME for .cenv.
+        // Choose any type then STRICTLY validate .cenv extension and JSON data.
+        picker.setType("*/*");
+        picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivityForResult(picker, ENVIRONMENT_OPEN_REQUEST);
     }
 
+    /** Choose a name first, then the phone's Save As folder and .cenv file. */
     private void showEnvironmentCreator() {
         if (busy || wallpaperBusy) return;
         EditText nameInput = new EditText(this);
@@ -474,17 +481,159 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         nameInput.setHint("e.g. Classic RPGs");
         nameInput.setPadding(dp(22), dp(12), dp(22), dp(12));
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Create Windows environment")
-                .setMessage("Creates an isolated Wine container, private game library and customizable wallpaper. Existing environments and games are preserved.")
+                .setTitle("Create environment")
+                .setMessage("Choose a name. Next, select where to save its .cenv profile on your phone. The environment is added only after the file saves successfully. Games and saves are never exported.")
                 .setView(nameInput)
-                .setPositiveButton("Create", (dialog, which) -> {
+                .setPositiveButton("Choose save location", (dialog, which) -> {
                     try {
-                        JSONObject added = CharoiteEnvironments.create(this,
+                        String name = CharoiteEnvironmentFiles.normalizeName(
                                 nameInput.getText().toString());
-                        activateEnvironment(added.optString("id"));
-                    } catch (Exception error) { showEnvironmentError(error); }
+                        JSONArray items = CharoiteEnvironments.list(this);
+                        for (int i = 0; i < items.length(); i++) {
+                            JSONObject item = items.optJSONObject(i);
+                            if (item != null && name.equalsIgnoreCase(item.optString("name")))
+                                throw new IllegalArgumentException("An environment already uses that name.");
+                        }
+                        pendingEnvironmentName = name;
+                        startEnvironmentSavePicker(name, ENVIRONMENT_CREATE_REQUEST);
+                    } catch (Exception error) {
+                        showEnvironmentError(error);
+                    }
                 })
                 .setNegativeButton("Cancel", null).show();
+    }
+
+    /** Export existing Touhou/General/custom profile; never exports its Wine C: or games. */
+    private void showEnvironmentExporter() {
+        if (busy || wallpaperBusy) return;
+        pendingExportEnvironmentId = CharoiteEnvironments.activeId(this);
+        startEnvironmentSavePicker(CharoiteEnvironments.activeName(this),
+                ENVIRONMENT_EXPORT_REQUEST);
+    }
+
+    private void startEnvironmentSavePicker(String name, int requestCode) {
+        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.setType("application/octet-stream");
+        save.putExtra(Intent.EXTRA_TITLE, CharoiteEnvironmentFiles.fileNameFor(name));
+        save.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        startActivityForResult(save, requestCode);
+    }
+
+    private JSONObject createEnvironmentManifest(String name, boolean fromCurrent)
+            throws Exception {
+        String theme = fromCurrent ? CharoiteEnvironments.activeTheme(this) : "cosmic";
+        if (!"touhou".equals(theme) && !"sakura".equals(theme)) theme = "cosmic";
+        else theme = "sakura";
+        return CharoiteEnvironmentFiles.create(name, theme,
+                fromCurrent && CharoiteCore.compatibleGraphics(this),
+                fromCurrent ? CharoiteCore.getDisplayModeIndex(this) : 0,
+                fromCurrent && CharoiteCore.isDesktopPointerCaptured(this));
+    }
+
+    private void saveEnvironmentDocument(Uri uri, boolean creating) {
+        String name = creating ? pendingEnvironmentName :
+                CharoiteEnvironments.activeName(this);
+        if (name == null || name.isEmpty()) {
+            showEnvironmentError(new IllegalStateException("Missing environment to save."));
+            return;
+        }
+        try {
+            final JSONObject manifest = createEnvironmentManifest(name, !creating);
+            final byte[] data = CharoiteEnvironmentFiles.encode(manifest);
+            busy = true;
+            updateButtons();
+            worker.execute(() -> {
+                try (java.io.OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+                    if (out == null) throw new java.io.IOException("Cannot write selected file.");
+                    out.write(data);
+                    out.flush();
+                } catch (Exception error) {
+                    runOnUiThread(() -> {
+                        busy = false;
+                        pendingEnvironmentName = null;
+                        pendingExportEnvironmentId = null;
+                        updateButtons();
+                        showEnvironmentError(error);
+                    });
+                    return;
+                }
+                runOnUiThread(() -> {
+                    busy = false;
+                    pendingEnvironmentName = null;
+                    pendingExportEnvironmentId = null;
+                    try {
+                        if (creating) {
+                            JSONObject created = CharoiteEnvironments.create(this,
+                                    manifest.getString("name"), manifest.getString("theme"));
+                            activateEnvironment(created.getString("id"));
+                            Toast.makeText(this, "Environment created and .cenv saved on your phone",
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            updateButtons();
+                            Toast.makeText(this, "Environment .cenv saved on your phone",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    } catch (Exception error) {
+                        updateButtons();
+                        showEnvironmentError(error);
+                    }
+                });
+            });
+        } catch (Exception error) {
+            pendingEnvironmentName = null;
+            pendingExportEnvironmentId = null;
+            showEnvironmentError(error);
+        }
+    }
+
+    private void openEnvironmentDocument(Uri uri) {
+        DocumentFile document = DocumentFile.fromSingleUri(this, uri);
+        String fileName = document == null ? null : document.getName();
+        if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(
+                CharoiteEnvironmentFiles.EXTENSION)) {
+            showEnvironmentError(new IllegalArgumentException(
+                    "Select a Charoite Portal .cenv environment file."));
+            return;
+        }
+        busy = true;
+        updateButtons();
+        worker.execute(() -> {
+            final JSONObject manifest;
+            try (InputStream input = getContentResolver().openInputStream(uri)) {
+                manifest = CharoiteEnvironmentFiles.read(input);
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    busy = false;
+                    updateButtons();
+                    showEnvironmentError(error);
+                });
+                return;
+            }
+            runOnUiThread(() -> {
+                busy = false;
+                try {
+                    JSONObject installed = CharoiteEnvironments.installFromFile(this, manifest);
+                    String id = installed.getString("id");
+                    // Settings are scoped by active environment ID, not global
+                    // graphics/display keys. Never overwrite Touhou settings.
+                    if (!CharoiteEnvironments.switchTo(this, id))
+                        throw new IllegalStateException("Could not activate imported environment.");
+                    JSONObject settings = manifest.getJSONObject("settings");
+                    CharoiteCore.setCompatibleGraphics(this,
+                            settings.getBoolean("compatibilityGraphics"));
+                    CharoiteCore.setDisplayMode(this, settings.getInt("displayMode"));
+                    CharoiteCore.setDesktopPointerCaptured(this,
+                            settings.getBoolean("capturePointer"));
+                    activateEnvironment(id);
+                    Toast.makeText(this, "Environment installed from .cenv",
+                            Toast.LENGTH_LONG).show();
+                } catch (Exception error) {
+                    updateButtons();
+                    showEnvironmentError(error);
+                }
+            });
+        });
     }
 
     private void showEnvironmentError(Exception error) {
@@ -707,6 +856,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         if (environmentSwitchButton != null) environmentSwitchButton.setEnabled(!busy && !wallpaperBusy);
         if (environmentInstallButton != null) environmentInstallButton.setEnabled(!busy && !wallpaperBusy);
         if (environmentCreateButton != null) environmentCreateButton.setEnabled(!busy && !wallpaperBusy);
+        if (environmentExportButton != null) environmentExportButton.setEnabled(!busy && !wallpaperBusy);
         if (runtimeLabel != null) runtimeLabel.setText(ready ?
                 "Up to date • Wine and Box64 are ready for your games." :
                 busy ? "Preparing this APK's bundled Wine / Box64 runtime automatically…" :

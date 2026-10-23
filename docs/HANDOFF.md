@@ -491,3 +491,9 @@ Code commit `99fa1566a73a6ae363a4d5ebbfe27e16add93b63` on existing `main` update
 - This implementation uses generated text glyph/color icons (not real extracted Windows executable icons or artwork). Icon display/drag correctness requires physical Galaxy testing; future optional enhancements could extract EXE icons and support folder/grid edit mode.
 - Existing Winlator-derived backend, Android application ID `com.touhoudr`, APK-triggered engine refresh, TPDP original Japanese installation path and scoped IPAPGothic Windows font fix untouched.
 - GitHub Actions run for `99fa1566`: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39893224437 ; verify successful completion and APK artifact before distributing new APK. GitHub CI debug key signing may not match earlier installed build; never casually uninstall an app containing user games/saves.
+
+### Verified APK — draggable game icons
+
+- GitHub Actions **success**: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39893443118, source SHA `c1df3f93da8343274deb18131df0e43fa59047a3` (fixes Android `LinearLayout.setMinHeight` compile error to `setMinimumHeight`).
+- Artifact `touhou-pocket-runtime-preview-apk` ID `12475916999` contains `app-debug.apk`, extracted as `Touhou-OS-Game-Library-Update.apk` (231,979,996 bytes), SHA256 `58000d0f9a250e04d3037368475e2f52d8ef60eb4c83358e8cbb0a2ca5`. Artifact ZIP CRC and APK CRC pass; 35 JNI libraries and both architecture pairs of Japanese font hooks/helpers present.
+- **Not Galaxy-tested yet**: drag/drop tile reordering, device layouts, light/dark mode, and actual game launch still require user device validation. No installed game files or saves changed by GitHub source edits. New app APK may be signed with different temporary debug key than previously installed; require Android signature match for an in-place update. Do not uninstall without confirming user has no irreplaceable private data.

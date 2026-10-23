@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.8";
+    public static final String VERSION = "0.9";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"
@@ -79,15 +79,30 @@ public final class CharoiteCore {
                 .edit().putBoolean("charoite_japanese_support_" + environmentId, enabled).apply();
     }
 
-    /** The special installer font probe is only for the original Touhou
-     * setup.exe. The generic Japanese fonts/locale work in other realms too.
+    /**
+     * Inno Setup font repair is a Core capability, but injection remains
+     * explicitly scoped: current environment must have Japanese support,
+     * user must opt in (Touhou legacy defaults on), and launch must be setup.exe.
+     * The monitor itself only attaches to an Inno TWizardForm GUI thread.
      */
-    public static boolean useTouhouInstallerFontProbe(Context host) {
+    public static boolean installerFontRepairEnabled(Context host) {
         android.content.SharedPreferences prefs = host.getSharedPreferences(
                 "TouhouEntryActivity", Context.MODE_PRIVATE);
+        String id = prefs.getString("charoite_active_environment_v1", CharoiteEnvironments.TOUHOU);
         return japaneseCompatibilityEnabled(host)
-                && CharoiteEnvironments.TOUHOU.equals(prefs.getString(
-                        "charoite_active_environment_v1", CharoiteEnvironments.TOUHOU));
+                && prefs.getBoolean("charoite_installer_font_repair_" + id,
+                        CharoiteEnvironments.TOUHOU.equals(id));
+    }
+
+    public static void setInstallerFontRepairEnabled(AppCompatActivity host, boolean enabled) {
+        String id = CharoiteEnvironments.activeId(host);
+        host.getSharedPreferences("TouhouEntryActivity", Context.MODE_PRIVATE)
+                .edit().putBoolean("charoite_installer_font_repair_" + id, enabled).apply();
+    }
+
+    /** Compatibility alias for the earlier Touhou-specific caller. */
+    public static boolean useTouhouInstallerFontProbe(Context host) {
+        return installerFontRepairEnabled(host);
     }
 
     public static boolean compatibleGraphics(AppCompatActivity host) {

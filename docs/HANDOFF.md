@@ -516,3 +516,11 @@ Code commit `99fa1566a73a6ae363a4d5ebbfe27e16add93b63` on existing `main` update
 - Desktop resizing can scale an already running GL display. The internal Windows X screen resolution is selected **when the game launches**; to pick a new guest resolution after resizing, relaunch game. No hot virtual desktop resolution switching has been implemented.
 - Do not claim fully tested DeX compatibility without actual S26 Ultra + external monitor verification. Also no physical validation yet of all input paths or resizable Wine graphics.
 - Build workflow run for `071ca8ff`: https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39941688879 . Confirm success, artifact and extracted APK integrity before handing out.
+
+
+### Verified DeX APK artifact (2026-10-23)
+
+GitHub Actions run **39941688879** completed **success**; code build SHA `071ca8ffd7dbf53bd6d9f46ca64683aed6f55c06`. The working `main` branch also includes this documentation update. APK artifact `touhou-pocket-runtime-preview-apk`, ID `12495829292`, checksum for artifact ZIP as reported by GitHub `sha256:442560e9b7bf452dfae3c61ba4acd9f8d03e5ed2e6cca9eeaf7fbdd42136ccc6`.
+- The one-file ZIP artifact contained `app-debug.apk`, extracted to `/mnt/data/Touhou-OS-DeX-Edition.apk` for sharing. APK size **231,982,272 bytes**, SHA-256 `0651c9659d743d646d9ee7b3ec1d6c860aeb7493de6ff7b4b099082d79d62803`. Both archive ZIP and extracted APK passed CRC integrity checks; 35 native JNI libraries present; Japanese probe, 32- and 64-bit font hooks and helpers included.
+- Resizable-window, pointer-capture, and virtual-resolution code compiled successfully. **No external Samsung DeX hardware testing has occurred**; physical mouse/keyboard routing, DeX window resizing, graphics scaling and launching Japanese game installers in desktop mode need device confirmation.
+- App ID remains `com.touhoudr`. Temporary GitHub Actions debug APK signatures can differ between workflow builds, so Android might reject an in-place upgrade due to signature mismatch. Never recommend uninstalling if user has irreplaceable app-private game files/saves without backup.

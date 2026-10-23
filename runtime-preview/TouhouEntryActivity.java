@@ -208,29 +208,28 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         mainScroll.addView(contentHost);
         rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        // Bottom navigation stays visible when the setup page is scrolled.
+        // A single connected row of page tabs, not separate floating buttons.
+        // The selected tab rises into the page; the bottom margin keeps the
+        // tab strip clear of Samsung's gesture/three-button navigation area.
         LinearLayout navigation = new LinearLayout(this);
         navigation.setOrientation(LinearLayout.HORIZONTAL);
-        navigation.setGravity(Gravity.CENTER_VERTICAL);
-        // Raise tabs roughly 14dp above the Android navigation area.
-        // Extra bottom padding keeps a comfortable thumb target on Galaxy phones.
-        navigation.setPadding(dp(13), dp(7), dp(13), dp(21));
+        navigation.setGravity(Gravity.BOTTOM);
+        navigation.setPadding(dp(16), dp(7), dp(16), dp(17));
         navigation.setBackgroundColor(PANEL);
-        navigation.setElevation(dp(8));
-        libraryTab = tabButton("▦\nLibrary", () -> showSection(0));
-        importTab = tabButton("＋\nSetup", () -> showSection(1));
-        systemTab = tabButton("⚙\nSystem", () -> showSection(2));
+        libraryTab = tabButton("Library", () -> showSection(0));
+        importTab = tabButton("Setup", () -> showSection(1));
+        systemTab = tabButton("System", () -> showSection(2));
         navigation.addView(libraryTab, tabParams());
         navigation.addView(importTab, tabParams());
         navigation.addView(systemTab, tabParams());
-        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(88)));
+        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(78)));
 
         // Keep the wallpaper behind the scrollable content; the navigation
         // buttons remain solid for contrast and easy touch/DeX mouse access.
         FrameLayout wallpaperHost = new FrameLayout(this);
         wallpaperHost.setBackgroundColor(BG);
         wallpaperBackground = new ImageView(this);
-        wallpaperBackground.setContentDescription("Custom launcher wallpaper");
+        wallpaperBackground.setContentDescription("Wallpaper");
         wallpaperHost.addView(wallpaperBackground, new FrameLayout.LayoutParams(-1, -1));
         wallpaperTint = new View(this);
         wallpaperHost.addView(wallpaperTint, new FrameLayout.LayoutParams(-1, -1));
@@ -353,12 +352,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         spacerIn(systemScreen, 12);
 
         LinearLayout wallpaperCard = card();
-        wallpaperCard.addView(label("Launcher wallpaper", 17, FOREGROUND, true));
+        wallpaperCard.addView(label("Wallpaper", 17, FOREGROUND, true));
         wallpaperCard.addView(label("Choose an image saved on your phone. The wallpaper appears behind the Library, Setup and System screens; it does not change your Samsung home wallpaper.", 12, SECONDARY, false));
         wallpaperPreview = new ImageView(this);
         wallpaperPreview.setBackground(rounded(BG, 19, LINE));
         wallpaperPreview.setClipToOutline(true);
-        wallpaperPreview.setContentDescription("Preview of your launcher wallpaper");
+        wallpaperPreview.setContentDescription("Wallpaper preview");
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(-1, dp(160));
         previewParams.topMargin = dp(10);
         wallpaperCard.addView(wallpaperPreview, previewParams);
@@ -407,7 +406,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     private LinearLayout.LayoutParams tabParams() {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1f);
-        params.setMargins(dp(3), 0, dp(3), 0);
+        // Touching edges produces the visual rhythm of attached page tabs.
+        params.setMargins(0, 0, 0, 0);
         return params;
     }
 
@@ -415,25 +415,41 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Button view = new Button(this);
         view.setText(title);
         view.setAllCaps(false);
-        view.setTextSize(12);
+        view.setTextSize(14);
         view.setGravity(Gravity.CENTER);
-        view.setMinHeight(dp(54));
-        view.setMinimumHeight(dp(54));
-        view.setPadding(dp(5), dp(4), dp(5), dp(4));
-        view.setLineSpacing(dp(1), 1f);
-        view.setContentDescription(title.replace("\\n", " "));
+        view.setMinHeight(dp(48));
+        view.setMinimumHeight(dp(48));
+        view.setPadding(dp(6), dp(9), dp(6), dp(7));
+        view.setContentDescription(title + " page");
+        view.setStateListAnimator(null);
+        view.setElevation(0);
         view.setOnClickListener(v -> action.run());
         return view;
     }
 
+    /** Flat-bottom, rounded-top file/page tabs with a raised active page. */
     private void styleTab(Button tab, boolean selected) {
         if (tab == null) return;
         tab.setBackgroundTintList(null);
         tab.setTextColor(selected ? ACCENT : SECONDARY);
         tab.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL),
                 selected ? Typeface.BOLD : Typeface.NORMAL);
-        tab.setBackground(rounded(selected ? SELECTED_BG : PANEL, 21,
-                selected ? SELECTED_BG : PANEL));
+        GradientDrawable page = new GradientDrawable();
+        page.setColor(selected ? SELECTED_BG : (darkMode ? 0xff282930 : 0xffECEEF4));
+        page.setCornerRadii(new float[]{
+                dp(17), dp(17), dp(17), dp(17),
+                0, 0, 0, 0
+        });
+        page.setStroke(dp(1), selected ? ACCENT : LINE);
+        tab.setBackground(page);
+        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) tab.getLayoutParams();
+        if (p != null) {
+            // The active tab sticks up slightly like a selected notebook page.
+            p.topMargin = selected ? 0 : dp(8);
+            p.bottomMargin = 0;
+            tab.setLayoutParams(p);
+        }
+        tab.setSelected(selected);
     }
 
     private LinearLayout card() {
@@ -484,7 +500,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     wallpaperBitmap = null;
                     wallpaperBusy = false;
                     refreshWallpaperViews();
-                    Toast.makeText(this, "Launcher wallpaper updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Wallpaper updated", Toast.LENGTH_SHORT).show();
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
@@ -526,7 +542,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
         wallpaperBitmap = null;
         refreshWallpaperViews();
-        Toast.makeText(this, "Launcher wallpaper removed", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Wallpaper removed", Toast.LENGTH_SHORT).show();
     }
 
     private void updateWallpaperControls() {

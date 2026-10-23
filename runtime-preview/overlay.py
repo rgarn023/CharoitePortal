@@ -271,6 +271,28 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
         }
         AppUtils.keepScreenOn(this);""")
 
+# Keep Wine/XServer alive during device rotation. GLSurfaceView automatically
+# calls GLRenderer.onSurfaceChanged(new width, height); its viewTransformation
+# then fits the live Wine image to the new phone surface size. This does NOT
+# secretly restart the installer/game or overwrite the Wine container.
+rotation_java = """    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (xServerView != null) {
+            xServerView.post(() -> {
+                xServerView.requestLayout();
+                xServerView.requestRender();
+                if (inputControlsView != null) inputControlsView.requestLayout();
+                if (touchpadView != null) touchpadView.requestLayout();
+            });
+        }
+    }
+
+"""
+rotation_anchor = "    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {"
+assert code.count(rotation_anchor) == 1, "Upstream game rotation insertion changed"
+code = code.replace(rotation_anchor, rotation_java + rotation_anchor)
+
 # Pick a per-launch Wine virtual desktop size, never changing the
 # persistent Wine container or files when moving between DeX and phone.
 old_guest_screen = "            screenInfo = resolveScreenInfo(container.getScreenSize());"

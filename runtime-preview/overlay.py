@@ -22,16 +22,16 @@ strings = root / "app/src/main/res/values/strings.xml"
 src = strings.read_text(encoding="utf-8")
 assert '<string name="app_name">Winlator</string>' in src, "Upstream app name changed"
 src = src.replace('<string name="app_name">Winlator</string>',
-                  '<string name="app_name">Touhou Launcher</string>')
+                  '<string name="app_name">Charoite Portal</string>')
 # Remove upstream branding from visible startup and background notifications.
 # This does NOT change the runtime's original Winlator-derived architecture.
 for original, branded in (
     ('<string name="starting_up">Starting up...</string>',
      '<string name="starting_up">Launching Touhou game...</string>'),
     ('<string name="fgs_notification_content_else">Winlator is running in the background</string>',
-     '<string name="fgs_notification_content_else">Touhou Launcher is running</string>'),
+     '<string name="fgs_notification_content_else">Charoite Portal is running</string>'),
     ('<string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\\\'s background process management.</string>',
-     '<string name="fgs_notification_channel_desc">Keeps Touhou Launcher active while a Windows game is running.</string>'),
+     '<string name="fgs_notification_channel_desc">Keeps Charoite Portal active while a Windows game is running.</string>'),
 ):
     assert original in src, f"Upstream string changed: {original[:58]}"
     src = src.replace(original, branded)
@@ -122,6 +122,12 @@ tabs_destination = java_root / "com/charoitegames/core/CharoitePageTabs.java"
 assert not tabs_destination.exists(), "Upstream Charoite page tabs path conflict"
 tabs_destination.write_bytes(tabs_source.read_bytes())
 
+environment_source = overlay.parent / "charoite-core/CharoiteEnvironments.java"
+assert environment_source.is_file(), "Charoite Environment registry missing"
+environment_destination = java_root / "com/charoitegames/core/CharoiteEnvironments.java"
+assert not environment_destination.exists(), "Environment source collides with upstream"
+environment_destination.write_bytes(environment_source.read_bytes())
+
 
 # The read-only Wine diagnostics executable is cross-compiled by Actions and
 # bundled as an asset, never committed as a binary to the source repository.
@@ -202,9 +208,9 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
                     preloaderDialog.closeOnUiThread();
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle("Touhou game did not start")
-                        .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Touhou Launcher and open Launch Diagnostics, or switch to Compatibility Graphics.")
+                        .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Charoite Portal and open Launch Diagnostics, or switch to Compatibility Graphics.")
                         .setCancelable(false)
-                        .setPositiveButton("Return to Touhou Launcher", (d, which) -> exit())
+                        .setPositiveButton("Return to Charoite Portal", (d, which) -> exit())
                         .show();
                 }
             }, 45000);

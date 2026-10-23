@@ -50,6 +50,8 @@ icon_destination.parent.mkdir(parents=True, exist_ok=True)
 icon_destination.write_bytes((Path(__file__).resolve().parent / "touhou_pocket_icon.xml").read_bytes())
 app.set(a + "icon", "@drawable/touhou_pocket_icon")
 app.set(a + "roundIcon", "@drawable/touhou_pocket_icon")
+# Explicit freeform/multi-window support for DeX on external displays.
+app.set(a + "resizeableActivity", "true")
 original_main = next((activity for activity in app.findall("activity")
     if activity.get(a + "name") == "com.winlator.MainActivity"), None)
 assert original_main is not None, "Winlator launcher activity not found"
@@ -64,13 +66,22 @@ for provider in app.findall("provider"):
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
-    a + "screenOrientation": "sensor",
+    a + "screenOrientation": "unspecified",
+    a + "configChanges": "keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation|uiMode",
+    a + "resizeableActivity": "true",
     a + "theme": "@style/AppThemeDark"
 })
 intent = ET.SubElement(entry, "intent-filter")
 ET.SubElement(intent, "action", {a + "name": "android.intent.action.MAIN"})
 ET.SubElement(intent, "category", {a + "name": "android.intent.category.LAUNCHER"})
 app.insert(0, entry)
+# Upstream forces games into landscape, which can interfere with DeX
+# freeform windows. Phone launches request sensor-landscape at runtime.
+xserver_activity = next((activity for activity in app.findall("activity")
+    if activity.get(a + "name") == "com.winlator.XServerDisplayActivity"), None)
+assert xserver_activity is not None, "Upstream game window activity missing"
+xserver_activity.set(a + "screenOrientation", "unspecified")
+xserver_activity.set(a + "resizeableActivity", "true")
 manifest.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
 # Account for FileProvider authority referenced in Java code (none may be present).
@@ -122,6 +133,38 @@ print(f"Rebased {native_path_changes} C/C++ app-private path sources")
 # Instrument the Wine renderer instead of leaving "Starting up" forever.
 display = java_root / "com/winlator/XServerDisplayActivity.java"
 code = display.read_text(encoding="utf-8")
+# Keep standard immersive sensor-landscape on phones, but preserve DeX
+# window decorations and allow the Windows game activity to be resized.
+dex_ui_original = """        AppUtils.hideSystemUI(this);
+        AppUtils.keepScreenOn(this);"""
+assert code.count(dex_ui_original) == 1, "Upstream game UI initialization changed"
+code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra("touhou_desktop_window", false)) {
+            // Non-immersive external-window mode: leave DeX window chrome intact.
+            getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        } else {
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            AppUtils.hideSystemUI(this);
+        }
+        AppUtils.keepScreenOn(this);""")
+
+# Pick a per-launch Wine virtual desktop size, never changing the
+# persistent Wine container or files when moving between DeX and phone.
+old_guest_screen = "            screenInfo = resolveScreenInfo(container.getScreenSize());"
+assert code.count(old_guest_screen) == 1, "Upstream container screenInfo marker changed"
+code = code.replace(old_guest_screen, old_guest_screen + """
+            if (getIntent().hasExtra("touhou_display_size")) {
+                String requested = getIntent().getStringExtra("touhou_display_size");
+                if (requested != null && requested.matches("800x600|1280x720|1600x900|1920x1080"))
+                    screenInfo = resolveScreenInfo(requested);
+            }""")
+
+# Winlator already handles Android key and mouse events. On DeX choose
+# whether to capture the pointer, defaulting to a freely movable cursor.
+old_mouse = '        capturePointerOnExternalMouse = preferences.getBoolean("capture_pointer_on_external_mouse", true);'
+assert code.count(old_mouse) == 1, "Upstream mouse-capture marker changed"
+code = code.replace(old_mouse,
+    '        capturePointerOnExternalMouse = getIntent().getBooleanExtra("touhou_pointer_capture", ' +
+    'preferences.getBoolean("capture_pointer_on_external_mouse", true));')
 old_show = "        preloaderDialog.show(R.string.starting_up);"
 assert code.count(old_show) == 1, "Startup dialog marker changed"
 code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {false};

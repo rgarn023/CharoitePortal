@@ -48,3 +48,11 @@ Portal still coordinates **Android lifecycle and async UI** (including new conta
 5. **Independent Core library distribution:** Core is currently an **in-app source module** packaged into Charoite Portal. It has not been extracted into an independently versioned Maven/Gradle Android AAR or separate SDK.
 
 Every migration listed above was based on verified `main` source files; a GitHub Actions green build confirms compilation but not physical device behavior.
+
+
+## Verified release build
+
+- **GitHub Actions:** [run 40021934830](https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/40021934830), build source `cf25a263282dc1462af965c651e0eb2783e62910`, completed **success**, all 26 steps passed. Later migration-audit documentation commits do not alter `runtime-preview/**` or the APK source.
+- **APK artifact:** `touhou-pocket-runtime-preview-apk` (ID `12530838478`), extracted `Charoite-Portal-v0.9-Core-Migration.apk`, **232,012,357 bytes**, SHA256 `a93a79b8fd8836b52bf194821cff378d12bec04e137002e4293d1ad2b593a533`.
+- **Integrity:** GitHub artifact ZIP and nested APK CRC checks passed; APK contains 992 members, 35 native libraries, approved Charoite Portal icon, and DEX references for `CharoiteGameLibrary`, `CharoiteGameDiscovery`, `CharoiteGameSessions`, `CharoiteGameProfiles`, `CharoiteGameImport`, `CharoiteJapaneseSupport` and `CharoiteDiagnostics`.
+- **No hardware claim:** The APK has not been installed or exercised on the user's Samsung handset by CI; these checks establish build completeness, not success of every real Windows title.

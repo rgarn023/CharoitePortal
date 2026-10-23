@@ -394,18 +394,20 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         RootFS root = RootFS.find(this);
         if (!root.isValid()) {
             containerId = 0;
-            setStatus("Setup required: install the built-in game engine once.");
+            setStatus("Preparing the bundled game engine…");
         } else if (root.getVersion() < RootFSInstaller.LATEST_VERSION) {
             containerId = 0;
-            setStatus("Engine needs an update. Tap Set Up Game Engine.");
+            setStatus("Updating the bundled game engine…");
         } else {
             try {
                 ContainerManager manager = new ContainerManager(this);
                 Container selected = getActiveContainer(manager);
                 containerId = selected != null ? selected.id : 0;
-                setStatus(selected == null ?
-                        "Engine installed. Tap Set Up Game Engine to prepare your game environment." :
-                        "Engine ready. Import a game folder or EXE, then tap Play.");
+                setStatus(engineRefreshRequired()
+                        ? "Touhou OS was installed or updated. Refreshing the engine automatically…"
+                        : selected == null
+                            ? "Finishing your automatic Windows game environment setup…"
+                            : "Game engine ready • Your Touhou games are in Library.");
             } catch (Exception ex) {
                 containerId = 0;
                 setStatus("Engine check failed: " + ex.getMessage());
@@ -416,15 +418,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
     private void updateButtons() {
         RootFS root = RootFS.find(this);
-        boolean ready = root.isValid() && root.getVersion() >= RootFSInstaller.LATEST_VERSION && containerId > 0;
+        boolean ready = root.isValid() && root.getVersion() >= RootFSInstaller.LATEST_VERSION
+                && containerId > 0 && !engineRefreshRequired();
         initButton.setEnabled(!busy);
         // Automatic setup on first launch; expose only a manual retry on failure.
         initButton.setVisibility(ready || busy ? View.GONE : View.VISIBLE);
         initButton.setText("RETRY GAME ENGINE SETUP");
         if (runtimeLabel != null) runtimeLabel.setText(ready ?
-                "Ready to play. Your existing Windows game environment is preserved." :
-                busy ? "Setting up Touhou OS automatically. Preparing Wine, Box64 and game storage…" :
-                "Engine not ready. Retry initialization here if necessary.");
+                "Up to date • Wine and Box64 are ready for your games." :
+                busy ? "Preparing this APK's bundled Wine / Box64 runtime automatically…" :
+                "Engine not ready. Retry automatic preparation here if necessary.");
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
@@ -484,35 +487,69 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     /**
-     * Touhou OS prepares its bundled engine automatically only when needed.
-     * Never erase an existing Wine prefix or recreate an existing container.
+     * Treat each Android APK install/update as a new bundled engine delivery.
+     * The Android package's last update timestamp changes even when the pinned
+     * upstream rootfs version number stays the same. Only record successful
+     * preparation so a failed extraction is retried on the next app launch.
      */
+    private long installedApkTimestamp() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).lastUpdateTime;
+        } catch (Exception e) {
+            TouhouDiagnostics.recordLine("Could not read installed APK timestamp: " + e);
+            return 0L;
+        }
+    }
+
+    private boolean engineRefreshRequired() {
+        return getPreferences(MODE_PRIVATE).getLong("engine_prepared_apk_timestamp", -1L)
+                != installedApkTimestamp();
+    }
+
+    private void markEnginePrepared() {
+        getPreferences(MODE_PRIVATE).edit()
+                .putLong("engine_prepared_apk_timestamp", installedApkTimestamp()).apply();
+    }
+
+    /** Auto-refresh the bundled engine on every APK install or update. */
     private void initializeEngineOnFirstLaunch() {
         if (busy) return;
         RootFS root = RootFS.find(this);
         boolean runtimeMissing = !root.isValid() ||
                 root.getVersion() < RootFSInstaller.LATEST_VERSION;
-        if (!runtimeMissing && containerId > 0) return;
-        showSection(2);
+        if (!runtimeMissing && containerId > 0 && !engineRefreshRequired()) return;
         startSetup();
     }
 
     private void startSetup() {
         if (busy) return;
         busy = true;
-        setStatus("Touhou OS is preparing your game environment. First launch may require substantial storage.");
+        setStatus("Preparing the game engine included in this Touhou OS version…");
         updateButtons();
         worker.execute(() -> {
             try {
                 RootFS root = RootFS.find(this);
-                if (!root.isValid() || root.getVersion() < RootFSInstaller.LATEST_VERSION) {
-                    SettingsFragment.resetPreferenceVersions(this);
+                boolean freshRoot = !root.isValid();
+                boolean rootOutdated = root.getVersion() < RootFSInstaller.LATEST_VERSION;
+                boolean apkChanged = engineRefreshRequired();
+                if (freshRoot || rootOutdated || apkChanged) {
+                    // Preserve user preferences on APK upgrades. Only initialize
+                    // defaults for an incomplete/older upstream engine.
+                    if (freshRoot || rootOutdated) {
+                        SettingsFragment.resetPreferenceVersions(this);
+                        PreferenceManager.getDefaultSharedPreferences(this).edit()
+                                .putString("box64_version", DefaultVersion.BOX64).apply();
+                    }
+                    // Force the bundled Box64 binary to be reconciled by the
+                    // runtime; the prior build's binary may no longer match.
                     PreferenceManager.getDefaultSharedPreferences(this).edit()
-                        .putString("box64_version", DefaultVersion.BOX64)
-                        .remove("current_box64_version").apply();
+                            .remove("current_box64_version").apply();
                     File rootDir = root.getRootDir();
                     if (!rootDir.isDirectory() && !rootDir.mkdirs())
                         throw new IllegalStateException("Cannot create private engine storage");
+                    // rootfs.tzst contains an empty /home/ entry only, not
+                    // /home/xuser-N/.wine prefixes. Never delete or recreate
+                    // existing game containers, imported files or save data.
                     boolean ok = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this,
                             "rootfs.tzst", rootDir);
                     if (!ok) throw new IllegalStateException("Could not extract Windows engine resources");
@@ -527,13 +564,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     private void ensureGameEnvironment() {
-        setStatus("Creating game environment…");
+        setStatus("Checking your private Windows game container…");
         try {
             ContainerManager manager = new ContainerManager(this);
             Container existing = getActiveContainer(manager);
             if (existing != null) {
                 containerId = existing.id;
-                finishOperation("Touhou game engine ready. Import a game to play.");
+                markEnginePrepared();
+                finishOperation("Game engine updated for this Touhou OS version. Existing games and saves were preserved.");
                 return;
             }
             JSONObject profile = new JSONObject();
@@ -553,7 +591,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 } else {
                     containerId = container.id;
                     getPreferences(MODE_PRIVATE).edit().putInt("touhou_container", containerId).apply();
-                    finishOperation("Game engine ready. Import a game to play.");
+                    markEnginePrepared();
+                    finishOperation("Game engine prepared automatically. Open Setup to install your games.");
                 }
             });
         } catch (Exception ex) {
@@ -858,7 +897,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             String path = game.optString("path", "");
             LinearLayout item = card();
             item.addView(label("TOUHOU GAME", 11, GOLD, true));
-            item.addView(label(game.optString("name", "Imported game"), 17, Color.WHITE, true));
+            item.addView(label(game.optString("name", "Imported game"), 17, FOREGROUND, true));
             item.addView(label(new File(path).isFile()
                     ? "Ready to launch from your library"
                     : "Game executable missing; find or re-import game files", 12, SECONDARY, false));
@@ -872,7 +911,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             LinearLayout empty = card();
             empty.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(label("✦", 35, SAKURA, true));
-            TextView title = label("Your Gensokyo library awaits", 17, Color.WHITE, true);
+            TextView title = label("Your Gensokyo library awaits", 17, FOREGROUND, true);
             title.setGravity(Gravity.CENTER_HORIZONTAL);
             empty.addView(title);
             TextView hint = label("Open Setup to install or import a Touhou game.", 13, SECONDARY, false);
@@ -900,7 +939,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         String path = lastInstaller.optString("path", "");
         LinearLayout installerCard = card();
         installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
-        installerCard.addView(label(new File(path).getName(), 16, Color.WHITE, true));
+        installerCard.addView(label(new File(path).getName(), 16, FOREGROUND, true));
         installerCard.addView(label("If setup was interrupted, reopen the original installer here. Imported files are preserved.", 12, SECONDARY, false));
         Button rerun = outlinedButton("RUN INSTALLER AGAIN", () -> launchGame(path, true));
         rerun.setEnabled(!busy && containerId > 0 && new File(path).isFile());

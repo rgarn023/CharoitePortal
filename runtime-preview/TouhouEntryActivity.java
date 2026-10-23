@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -51,6 +53,9 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -68,6 +73,10 @@ import java.util.concurrent.ExecutorService;
 public final class TouhouEntryActivity extends AppCompatActivity {
     private static final int FOLDER_REQUEST = 1001;
     private static final int EXE_REQUEST = 1002;
+    private static final int WALLPAPER_REQUEST = 1003;
+    private static final int MAX_WALLPAPER_BYTES = 50 * 1024 * 1024;
+    private static final String WALLPAPER_FILE = "touhou_launcher_wallpaper";
+    private static final String WALLPAPER_MODE_KEY = "launcher_wallpaper_fit_mode";
     // Samsung One UI-inspired spacing, surfaces and bottom navigation, with
     // an original Touhou/Charoite identity rather than copied Samsung assets.
     private int BG = 0xffF5F6FA;
@@ -97,6 +106,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button displayButton;
     private Button desktopPointerButton;
     private TextView displayDescription;
+    private ImageView wallpaperBackground;
+    private View wallpaperTint;
+    private ImageView wallpaperPreview;
+    private TextView wallpaperDescription;
+    private Button wallpaperSelectButton;
+    private Button wallpaperModeButton;
+    private Button wallpaperRemoveButton;
+    private Bitmap wallpaperBitmap;
+    private boolean wallpaperBusy = false;
     private Button diagnosticButton;
     private Button libraryTab;
     private Button importTab;
@@ -180,7 +198,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         mainScroll = new ScrollView(this);
         mainScroll.setFillViewport(true);
         mainScroll.setClipToPadding(false);
-        mainScroll.setBackgroundColor(BG);
+        mainScroll.setBackgroundColor(Color.TRANSPARENT);
         main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
         main.setPadding(dp(22), dp(22), dp(22), dp(35));
@@ -198,7 +216,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout navigation = new LinearLayout(this);
         navigation.setOrientation(LinearLayout.HORIZONTAL);
         navigation.setGravity(Gravity.CENTER_VERTICAL);
-        navigation.setPadding(dp(13), dp(7), dp(13), dp(7));
+        // Raise tabs roughly 14dp above the Android navigation area.
+        // Extra bottom padding keeps a comfortable thumb target on Galaxy phones.
+        navigation.setPadding(dp(13), dp(7), dp(13), dp(21));
         navigation.setBackgroundColor(PANEL);
         navigation.setElevation(dp(8));
         libraryTab = tabButton("▦\nLibrary", () -> showSection(0));
@@ -207,8 +227,20 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         navigation.addView(libraryTab, tabParams());
         navigation.addView(importTab, tabParams());
         navigation.addView(systemTab, tabParams());
-        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(74)));
-        setContentView(rootLayout);
+        rootLayout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(88)));
+
+        // Keep the wallpaper behind the scrollable content; the navigation
+        // buttons remain solid for contrast and easy touch/DeX mouse access.
+        FrameLayout wallpaperHost = new FrameLayout(this);
+        wallpaperHost.setBackgroundColor(BG);
+        wallpaperBackground = new ImageView(this);
+        wallpaperBackground.setContentDescription("Custom launcher wallpaper");
+        wallpaperHost.addView(wallpaperBackground, new FrameLayout.LayoutParams(-1, -1));
+        wallpaperTint = new View(this);
+        wallpaperHost.addView(wallpaperTint, new FrameLayout.LayoutParams(-1, -1));
+        wallpaperHost.addView(rootLayout, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(wallpaperHost);
+        refreshWallpaperViews();
 
         main.addView(label("C H A R O I T E   G A M E S", 11, SECONDARY, true));
         spacer(14);
@@ -322,6 +354,27 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         desktopPointerButton = outlinedButton("DEX MOUSE: FREE POINTER", this::toggleDesktopPointer);
         desktopCard.addView(desktopPointerButton);
         systemScreen.addView(desktopCard);
+        spacerIn(systemScreen, 12);
+
+        LinearLayout wallpaperCard = card();
+        wallpaperCard.addView(label("Launcher wallpaper", 17, FOREGROUND, true));
+        wallpaperCard.addView(label("Choose an image saved on your phone. The wallpaper appears behind the Library, Setup and System screens; it does not change your Samsung home wallpaper.", 12, SECONDARY, false));
+        wallpaperPreview = new ImageView(this);
+        wallpaperPreview.setBackground(rounded(BG, 19, LINE));
+        wallpaperPreview.setClipToOutline(true);
+        wallpaperPreview.setContentDescription("Preview of your launcher wallpaper");
+        LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(-1, dp(160));
+        previewParams.topMargin = dp(10);
+        wallpaperCard.addView(wallpaperPreview, previewParams);
+        wallpaperDescription = label("", 12, SECONDARY, false);
+        wallpaperCard.addView(wallpaperDescription);
+        wallpaperSelectButton = outlinedButton("CHOOSE IMAGE FROM PHONE", this::chooseLauncherWallpaper);
+        wallpaperCard.addView(wallpaperSelectButton);
+        wallpaperModeButton = outlinedButton("DISPLAY: CROP TO FILL", this::chooseWallpaperMode);
+        wallpaperCard.addView(wallpaperModeButton);
+        wallpaperRemoveButton = outlinedButton("REMOVE WALLPAPER", this::removeLauncherWallpaper);
+        wallpaperCard.addView(wallpaperRemoveButton);
+        systemScreen.addView(wallpaperCard);
         spacerIn(systemScreen, 12);
 
         LinearLayout debugCard = card();
@@ -474,6 +527,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             displayDescription.setText((isDesktopWindow() ? "Desktop/external window" : "Phone window")
                 + " detected · Automatic: " + automaticGameResolution()
                 + "\nChanges take effect when you next launch a game.");
+        updateWallpaperControls();
         refreshLibrary();
     }
 
@@ -628,6 +682,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         Uri uri = data.getData();
         if (requestCode == FOLDER_REQUEST) importGame(uri, true);
         else if (requestCode == EXE_REQUEST) importGame(uri, false);
+        else if (requestCode == WALLPAPER_REQUEST) importLauncherWallpaper(uri);
     }
 
 

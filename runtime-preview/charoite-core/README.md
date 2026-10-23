@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.3
+# Charoite Core (Android runtime module) — v0.4
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -77,3 +77,12 @@ The reusable `CharoiteThemes.realmBanner(template)` method supplies a background
 - Both are suitable for legible white titles over a darker left-hand gradient and independent of user-selected full-screen wallpapers. Switching environments re-renders the matching banner.
 
 Implemented in `runtime-preview/TouhouEntryActivity.java`; Android/One UI home-screen adaptive icon is unchanged.
+
+
+## Reusable touch-swipe pages — v0.4
+
+`CharoiteSwipePager.java` is a shared `ScrollView` with a host callback for left/right finger or stylus swipes. It recognizes gestures only when horizontal movement clearly dominates vertical movement and exceeds a density-aware distance. Vertical scrolling remains native; Samsung DeX mouse drags are not interpreted as page swipes. It does not handle long-press tile reorder operations or launch games. It asks the host to select the previous or next tab; the Portal clamps the page index from Library (0), Setup (1), to System (2) without wrapping. `CharoitePageTabs` remains the single source of tab styling and selected state, synchronized through `showSection`.
+
+The Portal has environment-aware messaging across Library, Setup and System. Only Touhou Realm shows the Gensokyo-specific empty-library caption or the explanation about its original Touhou game storage. Generic/created environments display their own realm name and neutral storage guidance. The System environment help message and already-installed General Gaming message are not Touhou-specific.
+
+The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the banner is 120dp tall rather than 164dp, with reduced padding and still-large bold realm lettering. These are UI-only changes: Wine/Box64, package ID, Touhou prefix paths, per-environment registry and wallpaper data are not modified.

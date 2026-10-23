@@ -107,6 +107,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button installerButton;
     private Button scanButton;
     private Button compatButton;
+    private Button japaneseButton;
     private Button displayButton;
     private Button desktopPointerButton;
     private TextView displayDescription;
@@ -387,6 +388,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
+        graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
+        japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
+        graphicsCard.addView(japaneseButton);
         systemScreen.addView(graphicsCard);
         spacerIn(systemScreen, 12);
 
@@ -884,6 +888,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
+        if (japaneseButton != null) {
+            japaneseButton.setEnabled(!busy && ready);
+            japaneseButton.setText(CharoiteCore.japaneseCompatibilityEnabled(this)
+                    ? "JAPANESE TEXT SUPPORT: ON" : "JAPANESE TEXT SUPPORT: OFF");
+        }
         diagnosticButton.setEnabled(!busy);
         if (displayButton != null) {
             int mode = getDisplayModeIndex();
@@ -952,6 +961,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     }
 
     /** Preferences adjust only this app's private game environment. */
+    private void toggleJapaneseCompatibility() {
+        if (busy || containerId <= 0) return;
+        boolean enabled = !CharoiteCore.japaneseCompatibilityEnabled(this);
+        CharoiteCore.setJapaneseCompatibilityEnabled(this, enabled);
+        updateButtons();
+        setStatus(enabled
+                ? "Japanese support enabled for this realm. Restart Windows apps to apply."
+                : "Japanese support disabled for this realm. Restart Windows apps to apply.");
+    }
+
     private void toggleCompatibility() {
         if (busy || containerId <= 0) return;
         try {

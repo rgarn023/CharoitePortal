@@ -259,7 +259,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         hero.addView(headline, new LinearLayout.LayoutParams(0, -2, 1f));
 
         ImageView brand = new ImageView(this);
-        brand.setImageResource(R.drawable.touhou_pocket_icon);
+        brand.setImageResource(R.drawable.charoite_portal_icon);
         brand.setContentDescription("Charoite Portal app icon");
         brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
         LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(68), dp(68));

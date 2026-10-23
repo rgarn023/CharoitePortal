@@ -47,7 +47,15 @@ public final class CharoiteEnvironmentFiles {
 
     public static JSONObject create(String name, String theme, boolean compat,
                                     int displayMode, boolean pointerCapture) throws JSONException {
+        return create(name, theme, compat, displayMode, pointerCapture, false);
+    }
+
+    /** The language flag is optional in v1 for backward-compatible downloads. */
+    public static JSONObject create(String name, String theme, boolean compat,
+                                    int displayMode, boolean pointerCapture,
+                                    boolean japaneseText) throws JSONException {
         JSONObject settings = new JSONObject();
+        settings.put("japaneseText", japaneseText);
         settings.put("compatibilityGraphics", compat);
         settings.put("displayMode", displayMode);
         settings.put("capturePointer", pointerCapture);
@@ -111,7 +119,9 @@ public final class CharoiteEnvironmentFiles {
         normalizeTheme((String)theme);
         JSONObject settings = profile.optJSONObject("settings");
         if (settings == null) throw new JSONException("Missing compatibility settings.");
-        onlyKeys(settings, "compatibilityGraphics", "displayMode", "capturePointer");
+        onlyKeys(settings, "compatibilityGraphics", "displayMode", "capturePointer", "japaneseText");
+        if (settings.has("japaneseText") && !(settings.opt("japaneseText") instanceof Boolean))
+            throw new JSONException("Invalid Japanese compatibility setting.");
         if (!(settings.opt("compatibilityGraphics") instanceof Boolean) ||
                 !(settings.opt("capturePointer") instanceof Boolean))
             throw new JSONException("Invalid compatibility options.");

@@ -9,7 +9,6 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -30,12 +29,14 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import com.charoitegames.core.CharoiteCore;
+import com.charoitegames.core.CharoiteWallpaper;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.container.GraphicsDrivers;
@@ -53,9 +54,6 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.FileInputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -74,9 +72,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private static final int FOLDER_REQUEST = 1001;
     private static final int EXE_REQUEST = 1002;
     private static final int WALLPAPER_REQUEST = 1003;
-    private static final int MAX_WALLPAPER_BYTES = 50 * 1024 * 1024;
-    private static final String WALLPAPER_FILE = "touhou_launcher_wallpaper";
-    private static final String WALLPAPER_MODE_KEY = "launcher_wallpaper_fit_mode";
+
     // Samsung One UI-inspired spacing, surfaces and bottom navigation, with
     // an original Touhou/Charoite identity rather than copied Samsung assets.
     private int BG = 0xffF5F6FA;
@@ -193,7 +189,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void render() {
         LinearLayout rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
-        rootLayout.setBackgroundColor(BG);
+        rootLayout.setBackgroundColor(Color.TRANSPARENT);
 
         mainScroll = new ScrollView(this);
         mainScroll.setFillViewport(true);
@@ -387,6 +383,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         systemScreen.addView(label("Touhou Launcher for Android · Charoite Core " + CharoiteCore.VERSION + " · Charoite Games. Runtime uses Wine, Box64 and LGPL-licensed Winlator-derived code; no games included.", 11, SECONDARY, false));
 
         refreshLibrary();
+        refreshWallpaperViews();
         showSection(selectedSection);
     }
 
@@ -462,6 +459,122 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         drawable.setCornerRadius(dp(30));
         drawable.setStroke(dp(1), LINE);
         return drawable;
+    }
+
+    /** Choose any accessible local image without needing storage permission. */
+    private void chooseLauncherWallpaper() {
+        if (wallpaperBusy) return;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        picker.addCategory(Intent.CATEGORY_OPENABLE);
+        picker.setType("image/*");
+        picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivityForResult(picker, WALLPAPER_REQUEST);
+    }
+
+    /** Copy privately: don't store a temporary gallery permission or move photos. */
+    private void importLauncherWallpaper(Uri selected) {
+        if (wallpaperBusy) return;
+        wallpaperBusy = true;
+        updateWallpaperControls();
+        worker.execute(() -> {
+            try {
+                CharoiteWallpaper.importImage(this, selected);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    wallpaperBitmap = null;
+                    wallpaperBusy = false;
+                    refreshWallpaperViews();
+                    Toast.makeText(this, "Launcher wallpaper updated", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    wallpaperBusy = false;
+                    updateWallpaperControls();
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Wallpaper wasn't changed")
+                            .setMessage(error.getMessage() != null ? error.getMessage() : "Cannot read that image.")
+                            .setPositiveButton("OK", null)
+                            .show();
+                });
+            }
+        });
+    }
+
+    private void chooseWallpaperMode() {
+        String[] options = {
+                "Crop to fill — cover the display",
+                "Fit whole image — may leave empty borders"
+        };
+        int current = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE));
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("How should wallpaper fit?")
+                .setSingleChoiceItems(options, current, (dialog, which) -> {
+                    CharoiteWallpaper.setMode(getPreferences(MODE_PRIVATE), which);
+                    refreshWallpaperViews();
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void removeLauncherWallpaper() {
+        if (wallpaperBusy) return;
+        if (!CharoiteWallpaper.removeWallpaper(this)) {
+            Toast.makeText(this, "Cannot remove wallpaper", Toast.LENGTH_LONG).show();
+            return;
+        }
+        wallpaperBitmap = null;
+        refreshWallpaperViews();
+        Toast.makeText(this, "Launcher wallpaper removed", Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateWallpaperControls() {
+        boolean present = CharoiteWallpaper.hasWallpaper(this);
+        if (wallpaperSelectButton != null) wallpaperSelectButton.setEnabled(!wallpaperBusy);
+        if (wallpaperModeButton != null) {
+            wallpaperModeButton.setVisibility(present ? View.VISIBLE : View.GONE);
+            wallpaperModeButton.setEnabled(!wallpaperBusy);
+            wallpaperModeButton.setText(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+                    == CharoiteWallpaper.MODE_FIT ? "DISPLAY: FIT WHOLE IMAGE" : "DISPLAY: CROP TO FILL");
+        }
+        if (wallpaperRemoveButton != null) {
+            wallpaperRemoveButton.setVisibility(present ? View.VISIBLE : View.GONE);
+            wallpaperRemoveButton.setEnabled(!wallpaperBusy);
+        }
+        if (wallpaperPreview != null)
+            wallpaperPreview.setVisibility(present ? View.VISIBLE : View.GONE);
+        if (wallpaperDescription != null)
+            wallpaperDescription.setText(wallpaperBusy ? "Copying your image privately…"
+                    : present ? "Wallpaper saved inside Touhou Launcher. Original photo is unchanged."
+                    : "No wallpaper selected. Your default theme is active.");
+    }
+
+    private void refreshWallpaperViews() {
+        if (wallpaperBackground == null || wallpaperTint == null) return;
+        boolean present = CharoiteWallpaper.hasWallpaper(this);
+        if (present && wallpaperBitmap == null)
+            wallpaperBitmap = CharoiteWallpaper.loadBitmap(this, 2560);
+        present = present && wallpaperBitmap != null;
+        if (present) {
+            ImageView.ScaleType style = CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+                    == CharoiteWallpaper.MODE_FIT
+                    ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP;
+            wallpaperBackground.setImageBitmap(wallpaperBitmap);
+            wallpaperBackground.setScaleType(style);
+            // Readable text/buttons even over vibrant backgrounds.
+            wallpaperTint.setBackgroundColor(darkMode ? 0xA9101116 : 0xA8F5F6FA);
+        } else {
+            wallpaperBackground.setImageDrawable(null);
+            wallpaperTint.setBackgroundColor(Color.TRANSPARENT);
+        }
+        if (wallpaperPreview != null) {
+            wallpaperPreview.setImageBitmap(present ? wallpaperBitmap : null);
+            wallpaperPreview.setScaleType(CharoiteWallpaper.getMode(getPreferences(MODE_PRIVATE))
+                    == CharoiteWallpaper.MODE_FIT
+                    ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
+        }
+        updateWallpaperControls();
     }
 
     private Button outlinedButton(String name, Runnable action) {

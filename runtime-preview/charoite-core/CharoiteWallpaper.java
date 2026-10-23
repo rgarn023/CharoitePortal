@@ -26,27 +26,66 @@ public final class CharoiteWallpaper {
 
     private CharoiteWallpaper() {}
 
-    public static boolean hasWallpaper(Context context) {
-        File file = new File(context.getFilesDir(), FILE_NAME);
+    /** Touhou keeps the original image path and preference for zero-loss upgrades. */
+    private static String fileFor(String environmentId) {
+        if (environmentId == null || CharoiteEnvironments.TOUHOU.equals(environmentId))
+            return FILE_NAME;
+        if (!environmentId.matches("[a-zA-Z0-9-]{1,64}"))
+            throw new IllegalArgumentException("Invalid environment ID");
+        return "charoite_wallpaper_" + environmentId + ".image";
+    }
+
+    private static String keyFor(String environmentId) {
+        if (environmentId == null || CharoiteEnvironments.TOUHOU.equals(environmentId))
+            return MODE_KEY;
+        if (!environmentId.matches("[a-zA-Z0-9-]{1,64}"))
+            throw new IllegalArgumentException("Invalid environment ID");
+        return "charoite_wallpaper_mode_" + environmentId;
+    }
+
+    public static boolean hasWallpaper(Context context, String environmentId) {
+        File file = new File(context.getFilesDir(), fileFor(environmentId));
         return file.isFile() && file.length() > 0;
+    }
+
+
+    public static boolean hasWallpaper(Context context) {
+        return hasWallpaper(context, CharoiteEnvironments.TOUHOU);
     }
 
     // Same activity-private preferences used by existing Touhou Launcher UI.
     // The host passes its preferences to avoid relying on Activity internal names.
     public static int getMode(android.content.SharedPreferences preferences) {
-        return preferences.getInt(MODE_KEY, MODE_CROP) == MODE_FIT ? MODE_FIT : MODE_CROP;
+        return getMode(preferences, CharoiteEnvironments.TOUHOU);
+    }
+
+    public static int getMode(android.content.SharedPreferences preferences, String environmentId) {
+        return preferences.getInt(keyFor(environmentId), MODE_CROP) == MODE_FIT ? MODE_FIT : MODE_CROP;
     }
 
     public static void setMode(android.content.SharedPreferences preferences, int mode) {
         if (mode != MODE_FIT && mode != MODE_CROP)
             throw new IllegalArgumentException("Invalid wallpaper mode");
-        preferences.edit().putInt(MODE_KEY, mode).apply();
+        setMode(preferences, CharoiteEnvironments.TOUHOU, mode);
+    }
+
+    public static void setMode(android.content.SharedPreferences preferences,
+                               String environmentId, int mode) {
+        if (mode != MODE_FIT && mode != MODE_CROP)
+            throw new IllegalArgumentException("Invalid wallpaper mode");
+        preferences.edit().putInt(keyFor(environmentId), mode).apply();
     }
 
     /** Copy only an image, atomically replacing the previous image on success. */
     public static void importImage(Context context, Uri pickedImage) throws IOException {
-        File destination = new File(context.getFilesDir(), FILE_NAME);
-        File temporary = new File(context.getFilesDir(), FILE_NAME + ".partial");
+        importImage(context, pickedImage, CharoiteEnvironments.TOUHOU);
+    }
+
+    public static void importImage(Context context, Uri pickedImage, String environmentId)
+            throws IOException {
+        String name = fileFor(environmentId);
+        File destination = new File(context.getFilesDir(), name);
+        File temporary = new File(context.getFilesDir(), name + ".partial");
         try {
             String mime = context.getContentResolver().getType(pickedImage);
             if (mime != null && !mime.startsWith("image/"))
@@ -81,7 +120,11 @@ public final class CharoiteWallpaper {
 
     /** Sample oversized photos so a 100MP camera image won't overwhelm RAM. */
     public static Bitmap loadBitmap(Context context, int maxDimension) {
-        File file = new File(context.getFilesDir(), FILE_NAME);
+        return loadBitmap(context, maxDimension, CharoiteEnvironments.TOUHOU);
+    }
+
+    public static Bitmap loadBitmap(Context context, int maxDimension, String environmentId) {
+        File file = new File(context.getFilesDir(), fileFor(environmentId));
         if (!file.isFile()) return null;
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;
@@ -102,7 +145,11 @@ public final class CharoiteWallpaper {
     }
 
     public static boolean removeWallpaper(Context context) {
-        File file = new File(context.getFilesDir(), FILE_NAME);
+        return removeWallpaper(context, CharoiteEnvironments.TOUHOU);
+    }
+
+    public static boolean removeWallpaper(Context context, String environmentId) {
+        File file = new File(context.getFilesDir(), fileFor(environmentId));
         return !file.exists() || file.delete();
     }
 }

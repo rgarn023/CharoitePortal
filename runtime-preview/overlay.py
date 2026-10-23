@@ -188,9 +188,9 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
                     preloaderDialog.closeOnUiThread();
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle("Touhou game did not start")
-                        .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Touhou Pocket and open Launch Diagnostics, or switch to Compatibility Graphics.")
+                        .setMessage("The Windows engine failed to display the game.\\n\\nReturn to Touhou Launcher and open Launch Diagnostics, or switch to Compatibility Graphics.")
                         .setCancelable(false)
-                        .setPositiveButton("Return to Touhou Pocket", (d, which) -> exit())
+                        .setPositiveButton("Return to Touhou Launcher", (d, which) -> exit())
                         .show();
                 }
             }, 45000);

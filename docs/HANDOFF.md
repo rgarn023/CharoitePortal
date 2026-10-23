@@ -562,3 +562,18 @@ Changes on existing `main`:
 **Verified build:** GitHub Actions [39948092801](https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39948092801), code SHA `a2036ec07e11a0c8009da4c3c24b79310bcaa9db`, completed **success**. APK artifact `touhou-pocket-runtime-preview-apk`, ID `12499890025`, downloaded to `/mnt/data/Touhou-Launcher-Wallpaper-Galaxy-Build.zip`; extracted APK `/mnt/data/Touhou-Launcher-Galaxy-Wallpaper-Update.apk`, **231,986,364 bytes**, SHA-256 **`b702c5be1b62bf529934acbb5abd322d1df41faf9f729cc89120bfd9d7886502`**. ZIP and APK CRC tests succeeded; 35 JNI libraries; DEX includes `CharoiteWallpaper`, Fit/Crop, `CharoiteCore`, wallpaper picker strings; Japanese font diagnostic EXE, 32/64-bit hook DLLs and helper EXEs present.
 
 **Caveats:** No physical Galaxy or DeX wallpaper rendering/URI chooser testing yet. Android in-place upgrades may fail due to ephemeral GitHub Actions debug signing certificate. Do not uninstall an app with important private games/saves without a backup. App ID remains `com.touhoudr`, Wine container paths and installation behavior unchanged. Do not confuse app-private wallpaper with OS wallpaper. Future custom crop-position/zoom gesture controls are not implemented; current Crop scales to fill and automatically trims edges.
+
+
+## Oct 23, 2026 — Wallpaper label & connected page tabs
+
+User corrected prior assistant's mistaken GitHub-access claim: **GitHub connector IS available via `functions.exec`, `tools.mcp__GitHub__*`**. Continue developing directly, no third-party coding-agent prompts.
+
+User requested: (1) System card title **Wallpaper** (not “Launcher wallpaper”); (2) Library, Setup, System bottom tabs should resemble connected **page/file tabs**, not separate rounded floating buttons; (3) asked “Has the core been updated as well?”
+
+Changes to `runtime-preview/TouhouEntryActivity.java` on existing `main`:
+- `a936cca4f97f5bc5ee7ffbf1763767fa560d8a33`: Wallpaper heading / visible success-removal messages renamed. Bottom nav now three *attached*, same-width page tabs with rounded **top** corners and **flat bottoms**, selected tab slightly raised (no independent pill shadows) using `GradientDrawable`; uses simple Library/Setup/System names and selected accent colors. Touch sizes preserved.
+- `c0cb8f97d1d23e1b8bcf93cba29604aef7762f5a`: retained 88dp bottom-nav height and 21dp bottom padding, keeping tabs raised above Android's navigation bar.
+- **Charoite Core source was intentionally NOT changed** for the above purely launcher-specific UI work. Already-integrated `CharoiteWallpaper.java` is the shared image-storage + Fit/Crop engine and stays packaged in the APK with `CharoiteCore.java`; Wine/Box64, C: drive and installed games untouched.
+
+**Verified build:** GitHub Actions run https://github.com/rgarn023/TouhouPocketLauncher/actions/runs/39951145792 succeeded (source SHA `c0cb8f97d1d23e1b8bcf93cba29604aef7762f5a`). Artifact `touhou-pocket-runtime-preview-apk` ID **12500592042**, downloaded as `/mnt/data/Touhou-Launcher-Page-Tabs-Artifact.zip`; extracted APK `/mnt/data/Touhou-Launcher-Page-Tabs-Android.apk`, size **231,986,504 bytes**, SHA256 `5718430786a16792ee443b3b7a8fda7174fcebf1fb1eb888378d517ef6335307`. ZIP and APK CRC checks passed, 990 entries, `classes.dex` contains CharoiteCore and CharoiteWallpaper, Japanese font hooks/helpers all present. Physical Galaxy UI still requires verification. Debug signing can block in-place upgrade; uninstall may delete private games/saves.
+

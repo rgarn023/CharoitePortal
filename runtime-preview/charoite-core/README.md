@@ -1,4 +1,4 @@
-# Charoite Core (Android runtime module) — v0.6
+# Charoite Core (Android runtime module) — v0.7
 
 **Charoite Core is not an operating system.** It is a reusable compatibility-runtime component bundled inside Touhou Launcher for Android. It operates within Android/One UI and does not require root, system changes, a separate installed app, or Samsung DeX replacement.
 
@@ -108,3 +108,18 @@ The built-in General Gaming preset is **no longer installed automatically by the
 **Wine desktop orientation:** `CharoiteCore.automaticGameResolution` and `chosenGameResolution` choose portrait variants of the supported game sizes (600×800, 720×1280, 900×1600, 1080×1920) for new sessions in portrait, and the corresponding landscape sizes otherwise; this applies to both installers and gameplay. It doesn't alter the persistent container's fixed resolution. Because the upstream X11 root-screen size is fixed at launch and has no dynamic RandR implementation, **rotating an already-running Wine game scales the view to fit but does not change that game's native Windows desktop resolution until its next launch**. Fixed-resolution games may letterbox. Changing this would require a significant additional Wine/X11 resizing implementation.
 
 **Testing:** GitHub Actions compiles and integrity-checks the Android APK; physical Samsung Galaxy phone and DeX tests are still needed to confirm orientation, input-controls layout and app visibility. Keep the historical Android package ID `com.touhoudr` intact to protect user-owned Wine prefixes/games/saves. Debug signing can impede an in-place APK update.
+
+
+## Charoite Core v0.7 — Touhou Japanese installer optional-task font rendering
+
+The screenshot of the Japanese Inno Setup **Select Additional Tasks** page showed otherwise legible Japanese headings/button text but damaged checkbox item labels. The existing Wine Japanese locale / CP932 / IPA Gothic setup was already in place; however `touhou_font_hook.c` v1 only repaired a path-specific `TEdit` and never handled Inno's owner-drawn `TNewCheckListBox` or labels on later wizard pages.
+
+New scope-limited helper v2:
+- Hooks only the known Touhou setup.exe GUI thread discovered by the existing local `touhou_probe` in the Touhou Realm.
+- Scans controls on subsequent installer pages every ~500ms, including `TNewCheckListBox`/checkboxes/static labels and Windows edit controls, and assigns compatible IPA P Gothic `SHIFTJIS_CHARSET` fonts *inside the original installer process* if appropriate.
+- Preserves original UTF-16 window/control text and never edits game executables, installer translations, original paths or user file data. If original Unicode strings are already mojibake, a font change by itself is **not** guaranteed to recover them.
+- Logs a bounded `task-... utf16=` sample from the task checklist to `C:\touhou_font_hook.log` in the existing local Wine prefix; launch diagnostics can read this file to distinguish wrong fonts from already-corrupted text.
+- Keeps the thread-local helper alive across installer wizard pages (up to five minutes, stopping when installer thread exits). The prior 18-second helper could exit before the task page appeared.
+- Refreshes bundled app-owned 32/64-bit hook and helper executables in existing Touhou Wine prefixes using a `.touhou-japanese-helpers-v2` marker, so upgrading the APK really installs the new helper binaries. Games and saves remain untouched.
+
+Compiled into `Charoite Portal v0.7` via GitHub Actions. Device validation is still required.

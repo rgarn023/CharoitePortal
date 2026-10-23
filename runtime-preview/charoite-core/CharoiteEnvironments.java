@@ -124,9 +124,13 @@ public final class CharoiteEnvironments {
 
     public static synchronized JSONObject create(AppCompatActivity host, String rawName)
             throws Exception {
-        String name = rawName == null ? "" : rawName.trim();
-        if (name.isEmpty() || name.length() > 48)
-            throw new IllegalArgumentException("Choose an environment name (1–48 characters)");
+        return create(host, rawName, "cosmic");
+    }
+
+    public static synchronized JSONObject create(AppCompatActivity host, String rawName,
+                                                  String theme) throws Exception {
+        String name = CharoiteEnvironmentFiles.normalizeName(rawName);
+        CharoiteEnvironmentFiles.normalizeTheme(theme);
         JSONArray entries = list(host);
         if (entries.length() >= 20)
             throw new IllegalArgumentException("Maximum of 20 environments");
@@ -135,11 +139,39 @@ public final class CharoiteEnvironments {
             if (existing != null && name.equalsIgnoreCase(existing.optString("name")))
                 throw new IllegalArgumentException("An environment already has that name");
         }
-        JSONObject result = make("custom-" + UUID.randomUUID(), name, "custom", 0);
+        JSONObject result = make("custom-" + UUID.randomUUID(), name, theme, 0);
         entries.put(result);
         if (!prefs(host).edit().putString(KEY, entries.toString()).commit())
             throw new IllegalStateException("Failed to save environment");
         return result;
+    }
+
+
+    /** Re-importing an existing file produces an independent environment. */
+    public static synchronized JSONObject installFromFile(AppCompatActivity host,
+                                                           JSONObject profile) throws Exception {
+        CharoiteEnvironmentFiles.validate(profile);
+        String name = profile.getString("name");
+        String theme = profile.getString("theme");
+        JSONArray installed = list(host);
+        String available = name;
+        int number = 2;
+        boolean collision;
+        do {
+            collision = false;
+            for (int i = 0; i < installed.length(); i++) {
+                JSONObject item = installed.optJSONObject(i);
+                if (item != null && available.equalsIgnoreCase(item.optString("name"))) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision) {
+                String suffix = " (" + number++ + ")";
+                available = name.substring(0, Math.min(name.length(), 48 - suffix.length())) + suffix;
+            }
+        } while (collision && number <= 22);
+        return create(host, available, theme);
     }
 
     public static synchronized void attachContainer(AppCompatActivity host, String id, int containerId)

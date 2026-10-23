@@ -69,16 +69,32 @@ jobs:
           command -v fc-scan
           python3 runtime-preview/build_japanese_support.py upstream
 
+      - name: Restore compiled Japanese installer helpers
+        id: japanese-helper-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            runtime-preview/touhou_probe.exe
+            runtime-preview/touhou_font_hook32.dll
+            runtime-preview/touhou_font_hook64.dll
+            runtime-preview/touhou_font_helper32.exe
+            runtime-preview/touhou_font_helper64.exe
+          key: touhou-japanese-helpers-v1-${{ hashFiles('runtime-preview/touhou_probe.c', 'runtime-preview/touhou_font_hook.c', 'runtime-preview/touhou_font_helper.c') }}
+
       - name: Compile Japanese installer font helpers
+        if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
         timeout-minutes: 12
         run: |
-          # Ubuntu runners may already have cross-compilers. Avoid indefinite
-          # apt lock/mirror waits by checking first and bounding installs.
+          # Install only the Win32 variants rather than the large GCC meta-
+          # packages that pull in both threading toolchains. Cache binaries
+          # keyed by source so normal Android-only updates skip apt entirely.
           if ! command -v x86_64-w64-mingw32-gcc >/dev/null ||
              ! command -v i686-w64-mingw32-gcc >/dev/null; then
-            timeout 180s sudo DEBIAN_FRONTEND=noninteractive apt-get update -o Acquire::Retries=3 -qq
-            timeout 420s sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-              -o DPkg::Lock::Timeout=120 gcc-mingw-w64-x86-64 gcc-mingw-w64-i686
+            timeout 180s sudo DEBIAN_FRONTEND=noninteractive apt-get update \
+              -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -qq
+            timeout 420s sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              -o Acquire::Retries=2 -o DPkg::Lock::Timeout=90 \
+              gcc-mingw-w64-x86-64-win32 gcc-mingw-w64-i686-win32
           fi
           command -v x86_64-w64-mingw32-gcc
           command -v i686-w64-mingw32-gcc

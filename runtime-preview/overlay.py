@@ -37,6 +37,21 @@ for original, branded in (
     src = src.replace(original, branded)
 strings.write_text(src, encoding="utf-8")
 
+# Android locale overrides default resources. Translate only user-visible names
+# and notification titles so Portuguese/Russian phones won't show Winlator.
+import re
+for localized in (root / "app/src/main/res").glob("values-*/strings.xml"):
+    localized_text = localized.read_text(encoding="utf-8")
+    localized_text = re.sub(r'(<string name="app_name">).*?(</string>)',
+        r'\g<1>Charoite Portal\2', localized_text, count=1, flags=re.DOTALL)
+    for key in ("fgs_notification_content_else", "fgs_notification_channel_desc"):
+        expr = r'(<string name="' + key + r'">)(.*?)(</string>)'
+        localized_text = re.sub(expr, lambda m: m.group(1) +
+            re.sub("Winlator", "Charoite Portal", m.group(2), flags=re.I) +
+            m.group(3), localized_text, count=1, flags=re.DOTALL)
+    localized.write_text(localized_text, encoding="utf-8")
+
+
 # Runtime assets use a same-length replacement Android package name to preserve\n# native ELF interpreter and library offsets. Do not change this ID without\n# rewriting runtime-preview/rewrite_prefix.py in tandem.\n# The provider authority must not collide with separately installed Winlator.
 manifest_path = root / "app/src/main/AndroidManifest.xml"
 ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
@@ -107,6 +122,7 @@ app.set(a + "icon", "@mipmap/ic_launcher")
 app.set(a + "roundIcon", "@mipmap/ic_launcher_round")
 # Explicit freeform/multi-window support for DeX on external displays.
 app.set(a + "resizeableActivity", "true")
+app.set(a + "label", "@string/app_name")
 original_main = next((activity for activity in app.findall("activity")
     if activity.get(a + "name") == "com.winlator.MainActivity"), None)
 assert original_main is not None, "Winlator launcher activity not found"

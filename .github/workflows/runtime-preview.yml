@@ -317,3 +317,47 @@ jobs:
           name: touhou-pocket-runtime-legal
           path: legal-bundle/
           if-no-files-found: error
+
+  # Opt-in stable direct APK download; ChatGPT Library links can fail.
+  publish-apk-release:
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-apk]')
+    needs: build-runtime-preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: touhou-pocket-runtime-preview-apk
+          path: release-package
+
+      - name: Publish Charoite GDI charset diagnostic APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG=charoite-portal-gdi-charset-v2
+          PACKAGE=Charoite-Portal-GDI-Charset-Test-v2.apk
+          test -f release-package/app-debug.apk
+          cp release-package/app-debug.apk "release-package/$PACKAGE"
+          python3 - <<'PY'
+          import zipfile
+          path="release-package/Charoite-Portal-GDI-Charset-Test-v2.apk"
+          with zipfile.ZipFile(path) as apk:
+              assert "AndroidManifest.xml" in apk.namelist()
+              assert "assets/rendering/charoite_ownerdraw_probe32.exe" in apk.namelist()
+              assert apk.testzip() is None
+          PY
+          if gh release view "$TAG" --repo "$GH_REPO" > /dev/null 2>&1; then
+            echo "Refusing to replace existing release asset: $TAG"
+            exit 1
+          fi
+          gh release create "$TAG" "release-package/$PACKAGE" \
+            --repo "$GH_REPO" --target "$GITHUB_SHA" \
+            --title "Charoite Portal - GDI Charset Diagnostics v2" \
+            --notes "Optional owner-drawn Japanese font charset diagnostics for Charoite Core. The diagnostic does not modify Wine or games. Do not uninstall or clear app data if Android rejects an update from a differently signed APK." \
+            --prerelease
+          gh release view "$TAG" --repo "$GH_REPO" --json assets --jq '.assets[].name' | grep -Fx "$PACKAGE"

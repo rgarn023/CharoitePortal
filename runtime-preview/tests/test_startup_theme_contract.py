@@ -25,7 +25,7 @@ class StartupThemeContract(unittest.TestCase):
         self.assertNotIn("WineUtils", STARTUP)
 
     def test_task_diagnostics_cover_owner_draw_without_state_mutations(self):
-        self.assertIn("hook-v6 owner-draw checklist paint event detected", HOOK)
+        self.assertIn("hook-v7 owner-draw checklist paint event detected", HOOK)
         self.assertIn("LBS_HASSTRINGS", HOOK)
         self.assertIn("task-%d utf16=", HOOK)
         self.assertNotIn("SendMessageW(hwnd,LB_DELETESTRING", HOOK)

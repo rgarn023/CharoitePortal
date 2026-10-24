@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v8', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v8\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v9', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v9\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 
@@ -119,7 +119,7 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             "RestoreDC(item->hDC,entry->saved)",
             "select_japanese_before_installer_draw(item);",
             "restore_installer_prepaint(item);",
-            "hook-v8 prepaint restored original DC",
+            "hook-v9 prepaint restored original DC",
             "draw_recovered_task",
         ):
             self.assertIn(fragment, HOOK)
@@ -135,6 +135,19 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             "DeleteFileW(",
         ):
             self.assertNotIn(destructive, HOOK)
+
+    def test_repeat_paint_avoids_unneeded_font_and_caption_probes(self):
+        self.assertIn("validated_japanese_font_for_row(HWND hwnd, HFONT font)", HOOK)
+        self.assertIn("patched_windows[i]==hwnd && patched_fonts[i]==font", HOOK)
+        self.assertIn("return font_has_japanese(hwnd,font);", HOOK)
+        self.assertIn("validated_japanese_font_for_row(item->hwndItem,selected)", HOOK)
+        self.assertIn("if(oldCharset==SHIFTJIS_CHARSET)", HOOK)
+        self.assertLess(HOOK.index("if(oldCharset==SHIFTJIS_CHARSET)"),
+                        HOOK.index("read_task_caption(item->hwndItem,item->itemID,text,512)"))
+        self.assertIn("hook-v9 UI-scan slowest_ms=", HOOK)
+        self.assertIn("hook-v9 Unicode fallback slowest_ms=", HOOK)
+        self.assertIn("RestoreDC(item->hDC,entry->saved)", HOOK)
+        self.assertIn("draw_recovered_task", HOOK)
 
     def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):
         # Phone screenshot shows erroneous '|A|C|' before the correct

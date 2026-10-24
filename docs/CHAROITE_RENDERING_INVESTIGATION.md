@@ -168,3 +168,39 @@ own font mid-handler, or use text APIs that are unaffected by the selected
 context. The retained post-draw fallback also means a correct screenshot
 does not prove native paint is corrected. We must test visual timing and
 new pre/post log records before changing the fallback or modifying Wine.
+
+
+## Phase 2f - v9 diagnostic performance pass
+
+In v8, device testing established a verified prepaint transition from
+ANSI charset 0 to SHIFTJIS charset 128 and a successful SaveDC/RestoreDC.
+Both the Additional Tasks checklist and the Ready to Install scrollable
+summary showed Japanese text correctly. The user also reported a delay
+on the final scroll-box page. The screenshots do not prove whether that
+delay was due to Charoite's compatibility hooks or normal Inno/Wine
+page-transition and layout processing.
+
+v9 keeps the original correctness/fallback model and makes small,
+non-destructive performance improvements:
+
+- Avoid sending LB_GETTEXTLEN/LB_GETTEXT during repeated owner-drawn
+  checklist paints when the HDC already reports SHIFTJIS_CHARSET.
+- Reuse a Japanese font's already-verified glyph coverage only for the
+  exact HWND/HFONT pair created and validated by this helper. Any unknown
+  font is rechecked through the original GDI font validation.
+- Log only expensive >39ms UI control scans and fallback Unicode
+  repaints (slowest observed values) as "hook-v9 UI-scan slowest_ms=..."
+  and "hook-v9 Unicode fallback slowest_ms=..." to find costly
+  operations on the actual device without flooding the filesystem.
+
+This changes neither Wine DLLs nor game prefixes, saved games, installer
+strings or checkbox selections. The post-draw Unicode repaint remains
+enabled, because a correct v8 screenshot alone does not prove that the
+original Delphi paint is always correct. Absence of slow timing entries
+means no operation crossed the reporting threshold; it does NOT establish
+that the whole page transition was fast.
+
+To compare performance, on the same device navigate to Additional
+Tasks, Next (scrollable Ready to Install summary), Back, and Next again.
+Record whether any delay repeats, how long it lasts approximately, and
+copy the diagnostics with their hook-v9 timing entries (if any).

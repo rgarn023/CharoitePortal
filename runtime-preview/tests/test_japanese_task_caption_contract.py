@@ -71,7 +71,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
         self.assertIn("originally_japanese=contains_japanese(original)", HOOK)
         self.assertIn("const wchar_t *label=original", HOOK)
         self.assertIn("DrawTextW(dc,label,-1", HOOK)
-        self.assertIn("font_has_japanese(item->hwndItem,selected)", HOOK)
+        self.assertIn("validated_japanese_font_for_row(item->hwndItem,selected)", HOOK)
+        self.assertIn("return font_has_japanese(hwnd,font);", HOOK)
 
     def test_x86_callback_export_matches_real_pe_dll(self):
         # v4's 32-bit DLL exports TouhouDrawHook@12; v4 looked up a

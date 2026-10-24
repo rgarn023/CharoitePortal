@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v7', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v7\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v8', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v8\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 
@@ -103,6 +103,34 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
                             "SendMessageW(item->hwndItem,LB_SETITEMDATA"):
             self.assertNotIn(destructive, HOOK)
 
+
+    def test_prepaint_compatibility_is_scoped_and_restored(self):
+        # Row 1 in the real installer began with DC charset 0, whereas the
+        # synthetic CP932 ANSI text test worked with SHIFTJIS_CHARSET 128.
+        for fragment in (
+            "static void select_japanese_before_installer_draw(",
+            "static void restore_installer_prepaint(",
+            "GetACP()!=932",
+            "installer_task_list(item->hwndItem)",
+            "GetWindowThreadProcessId(item->hwndItem,NULL)!=GetCurrentThreadId()",
+            "read_task_caption(item->hwndItem,item->itemID,text,512)",
+            "contains_japanese(text)",
+            "SaveDC(item->hDC)", "SelectObject(item->hDC,replacement)",
+            "RestoreDC(item->hDC,entry->saved)",
+            "select_japanese_before_installer_draw(item);",
+            "restore_installer_prepaint(item);",
+            "hook-v8 prepaint restored original DC",
+            "draw_recovered_task",
+        ):
+            self.assertIn(fragment, HOOK)
+        # A post-draw hook must be available before installing the
+        # pre-draw hook, otherwise GDI state might not be restored.
+        self.assertLess(HELPER.index("HHOOK drawHook=NULL"),
+                        HELPER.index("HHOOK auditHook=NULL"))
+        self.assertIn("if(drawHook && auditCallback)", HELPER)
+        for destructive in ("LB_SETITEMDATA", "LB_DELETESTRING",
+                            "LB_INSERTSTRING", "DeleteFileW"):
+            self.assertNotIn(destructive, HOOK)
 
     def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):
         # Phone screenshot shows erroneous '|A|C|' before the correct

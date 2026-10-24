@@ -138,3 +138,33 @@ To gather evidence, keep "Japanese text support" and opt-in "Installer
 font repair" enabled, run the original TPDP setup.exe, navigate to its
 Select Additional Tasks checklist, and copy View Last Launch Diagnostics.
 Look for paired "paint-audit phase=before" and "phase=after" records.
+
+## Phase 2e - v8 bounded pre-draw SHIFTJIS font trial
+
+The real TPDP installer v7 log confirms a task row sometimes begins
+WM_DRAWITEM with GDI charset 0, DC face MS Sans Serif and original Unicode
+LB_GETTEXT intact. A later sample already begins with IPAPGothic / charset 128.
+The owner-draw synthetic reproducer showed CP932 ANSI bytes rendered as
+mojibake under ANSI_CHARSET 0, while SHIFTJIS_CHARSET 128 is correct.
+
+The v8 installer helper retains its opt-in and FocasLens / TWizardForm /
+Japanese-font-repair scope. For owner-drawn checklist rows 0..2 with correct
+Japanese source text and ACP=932 only, it now tentatively selects an
+IPAPGothic SHIFTJIS_CHARSET font into the WM_DRAWITEM HDC BEFORE the Delphi
+WndProc executes **only if that HDC does not already use charset 128**.
+It uses SaveDC / RestoreDC in paired pre/post callbacks so all previous
+GDI state returns; no ListBox items, user files, checkbox data, registry,
+Wine binaries, or saved games change. The pre-hook is NEVER installed unless
+the existing post-hook is available for paired restoration. The original
+v5-v7 Unicode post-draw rendering correction remains in place as fallback.
+
+New log entries: "hook-v8 prepaint selected SHIFTJIS font before Delphi draw"
+and "hook-v8 prepaint restored original DC", with prior and restored charset.
+A "prepaint ... already-shiftjis=128" entry means no action was needed.
+
+IMPORTANT: Even a successful preselect cannot prove the font remained
+selected throughout Delphi's original drawing; Delphi/VCL may select its
+own font mid-handler, or use text APIs that are unaffected by the selected
+context. The retained post-draw fallback also means a correct screenshot
+does not prove native paint is corrected. We must test visual timing and
+new pre/post log records before changing the fallback or modifying Wine.

@@ -28,47 +28,61 @@ jobs:
             --dir input
           echo '2cb7b52d87640bd24eed72d3441a34ae6f5c71907ba9f9d6b5461b1b06693931  input/Charoite-Portal-GDI-Charset-Test-v2.apk' | sha256sum -c -
 
-      - name: Create and verify smaller multivolume ZIP downloads
+      - name: Build and verify standard multipart ZIP archive
         run: |
           set -euo pipefail
           mkdir -p dist
-          (
-            cd input
-            zip -0 -q -s 45m ../dist/Charoite-Portal-Charset-v2-Split.zip \
-              Charoite-Portal-GDI-Charset-Test-v2.apk
-          )
-          test "$(find dist -maxdepth 1 -name 'Charoite-Portal-Charset-v2-Split.z??' | wc -l)" -ge 4
-          test -s dist/Charoite-Portal-Charset-v2-Split.zip
-          zip -q -s 0 dist/Charoite-Portal-Charset-v2-Split.zip --out dist/reconstructed.zip
-          unzip -p dist/reconstructed.zip Charoite-Portal-GDI-Charset-Test-v2.apk |
-            sha256sum | grep -Fx '2cb7b52d87640bd24eed72d3441a34ae6f5c71907ba9f9d6b5461b1b06693931  -'
-          rm dist/reconstructed.zip
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_STORED
+          apk=Path("input/Charoite-Portal-GDI-Charset-Test-v2.apk")
+          archive=Path("dist/Charoite-Portal-Charset-v2-Multipart.zip")
+          with ZipFile(archive, "w", compression=ZIP_STORED, allowZip64=True) as z:
+              z.write(apk, arcname=apk.name)
+          PY
+          split -b 40m -d -a 3 --numeric-suffixes=1 \
+            dist/Charoite-Portal-Charset-v2-Multipart.zip \
+            dist/Charoite-Portal-Charset-v2-Multipart.zip.
+          test "$(find dist -name 'Charoite-Portal-Charset-v2-Multipart.zip.*' | wc -l)" -ge 4
+          cat dist/Charoite-Portal-Charset-v2-Multipart.zip.* > dist/rejoined.zip
+          cmp dist/Charoite-Portal-Charset-v2-Multipart.zip dist/rejoined.zip
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from hashlib import sha256
+          apk="Charoite-Portal-GDI-Charset-Test-v2.apk"
+          with ZipFile("dist/rejoined.zip") as z:
+              assert z.namelist() == [apk]
+              with z.open(apk) as f:
+                  d=sha256()
+                  while chunk := f.read(1024*1024): d.update(chunk)
+          assert d.hexdigest() == "2cb7b52d87640bd24eed72d3441a34ae6f5c71907ba9f9d6b5461b1b06693931"
+          print("Split ZIP and original APK verified:", d.hexdigest())
+          PY
+          rm dist/Charoite-Portal-Charset-v2-Multipart.zip dist/rejoined.zip
           ls -lh dist/
 
-      - name: Publish split parts without replacing existing APK
+      - name: Publish download parts to existing release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           TAG=charoite-portal-gdi-charset-v2
-          # Never overwrite the original published APK or any existing split.
           if gh release view "$TAG" --repo "$GH_REPO" --json assets \
-               --jq '.assets[].name' | grep -q '^Charoite-Portal-Charset-v2-Split'; then
-            echo 'Split asset already exists; refusing to overwrite it.'
+             --jq '.assets[].name' | grep -q '^Charoite-Portal-Charset-v2-Multipart'; then
+            echo "Split assets already exist; refusing to overwrite."
             exit 1
           fi
-          gh release upload "$TAG" dist/Charoite-Portal-Charset-v2-Split.z?? \
-            dist/Charoite-Portal-Charset-v2-Split.zip --repo "$GH_REPO"
+          gh release upload "$TAG" dist/Charoite-Portal-Charset-v2-Multipart.zip.* --repo "$GH_REPO"
           gh release view "$TAG" --repo "$GH_REPO" --json assets \
-            --jq '.assets[].name' | grep -F 'Charoite-Portal-Charset-v2-Split'
-          cat > /tmp/charoite-release-notes.md <<'EOF'
-          The official signed Charoite Portal APK includes a Japanese GDI font-charset diagnostic for owner-drawn Windows controls. It does not replace Wine or modify your game files.
+            --jq '.assets[].name' | grep -F 'Charoite-Portal-Charset-v2-Multipart'
+          cat > /tmp/release-notes.md <<'EOF'
+          The official signed Charoite Portal APK includes a Japanese owner-drawn font charset diagnostic. The diagnostic does not modify Wine or user games.
 
-          **Normal download:** Charoite-Portal-GDI-Charset-Test-v2.apk
+          Normal download: Charoite-Portal-GDI-Charset-Test-v2.apk.
 
-          **Download-stall fallback:** Download EVERY part named `Charoite-Portal-Charset-v2-Split.z01`, `.z02`, etc., AND the final `Charoite-Portal-Charset-v2-Split.zip` to the same Downloads folder. In [ZArchiver](https://play.google.com/store/apps/details?id=ru.zdevs.zarchiver), select the final `.zip` file and choose Extract here to reconstruct the original APK. All parts are required. The parts are standard multivolume ZIP files. The build independently verified the reconstructed APK SHA-256 matches the original: `2cb7b52d87640bd24eed72d3441a34ae6f5c71907ba9f9d6b5461b1b06693931`.
+          Smaller-download fallback: Download ALL six parts named Charoite-Portal-Charset-v2-Multipart.zip.001 through .006 to the same Downloads folder. In ZArchiver (https://play.google.com/store/apps/details?id=ru.zdevs.zarchiver), select the first .zip.001 part and extract. It reconstructs Charoite-Portal-GDI-Charset-Test-v2.apk. Do not rename the parts. The reconstructed APK SHA-256 is 2cb7b52d87640bd24eed72d3441a34ae6f5c71907ba9f9d6b5461b1b06693931.
 
-          Do not uninstall Charoite Portal or clear application data if Android rejects an update because of a signing mismatch. Existing Wine containers and saves must be preserved.
+          Do not uninstall the existing Charoite Portal or clear app data if Android rejects an APK update due to a different signing certificate.
           EOF
-          gh release edit "$TAG" --repo "$GH_REPO" --notes-file /tmp/charoite-release-notes.md
+          gh release edit "$TAG" --repo "$GH_REPO" --notes-file /tmp/release-notes.md

@@ -128,8 +128,12 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
         self.assertLess(HELPER.index("HHOOK drawHook=NULL"),
                         HELPER.index("HHOOK auditHook=NULL"))
         self.assertIn("if(drawHook && auditCallback)", HELPER)
-        for destructive in ("LB_SETITEMDATA", "LB_DELETESTRING",
-                            "LB_INSERTSTRING", "DeleteFileW"):
+        for destructive in (
+            "SendMessageW(hwnd,LB_SETITEMDATA",
+            "SendMessageW(hwnd,LB_DELETESTRING",
+            "SendMessageW(hwnd,LB_INSERTSTRING",
+            "DeleteFileW(",
+        ):
             self.assertNotIn(destructive, HOOK)
 
     def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):

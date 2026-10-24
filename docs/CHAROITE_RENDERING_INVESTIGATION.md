@@ -76,3 +76,22 @@ specific GDI operation fails, reproduce that operation under stock Wine
 before considering a Wine patch.
 
 Do not call this a universal fix or remove the existing scoped workaround.
+
+## Phase 2b - font charset differential (implemented)
+
+The first owner-draw test passed on Galaxy S26 Ultra for all five GDI APIs
+using a font explicitly requested with SHIFTJIS_CHARSET (128). This makes
+core Wine rendering failures less likely under that known-good configuration.
+
+The next owner-draw test (v2) retains the five original rows and adds six
+font-character-set cases using DEFAULT_CHARSET (1) and ANSI_CHARSET (0).
+The face requested remains IPAPGothic. It records the requested charset,
+GetTextCharset as actually selected, and the mapped face for each draw.
+Rows below the first five require scrolling inside the test list.
+
+If DEFAULT/ANSI rows reproduce the installer-like corruption, investigate
+font-charset propagation in Delphi/VCL and the selected GDI device context.
+If all rows pass, we must instrument the actual Inno TNewCheckListBox at
+draw-time before deciding any general Wine or Core behavior change.
+
+No Wine binaries, registry settings or user saves are modified by this test.

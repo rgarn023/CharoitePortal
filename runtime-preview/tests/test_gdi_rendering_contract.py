@@ -41,6 +41,11 @@ class GdiBaseline(unittest.TestCase):
         self.assertIn("RUN OWNER-DRAW TEXT RENDERING TEST", PORTAL)
         self.assertIn("CharoiteRenderingDiagnostics.prepareOwnerDraw(this, containerId)", PORTAL)
         self.assertIn("rendering/charoite_ownerdraw_probe32.exe", CORE)
+        self.assertIn('.charoite-ownerdraw-probe-v2', CORE)
+        for text in ("DEFAULT_CHARSET", "ANSI_CHARSET",
+                     "SHIFTJIS_CHARSET", "GetTextCharset",
+                     "requested_charset=%d actual_charset=%d"):
+            self.assertIn(text, OWNER)
 
     def test_report_local_and_scoped(self):
         self.assertIn("CharoiteRenderingDiagnostics.report(context)", DIAGNOSTICS)

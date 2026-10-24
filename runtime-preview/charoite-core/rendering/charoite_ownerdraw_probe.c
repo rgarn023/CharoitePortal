@@ -1,5 +1,5 @@
 /*
- * Charoite Core Windows owner-draw GDI differential test, revision 1.
+ * Charoite Core Windows owner-draw GDI differential test, revision 2.
  *
  * This reproduces the Win32 LISTBOX / WM_DRAWITEM control path and compares
  * DrawTextW/A, ExtTextOutW/A, TextOutW with known, valid Japanese Unicode.
@@ -13,17 +13,21 @@
 #include <string.h>
 
 #define CONTROL 201
-#define METHODS 5
+#define METHODS 11
 static const wchar_t jp[] =
     L"\x30A2\x30A4\x30B3\x30F3\x3092\x8FFD\x52A0\x3059\x308B: "
     L"\x30C7\x30B9\x30AF\x30C8\x30C3\x30D7\x306B\x30A2\x30A4\x30B3\x30F3\x3092\x4F5C\x6210";
 static const wchar_t* methods[METHODS]={
-    L"DrawTextW (Unicode)", L"DrawTextA (ANSI CP932)",
-    L"ExtTextOutW (Unicode)", L"ExtTextOutA (ANSI CP932)",
-    L"TextOutW (Unicode)"
+    L"DrawTextW / SHIFTJIS_CHARSET", L"DrawTextA / SHIFTJIS_CHARSET",
+    L"ExtTextOutW / SHIFTJIS_CHARSET", L"ExtTextOutA / SHIFTJIS_CHARSET",
+    L"TextOutW / SHIFTJIS_CHARSET",
+    L"DrawTextA / DEFAULT_CHARSET", L"DrawTextA / ANSI_CHARSET",
+    L"DrawTextW / DEFAULT_CHARSET",
+    L"ExtTextOutA / DEFAULT_CHARSET", L"ExtTextOutA / ANSI_CHARSET",
+    L"ExtTextOutW / DEFAULT_CHARSET"
 };
 static HWND checklist=NULL;
-static HFONT japanFont=NULL;
+static HFONT japaneseFonts[3]={NULL,NULL,NULL};
 static BOOL seen[METHODS]={FALSE,FALSE,FALSE,FALSE,FALSE};
 
 static void log_message(const char *value) {
@@ -43,20 +47,31 @@ static void init_log(void) {
     if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);
     char info[160];
     snprintf(info,sizeof(info),
-        "Charoite Core GDI owner-draw diagnostic v1 ACP=%u OEMCP=%u UI=%04x",
+        "Charoite Core GDI owner-draw diagnostic v2 ACP=%u OEMCP=%u UI=%04x",
         GetACP(),GetOEMCP(),(unsigned)GetUserDefaultUILanguage());
     log_message(info);
     log_message("Native Win32 LBS_OWNERDRAWFIXED | LBS_HASSTRINGS control; not Delphi VCL.");
-    log_message("Each row draws the SAME known Japanese text using the stated GDI API.");
+    log_message("Each row draws identical Japanese UTF-16/CP932; rows 5-10 test alternate font charsets.");
+    log_message("Font mappings are logged before text rendering; no Wine files are changed.");
 }
 
 static void init_font(void) {
-    LOGFONTW spec={0};
-    spec.lfHeight=-20;
-    spec.lfCharSet=SHIFTJIS_CHARSET;
-    lstrcpynW(spec.lfFaceName,L"IPAPGothic",LF_FACESIZE);
-    japanFont=CreateFontIndirectW(&spec);
-    if(!japanFont)log_message("ERROR: unable to construct Japanese GDI font");
+    const BYTE characterSets[3]={
+        SHIFTJIS_CHARSET, DEFAULT_CHARSET, ANSI_CHARSET
+    };
+    for(int index=0;index<3;index++) {
+        LOGFONTW spec={0};
+        spec.lfHeight=-20;
+        spec.lfCharSet=characterSets[index];
+        lstrcpynW(spec.lfFaceName,L"IPAPGothic",LF_FACESIZE);
+        japaneseFonts[index]=CreateFontIndirectW(&spec);
+        if(!japaneseFonts[index]) {
+            char warning[120];
+            snprintf(warning,sizeof(warning),
+                "ERROR: cannot create font for charset %u",(unsigned)characterSets[index]);
+            log_message(warning);
+        }
+    }
 }
 
 static void log_font(HDC dc) {
@@ -83,9 +98,18 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
     int state=SaveDC(dc);
     if(!state)return;
     int index=(int)item->itemID;
+    int fontCase=0;
+    if(index==5 || index==7 || index==8 || index==10) fontCase=1;
+    else if(index==6 || index==9) fontCase=2;
     HGDIOBJ previous=NULL;
-    if(japanFont) previous=SelectObject(dc,japanFont);
+    if(japaneseFonts[fontCase]) previous=SelectObject(dc,japaneseFonts[fontCase]);
     if(previous==HGDI_ERROR)previous=NULL;
+    wchar_t mappedFace[LF_FACESIZE]={0};
+    GetTextFaceW(dc,LF_FACESIZE,mappedFace);
+    char mappedUtf8[160]={0};
+    WideCharToMultiByte(CP_UTF8,0,mappedFace,-1,
+                        mappedUtf8,sizeof(mappedUtf8),NULL,NULL);
+    int actualCharset=GetTextCharset(dc);
 
     BOOL selected=(item->itemState & ODS_SELECTED)!=0;
     HBRUSH bg=CreateSolidBrush(selected?RGB(29,69,122):RGB(248,247,252));
@@ -111,13 +135,13 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
     int cpSize=WideCharToMultiByte(932,WC_NO_BEST_FIT_CHARS,
                         jp,-1,ansi,sizeof(ansi),NULL,&loss);
     BOOL ok=FALSE;
-    if(index==0)
+    if(index==0 || index==7)
         ok=DrawTextW(dc,jp,-1,&line,DT_LEFT|DT_SINGLELINE|DT_NOPREFIX)>0;
-    if(index==1 && cpSize>0 && !loss)
+    if((index==1 || index==5 || index==6) && cpSize>0 && !loss)
         ok=DrawTextA(dc,ansi,-1,&line,DT_LEFT|DT_SINGLELINE|DT_NOPREFIX)>0;
-    if(index==2)
+    if(index==2 || index==10)
         ok=ExtTextOutW(dc,line.left,line.top,ETO_CLIPPED,&line,jp,(UINT)wcslen(jp),NULL);
-    if(index==3 && cpSize>0 && !loss)
+    if((index==3 || index==8 || index==9) && cpSize>0 && !loss)
         ok=ExtTextOutA(dc,line.left,line.top,ETO_CLIPPED,&line,ansi,(UINT)(cpSize-1),NULL);
     if(index==4)
         ok=TextOutW(dc,line.left,line.top,jp,(int)wcslen(jp));
@@ -125,11 +149,13 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
     if(!seen[index]) {
         wchar_t stored[128]={0};
         LRESULT length=SendMessageW(checklist,LB_GETTEXT,(WPARAM)index,(LPARAM)stored);
-        char report[210];
+        char report[340];
         snprintf(report,sizeof(report),
-            "draw[%d] success=%d original_unicode_intact=%d cp932_bytes=%d substitutions=%d",
+            "draw[%d] success=%d original_unicode_intact=%d requested_charset=%d actual_charset=%d mapped_face=%s cp932_bytes=%d substitutions=%d",
             index,ok!=FALSE,(int)(length>0 && wcscmp(stored,jp)==0),
-            cpSize,loss!=FALSE);
+            (int)(fontCase==0 ? SHIFTJIS_CHARSET :
+                  (fontCase==1 ? DEFAULT_CHARSET : ANSI_CHARSET)),
+            actualCharset,mappedUtf8,cpSize,loss!=FALSE);
         log_message(report);
         if(index==0)log_font(dc);
         seen[index]=TRUE;
@@ -156,7 +182,7 @@ static LRESULT CALLBACK window_proc(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) 
             break;
         }
         case WM_DESTROY:
-            if(japanFont)DeleteObject(japanFont);
+            for(int i=0;i<3;i++)if(japaneseFonts[i])DeleteObject(japaneseFonts[i]);
             PostQuitMessage(0);
             return 0;
     }
@@ -187,7 +213,7 @@ int WINAPI wWinMain(HINSTANCE app,HINSTANCE prev,PWSTR args,int show) {
         return 3;
     }
     CreateWindowExW(0,L"STATIC",
-        L"Owner-drawn Japanese text - all five rows should match",
+        L"Owner-drawn Japanese text - all eleven rows should match",
         WS_CHILD|WS_VISIBLE,14,15,780,25,window,NULL,app,NULL);
     CreateWindowExW(0,L"STATIC",jp,WS_CHILD|WS_VISIBLE,
         14,49,780,25,window,NULL,app,NULL);

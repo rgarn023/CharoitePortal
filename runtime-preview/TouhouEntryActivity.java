@@ -43,6 +43,7 @@ import com.charoitegames.core.CharoiteGameDiscovery;
 import com.charoitegames.core.CharoiteGameProfiles;
 import com.charoitegames.core.CharoiteGameSessions;
 import com.charoitegames.core.CharoiteDiagnostics;
+import com.charoitegames.core.CharoiteRenderingDiagnostics;
 import com.charoitegames.core.CharoiteEnvironments;
 import com.charoitegames.core.CharoiteEnvironmentFiles;
 import com.charoitegames.core.CharoiteThemes;
@@ -436,6 +437,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout debugCard = card();
         debugCard.addView(label("Support & diagnostics", 17, FOREGROUND, true));
         debugCard.addView(label("Review local Windows launch information. Nothing is sent automatically.", 12, SECONDARY, false));
+        debugCard.addView(label("Run a local Windows text-rendering test using Japanese fonts. Compare native Unicode and CP932 output to help diagnose other games. Does not modify installed games or Wine DLLs.", 12, SECONDARY, false));
+        debugCard.addView(outlinedButton("RUN WINDOWS TEXT RENDERING TEST",
+                this::runWindowsTextRenderingTest));
         diagnosticButton = outlinedButton("VIEW LAST LAUNCH DIAGNOSTICS", this::showDiagnostics);
         debugCard.addView(diagnosticButton);
         systemScreen.addView(debugCard);
@@ -1392,6 +1396,21 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     containerId, path, installer);
         } catch (Exception error) {
             setStatus("Unable to launch Windows program: " + error.getMessage());
+        }
+    }
+
+    /** Opt-in, reusable Charoite Core GDI baseline. Never imports or scans games. */
+    private void runWindowsTextRenderingTest() {
+        if (busy || containerId <= 0) {
+            setStatus("Prepare your Windows environment before starting a rendering test.");
+            return;
+        }
+        try {
+            String executable = CharoiteRenderingDiagnostics.prepare(this, containerId);
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, executable, false);
+        } catch (Exception error) {
+            setStatus("Windows text-rendering test could not start: " + error.getMessage());
         }
     }
 

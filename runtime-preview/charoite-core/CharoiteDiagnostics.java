@@ -15,6 +15,7 @@ public final class CharoiteDiagnostics {
     private CharoiteDiagnostics() {}
 
     public static void begin(Context context, String executable) {
+        CharoiteRenderingDiagnostics.clearReportForAnotherLaunch(context, executable);
         synchronized (lines) { lines.clear(); }
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
@@ -95,6 +96,7 @@ public final class CharoiteDiagnostics {
                 }
             }
         }
+        report += CharoiteRenderingDiagnostics.report(context);
         return report;
     }
 

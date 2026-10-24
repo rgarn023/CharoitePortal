@@ -225,7 +225,7 @@ core_destination.write_bytes(core_source.read_bytes())
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
                "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
-               "CharoiteDiagnostics.java"):
+               "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"
@@ -288,6 +288,16 @@ for arch in ("32", "64"):
         (probe_asset.parent / original.name).write_bytes(original.read_bytes())
 
 
+
+# General, read-only Windows GDI rendering diagnostic. This is an ordinary
+# test program, not an injected Wine DLL or visual text overlay.
+gdi_binary = overlay.parent / "charoite-core/rendering/charoite_gdi_probe32.exe"
+assert gdi_binary.is_file() and gdi_binary.stat().st_size > 10000, (
+    "Compile Charoite Core GDI diagnostic before applying overlay"
+)
+gdi_asset = root / "app/src/main/assets/rendering/charoite_gdi_probe32.exe"
+gdi_asset.parent.mkdir(parents=True, exist_ok=True)
+gdi_asset.write_bytes(gdi_binary.read_bytes())
 
 # JNI entrypoints retain the com.winlator Java package, but native C/C++
 # files also bake in app-private cache locations. Rewrite ONLY absolute

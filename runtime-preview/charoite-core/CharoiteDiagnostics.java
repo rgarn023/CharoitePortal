@@ -58,7 +58,7 @@ public final class CharoiteDiagnostics {
 
     public static String getReport(Context context) {
         SharedPreferences p = prefs(context);
-        String report = "Charoite Portal / Japanese installer diagnostics v4" +
+        String report = "Charoite Portal / Japanese installer diagnostics v7" +
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
@@ -89,7 +89,7 @@ public final class CharoiteDiagnostics {
                         String output = new String(java.nio.file.Files.readAllBytes(log.toPath()),
                                 java.nio.charset.StandardCharsets.UTF_8);
                         report += "\n\n" + name + ":\n" +
-                                output.substring(0, Math.min(7000, output.length()));
+                                output.substring(Math.max(0, output.length() - 16000));
                     } else report += "\n\n" + name + ": no report yet";
                 } catch (Exception error) {
                     report += "\n" + name + ": " + error;

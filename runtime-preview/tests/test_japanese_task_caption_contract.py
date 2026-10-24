@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v6', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v6\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v7', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v7\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 
@@ -80,6 +80,29 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
         self.assertIn('const char *drawExport="TouhouDrawHook"', HELPER)
         self.assertIn("WH_CALLWNDPROCRET", HELPER)
         self.assertIn("post-draw hook attach failed win32_error=", HELPER)
+
+    def test_real_installer_charset_audit_is_read_only_and_bounded(self):
+        # Thread-scoped pre/post owner-draw snapshots must never be mistaken
+        # for an interception of Delphi's transient DrawTextA font selection.
+        self.assertIn('const char *auditExport="TouhouAuditHook@12"', HELPER)
+        self.assertIn('const char *auditExport="TouhouAuditHook"', HELPER)
+        self.assertIn("WH_CALLWNDPROC", HELPER)
+        self.assertIn("UnhookWindowsHookEx(auditHook)", HELPER)
+        for fragment in (
+            "TouhouAuditHook(", "paint_audit_seen[2][2]",
+            "audit_installer_paint(item,0)", "audit_installer_paint(item,1)",
+            "GetCurrentObject(item->hDC,OBJ_FONT)", "GetTextCharset(item->hDC)",
+            "GetTextFaceW(item->hDC", "GetObjectW(listFont",
+            "installer_task_list(item->hwndItem)",
+            "GetWindowThreadProcessId(item->hwndItem,NULL)!=GetCurrentThreadId()",
+            "caption_present=%d japanese_utf16=%d",
+            "paint boundary snapshots cannot prove a transient GDI font",
+        ):
+            self.assertIn(fragment, HOOK)
+        for destructive in ("SendMessageW(item->hwndItem,LB_DELETESTRING",
+                            "SendMessageW(item->hwndItem,LB_SETITEMDATA"):
+            self.assertNotIn(destructive, HOOK)
+
 
     def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):
         # Phone screenshot shows erroneous '|A|C|' before the correct

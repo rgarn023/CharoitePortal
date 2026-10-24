@@ -1,5 +1,5 @@
 /*
- * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v6.
+ * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v7.
  *
  * The original v1 hook only updated the installation-path TEdit. Screens
  * farther into the Inno wizard (notably Select Additional Tasks) use owner-
@@ -33,6 +33,16 @@ static int diagnosed_count[12] = {0};
 static BOOL draw_seen = FALSE;
 static BOOL undrawable_reported = FALSE;
 static BOOL group_header_logged = FALSE;
+/*
+ * Real installer paint audit. WM_DRAWITEM reaches the parent TWizardForm.
+ * Capture the HDC's font before / after its original WndProc as evidence for
+ * the charset mismatch seen in the synthetic GDI test. Those snapshots do
+ * not intercept individual DrawTextA or ExtTextOutA calls; the component may
+ * select and restore a temporary font during painting.
+ * Restrict to one sample per stage and checklist row, never log user text.
+ */
+static BOOL paint_audit_seen[2][2]={{FALSE,FALSE},{FALSE,FALSE}};
+static BOOL paint_audit_started=FALSE;
 
 static void report(const char *message) {
     HANDLE f = CreateFileW(L"C:\\touhou_font_hook.log", FILE_APPEND_DATA,
@@ -109,7 +119,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     LONG_PTR style=GetWindowLongPtrW(hwnd,GWL_STYLE);
     char info[512];
     snprintf(info,sizeof(info),
-        "hook-v6 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
+        "hook-v7 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
         slot,count,(unsigned long long)style,
         !!(style & LBS_HASSTRINGS),
         !!(style & (LBS_OWNERDRAWFIXED|LBS_OWNERDRAWVARIABLE)));
@@ -117,7 +127,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     for(int item=0;item<count && item<8;item++) {
         wchar_t value[512]={0};
         if(!read_task_caption(hwnd,(UINT)item,value,512)) {
-            report("hook-v6 list label unavailable through LB_GETTEXT; no unsafe item-data access");
+            report("hook-v7 list label unavailable through LB_GETTEXT; no unsafe item-data access");
             continue;
         }
         size_t at=(size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
@@ -130,7 +140,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
             for(unsigned i=0;recovered[i] && i<52 && pos+7<sizeof(info);i++)
                 pos+=(size_t)snprintf(info+pos,sizeof(info)-pos,"%04X ",(unsigned)recovered[i]);
             report(info);
-        } else report("hook-v6 task not losslessly recoverable as CP1252-to-CP932");
+        } else report("hook-v7 task not losslessly recoverable as CP1252-to-CP932");
     }
 }
 
@@ -236,10 +246,10 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
                     wcscmp(repaired,after)==0) {
                 lstrcpynW(before,repaired,1024);
                 text_japanese=TRUE;
-                report("hook-v6 repaired reversible mojibake on static caption");
+                report("hook-v7 repaired reversible mojibake on static caption");
             } else {
                 SetWindowTextW(hwnd,before);
-                report("hook-v6 static caption repair verification failed; restored");
+                report("hook-v7 static caption repair verification failed; restored");
             }
         }
     }
@@ -271,7 +281,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
             (HFONT)SendMessageW(hwnd,WM_GETFONT,0,0)!=japanese) {
         SendMessageW(hwnd,WM_SETFONT,(WPARAM)original,TRUE);
         DeleteObject(japanese);
-        report("hook-v6 control verification failed; original font restored");
+        report("hook-v7 control verification failed; original font restored");
         return TRUE;
     }
     patched_windows[patched_count]=hwnd;
@@ -280,7 +290,7 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
     if (patched_count < 25 || patched_count % 25 == 0) {
         char info[200];
         snprintf(info,sizeof(info),
-            "hook-v6 installed Japanese font on control=%u task_list=%d",
+            "hook-v7 installed Japanese font on control=%u task_list=%d",
             patched_count,(int)task);
         report(info);
     }
@@ -297,7 +307,7 @@ static BOOL CALLBACK wizard_callback(HWND hwnd, LPARAM data) {
     // This can never affect an unrelated Wine application's UI.
     if (!installer_verified) {
         installer_verified=TRUE;
-        report("hook-v6 Japanese installer TWizardForm found; scanning ALL text controls");
+        report("hook-v7 Japanese installer TWizardForm found; scanning ALL text controls");
     }
     EnumChildWindows(hwnd,control_callback,0);
     return TRUE;
@@ -319,6 +329,71 @@ __declspec(dllexport) LRESULT CALLBACK TouhouFontHook(int nCode, WPARAM wParam, 
     return CallNextHookEx(NULL,nCode,wParam,lParam);
 }
 
+
+
+/*
+ * Safely inspect first two Inno checklist rows, only on the identified
+ * installer's UI thread and never in another application's listbox.
+ * All getters are read-only; no font, checkbox or user text is modified.
+ */
+static void audit_installer_paint(const DRAWITEMSTRUCT *item, int stage) {
+    if(!item || !item->hDC || !item->hwndItem ||
+       item->CtlType!=ODT_LISTBOX || item->itemID>1 ||
+       item->itemID==(UINT)-1 || (stage!=0 && stage!=1) ||
+       paint_audit_seen[stage][item->itemID] ||
+       GetWindowThreadProcessId(item->hwndItem,NULL)!=GetCurrentThreadId() ||
+       !installer_task_list(item->hwndItem)) return;
+    paint_audit_seen[stage][item->itemID]=TRUE;
+
+    wchar_t original[512]={0};
+    BOOL hasCaption=read_task_caption(item->hwndItem,item->itemID,original,512);
+    HFONT contextFont=(HFONT)GetCurrentObject(item->hDC,OBJ_FONT);
+    HFONT listFont=(HFONT)SendMessageW(item->hwndItem,WM_GETFONT,0,0);
+    LOGFONTW contextSpec={0}, listSpec={0};
+    BOOL contextOk=contextFont &&
+        GetObjectW(contextFont,sizeof(contextSpec),&contextSpec)==sizeof(contextSpec);
+    BOOL listOk=listFont &&
+        GetObjectW(listFont,sizeof(listSpec),&listSpec)==sizeof(listSpec);
+    wchar_t mapped[LF_FACESIZE]={0};
+    GetTextFaceW(item->hDC,LF_FACESIZE,mapped);
+    char mappedUtf8[160]={0};
+    if(!WideCharToMultiByte(CP_UTF8,0,mapped,-1,mappedUtf8,
+                          sizeof(mappedUtf8),NULL,NULL))
+        lstrcpynA(mappedUtf8,"(unavailable)",sizeof(mappedUtf8));
+    int dcCharset=GetTextCharset(item->hDC);
+    /*
+     * We know ANSI_CHARSET 0 selects Windows-1252 and SHIFTJIS_CHARSET
+     * 128 selects CP932 under this Wine build, as the user's test proved.
+     * Avoid claiming GDI call-site charset from the WM_DRAWITEM boundary.
+     */
+    char line[560];
+    snprintf(line,sizeof(line),
+        "hook-v7 paint-audit phase=%s row=%u dc_charset=%d dc_font_charset=%d list_font_charset=%d dc_face=%s caption_present=%d japanese_utf16=%d font_handles_equal=%d context_font_ok=%d list_font_ok=%d",
+        stage==0?"before":"after",(unsigned)item->itemID,
+        dcCharset,contextOk?(int)contextSpec.lfCharSet:-1,
+        listOk?(int)listSpec.lfCharSet:-1,mappedUtf8,
+        hasCaption!=FALSE,hasCaption && contains_japanese(original),
+        contextFont!=NULL && contextFont==listFont,
+        contextOk!=FALSE,listOk!=FALSE);
+    report(line);
+    if(!paint_audit_started) {
+        paint_audit_started=TRUE;
+        report("hook-v7: paint boundary snapshots cannot prove a transient GDI font used inside Delphi DrawTextA; comparing them with the synthetic ANSI_CHARSET reproduction");
+    }
+}
+
+__declspec(dllexport) LRESULT CALLBACK TouhouAuditHook(
+        int nCode, WPARAM wParam, LPARAM lParam) {
+    (void)wParam;
+    if(nCode>=0 && lParam) {
+        const CWPSTRUCT *event=(const CWPSTRUCT *)lParam;
+        if(event->message==WM_DRAWITEM && event->lParam) {
+            const DRAWITEMSTRUCT *item=(const DRAWITEMSTRUCT *)event->lParam;
+            audit_installer_paint(item,0);
+        }
+    }
+    return CallNextHookEx(NULL,nCode,wParam,lParam);
+}
 
 /*
  * Owner-drawn checklist items send WM_DRAWITEM to their parent. A thread-only
@@ -404,7 +479,7 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
     RestoreDC(dc,saved);
     if(section_header && drawn>0 && !group_header_logged) {
         group_header_logged=TRUE;
-        report("hook-v6: complete unselected section heading repainted; no checkbox area modified");
+        report("hook-v7: complete unselected section heading repainted; no checkbox area modified");
     }
     return drawn>0;
 }
@@ -416,22 +491,23 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
         const CWPRETSTRUCT *event=(const CWPRETSTRUCT *)lParam;
         if(event->message==WM_DRAWITEM && event->lParam) {
             const DRAWITEMSTRUCT *item=(const DRAWITEMSTRUCT *)event->lParam;
+            audit_installer_paint(item,1);
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) && !draw_seen) {
                 draw_seen=TRUE;
-                report("hook-v6 owner-draw checklist paint event detected");
+                report("hook-v7 owner-draw checklist paint event detected");
             }
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) &&
                     !(GetWindowLongPtrW(item->hwndItem,GWL_STYLE)&LBS_HASSTRINGS) &&
                     !undrawable_reported) {
                 undrawable_reported=TRUE;
-                report("hook-v6 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
+                report("hook-v7 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
             }
             static BOOL logged=FALSE;
             if(draw_recovered_task((const DRAWITEMSTRUCT *)event->lParam) && !logged) {
                 logged=TRUE;
-                report("hook-v6: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
+                report("hook-v7: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
             }
         }
     }

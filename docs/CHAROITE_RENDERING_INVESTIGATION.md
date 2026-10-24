@@ -106,3 +106,35 @@ the top of the window, with 64-pixel test rows fitting the test viewport.
 Clicking the second button redraws the synthetic list with test indices 5..10,
 records each drawing result and font mapping, and logs the page transition.
 No other process or persistent game data is modified.
+
+## Phase 2d - original Inno checklist draw-boundary font audit (implemented)
+
+The Galaxy owner-draw v3 results reproduce Japanese corruption only for the
+two ANSI A calls where an IPAPGothic font is selected with ANSI_CHARSET
+0 (Western-1252). SHIFTJIS_CHARSET 128 and DEFAULT_CHARSET 1 (resolved to
+128) work for the same CP932 bytes. All Unicode W calls work.
+
+The original TPDP installer still requires a real call-path diagnosis:
+Charoite's opt-in installer helper now installs a read-only pre-draw
+WH_CALLWNDPROC audit alongside the existing post-draw
+WH_CALLWNDPROCRET repaint fallback, strictly in the already-identified
+TWizardForm GUI thread. For the first two TNewCheckListBox rows it records
+the font charset selected into the DRAWITEMSTRUCT HDC, the font charset
+exposed through the list's WM_GETFONT, font face, and whether original
+Unicode LB_GETTEXT data is intact. Logs appear as "hook-v7 paint-audit"
+in System -> View Last Launch Diagnostics when the installer reaches the
+Additional Tasks page. The helper and Java diagnostics log paths are
+unchanged; the helper binary is refreshed once per existing Wine prefix
+through its new version marker, without reset or migration.
+
+These are boundary snapshots, not instrumentation of the actual
+Delphi calls inside WM_DRAWITEM. If the app selects and restores a different
+font during the owner-draw callback, the snapshots alone cannot prove it.
+The existing Unicode repaint stays as fallback while we collect evidence.
+No global CP1252->CP932 redirect has been introduced because that would
+break legitimate Western ANSI applications.
+
+To gather evidence, keep "Japanese text support" and opt-in "Installer
+font repair" enabled, run the original TPDP setup.exe, navigate to its
+Select Additional Tasks checklist, and copy View Last Launch Diagnostics.
+Look for paired "paint-audit phase=before" and "phase=after" records.

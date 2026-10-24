@@ -88,7 +88,7 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         DWORD error=GetLastError();
         char msg[220];
         snprintf(msg,sizeof(msg),
-            "helper-v6: draw export not found name=%s error=%lu",
+            "helper-v7: draw export not found name=%s error=%lu",
             drawExport,(unsigned long)error);
         report(msg);
         // Compatibility aliases for other MinGW linkers.
@@ -96,20 +96,43 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
         if(!drawCallback)
             drawCallback=(HOOKPROC)GetProcAddress(module,"TouhouDrawHook");
     }
+
+    /*
+     * Observe the same TWizardForm WM_DRAWITEM boundary BEFORE its WndProc.
+     * Read-only metadata only. The existing post-draw Unicode repair remains
+     * untouched, so the current user's Japanese installer stays functional.
+     */
+#ifdef _WIN64
+    const char *auditExport="TouhouAuditHook";
+#else
+    const char *auditExport="TouhouAuditHook@12";
+#endif
+    HOOKPROC auditCallback=(HOOKPROC)GetProcAddress(module,auditExport);
+    HHOOK auditHook=NULL;
+    if(auditCallback) {
+        auditHook=SetWindowsHookExW(WH_CALLWNDPROC,auditCallback,module,threadId);
+        if(!auditHook) {
+            char errorLine[160];
+            snprintf(errorLine,sizeof(errorLine),
+                "helper-v7: pre-draw audit hook attach failed win32_error=%lu",
+                (unsigned long)GetLastError());
+            report(errorLine);
+        } else report("helper-v7: pre-draw installer charset audit attached (read-only)");
+    } else report("helper-v7: missing TouhouAuditHook export; pre-draw observation unavailable");
     HHOOK drawHook=NULL;
     if(drawCallback) {
         drawHook=SetWindowsHookExW(WH_CALLWNDPROCRET,drawCallback,module,threadId);
         if(!drawHook) {
             char msg[160];
             snprintf(msg,sizeof(msg),
-                "helper-v6: post-draw hook attach failed win32_error=%lu",
+                "helper-v7: post-draw hook attach failed win32_error=%lu",
                 (unsigned long)GetLastError());
             report(msg);
         }
     }
-    if(drawHook) report("helper-v6: Unicode checklist post-draw hook installed");
-    else report("helper-v6: post-draw hook unavailable; Unicode checklist remains unmodified");
-    report("helper-v6: thread-local font hook installed; keeping later wizard pages active");
+    if(drawHook) report("helper-v7: Unicode checklist post-draw hook installed");
+    else report("helper-v7: post-draw hook unavailable; Unicode checklist remains unmodified");
+    report("helper-v7: thread-local font hook installed; keeping later wizard pages active");
     // An Inno Setup user can spend much longer than 18 seconds on the path,
     // shortcuts and optional-task pages. Continue checking the same installer
     // GUI thread without rewriting its strings or touching other processes.
@@ -118,19 +141,20 @@ int WINAPI wWinMain(HINSTANCE current,HINSTANCE previous,PWSTR line,int show) {
                                   FALSE,threadId);
     for(int count=0;count<1500;count++) {
         if(targetThread && WaitForSingleObject(targetThread,0)==WAIT_OBJECT_0) {
-            report("helper-v6: installer GUI thread exited");
+            report("helper-v7: installer GUI thread exited");
             break;
         }
         if(!PostThreadMessageW(threadId,WM_NULL,0,0)) {
-            report("helper-v6: installer thread no longer accepts messages");
+            report("helper-v7: installer thread no longer accepts messages");
             break;
         }
         Sleep(200);
     }
     if(targetThread) CloseHandle(targetThread);
     if(drawHook) UnhookWindowsHookEx(drawHook);
+    if(auditHook) UnhookWindowsHookEx(auditHook);
     UnhookWindowsHookEx(hook);
-    report("helper-v6: scoped hooks uninstalled after installer session");
+    report("helper-v7: scoped hooks uninstalled after installer session");
     FreeLibrary(module);
     if(desktop) CloseDesktop(desktop);
     return 0;

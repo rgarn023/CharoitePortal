@@ -298,6 +298,12 @@ assert gdi_binary.is_file() and gdi_binary.stat().st_size > 10000, (
 gdi_asset = root / "app/src/main/assets/rendering/charoite_gdi_probe32.exe"
 gdi_asset.parent.mkdir(parents=True, exist_ok=True)
 gdi_asset.write_bytes(gdi_binary.read_bytes())
+owner_binary = overlay.parent / "charoite-core/rendering/charoite_ownerdraw_probe32.exe"
+assert owner_binary.is_file() and owner_binary.stat().st_size > 10000, (
+    "Compile general owner-draw diagnostic before applying overlay"
+)
+owner_asset = root / "app/src/main/assets/rendering/charoite_ownerdraw_probe32.exe"
+owner_asset.write_bytes(owner_binary.read_bytes())
 
 # JNI entrypoints retain the com.winlator Java package, but native C/C++
 # files also bake in app-private cache locations. Rewrite ONLY absolute

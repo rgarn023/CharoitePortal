@@ -440,6 +440,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         debugCard.addView(label("Run a local Windows text-rendering test using Japanese fonts. Compare native Unicode and CP932 output to help diagnose other games. Does not modify installed games or Wine DLLs.", 12, SECONDARY, false));
         debugCard.addView(outlinedButton("RUN WINDOWS TEXT RENDERING TEST",
                 this::runWindowsTextRenderingTest));
+        debugCard.addView(label("If the standard Japanese text test passes, compare five Win32 owner-drawn GDI methods against the same Unicode characters.", 12, SECONDARY, false));
+        debugCard.addView(outlinedButton("RUN OWNER-DRAW TEXT RENDERING TEST",
+                this::runOwnerDrawTextRenderingTest));
         diagnosticButton = outlinedButton("VIEW LAST LAUNCH DIAGNOSTICS", this::showDiagnostics);
         debugCard.addView(diagnosticButton);
         systemScreen.addView(debugCard);
@@ -1411,6 +1414,21 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     containerId, executable, false);
         } catch (Exception error) {
             setStatus("Windows text-rendering test could not start: " + error.getMessage());
+        }
+    }
+
+    /** Compare owner-drawn listbox GDI APIs without altering Wine or games. */
+    private void runOwnerDrawTextRenderingTest() {
+        if (busy || containerId <= 0) {
+            setStatus("Prepare your Windows environment before starting a rendering test.");
+            return;
+        }
+        try {
+            String executable = CharoiteRenderingDiagnostics.prepareOwnerDraw(this, containerId);
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, executable, false);
+        } catch (Exception error) {
+            setStatus("Owner-draw rendering test could not start: " + error.getMessage());
         }
     }
 

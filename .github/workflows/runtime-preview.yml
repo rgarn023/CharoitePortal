@@ -83,7 +83,8 @@ jobs:
             runtime-preview/charoite-core/japanese/touhou_font_helper32.exe
             runtime-preview/charoite-core/japanese/touhou_font_helper64.exe
             runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
-          key: charoite-win32-tools-v2-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c') }}
+            runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
+          key: charoite-win32-tools-v3-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c') }}
 
       - name: Compile Japanese installer font helpers
         if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
@@ -132,6 +133,12 @@ jobs:
             -luser32 -lgdi32
           file runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
           test $(stat -c %s runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe) -gt 10000
+          "$CC32" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+            runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c \
+            -o runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe \
+            -luser32 -lgdi32
+          file runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
+          test $(stat -c %s runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe) -gt 10000
 
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
@@ -275,6 +282,10 @@ jobs:
               assert content.startswith(b"MZ") and len(content) > 10000, "Missing Win32 GDI test"
               assert "charoite_gdi_render.log".encode("utf-16le") in content
               print("Bundled reusable Charoite Core read-only GDI test:", len(content), "bytes")
+              owner = z.read("assets/rendering/charoite_ownerdraw_probe32.exe")
+              assert owner.startswith(b"MZ") and len(owner) > 10000
+              assert "charoite_ownerdraw_render.log".encode("utf-16le") in owner
+              print("Bundled reusable read-only owner-draw comparison:", len(owner), "bytes")
           PY
 
       - name: Archive LGPL source and derivative patch

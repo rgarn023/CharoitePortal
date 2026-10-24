@@ -53,3 +53,26 @@ or metadata and obtain user approval before capturing other game text.
 
 If a Wine bug is isolated, build a pinned patched Wine variant as an optional
 side-by-side compatibility profile. Keep upstream attribution and licensing.
+
+
+## Phase 2a - differential owner-draw baseline (implemented)
+
+The user's actual GDI test on Galaxy S26 Ultra showed all four font
+faces produce correct Japanese characters through both DrawTextW and DrawTextA.
+ACP/OEMCP was 932 and glyph coverage was complete. This excludes a broad,
+always-failing GDI Japanese rendering issue under those test conditions.
+
+The new **Run Owner-Draw Text Rendering Test** uses an isolated native Win32
+LBS_OWNERDRAWFIXED | LBS_HASSTRINGS control, placing the same known Japanese
+text into each list row and drawing it with DrawTextW, DrawTextA, ExtTextOutW,
+ExtTextOutA, and TextOutW respectively. It records original LB_GETTEXT
+fidelity, resolved font, charset and GDI success codes. Compare the visible
+rows and copy the local diagnostic report.
+
+This is not a full simulation of Delphi TNewCheckListBox's drawing code.
+If the native owner-drawn rows also pass, focus further efforts on the
+Delphi/VCL control font/charset selection and drawing-path behavior. If a
+specific GDI operation fails, reproduce that operation under stock Wine
+before considering a Wine patch.
+
+Do not call this a universal fix or remove the existing scoped workaround.

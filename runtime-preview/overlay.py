@@ -493,7 +493,7 @@ return_end = """            if (terminationCallback != null) terminationCallback
 assert guest_code.count(return_end) == 1, "Box64 Windows callback ending changed"
 guest_code = guest_code.replace(return_end, return_end + """
         if (guestExecutable != null &&
-                guestExecutable.toLowerCase(java.util.Locale.ROOT).contains("setup.exe") &&
+                com.charoitegames.core.CharoiteCore.isJapaneseInstallerCandidate(guestExecutable) &&
                 com.charoitegames.core.CharoiteCore.useTouhouInstallerFontProbe(environment.getContext()) &&
                 mainPid > 0) {
             final EnvVars probeEnv = new EnvVars();

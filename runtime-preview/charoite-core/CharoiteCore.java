@@ -82,8 +82,9 @@ public final class CharoiteCore {
     /**
      * Inno Setup font repair is a Core capability, but injection remains
      * explicitly scoped: current environment must have Japanese support,
-     * user must opt in (Touhou legacy defaults on), and launch must be setup.exe.
-     * The monitor itself only attaches to an Inno TWizardForm GUI thread.
+     * user must opt in (Touhou legacy defaults on), and launch must be a
+     * recognized installer executable. The Win32 monitor must independently
+     * verify a Japanese CP932 Inno TWizardForm before attaching any hook.
      */
     public static boolean installerFontRepairEnabled(Context host) {
         android.content.SharedPreferences prefs = host.getSharedPreferences(
@@ -98,6 +99,30 @@ public final class CharoiteCore {
         String id = CharoiteEnvironments.activeId(host);
         host.getSharedPreferences("TouhouEntryActivity", Context.MODE_PRIVATE)
                 .edit().putBoolean("charoite_installer_font_repair_" + id, enabled).apply();
+    }
+
+    /**
+     * Conservative opt-in Japanese installer recognizer. This is only the
+     * first eligibility gate: the Win32 monitor MUST independently verify a
+     * CP932 Inno TWizardForm containing Japanese Unicode text.
+     */
+    public static boolean isJapaneseInstallerCandidate(String executable) {
+        if (executable == null) return false;
+        String candidate = executable.trim().replace('\\', '/');
+        int exeEnd = candidate.toLowerCase(java.util.Locale.ROOT).lastIndexOf(".exe");
+        if (exeEnd < 0) return false;
+        // Reject disguised files such as setup.exe.bak or setup.exe.config.
+        // A plain closing quote is permitted around a Windows command.
+        String suffix = candidate.substring(exeEnd + 4).trim();
+        if (!suffix.isEmpty() && !suffix.equals("\"")) return false;
+        candidate = candidate.substring(0, exeEnd + 4);
+        int delimiter = Math.max(candidate.lastIndexOf('/'), candidate.lastIndexOf('"'));
+        String filename = candidate.substring(delimiter + 1)
+                .toLowerCase(java.util.Locale.ROOT);
+        return filename.equals("setup.exe") || filename.equals("install.exe") ||
+               filename.equals("installer.exe") ||
+               (filename.startsWith("setup_") && filename.endsWith(".exe")) ||
+               (filename.startsWith("install_") && filename.endsWith(".exe"));
     }
 
     /** Compatibility alias for the earlier Touhou-specific caller. */

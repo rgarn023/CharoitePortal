@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v10', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v10\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v11', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v11\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 

@@ -1,5 +1,5 @@
 /*
- * Touhou Pocket Japanese installer font repair + diagnostic v6.
+ * Charoite Core Japanese installer discovery + diagnostic v11.
  *
  * Scoped Wine GUI font fix. Does not alter game files, window text,
  * locale, registry or install directory. Inspects the installer destination
@@ -30,6 +30,9 @@ static int desktop_count = 0;
 static int debug_windows = 0;
 static int debug_children = 0;
 static int repair_attempted = 0;
+static int japanese_candidates = 0;
+static int unsupported_windows = 0;
+static int saw_wizard = 0;
 
 static void line(const char *value) {
     if (log_handle == INVALID_HANDLE_VALUE) return;
@@ -58,10 +61,31 @@ static int has_word(const wchar_t *text, const wchar_t *match) {
     return 0;
 }
 
+/* Identify Japanese script, not one game's folder, installer title or
+ * hard-coded translation. Require two characters to avoid spurious hooks
+ * for ordinary Western installers containing a single CJK symbol. */
+static int japanese_units(const wchar_t *value) {
+    if (!value) return 0;
+    int count=0;
+    for (; *value;value++)
+        if ((*value >= 0x3040 && *value <= 0x30ff) ||
+            (*value >= 0x3400 && *value <= 0x9fff) ||
+            (*value >= 0xff66 && *value <= 0xff9f)) count++;
+    return count;
+}
+
 static int is_path(const wchar_t *value) {
-    if (!value || !value[0]) return 0;
-    if (iswalpha(value[0]) && value[1] == L':' && value[2] == L'\\') return 1;
-    return wcsstr(value, L"FocasLens") != NULL;
+    return value && iswalpha(value[0]) && value[1]==L':' &&
+           value[2]==L'\\';
+}
+
+static int is_inno_wizard(HWND hwnd) {
+    wchar_t klass[128]={0};
+    for(HWND node=hwnd;node;node=GetParent(node)) {
+        if(GetClassNameW(node,klass,127) &&
+           has_word(klass,L"TWizardForm")) return 1;
+    }
+    return 0;
 }
 
 
@@ -72,13 +96,17 @@ static int is_path(const wchar_t *value) {
  * across that boundary. Instead start an architecture-matched thread hook
  * helper, which creates and installs the font inside the installer's process.
  */
-static void try_repair_path_font(HWND hwnd, const wchar_t *originalText) {
-    if (repair_attempted) return;
-    repair_attempted = 1;
-    if (!wcsstr(originalText,L"\x5E7B\x60F3\x4EBA\x5F62\x6F14\x821E")) {
-        line("font-fix: original Japanese text not present; no changes");
-        return;
-    }
+static void try_repair_japanese_wizard(HWND hwnd, const wchar_t *originalText,
+                                      const char *source) {
+    if (repair_attempted || GetACP()!=932 || !is_inno_wizard(hwnd) ||
+        japanese_units(originalText)<2) return;
+    repair_attempted=1;
+    japanese_candidates++;
+    char trigger[156];
+    snprintf(trigger,sizeof(trigger),
+             "font-fix: generic Japanese Inno wizard identified source=%s characters=%d",
+             source,japanese_units(originalText));
+    line(trigger);
     DWORD installerPid=0;
     DWORD installerThread=GetWindowThreadProcessId(hwnd,&installerPid);
     if (!installerPid || !installerThread) {
@@ -134,7 +162,7 @@ static void glyph_report(HWND hwnd) {
     wchar_t faceW[LF_FACESIZE] = {0};
     GetTextFaceW(dc, LF_FACESIZE, faceW);
     char face[200]; utf8(faceW, face, sizeof(face));
-    const wchar_t text[] = L"\x5e7b\x60f3\x4eba\x5f62\x6f14\x821e";
+    const wchar_t text[] = L"\x65E5\x672C\x8A9E\x8868\x793A\x78BA";
     WORD glyphs[6];
     for (int i = 0; i < 6; i++) glyphs[i] = 0xffff;
     DWORD result = GetGlyphIndicesW(dc, text, 6, glyphs, GGI_MARK_NONEXISTING_GLYPHS);
@@ -154,11 +182,18 @@ static BOOL CALLBACK child_callback(HWND hwnd, LPARAM context) {
     wchar_t classname[128] = {0};
     if (!GetClassNameW(hwnd, classname, 127)) return TRUE;
 
-    /* Inno Setup uses VCL TEdit/TNewPathEdit as well as Edit controls.
-       Count visible classes to diagnose custom widgets even if no path found. */
-    int editor = has_word(classname, L"edit") || has_word(classname, L"combo");
-    if (editor) edit_controls++;
-    if (!editor) return TRUE;
+    /* Generalized detection also recognizes Japanese wizard labels or
+     * text controls when the destination itself is purely ASCII.
+     * Keep full path diagnostics for the previously validated setup.exe.
+     * Never interpret an arbitrary non-Inno game's window as a target. */
+    if(!is_inno_wizard(hwnd)) return TRUE;
+    int editor=has_word(classname,L"edit") || has_word(classname,L"combo");
+    if(editor) edit_controls++;
+    int candidate=editor || has_word(classname,L"label") ||
+                  has_word(classname,L"static") ||
+                  has_word(classname,L"memo") ||
+                  has_word(classname,L"button");
+    if(!candidate)return TRUE;
 
     wchar_t value[2048] = {0};
     DWORD_PTR chars = 0;
@@ -167,7 +202,9 @@ static BOOL CALLBACK child_callback(HWND hwnd, LPARAM context) {
                      (WPARAM)(sizeof(value) / sizeof(value[0])),
                      (LPARAM)value, SMTO_ABORTIFHUNG | SMTO_BLOCK, 750,
                      &chars) != 0;
-    if (!success || !chars || !is_path(value)) {
+    if (success && chars && japanese_units(value)>=2)
+        try_repair_japanese_wizard(hwnd,value,editor?"japanese-edit":"japanese-label");
+    if (!success || !chars || !editor || !is_path(value)) {
         if (debug_children++ < 7) {
             char cls[128]; utf8(classname, cls, sizeof(cls));
             char info[280];
@@ -193,7 +230,7 @@ static BOOL CALLBACK child_callback(HWND hwnd, LPARAM context) {
     }
     line(report);
     glyph_report(hwnd);
-    try_repair_path_font(hwnd, value);
+    try_repair_japanese_wizard(hwnd,value,"japanese-path");
     snapshots++;
     return TRUE;
 }
@@ -221,7 +258,16 @@ static BOOL CALLBACK window_callback(HWND hwnd, LPARAM context) {
        Always enumerate its children: Win32 EnumChildWindows can inspect
        an invisible parent, and filtering it caused the exact v2 failure
        where TWizardForm was found but child_controls stayed at zero. */
-    EnumChildWindows(hwnd, child_callback, 0);
+    if (has_word(clsW,L"TWizardForm")) {
+        saw_wizard++;
+        EnumChildWindows(hwnd,child_callback,0);
+        /* Japanese title is an additional safe trigger when path/edit is
+         * ASCII only. The helper remains confined to this GUI thread. */
+        wchar_t title[256]={0};
+        GetWindowTextW(hwnd,title,255);
+        if(japanese_units(title)>=2)
+            try_repair_japanese_wizard(hwnd,title,"japanese-wizard-title");
+    } else unsupported_windows++;
     return TRUE;
 }
 
@@ -278,7 +324,7 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
     if (log_handle == INVALID_HANDLE_VALUE) return 2;
     char header[500];
     snprintf(header, sizeof(header),
-       "touhou-probe-v6 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
+       "charoite-inno-probe-v11 GetACP=%u GetOEMCP=%u GetUserDefaultUILanguage=%04X GetSystemDefaultUILanguage=%04X",
        GetACP(), GetOEMCP(), (unsigned)GetUserDefaultUILanguage(),
        (unsigned)GetSystemDefaultUILanguage());
     line(header);
@@ -296,17 +342,19 @@ int WINAPI wWinMain(HINSTANCE a, HINSTANCE b, PWSTR cmdline, int show) {
                      edit_controls, snapshots);
             line(header);
         }
-        if (snapshots > 0) break;
+        if (repair_attempted) break;
         // Scan more rapidly while the installer initially appears. The
         // probe only reads control metadata; it never changes installer text.
         Sleep(pass < 120 ? 150 : 500);
     }
-    if (snapshots == 0) line(
-        "No destination control readable; desktop/window counts above distinguish virtual-desktop isolation from custom installer controls.");
-    else line("Japanese path captured; path text remains unchanged.");
+    if (repair_attempted)
+        line("Japanese Inno wizard helper launched for an eligible UI; game data unchanged.");
+    else if (snapshots==0)
+        line("No supported Japanese Inno wizard found; no helper injected.");
+    else line("No Japanese Inno candidate detected; original path text unchanged.");
     // WM_SETFONT does not transfer ownership of HFONT. Keep this helper
     // alive while the installer edit control exists.
     /* Actual HFONT belongs to installer process; never share it here. */
     CloseHandle(log_handle);
-    return snapshots > 0 ? 0 : 1;
+    return repair_attempted ? 0 : 1;
 }

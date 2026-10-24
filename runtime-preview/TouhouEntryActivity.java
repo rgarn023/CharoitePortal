@@ -394,7 +394,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
         japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
         graphicsCard.addView(japaneseButton);
-        graphicsCard.addView(label("Optional: repair Japanese text in supported Inno Setup installer dialogs. Uses a scoped font helper while the installer runs; leave off for other Windows installers unless needed.", 12, SECONDARY, false));
+        graphicsCard.addView(label("Optional: repair Japanese text in Inno Setup installers that contain Japanese Unicode text. The helper checks the Wine charset and wizard before attaching. Leave disabled unless needed.", 12, SECONDARY, false));
         installerFontButton = outlinedButton("INSTALLER FONT REPAIR: OFF", this::toggleInstallerFontRepair);
         graphicsCard.addView(installerFontButton);
         systemScreen.addView(graphicsCard);

@@ -48,10 +48,10 @@ public final class CharoiteGameSessions {
         play.putExtra("touhou_display_size", CharoiteCore.chosenGameResolution(host));
         play.putExtra("touhou_pointer_capture", CharoiteCore.shouldCapturePointer(host));
 
-        // Only attach the localized installer probe to a matching setup.exe
-        // in a profile explicitly allowing the specialised Inno repair.
+        // Keep the in-process font monitor limited to opted-in Japanese
+        // Inno Setup installers, never game launchers or arbitrary EXEs.
         if (CharoiteCore.installerFontRepairEnabled(host)
-                && new File(executable).getName().equalsIgnoreCase("setup.exe")) {
+                && CharoiteCore.isJapaneseInstallerCandidate(executable)) {
             try {
                 Container c = new ContainerManager(host).getContainerById(containerId);
                 CharoiteDiagnostics.setProbePath(host, c == null ? ""

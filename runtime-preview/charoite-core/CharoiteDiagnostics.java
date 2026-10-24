@@ -58,7 +58,7 @@ public final class CharoiteDiagnostics {
 
     public static String getReport(Context context) {
         SharedPreferences p = prefs(context);
-        String report = "Charoite Portal / Japanese installer diagnostics v10" +
+        String report = "Charoite Portal / Japanese installer diagnostics v11" +
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");

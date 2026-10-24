@@ -204,3 +204,36 @@ To compare performance, on the same device navigate to Additional
 Tasks, Next (scrollable Ready to Install summary), Back, and Next again.
 Record whether any delay repeats, how long it lasts approximately, and
 copy the diagnostics with their hook-v9 timing entries (if any).
+
+
+## Phase 2g - v10 event-driven UI scan on installer page transitions
+
+The user's v9 screen still showed the Ready-to-Install scrollable summary
+after a delay even though Japanese characters ultimately were correct.
+There were no slowest_ms entries (40 ms threshold), so individual scans
+or Unicode repaints were not proven slow. The delay may involve the schedule
+for discovering or initially painting a newly shown/updated memo.
+
+v10 keeps the working pre-draw Shift-JIS correction and post-draw Unicode
+fallback. In the already attached installer GUI thread, the existing
+post-message hook now listens only for specific events in TWizardForm:
+WM_SHOWWINDOW on a page/list/memo, WM_WINDOWPOSCHANGED showing a memo,
+WM_SETTEXT updating memo contents, and WM_PARENTNOTIFY child creation.
+
+Each burst requests an urgent font scan and posts WM_NULL to the relevant
+window. The existing WH_GETMESSAGE hook runs the scan on a later GUI message,
+outside Delphi's current WndProc; scans are coalesced and rate-limited to
+at least 15 ms apart. The old 100/300 ms periodic scan remains as fallback,
+so a missed event cannot remove existing language compatibility.
+
+New logs begin "hook-v10 detected installer page/control event" and
+"hook-v10 page-event fast-scan". If a Japanese memo actually needs a new
+font, "hook-v10 summary-memo Japanese font applied" measures elapsed time
+from the latest page event. No page contents, file paths or game text are
+recorded, and Wine and saved prefixes are not modified.
+
+This reduces potential discovery latency, but a correct screenshot or
+no timing entries cannot prove that a delayed page transition is fixed.
+Compare the Back -> Next confirmation-page transition several times. If a
+delay persists even with prompt font scans, investigate the installer/VCL
+layout/rendering rather than further reducing scanner intervals.

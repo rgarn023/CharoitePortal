@@ -55,8 +55,8 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             self.assertNotIn(destructive_operation, HOOK)
 
     def test_existing_prefix_receives_updated_helpers_without_reset(self):
-        self.assertIn('.touhou-japanese-helpers-v9', SUPPORT)
-        self.assertIn('FileUtils.writeString(helperVersion, "v9\\n")', SUPPORT)
+        self.assertIn('.touhou-japanese-helpers-v10', SUPPORT)
+        self.assertIn('FileUtils.writeString(helperVersion, "v10\\n")', SUPPORT)
         self.assertNotIn("deleteRecursively", SUPPORT)
         self.assertNotIn("formatPrefix", SUPPORT)
 
@@ -120,7 +120,7 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
             "RestoreDC(item->hDC,entry->saved)",
             "select_japanese_before_installer_draw(item);",
             "restore_installer_prepaint(item);",
-            "hook-v9 prepaint restored original DC",
+            "hook-v10 prepaint restored original DC",
             "draw_recovered_task",
         ):
             self.assertIn(fragment, HOOK)
@@ -145,10 +145,36 @@ class JapaneseTaskCaptionContract(unittest.TestCase):
         self.assertIn("if(oldCharset==SHIFTJIS_CHARSET)", HOOK)
         self.assertLess(HOOK.index("if(oldCharset==SHIFTJIS_CHARSET)"),
                         HOOK.index("read_task_caption(item->hwndItem,item->itemID,text,512)"))
-        self.assertIn("hook-v9 UI-scan slowest_ms=", HOOK)
-        self.assertIn("hook-v9 Unicode fallback slowest_ms=", HOOK)
+        self.assertIn("hook-v10 UI-scan slowest_ms=", HOOK)
+        self.assertIn("hook-v10 Unicode fallback slowest_ms=", HOOK)
         self.assertIn("RestoreDC(item->hDC,entry->saved)", HOOK)
         self.assertIn("draw_recovered_task", HOOK)
+
+
+    def test_summary_page_display_queues_urgent_font_scan(self):
+        # Summary-page memos can appear between 300 ms scans. Use deferred,
+        # coalesced urgent scans after the VCL page/control event completes.
+        for needle in (
+            "static void queue_visible_page_scan(",
+            "inside_installer_wizard(event->hwnd)",
+            "WM_SHOWWINDOW", "WM_WINDOWPOSCHANGED",
+            "WM_PARENTNOTIFY", "WM_SETTEXT",
+            "SWP_SHOWWINDOW",
+            "PostMessageW(event->hwnd,WM_NULL,0,0)",
+            "page_rescan_requested=TRUE",
+            "now-last_scan_tick>=15",
+            "hook-v10 page-event fast-scan kind=",
+            "hook-v10 summary-memo Japanese font applied",
+            "request_to_scan_ms=%lu",
+        ):
+            self.assertIn(needle, HOOK)
+        self.assertIn("GetWindowThreadProcessId(hwnd,NULL)!=GetCurrentThreadId()", HOOK)
+        self.assertIn("BOOL urgent=page_rescan_requested", HOOK)
+        self.assertLess(HOOK.index("page_rescan_requested=FALSE;\n            scan_started=TRUE"),
+                        HOOK.index("EnumThreadWindows(GetCurrentThreadId(),wizard_callback,0);"))
+        self.assertIn("draw_recovered_task", HOOK)
+        self.assertIn("RestoreDC(item->hDC,entry->saved)", HOOK)
+        self.assertNotIn("SendMessageW(hwnd,LB_DELETESTRING", HOOK)
 
     def test_header_repaint_removes_prefix_without_touching_checkbox_gutter(self):
         # Phone screenshot shows erroneous '|A|C|' before the correct

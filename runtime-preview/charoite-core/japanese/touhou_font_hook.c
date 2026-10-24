@@ -1,5 +1,5 @@
 /*
- * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v9.
+ * Charoite Portal scoped Touhou Inno Setup Japanese GDI compatibility v10.
  *
  * The original v1 hook only updated the installation-path TEdit. Screens
  * farther into the Inno wizard (notably Select Additional Tasks) use owner-
@@ -70,6 +70,19 @@ static BOOL prepaintRestored[3]={FALSE,FALSE,FALSE};
 static BOOL recorded_verified_font_cache=FALSE;
 static DWORD slowest_scan_ms=0;
 static DWORD slowest_overlay_ms=0;
+/*
+ * A page with a scrollable Ready-to-Install memo may become visible between
+ * timer-based font scans. Listen for creation/show/text changes, then request
+ * a prompt scan on the NEXT GUI message (outside Delphi's drawing callback).
+ * Never scan synchronously from the post-draw hook.
+ */
+static BOOL page_rescan_requested=FALSE;
+static DWORD page_event_tick=0;
+static DWORD last_page_event_tick=0;
+static const char *last_page_event_kind="none";
+static unsigned page_event_logs=0;
+static unsigned fast_scan_logs=0;
+static unsigned memo_patch_logs=0;
 
 static void report(const char *message) {
     HANDLE f = CreateFileW(L"C:\\touhou_font_hook.log", FILE_APPEND_DATA,
@@ -146,7 +159,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     LONG_PTR style=GetWindowLongPtrW(hwnd,GWL_STYLE);
     char info[512];
     snprintf(info,sizeof(info),
-        "hook-v9 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
+        "hook-v10 checklist slot=%d item_count=%d style=0x%llX has_strings=%d ownerdraw=%d",
         slot,count,(unsigned long long)style,
         !!(style & LBS_HASSTRINGS),
         !!(style & (LBS_OWNERDRAWFIXED|LBS_OWNERDRAWVARIABLE)));
@@ -154,7 +167,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
     for(int item=0;item<count && item<8;item++) {
         wchar_t value[512]={0};
         if(!read_task_caption(hwnd,(UINT)item,value,512)) {
-            report("hook-v9 list label unavailable through LB_GETTEXT; no unsafe item-data access");
+            report("hook-v10 list label unavailable through LB_GETTEXT; no unsafe item-data access");
             continue;
         }
         size_t at=(size_t)snprintf(info,sizeof(info),"task-%d utf16=",item);
@@ -167,7 +180,7 @@ static void task_list_diagnostics(HWND hwnd, const wchar_t *klass) {
             for(unsigned i=0;recovered[i] && i<52 && pos+7<sizeof(info);i++)
                 pos+=(size_t)snprintf(info+pos,sizeof(info)-pos,"%04X ",(unsigned)recovered[i]);
             report(info);
-        } else report("hook-v9 task not losslessly recoverable as CP1252-to-CP932");
+        } else report("hook-v10 task not losslessly recoverable as CP1252-to-CP932");
     }
 }
 
@@ -259,7 +272,7 @@ static BOOL validated_japanese_font_for_row(HWND hwnd, HFONT font) {
         if(patched_windows[i]==hwnd && patched_fonts[i]==font) {
             if(!recorded_verified_font_cache) {
                 recorded_verified_font_cache=TRUE;
-                report("hook-v9 validated checklist font reused; repeated GDI glyph probing avoided");
+                report("hook-v10 validated checklist font reused; repeated GDI glyph probing avoided");
             }
             return TRUE;
         }
@@ -292,10 +305,10 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
                     wcscmp(repaired,after)==0) {
                 lstrcpynW(before,repaired,1024);
                 text_japanese=TRUE;
-                report("hook-v9 repaired reversible mojibake on static caption");
+                report("hook-v10 repaired reversible mojibake on static caption");
             } else {
                 SetWindowTextW(hwnd,before);
-                report("hook-v9 static caption repair verification failed; restored");
+                report("hook-v10 static caption repair verification failed; restored");
             }
         }
     }
@@ -327,16 +340,25 @@ static BOOL CALLBACK control_callback(HWND hwnd, LPARAM data) {
             (HFONT)SendMessageW(hwnd,WM_GETFONT,0,0)!=japanese) {
         SendMessageW(hwnd,WM_SETFONT,(WPARAM)original,TRUE);
         DeleteObject(japanese);
-        report("hook-v9 control verification failed; original font restored");
+        report("hook-v10 control verification failed; original font restored");
         return TRUE;
     }
     patched_windows[patched_count]=hwnd;
     patched_fonts[patched_count]=japanese;
     patched_count++;
+    if (contains(klass,L"Memo") && memo_patch_logs < 4) {
+        memo_patch_logs++;
+        char timing[192];
+        DWORD since=page_event_tick ? GetTickCount()-page_event_tick : 0;
+        snprintf(timing,sizeof(timing),
+            "hook-v10 summary-memo Japanese font applied control=%u since_page_event_ms=%lu last_event=%s",
+            patched_count,(unsigned long)since,last_page_event_kind);
+        report(timing);
+    }
     if (patched_count < 25 || patched_count % 25 == 0) {
         char info[200];
         snprintf(info,sizeof(info),
-            "hook-v9 installed Japanese font on control=%u task_list=%d",
+            "hook-v10 installed Japanese font on control=%u task_list=%d",
             patched_count,(int)task);
         report(info);
     }
@@ -353,7 +375,7 @@ static BOOL CALLBACK wizard_callback(HWND hwnd, LPARAM data) {
     // This can never affect an unrelated Wine application's UI.
     if (!installer_verified) {
         installer_verified=TRUE;
-        report("hook-v9 Japanese installer TWizardForm found; scanning ALL text controls");
+        report("hook-v10 Japanese installer TWizardForm found; scanning ALL text controls");
     }
     EnumChildWindows(hwnd,control_callback,0);
     return TRUE;
@@ -366,17 +388,31 @@ __declspec(dllexport) LRESULT CALLBACK TouhouFontHook(int nCode, WPARAM wParam, 
         // Quickly attach a Japanese-capable font while the Inno wizard is
         // still constructing the page; throttle scans once tasks are present.
         DWORD interval=(diagnosed_count[0]>0 ? 300 : 100);
-        if (!scan_started || now-last_scan_tick >= interval) {
+        BOOL urgent=page_rescan_requested &&
+            (!scan_started || now-last_scan_tick>=15);
+        if (!scan_started || now-last_scan_tick >= interval || urgent) {
+            /* Clear first: events generated while enumerating will be
+             * coalesced into the NEXT queued-message scan instead. */
+            page_rescan_requested=FALSE;
             scan_started=TRUE;
             last_scan_tick=now;
             DWORD scanStart=GetTickCount();
             EnumThreadWindows(GetCurrentThreadId(),wizard_callback,0);
             DWORD scanElapsed=GetTickCount()-scanStart;
+            if(urgent && fast_scan_logs<8) {
+                fast_scan_logs++;
+                char timing[200];
+                snprintf(timing,sizeof(timing),
+                    "hook-v10 page-event fast-scan kind=%s request_to_scan_ms=%lu scan_ms=%lu patched_controls=%u",
+                    last_page_event_kind,(unsigned long)(scanStart-page_event_tick),
+                    (unsigned long)scanElapsed,patched_count);
+                report(timing);
+            }
             if(scanElapsed>=40 && scanElapsed>slowest_scan_ms+10) {
                 slowest_scan_ms=scanElapsed;
                 char timing[155];
                 snprintf(timing,sizeof(timing),
-                    "hook-v9 UI-scan slowest_ms=%lu after_task_list=%d patched_controls=%u",
+                    "hook-v10 UI-scan slowest_ms=%lu after_task_list=%d patched_controls=%u",
                     (unsigned long)scanElapsed,diagnosed_count[0]>0,patched_count);
                 report(timing);
             }
@@ -424,7 +460,7 @@ static void audit_installer_paint(const DRAWITEMSTRUCT *item, int stage) {
      */
     char line[560];
     snprintf(line,sizeof(line),
-        "hook-v9 paint-audit phase=%s row=%u dc_charset=%d dc_font_charset=%d list_font_charset=%d dc_face=%s caption_present=%d japanese_utf16=%d font_handles_equal=%d context_font_ok=%d list_font_ok=%d",
+        "hook-v10 paint-audit phase=%s row=%u dc_charset=%d dc_font_charset=%d list_font_charset=%d dc_face=%s caption_present=%d japanese_utf16=%d font_handles_equal=%d context_font_ok=%d list_font_ok=%d",
         stage==0?"before":"after",(unsigned)item->itemID,
         dcCharset,contextOk?(int)contextSpec.lfCharSet:-1,
         listOk?(int)listSpec.lfCharSet:-1,mappedUtf8,
@@ -434,7 +470,7 @@ static void audit_installer_paint(const DRAWITEMSTRUCT *item, int stage) {
     report(line);
     if(!paint_audit_started) {
         paint_audit_started=TRUE;
-        report("hook-v9: paint boundary snapshots cannot prove a transient GDI font used inside Delphi DrawTextA; comparing them with the synthetic ANSI_CHARSET reproduction");
+        report("hook-v10: paint boundary snapshots cannot prove a transient GDI font used inside Delphi DrawTextA; comparing them with the synthetic ANSI_CHARSET reproduction");
     }
 }
 
@@ -480,7 +516,7 @@ static void select_japanese_before_installer_draw(const DRAWITEMSTRUCT *item) {
             prepaintSkipped[item->itemID]=TRUE;
             char msg[144];
             snprintf(msg,sizeof(msg),
-               "hook-v9 prepaint row=%u already-shiftjis=128; no font change",
+               "hook-v10 prepaint row=%u already-shiftjis=128; no font change",
                (unsigned)item->itemID);
             report(msg);
         }
@@ -492,7 +528,7 @@ static void select_japanese_before_installer_draw(const DRAWITEMSTRUCT *item) {
 
     HFONT replacement=get_prepaint_japanese_font(item->hwndItem);
     if(!replacement) {
-        report("hook-v9 prepaint skipped: could not create Japanese font");
+        report("hook-v10 prepaint skipped: could not create Japanese font");
         return;
     }
     int saved=SaveDC(item->hDC);
@@ -503,7 +539,7 @@ static void select_japanese_before_installer_draw(const DRAWITEMSTRUCT *item) {
         RestoreDC(item->hDC,saved);
         if(!prepaintSkipped[item->itemID]) {
             prepaintSkipped[item->itemID]=TRUE;
-            report("hook-v9 prepaint rejected: temporary font does not resolve to SHIFTJIS");
+            report("hook-v10 prepaint rejected: temporary font does not resolve to SHIFTJIS");
         }
         return;
     }
@@ -516,7 +552,7 @@ static void select_japanese_before_installer_draw(const DRAWITEMSTRUCT *item) {
         prepaintLogged[item->itemID]=TRUE;
         char line[196];
         snprintf(line,sizeof(line),
-            "hook-v9 prepaint selected SHIFTJIS font before Delphi draw row=%u old_charset=%d new_charset=%d",
+            "hook-v10 prepaint selected SHIFTJIS font before Delphi draw row=%u old_charset=%d new_charset=%d",
             (unsigned)item->itemID,oldCharset,GetTextCharset(item->hDC));
         report(line);
     }
@@ -543,7 +579,7 @@ static void restore_installer_prepaint(const DRAWITEMSTRUCT *item) {
             prepaintRestored[row]=TRUE;
             char msg[210];
             snprintf(msg,sizeof(msg),
-                "hook-v9 prepaint restored original DC row=%u success=%d charset_after_delphi=%d charset_restored=%d",
+                "hook-v10 prepaint restored original DC row=%u success=%d charset_after_delphi=%d charset_restored=%d",
                 (unsigned)row,(int)ok,before,GetTextCharset(item->hDC));
             report(msg);
         }
@@ -649,9 +685,67 @@ static BOOL draw_recovered_task(const DRAWITEMSTRUCT *item) {
     RestoreDC(dc,saved);
     if(section_header && drawn>0 && !group_header_logged) {
         group_header_logged=TRUE;
-        report("hook-v9: complete unselected section heading repainted; no checkbox area modified");
+        report("hook-v10: complete unselected section heading repainted; no checkbox area modified");
     }
     return drawn>0;
+}
+
+
+/*
+ * WH_CALLWNDPROCRET observes completed page-control notifications.
+ * Trigger the existing WH_GETMESSAGE-based scanner by posting a harmless
+ * WM_NULL. This permits VCL to finish creating/updating the scrollable memo
+ * BEFORE enumerating controls, rather than waiting up to 300ms (or the
+ * next external 200ms WM_NULL) for the installer font scan.
+ *
+ * Restrict all notifications to the same verified TWizardForm GUI thread.
+ * Do not read or log page text or alter the installer's scrolling contents.
+ */
+static BOOL inside_installer_wizard(HWND hwnd) {
+    if(!hwnd || !installer_verified ||
+       GetWindowThreadProcessId(hwnd,NULL)!=GetCurrentThreadId())
+        return FALSE;
+    for(HWND at=hwnd;at;at=GetParent(at)) {
+        wchar_t klass[128]={0};
+        if(GetClassNameW(at,klass,127) &&
+           contains(klass,L"TWizardForm")) return TRUE;
+    }
+    return FALSE;
+}
+
+static void queue_visible_page_scan(const CWPRETSTRUCT *event) {
+    if(!event || !inside_installer_wizard(event->hwnd))return;
+    const char *kind=NULL;
+    wchar_t klass[128]={0};
+    if(!GetClassNameW(event->hwnd,klass,127))return;
+    BOOL isMemo=contains(klass,L"Memo") || contains(klass,L"RichEdit");
+    if(event->message==WM_SHOWWINDOW && event->wParam!=0 &&
+       (isMemo || contains(klass,L"Panel") ||
+        contains(klass,L"ListBox") || contains(klass,L"TWizardForm")))
+        kind=isMemo ? "memo-show" : "page-show";
+    else if(event->message==WM_WINDOWPOSCHANGED && event->lParam &&
+            isMemo && (((const WINDOWPOS *)event->lParam)->flags & SWP_SHOWWINDOW))
+        kind="memo-windowpos-show";
+    else if(event->message==WM_SETTEXT && isMemo)
+        kind="memo-text-changed";
+    else if(event->message==WM_PARENTNOTIFY &&
+            LOWORD(event->wParam)==WM_CREATE)
+        kind="wizard-child-created";
+    if(!kind)return;
+    if(!page_rescan_requested) {
+        page_rescan_requested=TRUE;
+        page_event_tick=GetTickCount();
+        last_page_event_kind=kind;
+        if(page_event_logs<8) {
+            page_event_logs++;
+            char message[145];
+            snprintf(message,sizeof(message),
+                "hook-v10 detected installer page/control event kind=%s; queued urgent Japanese scan",kind);
+            report(message);
+        }
+        PostMessageW(event->hwnd,WM_NULL,0,0);
+    }
+    last_page_event_tick=GetTickCount();
 }
 
 __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
@@ -659,6 +753,10 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
     (void)wParam;
     if(nCode>=0 && lParam) {
         const CWPRETSTRUCT *event=(const CWPRETSTRUCT *)lParam;
+        if(event->message==WM_SHOWWINDOW || event->message==WM_SETTEXT ||
+           event->message==WM_WINDOWPOSCHANGED ||
+           event->message==WM_PARENTNOTIFY)
+            queue_visible_page_scan(event);
         if(event->message==WM_DRAWITEM && event->lParam) {
             const DRAWITEMSTRUCT *item=(const DRAWITEMSTRUCT *)event->lParam;
             audit_installer_paint(item,1);
@@ -666,14 +764,14 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) && !draw_seen) {
                 draw_seen=TRUE;
-                report("hook-v9 owner-draw checklist paint event detected");
+                report("hook-v10 owner-draw checklist paint event detected");
             }
             if(item->CtlType==ODT_LISTBOX && item->hwndItem &&
                     installer_task_list(item->hwndItem) &&
                     !(GetWindowLongPtrW(item->hwndItem,GWL_STYLE)&LBS_HASSTRINGS) &&
                     !undrawable_reported) {
                 undrawable_reported=TRUE;
-                report("hook-v9 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
+                report("hook-v10 owner-draw has no LBS_HASSTRINGS; source captions require deeper Delphi diagnostics");
             }
             static BOOL logged=FALSE;
             DWORD repaintStart=GetTickCount();
@@ -683,13 +781,13 @@ __declspec(dllexport) LRESULT CALLBACK TouhouDrawHook(
                 slowest_overlay_ms=repaintElapsed;
                 char timing[138];
                 snprintf(timing,sizeof(timing),
-                    "hook-v9 Unicode fallback slowest_ms=%lu (includes font selection)",
+                    "hook-v10 Unicode fallback slowest_ms=%lu (includes font selection)",
                     (unsigned long)repaintElapsed);
                 report(timing);
             }
             if(repainted && !logged) {
                 logged=TRUE;
-                report("hook-v9: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
+                report("hook-v10: rendered original Unicode or strictly reversible Japanese task label; installer data unchanged");
             }
         }
     }

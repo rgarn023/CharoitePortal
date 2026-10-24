@@ -21,7 +21,7 @@ public final class CharoiteRenderingDiagnostics {
     private static final String OWNER_ASSET = "rendering/charoite_ownerdraw_probe32.exe";
     private static final String OWNER_EXE = "charoite_ownerdraw_probe32.exe";
     private static final String OWNER_LOG = "charoite_ownerdraw_render.log";
-    private static final String OWNER_MARKER = ".charoite-ownerdraw-probe-v2";
+    private static final String OWNER_MARKER = ".charoite-ownerdraw-probe-v3";
     private static final String VERSION_MARKER = ".charoite-gdi-probe-v1";
     private static final String REPORT_KEY = "charoite_render_probe_path";
     private CharoiteRenderingDiagnostics() {}

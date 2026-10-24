@@ -41,7 +41,11 @@ class GdiBaseline(unittest.TestCase):
         self.assertIn("RUN OWNER-DRAW TEXT RENDERING TEST", PORTAL)
         self.assertIn("CharoiteRenderingDiagnostics.prepareOwnerDraw(this, containerId)", PORTAL)
         self.assertIn("rendering/charoite_ownerdraw_probe32.exe", CORE)
-        self.assertIn('.charoite-ownerdraw-probe-v2', CORE)
+        self.assertIn('.charoite-ownerdraw-probe-v3', CORE)
+        for text in ("PAGE_FIRST", "PAGE_LAST", "WM_COMMAND",
+                     "BN_CLICKED", "LB_RESETCONTENT", "show_page(PAGE_BREAK)",
+                     "page=last6 visible_indices=5..10"):
+            self.assertIn(text, OWNER)
         for text in ("DEFAULT_CHARSET", "ANSI_CHARSET",
                      "SHIFTJIS_CHARSET", "GetTextCharset",
                      "requested_charset=%d actual_charset=%d"):

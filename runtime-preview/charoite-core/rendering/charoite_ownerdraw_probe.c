@@ -1,5 +1,5 @@
 /*
- * Charoite Core Windows owner-draw GDI differential test, revision 2.
+ * Charoite Core Windows owner-draw GDI differential test, revision 3.
  *
  * This reproduces the Win32 LISTBOX / WM_DRAWITEM control path and compares
  * DrawTextW/A, ExtTextOutW/A, TextOutW with known, valid Japanese Unicode.
@@ -13,7 +13,10 @@
 #include <string.h>
 
 #define CONTROL 201
+#define PAGE_FIRST 301
+#define PAGE_LAST 302
 #define METHODS 11
+#define PAGE_BREAK 5
 static const wchar_t jp[] =
     L"\x30A2\x30A4\x30B3\x30F3\x3092\x8FFD\x52A0\x3059\x308B: "
     L"\x30C7\x30B9\x30AF\x30C8\x30C3\x30D7\x306B\x30A2\x30A4\x30B3\x30F3\x3092\x4F5C\x6210";
@@ -28,7 +31,8 @@ static const wchar_t* methods[METHODS]={
 };
 static HWND checklist=NULL;
 static HFONT japaneseFonts[3]={NULL,NULL,NULL};
-static BOOL seen[METHODS]={FALSE,FALSE,FALSE,FALSE,FALSE};
+static BOOL seen[METHODS]={0};
+static int pageFirst=0;
 
 static void log_message(const char *value) {
     HANDLE file=CreateFileW(L"C:\\charoite_ownerdraw_render.log",
@@ -47,12 +51,13 @@ static void init_log(void) {
     if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);
     char info[160];
     snprintf(info,sizeof(info),
-        "Charoite Core GDI owner-draw diagnostic v2 ACP=%u OEMCP=%u UI=%04x",
+        "Charoite Core GDI owner-draw diagnostic v3 ACP=%u OEMCP=%u UI=%04x",
         GetACP(),GetOEMCP(),(unsigned)GetUserDefaultUILanguage());
     log_message(info);
     log_message("Native Win32 LBS_OWNERDRAWFIXED | LBS_HASSTRINGS control; not Delphi VCL.");
     log_message("Each row draws identical Japanese UTF-16/CP932; rows 5-10 test alternate font charsets.");
     log_message("Font mappings are logged before text rendering; no Wine files are changed.");
+    log_message("Use FIRST 5 / LAST 6 on-screen buttons; Wine touch scrolling is NOT required.");
 }
 
 static void init_font(void) {
@@ -92,12 +97,13 @@ static void log_font(HDC dc) {
 }
 
 static void draw_item(const DRAWITEMSTRUCT *item) {
-    if(!item || item->itemID==(UINT)-1 || item->itemID>=METHODS ||
+    int pageCount=(pageFirst==0 ? PAGE_BREAK : METHODS-PAGE_BREAK);
+    if(!item || item->itemID==(UINT)-1 || item->itemID>=(UINT)pageCount ||
        item->CtlType!=ODT_LISTBOX || item->hwndItem!=checklist)return;
     HDC dc=item->hDC;
     int state=SaveDC(dc);
     if(!state)return;
-    int index=(int)item->itemID;
+    int index=pageFirst+(int)item->itemID;
     int fontCase=0;
     if(index==5 || index==7 || index==8 || index==10) fontCase=1;
     else if(index==6 || index==9) fontCase=2;
@@ -126,9 +132,9 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
     DrawTextW(dc,methods[index],-1,&title,DT_LEFT|DT_SINGLELINE|DT_NOPREFIX);
     RECT line=item->rcItem;
     line.left+=13;
-    line.top+=30;
+    line.top+=27;
     line.right-=8;
-    line.bottom=line.top+36;
+    line.bottom=line.top+31;
 
     char ansi[256]={0};
     BOOL loss=FALSE;
@@ -148,7 +154,7 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
 
     if(!seen[index]) {
         wchar_t stored[128]={0};
-        LRESULT length=SendMessageW(checklist,LB_GETTEXT,(WPARAM)index,(LPARAM)stored);
+        LRESULT length=SendMessageW(checklist,LB_GETTEXT,(WPARAM)item->itemID,(LPARAM)stored);
         char report[340];
         snprintf(report,sizeof(report),
             "draw[%d] success=%d original_unicode_intact=%d requested_charset=%d actual_charset=%d mapped_face=%s cp932_bytes=%d substitutions=%d",
@@ -163,12 +169,33 @@ static void draw_item(const DRAWITEMSTRUCT *item) {
     RestoreDC(dc,state);
 }
 
+/*
+ * This diagnostic owns its synthetic list data. Changing pages only updates
+ * these known test strings, not a Delphi installer or any user's game files.
+ * Repopulating on button click avoids touch scrolling and wheel emulation.
+ */
+static void show_page(int first) {
+    if(!checklist)return;
+    if(first!=0 && first!=PAGE_BREAK)return;
+    pageFirst=first;
+    SendMessageW(checklist,WM_SETREDRAW,FALSE,0);
+    SendMessageW(checklist,LB_RESETCONTENT,0,0);
+    int count=(first==0 ? PAGE_BREAK : METHODS);
+    for(int i=first;i<count;i++)
+        SendMessageW(checklist,LB_ADDSTRING,0,(LPARAM)jp);
+    SendMessageW(checklist,WM_SETREDRAW,TRUE,0);
+    InvalidateRect(checklist,NULL,TRUE);
+    UpdateWindow(checklist);
+    log_message(first==0 ? "page=first5 visible_indices=0..4" :
+                           "page=last6 visible_indices=5..10");
+}
+
 static LRESULT CALLBACK window_proc(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) {
     switch(message) {
         case WM_MEASUREITEM: {
             MEASUREITEMSTRUCT *measure=(MEASUREITEMSTRUCT*)lp;
             if(measure && measure->CtlID==CONTROL) {
-                measure->itemHeight=80;
+                measure->itemHeight=64;
                 return TRUE;
             }
             break;
@@ -178,6 +205,17 @@ static LRESULT CALLBACK window_proc(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) 
             if(item && item->CtlID==CONTROL) {
                 draw_item(item);
                 return TRUE;
+            }
+            break;
+        }
+        case WM_COMMAND: {
+            if(HIWORD(wp)==BN_CLICKED && LOWORD(wp)==PAGE_FIRST) {
+                show_page(0);
+                return 0;
+            }
+            if(HIWORD(wp)==BN_CLICKED && LOWORD(wp)==PAGE_LAST) {
+                show_page(PAGE_BREAK);
+                return 0;
             }
             break;
         }
@@ -217,19 +255,28 @@ int WINAPI wWinMain(HINSTANCE app,HINSTANCE prev,PWSTR args,int show) {
         WS_CHILD|WS_VISIBLE,14,15,780,25,window,NULL,app,NULL);
     CreateWindowExW(0,L"STATIC",jp,WS_CHILD|WS_VISIBLE,
         14,49,780,25,window,NULL,app,NULL);
+    /* Large, directly clickable Win32 buttons work on touch-only devices. */
+    HWND firstButton=CreateWindowExW(0,L"BUTTON",L"FIRST 5 TESTS (1-5)",
+        WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+        14,82,375,35,window,(HMENU)(INT_PTR)PAGE_FIRST,app,NULL);
+    HWND lastButton=CreateWindowExW(0,L"BUTTON",L"LAST 6 TESTS (6-11)",
+        WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+        410,82,384,35,window,(HMENU)(INT_PTR)PAGE_LAST,app,NULL);
+    if(!firstButton || !lastButton) {
+        log_message("ERROR: navigation button creation failed");
+        DestroyWindow(window);
+        return 5;
+    }
     checklist=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",L"",
-        WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_OWNERDRAWFIXED|
+        WS_CHILD|WS_VISIBLE|LBS_OWNERDRAWFIXED|
         LBS_HASSTRINGS|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
-        14,90,780,440,window,(HMENU)(INT_PTR)CONTROL,app,NULL);
+        14,124,780,400,window,(HMENU)(INT_PTR)CONTROL,app,NULL);
     if(!checklist) {
         log_message("ERROR: owner-drawn Win32 listbox creation failed");
         DestroyWindow(window);
         return 4;
     }
-    for(int i=0;i<METHODS;i++)SendMessageW(checklist,LB_ADDSTRING,0,(LPARAM)jp);
-    RECT bounds;
-    GetClientRect(checklist,&bounds);
-    InvalidateRect(checklist,&bounds,TRUE);
+    show_page(0);
     ShowWindow(window,show);
     UpdateWindow(window);
     MSG event;

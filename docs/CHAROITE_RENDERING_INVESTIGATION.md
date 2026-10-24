@@ -95,3 +95,14 @@ If all rows pass, we must instrument the actual Inno TNewCheckListBox at
 draw-time before deciding any general Wine or Core behavior change.
 
 No Wine binaries, registry settings or user saves are modified by this test.
+
+
+## Phase 2c - phone-safe paging (implemented)
+
+On a Galaxy S26 Ultra, the v2 Win32 owner-draw test could not be scrolled
+using touch. A user does not need a touchscreen-to-mouse wheel workaround.
+The v3 test uses visible FIRST 5 TESTS / LAST 6 TESTS Win32 buttons near
+the top of the window, with 64-pixel test rows fitting the test viewport.
+Clicking the second button redraws the synthetic list with test indices 5..10,
+records each drawing result and font mapping, and logs the page transition.
+No other process or persistent game data is modified.

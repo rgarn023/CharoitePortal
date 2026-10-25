@@ -346,6 +346,26 @@ assert tpdp_touch_source.is_file() and not tpdp_touch_target.exists()
 tpdp_touch_target.parent.mkdir(parents=True, exist_ok=True)
 tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())
 
+# TPDP's 480x360 game window remains small if we only reposition it in
+# the Wine desktop. Use the existing Winlator compositor's aspect-ratio-
+# preserving fullscreen-window transformation on phones. Importantly, this
+# scales the *image* and pointer mapping, not TPDP's D3D9 render target,
+# saved container resolution, or verified DXVK profile.
+tpdp_large_game_anchor = (
+    '        renderer.setForceWindowsFullscreen(shortcut != null && '
+    'shortcut.getExtra("forceFullscreen", "0").equals("1"));'
+)
+assert code.count(tpdp_large_game_anchor) == 1, "Upstream fullscreen setting changed"
+code = code.replace(tpdp_large_game_anchor, tpdp_large_game_anchor + """
+        // Charoite Core owns the TPDP handheld presentation policy.
+        // Leave DeX, installers and unrelated games' display settings alone.
+        if (com.charoitegames.core.CharoiteWindowPolicy.enlargeHandheldGame(
+                getIntent().getStringExtra("exec_path"),
+                getIntent().getBooleanExtra("touhou_desktop_window", false))) {
+            renderer.setForceWindowsFullscreen(true);
+        }
+""")
+
 tpdp_touch_anchor = "        rootView.addView(inputControlsView);"
 assert code.count(tpdp_touch_anchor)==1, "Winlator input layer changed"
 code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
@@ -566,6 +586,27 @@ code = code.replace(tpdp_debug_anchor, """
         }
 """ + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")
+
+# Keep the enlarged, aspect-preserving TPDP window in the upper display
+# area, rather than the upstream default screen center. The fullscreen
+# transform handles touch/pointer hit testing as well as display scaling.
+gl_renderer = java_root / "com/winlator/renderer/GLRenderer.java"
+gl_renderer_code = gl_renderer.read_text(encoding="utf-8")
+tpdp_viewport_anchor = (
+    "                    fullscreenTransformation.update(xServer.screenInfo, "
+    "window.getWidth(), window.getHeight());"
+)
+assert gl_renderer_code.count(tpdp_viewport_anchor) == 1, "Upstream window scale hook changed"
+gl_renderer_code = gl_renderer_code.replace(tpdp_viewport_anchor, tpdp_viewport_anchor + """
+                    com.charoitegames.core.CharoiteWindowPolicy.placeScaledGame(
+                            fullscreenTransformation, xServer.screenInfo,
+                            xServer.activity.getIntent().getStringExtra("exec_path"),
+                            xServer.activity.getIntent().getBooleanExtra(
+                                    "touhou_desktop_window", false));
+""")
+gl_renderer.write_text(gl_renderer_code, encoding="utf-8")
+
+
 
 # Existing game foreground notifications were still hardcoded "Winlator"
 # even after app_name changed, and their Open action targeted old MainActivity.

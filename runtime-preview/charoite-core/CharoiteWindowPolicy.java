@@ -2,6 +2,7 @@ package com.charoitegames.core;
 
 import android.content.Context;
 import com.winlator.xserver.ScreenInfo;
+import com.winlator.renderer.FullscreenTransformation;
 import com.winlator.xserver.Window;
 import com.winlator.xserver.XServer;
 import java.util.ArrayDeque;
@@ -10,6 +11,35 @@ import java.util.Locale;
 /** Charoite Core's TPDP phone-window layout, independent of Portal UI. */
 public final class CharoiteWindowPolicy {
     private CharoiteWindowPolicy() {}
+
+    /**
+     * TPDP keeps its original D3D9 rendering dimensions while Winlator's
+     * existing compositor enlarges the client aspect-ratio-correctly.
+     * This does not change Wine resolution, graphics driver, or game files.
+     */
+    public static boolean enlargeHandheldGame(String executable,
+                                              boolean desktopWindow) {
+        return !desktopWindow && CharoiteCore.isTpdpGameExecutable(executable);
+    }
+
+    /**
+     * The compositor's built-in fullscreen transformation normally centers
+     * the game vertically. Move its enlarged image into the handheld's
+     * upper screen region, clear of Select/Start and shoulder buttons.
+     * Winlator's InputDeviceManager uses the same transformation for touch.
+     */
+    public static void placeScaledGame(FullscreenTransformation transform,
+                                       ScreenInfo screenInfo,
+                                       String executable, boolean desktopWindow) {
+        if (transform == null || screenInfo == null ||
+                !enlargeHandheldGame(executable, desktopWindow)) return;
+        if (screenInfo.height <= screenInfo.width) return;
+        int topMargin = Math.max(12, Math.round(screenInfo.height * 0.04f));
+        int gameAreaHeight = Math.round(screenInfo.height * 0.56f) - topMargin;
+        int y = topMargin + Math.max(0, (gameAreaHeight - transform.height) / 2);
+        transform.y = (short)Math.min(
+                Math.max(0, screenInfo.height - transform.height), y);
+    }
 
     public static void centerGameWindow(Context context, XServer xServer,
                                         ScreenInfo screenInfo, Window window,

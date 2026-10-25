@@ -599,7 +599,7 @@ tpdp_viewport_anchor = (
 assert gl_renderer_code.count(tpdp_viewport_anchor) == 1, "Upstream window scale hook changed"
 gl_renderer_code = gl_renderer_code.replace(tpdp_viewport_anchor, tpdp_viewport_anchor + """
                     com.charoitegames.core.CharoiteWindowPolicy.placeScaledGame(
-                            fullscreenTransformation, xServer.screenInfo,
+                            fullscreenTransformation, xServer.screenInfo, window,
                             xServer.activity.getIntent().getStringExtra("exec_path"),
                             xServer.activity.getIntent().getBooleanExtra(
                                     "touhou_desktop_window", false));
@@ -607,6 +607,30 @@ gl_renderer_code = gl_renderer_code.replace(tpdp_viewport_anchor, tpdp_viewport_
 # The decorated parent can receive a second fullscreen transform. Scale
 # it to the same portrait percentage so the title/border won't remain at
 # full width while the actual 4:3 game picture is reduced.
+# The actual TPDP image is a distinct Win32 client with a separate
+# decorated parent. Suppress only its parent *drawable*, not the Win32
+# parent itself. This avoids a titlebar above / line below the client.
+native_frame_anchor = (
+    "                    if (parent != xServer.windowManager.rootWindow && "
+    "parent.getChildCount() == 1 && parent.hasDecoration(Decoration.BORDER) "
+    "&& parent.hasDecoration(Decoration.TITLE)) {"
+)
+assert gl_renderer_code.count(native_frame_anchor) == 1, (
+    "Upstream decorated parent selection changed"
+)
+gl_renderer_code = gl_renderer_code.replace(native_frame_anchor, """
+                    if (com.charoitegames.core.CharoiteWindowPolicy.hideNativeFrame(
+                            parent, window, xServer.screenInfo,
+                            xServer.activity.getIntent().getStringExtra("exec_path"),
+                            xServer.activity.getIntent().getBooleanExtra(
+                                    "touhou_desktop_window", false))) {
+                        // The child is still rendered full-size. The Core
+                        // outline replaces Wine's independently scaled border.
+                        parent.setFullscreenTransformation(null);
+                        removeRenderableWindow(parent);
+                    }
+                    else """ + native_frame_anchor.lstrip())
+
 tpdp_parent_scale_anchor = (
     "                        parentFullscreenTransformation.update("
     "xServer.screenInfo, parent.getWidth(), parent.getHeight());"

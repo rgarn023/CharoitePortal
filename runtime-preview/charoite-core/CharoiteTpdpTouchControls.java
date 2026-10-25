@@ -2,6 +2,9 @@ package com.charoitegames.core;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -10,6 +13,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import com.winlator.XServerDisplayActivity;
+import com.winlator.widget.XServerView;
+import com.winlator.renderer.ViewTransformation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -103,8 +109,65 @@ public final class CharoiteTpdpTouchControls {
         return Math.max(minimum, Math.min(n, maximum));
     }
 
+    /**
+     * A single bezel around the actual compositor-scaled TPDP client.
+     * Unlike Wine's title/border, these coordinates share the renderer's
+     * viewport and therefore cannot drift away from the game surface.
+     * Drawing only the outline preserves full touch input to the game.
+     */
+    private static final class ScreenOutline extends View {
+        private final XServerView xServerView;
+        private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF bounds = new RectF();
+
+        ScreenOutline(Activity host, XServerView server) {
+            super(host);
+            xServerView = server;
+            setClickable(false);
+            setFocusable(false);
+            shadow.setColor(0xCC171B2D);
+            shadow.setStyle(Paint.Style.STROKE);
+            shadow.setStrokeWidth(dp(host, 12));
+            rim.setColor(0xFFDADEEC);
+            rim.setStyle(Paint.Style.STROKE);
+            rim.setStrokeWidth(dp(host, 3));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int[] area = CharoiteWindowPolicy.handheldScreenBounds();
+            if (area == null || xServerView == null) return;
+            ViewTransformation view = xServerView.getRenderer().viewTransformation;
+            if (view.aspect <= 0) return;
+            float left = xServerView.getLeft() + view.viewOffsetX + area[0] * view.aspect;
+            float top = xServerView.getTop() + view.viewOffsetY + area[1] * view.aspect;
+            float right = left + area[2] * view.aspect;
+            float bottom = top + area[3] * view.aspect;
+            bounds.set(left - dp((Activity)getContext(), 3),
+                    top - dp((Activity)getContext(), 3),
+                    right + dp((Activity)getContext(), 3),
+                    bottom + dp((Activity)getContext(), 3));
+            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
+                    dp((Activity)getContext(), 5), shadow);
+            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
+                    dp((Activity)getContext(), 5), rim);
+        }
+    }
+
     /** The XServer display remains visible and touchable between controls. */
     public static void attach(Activity host, FrameLayout root, KeySink sink) {
+        if (host instanceof XServerDisplayActivity) {
+            XServerView display = ((XServerDisplayActivity)host).getXServerView();
+            if (display != null) {
+                ScreenOutline outline = new ScreenOutline(host, display);
+                root.addView(outline, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+                CharoiteWindowPolicy.setHandheldOutline(outline);
+            }
+        }
         final Set<Integer> held = new HashSet<>();
         final KeySink guarded = (code, pressed) -> {
             // Deduplicate repeated ACTION_MOVE updates and release on focus loss.

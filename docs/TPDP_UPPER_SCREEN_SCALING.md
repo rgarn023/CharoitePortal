@@ -59,3 +59,33 @@ This only affects presentation of TPDP's phone game view. The proven
 DXVK 1.10.3 + Turnip renderer, the 86%-width image, game data, audio,
 controls and saves remain untouched. Confirm border alignment on phone;
 GitHub CI can verify compilation but not Android device rendering.
+
+## October 25 — native Windows frame rendered as separate surface
+
+The newest device screenshot still shows a white title strip and lower
+border surrounding a TPDP image separated by black bars. Pixel inspection
+places the native title bar at roughly screen y=275-288, visible scenery
+at y=325-711, and a white lower border near y=745-758. That means
+independently scaling the decorated parent and child—even with a derived
+offset—does not produce a coherent handheld screen, and should not be
+repeated.
+
+The Core handheld policy now displays **the game client only**:
+- Identify the TPDP 480x360 client surface and its 488x387 decorated Wine
+  parent. On portrait handhelds, omit **only the parent's drawing** from
+  GLRenderer's composed window list, while keeping the live X11 parent,
+  its child windows, input focus and game process unchanged. Other game
+  windows and DeX retain original behavior.
+- Preserve the 86%-width aspect-preserving client scaling, original D3D9
+  render size and working DXVK 1.10.3 + Turnip profile.
+- Charoite Core's touch overlay draws a single subtle Game Boy-style
+  border from the **actual transformed client bounds**, using the
+  renderer ViewTransformation scale and view offsets. This is not
+  guessed window geometry. The bezel is non-clickable and controls
+  remain on top.
+- Do not crop the framebuffer's black bars without verifying their
+  contents throughout gameplay. Cropping could cut off dialogues/menus.
+- The regular Windows installation UI and other programs are unchanged.
+
+Successful CI can establish that the code compiles, but the real handset
+appearance and touch behavior must still be verified visually.

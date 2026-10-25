@@ -1,6 +1,8 @@
 package com.charoitegames.core;
 
 import android.content.Context;
+import android.view.View;
+import java.lang.ref.WeakReference;
 import com.winlator.xserver.ScreenInfo;
 import com.winlator.renderer.FullscreenTransformation;
 import com.winlator.xserver.Window;
@@ -11,6 +13,57 @@ import java.util.Locale;
 /** Charoite Core's TPDP phone-window layout, independent of Portal UI. */
 public final class CharoiteWindowPolicy {
     private CharoiteWindowPolicy() {}
+
+    /** The scaled TPDP client alone is the handheld display. */
+    private static volatile int[] lastHandheldScreen;
+    private static volatile WeakReference<View> outlineRef = new WeakReference<>(null);
+
+    public static void setHandheldOutline(View outline) {
+        outlineRef = new WeakReference<>(outline);
+        if (outline != null) outline.postInvalidate();
+    }
+
+    public static int[] handheldScreenBounds() {
+        return lastHandheldScreen;
+    }
+
+    private static void rememberClientScreen(FullscreenTransformation rect,
+                                             ScreenInfo screenInfo, Window client) {
+        // A TPDP session can map dialogs and container windows too. Only
+        // record the genuine ~480x360 game surface, never a top-level frame.
+        if (client.getWidth() < 460 || client.getWidth() > 485 ||
+                client.getHeight() < 335 || client.getHeight() > 375) return;
+        int[] next = new int[]{
+                rect.x, rect.y, rect.width, rect.height,
+                screenInfo.width, screenInfo.height};
+        int[] old = lastHandheldScreen;
+        if (old != null && java.util.Arrays.equals(old, next)) return;
+        lastHandheldScreen = next;
+        View view = outlineRef.get();
+        if (view != null) view.postInvalidate();
+    }
+
+    /**
+     * The Wine title bar/border is an independent X11 drawable. It must not
+     * be rendered along with the fullscreen-scaled game client on phones:
+     * this created the separated top and bottom strips in the screenshots.
+     * Only remove that parent's drawable, not its X11 window, children,
+     * keyboard focus, game process, or its actual geometry.
+     */
+    public static boolean hideNativeFrame(Window frame, Window client,
+                                          ScreenInfo screenInfo,
+                                          String executable, boolean desktopWindow) {
+        if (!enlargeHandheldGame(executable, desktopWindow) ||
+                frame == null || client == null || screenInfo == null ||
+                frame == client || screenInfo.height <= screenInfo.width)
+            return false;
+        int dw = frame.getWidth() - client.getWidth();
+        int dh = frame.getHeight() - client.getHeight();
+        return client.getWidth() >= 460 && client.getWidth() <= 485 &&
+                client.getHeight() >= 335 && client.getHeight() <= 375 &&
+                dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
+                (dw > 0 || dh > 0);
+    }
 
     /**
      * TPDP keeps its original D3D9 rendering dimensions while Winlator's
@@ -29,11 +82,14 @@ public final class CharoiteWindowPolicy {
      * Winlator's InputDeviceManager uses the same transformation for touch.
      */
     public static void placeScaledGame(FullscreenTransformation transform,
-                                       ScreenInfo screenInfo,
+                                       ScreenInfo screenInfo, Window client,
                                        String executable, boolean desktopWindow) {
-        if (transform == null || screenInfo == null ||
+        if (transform == null || screenInfo == null || client == null ||
                 !enlargeHandheldGame(executable, desktopWindow)) return;
         if (screenInfo.height <= screenInfo.width) return;
+        // Do not resize Wine's decorated parent or its other guest windows.
+        if (client.getWidth() < 460 || client.getWidth() > 485 ||
+                client.getHeight() < 335 || client.getHeight() > 375) return;
         // The full-width 720px enlargement clips the decorated TPDP window
         // on tall phones. Use a comfortable 86% of the available desktop
         // width (about 619x464 for TPDP's 480x360 image at 720px).
@@ -51,6 +107,7 @@ public final class CharoiteWindowPolicy {
         int y = topMargin + Math.max(0, (gameAreaHeight - transform.height) / 2);
         transform.y = (short)Math.min(
                 Math.max(0, screenInfo.height - transform.height), y);
+        rememberClientScreen(transform, screenInfo, client);
     }
 
     /**

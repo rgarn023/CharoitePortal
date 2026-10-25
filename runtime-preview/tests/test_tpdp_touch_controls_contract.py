@@ -11,12 +11,14 @@ SESSION=(ROOT/"charoite-core/CharoiteGameSessions.java").read_text()
 class TpdpTouchContract(unittest.TestCase):
     def test_real_native_keyboard_keys(self):
         keys=(
-            "KEY_UP","KEY_DOWN","KEY_LEFT","KEY_RIGHT","KEY_Z",
-            "KEY_X","KEY_C","KEY_S","KEY_A","KEY_D","KEY_SPACE",
-            "KEY_SHIFT_L","KEY_ENTER","KEY_ESC",
+            "KEYCODE_DPAD_UP","KEYCODE_DPAD_DOWN",
+            "KEYCODE_DPAD_LEFT","KEYCODE_DPAD_RIGHT","KEYCODE_Z",
+            "KEYCODE_X","KEYCODE_C","KEYCODE_S","KEYCODE_A",
+            "KEYCODE_D","KEYCODE_SPACE","KEYCODE_SHIFT_LEFT",
+            "KEYCODE_ENTER","KEYCODE_ESCAPE",
         )
         for key in keys:
-            self.assertIn("XKeycode."+key,CONTROLS)
+            self.assertIn("KeyEvent."+key,CONTROLS)
         for event in ("MotionEvent.ACTION_DOWN","MotionEvent.ACTION_UP",
                       "MotionEvent.ACTION_CANCEL","releaseAll.run()",
                       "sink.send(code,pressed)"):

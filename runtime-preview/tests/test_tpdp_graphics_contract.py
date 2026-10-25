@@ -57,24 +57,25 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
 
 
     def test_tpdp_touch_keyboard_uses_real_key_hold_and_release(self):
-        # The active XServer-native overlay is only injected on TPDP phones.
-        keys=(ROOT/"CharoiteTpdpTouchControls.java").read_text()
+        # UI comes from Charoite Core and injects Android key events into
+        # upstream XServer keyboard, not a second XInput controller.
+        keys=(ROOT/"charoite-core/CharoiteTpdpTouchControls.java").read_text()
         for marker in (
-            "XKeycode.KEY_UP", "XKeycode.KEY_DOWN",
-            "XKeycode.KEY_LEFT", "XKeycode.KEY_RIGHT",
-            "XKeycode.KEY_Z", "XKeycode.KEY_X",
-            "XKeycode.KEY_S", "XKeycode.KEY_C",
-            "XKeycode.KEY_A", "XKeycode.KEY_D",
-            "XKeycode.KEY_SPACE", "XKeycode.KEY_SHIFT_L",
-            "XKeycode.KEY_ENTER", "XKeycode.KEY_ESC",
+            "KeyEvent.KEYCODE_DPAD_UP", "KeyEvent.KEYCODE_DPAD_DOWN",
+            "KeyEvent.KEYCODE_DPAD_LEFT", "KeyEvent.KEYCODE_DPAD_RIGHT",
+            "KeyEvent.KEYCODE_Z", "KeyEvent.KEYCODE_X",
+            "KeyEvent.KEYCODE_S", "KeyEvent.KEYCODE_C",
+            "KeyEvent.KEYCODE_A", "KeyEvent.KEYCODE_D",
+            "KeyEvent.KEYCODE_SPACE", "KeyEvent.KEYCODE_SHIFT_LEFT",
+            "KeyEvent.KEYCODE_ENTER", "KeyEvent.KEYCODE_ESCAPE",
             "MotionEvent.ACTION_DOWN", "MotionEvent.ACTION_UP",
-            "MotionEvent.ACTION_CANCEL", "releaseAll()",
-            "xServer.injectKeyPress(key)", "xServer.injectKeyRelease(key)",
-            "HIDE KEYS", "SHOW KEYS",
+            "MotionEvent.ACTION_CANCEL", "releaseAll.run()",
+            "HIDE KEYS", "SHOW KEYS", "sink.send(code,pressed)",
         ):
             self.assertIn(marker,keys)
-        self.assertIn("CharoiteTpdpTouchControls.attach(this,rootView,xServer)",OVERLAY)
-        self.assertIn("tpdp_controls_target.write_bytes(tpdp_controls_source.read_bytes())",OVERLAY)
+        self.assertIn("com.charoitegames.core.CharoiteTpdpTouchControls.attach(",OVERLAY)
+        self.assertIn("xServer.keyboard.onKeyEvent(",OVERLAY)
+        self.assertIn("tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())",OVERLAY)
         self.assertIn("isTpdpGameExecutable(",OVERLAY)
         self.assertIn('!getIntent().getBooleanExtra("touhou_desktop_window", false)',OVERLAY)
         self.assertNotIn("setKeysyms(",keys)

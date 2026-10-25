@@ -34,6 +34,7 @@ public final class CharoiteDiagnostics {
             .putString("touhou_launch_error", "")
             .putString("charoite_last_mapped_windows", "No mapped Windows program window yet.")
             .putString("charoite_last_window_layout", "No TPDP window repositioned.")
+            .putString("charoite_last_x11_updates", "No image-content callbacks yet.")
             .apply();
         recordLaunchPackage(context, executable);
     }
@@ -59,9 +60,25 @@ public final class CharoiteDiagnostics {
                 report = "Executable: present (" + exe.length() + " bytes)" +
                         "\nAdjacent files: " + Math.max(0, files - 1) +
                         "; folders: " + folders + "; media archives: " + parts;
-                if (CharoiteCore.isTpdpGameExecutable(executable))
-                    report += "\nTPDP dat folder: " +
-                            new java.io.File(folder, "dat").isDirectory();
+                if (CharoiteCore.isTpdpGameExecutable(executable)) {
+                    java.io.File dat = new java.io.File(folder, "dat");
+                    report += "\nTPDP dat folder: " + dat.isDirectory();
+                    if (dat.isDirectory()) {
+                        java.io.File[] contents2 = dat.listFiles();
+                        if (contents2 != null) {
+                            int count = 0, subs = 0; long bytes = 0;
+                            for (java.io.File file : contents2) {
+                                if (file.isFile()) { count++; bytes += file.length(); }
+                                else if (file.isDirectory()) subs++;
+                            }
+                            report += "\nTPDP dat files: " + count +
+                                    "; subfolders: " + subs +
+                                    "; direct bytes: " + bytes;
+                        } else report += " (unreadable)";
+                    }
+                    report += "\nGame-local d3d9.dll: " +
+                            new java.io.File(folder, "d3d9.dll").isFile();
+                }
                 if (CharoiteCore.isJapaneseInstallerCandidate(executable) &&
                         files <= 1 && folders == 0)
                     report += "\nThis imported installer has no adjacent media. " +
@@ -73,7 +90,8 @@ public final class CharoiteDiagnostics {
 
     /** Window mapping is not proof of visible Direct3D pixels. */
     public static void recordMappedWindow(Context context, String clazz,
-                                          String title, int width, int height) {
+                                          String title, int width, int height,
+                                          int rootX, int rootY) {
         String cls = clazz == null ? "" : clazz.replace('\n', ' ').replace('\r', ' ');
         String caption = title == null ? "" : title.replace('\n', ' ').replace('\r', ' ');
         if (cls.length() > 65) cls = cls.substring(0, 65);
@@ -81,12 +99,21 @@ public final class CharoiteDiagnostics {
         synchronized (mappedWindows) {
             if (mappedWindows.size() == 12) mappedWindows.removeFirst();
             mappedWindows.addLast("class=" + cls + " title=" + caption +
-                    " size=" + width + "x" + height);
+                    " size=" + width + "x" + height +
+                    " rootX=" + rootX + " rootY=" + rootY);
             StringBuilder detail = new StringBuilder();
             for (String item : mappedWindows) detail.append(item).append('\n');
             prefs(context).edit().putString("charoite_last_mapped_windows",
                     detail.toString()).apply();
         }
+    }
+
+    /** Counts X11 drawing callbacks; does not claim that pixels are visible. */
+    public static void recordX11ContentActivity(Context context,
+                                                 int updates, int surfaces) {
+        prefs(context).edit().putString("charoite_last_x11_updates",
+                "Drawable updates: " + updates + "; surfaces: " + surfaces +
+                "\nThis does not establish successful Direct3D presentation.").apply();
     }
 
     /** Purely informational: reports the existing saved audio backend. */
@@ -203,6 +230,8 @@ public final class CharoiteDiagnostics {
                 p.getString("charoite_last_launch_files", "Not inspected.");
         report += "\n\nMAPPED WINDOWS:\n" +
                 p.getString("charoite_last_mapped_windows", "No window events recorded.");
+        report += "\n\nX11 DRAWABLE UPDATES:\n" +
+                p.getString("charoite_last_x11_updates", "Not recorded.");
         report += "\n\nTPDP WINDOW LAYOUT:\n" +
                 p.getString("charoite_last_window_layout", "Not recorded.");
         report += "\n\nAUDIO BACKEND:\n" +

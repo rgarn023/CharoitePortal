@@ -176,3 +176,26 @@ required. The game's own display-mode switch is reversible by pressing
 F11 again. It can distinguish a window-mode presentation issue from a
 persistently black Direct3D surface, but is not asserted to cure rendering
 or silence.
+
+## October 25 device report — sound recovered, graphics black, horizontal centering not applied
+
+The game is audible again. The visible F11 control and FPS title do not
+indicate successful Direct3D frame presentation. Preserve the audio driver.
+
+The previous XServer centering assumed direct root-window parentage and a
+known WM_CLASS/WM_NAME at map time; Wine can assign those properties later
+and wrap the client in decorated parents. The next version retries after
+property/geometry updates, centers the decoration frame, and updates child
+texture coordinate caches without touching the Wine installation.
+
+Additional TPDP-only read-only diagnostics:
+- mapped Wine window root X/Y coordinates and selected frame placement;
+- number of XServer content updates versus surface updates (not proof
+  of nonblack pixels);
+- count and size of files immediately within the installed dat folder;
+- Wine DLL loading events via scoped trace+loaddll to detect failed
+  or missing Direct3D-related DLLs.
+
+No additional driver roulette or audio configuration changes. The cause
+of the black frame is still unverified; inspect the report from the
+next physical-device launch before choosing a repair.

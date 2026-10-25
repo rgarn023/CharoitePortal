@@ -385,40 +385,55 @@ rotation_java = """    @Override
 
 """
 tpdp_window_layout = """    /**
-     * TPDP uses a small fixed-size Win32 window. The portrait XServer
-     * desktop currently puts that game against its left edge. Reposition
-     * only the base/expansion game top-level window; never resize it, its
-     * Direct3D surface, other apps, installer windows or the Wine prefix.
+     * Center TPDP's nested Wine window/frame without changing its client
+     * dimensions, installed game, prefix, or other application windows.
      */
     private void centerTpdpGameWindow(Window window) {
         if (window == null || xServer == null || screenInfo == null ||
                 getIntent().getBooleanExtra("touhou_desktop_window", false) ||
                 !getIntent().hasExtra("exec_path") ||
                 !com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                        getIntent().getStringExtra("exec_path"))) return;
-        if (window.getParent() != xServer.windowManager.rootWindow ||
+                        getIntent().getStringExtra("exec_path")) ||
                 !window.isRenderable() || window.isDesktopWindow() ||
                 window.isDialogBox()) return;
+        int width = window.getWidth(), height = window.getHeight();
+        if (width < 360 || height < 260 ||
+                width >= screenInfo.width || height >= screenInfo.height) return;
         String clazz = window.getClassName();
         String title = window.getName();
         clazz = clazz == null ? "" : clazz.toLowerCase(java.util.Locale.ROOT);
         title = title == null ? "" : title;
         if (!clazz.contains("gn_enbu") && !clazz.contains("enbu_ap") &&
-                !title.contains("人形演舞")) return;
-        int width = window.getWidth(), height = window.getHeight();
-        if (width < 320 || height < 240 ||
-                width >= screenInfo.width || height >= screenInfo.height) return;
-        // Portrait view: keep the window above the bottom-screen touch pad.
-        // Landscape view: give the game comfortable symmetric margins.
-        int targetX = (screenInfo.width - width) / 2;
-        int targetY = (screenInfo.height - height) /
+                !title.contains("人形演舞") && !title.contains("ver1.34") &&
+                !window.isApplicationWindow()) return;
+        Window frame = window;
+        while (frame.getParent() != null &&
+                frame.getParent() != xServer.windowManager.rootWindow &&
+                !frame.getParent().isDesktopWindow() &&
+                frame.getParent().getWidth() < screenInfo.width &&
+                frame.getParent().getHeight() < screenInfo.height)
+            frame = frame.getParent();
+        if (frame.getWidth() >= screenInfo.width ||
+                frame.getHeight() >= screenInfo.height) return;
+        int targetX = (screenInfo.width - frame.getWidth()) / 2;
+        int targetY = (screenInfo.height - frame.getHeight()) /
                 (screenInfo.height > screenInfo.width ? 3 : 2);
-        if (window.getX() == targetX && window.getY() == targetY) return;
-        window.setX((short)targetX);
-        window.setY((short)targetY);
-        xServer.windowManager.triggerOnUpdateWindowGeometry(window, false);
+        int deltaX = targetX - frame.getRootX();
+        int deltaY = targetY - frame.getRootY();
+        if (deltaX == 0 && deltaY == 0) return;
+        frame.setX((short)(frame.getX() + deltaX));
+        frame.setY((short)(frame.getY() + deltaY));
+        // Refresh cached render coordinates of the decorated frame AND its
+        // child surfaces. The game's actual width/height remain unchanged.
+        java.util.ArrayDeque<Window> toUpdate = new java.util.ArrayDeque<>();
+        toUpdate.addLast(frame);
+        while (!toUpdate.isEmpty()) {
+            Window part = toUpdate.removeFirst();
+            xServer.windowManager.triggerOnUpdateWindowGeometry(part, false);
+            for (Window child : part.getChildren()) toUpdate.addLast(child);
+        }
         com.charoitegames.core.CharoiteDiagnostics.recordWindowPlacement(
-                this, window.getName(), targetX, targetY, width, height);
+                this, title, targetX, targetY, frame.getWidth(), frame.getHeight());
     }
 
 """
@@ -488,6 +503,8 @@ code = code.replace(tpdp_backend_anchor, """
 old_show = "        preloaderDialog.show(R.string.starting_up);"
 assert code.count(old_show) == 1, "Startup dialog marker changed"
 code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {false};
+        final int[] tpdpContentEvents = {0};
+        final int[] tpdpSurfaceEvents = {0};
         if (getIntent().hasExtra("exec_path")) {
             com.charoitegames.core.CharoiteDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
             com.charoitegames.core.CharoiteDiagnostics.recordGraphicsBackend(
@@ -511,6 +528,21 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
             }, 45000);
         }
 """ + old_show)
+content_anchor = "                if (window.id == frameRatingWindowId) frameRating.update();"
+assert code.count(content_anchor) == 1, "XServer content update hook changed"
+code = code.replace(content_anchor, content_anchor + """
+                if (getIntent().hasExtra("exec_path") &&
+                        com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                                getIntent().getStringExtra("exec_path")) &&
+                        window.isRenderable() && !window.isDesktopWindow()) {
+                    tpdpContentEvents[0]++;
+                    if (window.isSurface()) tpdpSurfaceEvents[0]++;
+                    if (tpdpContentEvents[0] == 1 || tpdpContentEvents[0] % 120 == 0)
+                        com.charoitegames.core.CharoiteDiagnostics.recordX11ContentActivity(
+                                XServerDisplayActivity.this,
+                                tpdpContentEvents[0], tpdpSurfaceEvents[0]);
+                }
+""")
 window_map_anchor = "            public void onMapWindow(Window window) {"
 assert code.count(window_map_anchor) == 1, "Wine window map listener changed"
 code = code.replace(window_map_anchor, window_map_anchor + """
@@ -519,7 +551,8 @@ code = code.replace(window_map_anchor, window_map_anchor + """
                 if (getIntent().hasExtra("exec_path") && window.isRenderable())
                     com.charoitegames.core.CharoiteDiagnostics.recordMappedWindow(
                         XServerDisplayActivity.this, window.getClassName(),
-                        window.getName(), window.getWidth(), window.getHeight());
+                        window.getName(), window.getWidth(), window.getHeight(),
+                        window.getRootX(), window.getRootY());
                 centerTpdpGameWindow(window);
 """)
 geometry_tracking_anchor = "            @Override\n            public void onUnmapWindow(Window window) {"
@@ -527,6 +560,11 @@ assert code.count(geometry_tracking_anchor) == 1, "Wine window unmap listener ch
 code = code.replace(geometry_tracking_anchor, """
             @Override
             public void onUpdateWindowGeometry(Window window, boolean resized) {
+                centerTpdpGameWindow(window);
+            }
+
+            @Override
+            public void onModifyWindowProperty(Window window, Property property) {
                 centerTpdpGameWindow(window);
             }
 
@@ -574,7 +612,7 @@ code = code.replace(tpdp_debug_anchor, """
         if (getIntent().hasExtra("exec_path") &&
                 com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
                     getIntent().getStringExtra("exec_path"))) {
-            envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag");
+            envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag,trace+loaddll");
             int tpdpMode = getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0);
             if (tpdpMode ==
                     com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VIRGL) {

@@ -34,6 +34,18 @@ public final class CharoiteWindowPolicy {
         if (transform == null || screenInfo == null ||
                 !enlargeHandheldGame(executable, desktopWindow)) return;
         if (screenInfo.height <= screenInfo.width) return;
+        // The full-width 720px enlargement clips the decorated TPDP window
+        // on tall phones. Use a comfortable 86% of the available desktop
+        // width (about 619x464 for TPDP's 480x360 image at 720px).
+        // Scale both axes equally so there is no distortion or loss of
+        // native D3D9 pixels. FullscreenTransformation retains the correct
+        // inverse pointer scaling for taps on the enlarged image.
+        final float portraitDisplayScale = 0.86f;
+        transform.width = (short)Math.max(1,
+                Math.round(transform.width * portraitDisplayScale));
+        transform.height = (short)Math.max(1,
+                Math.round(transform.height * portraitDisplayScale));
+        transform.x = (short)((screenInfo.width - transform.width) / 2);
         int topMargin = Math.max(12, Math.round(screenInfo.height * 0.04f));
         int gameAreaHeight = Math.round(screenInfo.height * 0.56f) - topMargin;
         int y = topMargin + Math.max(0, (gameAreaHeight - transform.height) / 2);

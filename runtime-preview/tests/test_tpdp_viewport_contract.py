@@ -22,6 +22,17 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('fullscreenTransformation.update(xServer.screenInfo,', OVERLAY)
         self.assertIn('CharoiteWindowPolicy.placeScaledGame(', OVERLAY)
         self.assertIn('transform.y = (short)', POLICY)
+        self.assertIn('final float portraitDisplayScale = 0.86f;', POLICY)
+        self.assertIn('Math.round(transform.width * portraitDisplayScale)', POLICY)
+        self.assertIn('Math.round(transform.height * portraitDisplayScale)', POLICY)
+        self.assertIn('transform.x = (short)((screenInfo.width - transform.width) / 2)', POLICY)
+        self.assertIn('parentFullscreenTransformation.update(', OVERLAY)
+        self.assertIn('CharoiteWindowPolicy.placeScaledGame(', OVERLAY)
+        self.assertIn('tpdp_parent_scale_anchor', OVERLAY)
+        # Native game resolution remains unchanged; only its display quad
+        # and decorated parent are reduced to an 86%-width presentation.
+        self.assertNotIn('window.setWidth(', POLICY)
+        self.assertNotIn('window.setHeight(', POLICY)
 
     def test_portrait_game_stays_above_handheld_controls(self):
         self.assertIn('screenInfo.height <= screenInfo.width', POLICY)

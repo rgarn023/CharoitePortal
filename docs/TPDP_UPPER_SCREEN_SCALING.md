@@ -12,9 +12,16 @@ its image. The existing Charoite Core layout only repositioned it.
 - In TPDP phone sessions only, enable Winlator's existing
   `GLRenderer.setForceWindowsFullscreen(true)`.
 - Its built-in `FullscreenTransformation` fits the undecorated game
-  drawable to the Wine screen's available width **while maintaining its
-  4:3 aspect ratio**. For a 720-wide portrait desktop, the original
-  480x360 client is enlarged to about 720x540 (1.5x), not stretched.
+  drawable to the Wine screen while retaining the original aspect ratio.
+- October 25 device screenshot showed the full-width 720x540 result was
+  **too large** and the title/frame was visually clipped.
+- `CharoiteWindowPolicy.placeScaledGame` now reduces that fullscreen
+  transformation to **86%** in portrait, yielding approximately **619x464**
+  from the 480x360 game at a 720px-wide desktop (about 1.29x original).
+  The picture is horizontally centered with approximately 50px side
+  margins. Width and height are multiplied equally to avoid distortion.
+- Both the actual game drawable and any decorated parent transformation
+  use the same percentage, avoiding a full-size frame over a smaller image.
 - `CharoiteWindowPolicy.placeScaledGame` (Core) relocates that enlarged
   compositor representation into the upper half of the portrait desktop,
   above Select / Start / shoulder buttons. Portrait positioning is

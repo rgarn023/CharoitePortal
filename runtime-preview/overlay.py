@@ -604,6 +604,24 @@ gl_renderer_code = gl_renderer_code.replace(tpdp_viewport_anchor, tpdp_viewport_
                             xServer.activity.getIntent().getBooleanExtra(
                                     "touhou_desktop_window", false));
 """)
+# The decorated parent can receive a second fullscreen transform. Scale
+# it to the same portrait percentage so the title/border won't remain at
+# full width while the actual 4:3 game picture is reduced.
+tpdp_parent_scale_anchor = (
+    "                        parentFullscreenTransformation.update("
+    "xServer.screenInfo, parent.getWidth(), parent.getHeight());"
+)
+assert gl_renderer_code.count(tpdp_parent_scale_anchor) == 1, (
+    "Upstream decorated game window scaling changed"
+)
+gl_renderer_code = gl_renderer_code.replace(
+    tpdp_parent_scale_anchor, tpdp_parent_scale_anchor + """
+                        com.charoitegames.core.CharoiteWindowPolicy.placeScaledGame(
+                                parentFullscreenTransformation, xServer.screenInfo,
+                                xServer.activity.getIntent().getStringExtra("exec_path"),
+                                xServer.activity.getIntent().getBooleanExtra(
+                                        "touhou_desktop_window", false));
+""")
 gl_renderer.write_text(gl_renderer_code, encoding="utf-8")
 
 

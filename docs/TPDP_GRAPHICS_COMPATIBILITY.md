@@ -166,3 +166,13 @@ Last Launch Diagnostics report after returning to Portal. A missing
 `dat` directory, Wine D3D warnings, or audio initialization messages
 would indicate different root causes. Do not declare the game playable
 until visible graphics **and** audible game audio are confirmed.
+
+### TPDP's native fullscreen test on Android
+
+The base TPDP manual documents **F11** as the native window/fullscreen
+toggle. Charoite's TPDP-only phone controls now include a **F11 Full**
+key at the top-left, opposite Hide Keys, so a hardware keyboard is not
+required. The game's own display-mode switch is reversible by pressing
+F11 again. It can distinguish a window-mode presentation issue from a
+persistently black Direct3D surface, but is not asserted to cure rendering
+or silence.

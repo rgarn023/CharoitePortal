@@ -27,6 +27,9 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertNotIn("boolean down = false;",CONTROLS)
         self.assertIn("sink.send(code,true)",CONTROLS)
         self.assertIn("sink.send(code,false)",CONTROLS)
+        self.assertIn('KeyEvent.KEYCODE_F11',CONTROLS)
+        self.assertIn('"F11 Full"',CONTROLS)
+        self.assertIn('fullscreen.setVisibility(shouldShow?View.VISIBLE:View.GONE)',CONTROLS)
 
     def test_safely_scope_overlay_to_tpdp_on_phone(self):
         for token in ('com.charoitegames.core.CharoiteTpdpTouchControls.attach(',

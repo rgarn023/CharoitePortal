@@ -177,11 +177,22 @@ public final class CharoiteTpdpTouchControls {
         toggleParams.topMargin=dp(host,10);
         toggleParams.rightMargin=dp(host,10);
         root.addView(toggle,toggleParams);
+
+        // The original TPDP manual maps F11 to window/fullscreen. This lets
+        // phone-only players test the game's own Direct3D display-mode path,
+        // without changing the Android activity orientation or Wine prefix.
+        Button fullscreen=key(host,"F11 Full",KeyEvent.KEYCODE_F11,80,36,guarded);
+        FrameLayout.LayoutParams screenParams=new FrameLayout.LayoutParams(
+                dp(host,80),dp(host,36),Gravity.TOP|Gravity.LEFT);
+        screenParams.topMargin=dp(host,10);
+        screenParams.leftMargin=dp(host,11);
+        root.addView(fullscreen,screenParams);
         toggle.setOnClickListener(v -> {
             boolean shouldShow=pad.getVisibility()!=View.VISIBLE;
             if(!shouldShow) releaseAll.run();
             pad.setVisibility(shouldShow?View.VISIBLE:View.GONE);
             actions.setVisibility(shouldShow?View.VISIBLE:View.GONE);
+            fullscreen.setVisibility(shouldShow?View.VISIBLE:View.GONE);
             toggle.setText(shouldShow?"HIDE KEYS":"SHOW KEYS");
         });
     }

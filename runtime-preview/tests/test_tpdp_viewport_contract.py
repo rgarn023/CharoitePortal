@@ -29,6 +29,14 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('parentFullscreenTransformation.update(', OVERLAY)
         self.assertIn('CharoiteWindowPolicy.placeScaledGame(', OVERLAY)
         self.assertIn('tpdp_parent_scale_anchor', OVERLAY)
+        self.assertIn('CharoiteWindowPolicy.alignWindowFrame(', OVERLAY)
+        self.assertIn('parentFullscreenTransformation, fullscreenTransformation,', OVERLAY)
+        self.assertIn('frameWindow.getWidth() * scaleX', POLICY)
+        self.assertIn('frameWindow.getHeight() * scaleY', POLICY)
+        self.assertIn('frameWindow.getRootX() - clientWindow.getRootX()', POLICY)
+        self.assertIn('frameWindow.getRootY() - clientWindow.getRootY()', POLICY)
+        self.assertIn('if (enlargeHandheldGame(executable, desktopWindow)) return;', POLICY)
+        self.assertNotIn('CharoiteWindowPolicy.placeScaledGame(\\n                                parentFullscreenTransformation', OVERLAY)
         # Native game resolution remains unchanged; only its display quad
         # and decorated parent are reduced to an 86%-width presentation.
         self.assertNotIn('window.setWidth(', POLICY)

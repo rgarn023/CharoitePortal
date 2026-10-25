@@ -616,8 +616,9 @@ assert gl_renderer_code.count(tpdp_parent_scale_anchor) == 1, (
 )
 gl_renderer_code = gl_renderer_code.replace(
     tpdp_parent_scale_anchor, tpdp_parent_scale_anchor + """
-                        com.charoitegames.core.CharoiteWindowPolicy.placeScaledGame(
-                                parentFullscreenTransformation, xServer.screenInfo,
+                        com.charoitegames.core.CharoiteWindowPolicy.alignWindowFrame(
+                                parentFullscreenTransformation, fullscreenTransformation,
+                                parent, window, xServer.screenInfo,
                                 xServer.activity.getIntent().getStringExtra("exec_path"),
                                 xServer.activity.getIntent().getBooleanExtra(
                                         "touhou_desktop_window", false));

@@ -53,9 +53,43 @@ public final class CharoiteWindowPolicy {
                 Math.max(0, screenInfo.height - transform.height), y);
     }
 
+    /**
+     * A decorated Wine parent and its client must use a SINGLE scale and
+     * origin. Applying the fullscreen-fit equation to each independently
+     * stretches the title/border differently from the TPDP image.
+     */
+    public static void alignWindowFrame(FullscreenTransformation frame,
+                                        FullscreenTransformation client,
+                                        Window frameWindow, Window clientWindow,
+                                        ScreenInfo screenInfo,
+                                        String executable, boolean desktopWindow) {
+        if (frame == null || client == null || frameWindow == null ||
+                clientWindow == null || screenInfo == null ||
+                !enlargeHandheldGame(executable, desktopWindow) ||
+                screenInfo.height <= screenInfo.width ||
+                clientWindow.getWidth() <= 0 || clientWindow.getHeight() <= 0)
+            return;
+        float scaleX = (float)client.width / clientWindow.getWidth();
+        float scaleY = (float)client.height / clientWindow.getHeight();
+        // Scale the parent at precisely the same rate as the actual game
+        // drawable; don't use its independently computed fullscreen fit.
+        frame.width = (short)Math.max(1,
+                Math.round(frameWindow.getWidth() * scaleX));
+        frame.height = (short)Math.max(1,
+                Math.round(frameWindow.getHeight() * scaleY));
+        frame.x = (short)Math.round(client.x +
+                (frameWindow.getRootX() - clientWindow.getRootX()) * scaleX);
+        frame.y = (short)Math.round(client.y +
+                (frameWindow.getRootY() - clientWindow.getRootY()) * scaleY);
+    }
+
     public static void centerGameWindow(Context context, XServer xServer,
                                         ScreenInfo screenInfo, Window window,
                                         String executable, boolean desktopWindow) {
+        // When TPDP is compositor-scaled, leave its X11 parent/client
+        // coordinates untouched. Moving the decorated frame via X11 while
+        // separately projecting its child causes a second offset.
+        if (enlargeHandheldGame(executable, desktopWindow)) return;
         if (desktopWindow || !CharoiteCore.isTpdpGameExecutable(executable) ||
                 xServer == null || screenInfo == null || window == null ||
                 !window.isRenderable() || window.isDesktopWindow() ||

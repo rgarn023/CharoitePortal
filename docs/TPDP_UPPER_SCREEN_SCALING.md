@@ -38,3 +38,24 @@ This is **real enlargement of the displayed game content**, not larger
 buttons and not only a different window position. The Android build
 checks the integration; actual screen appearance must be verified on
 the Galaxy device.
+
+## Follow-up: game image appears outside its Windows frame
+
+The device screenshot after 86% portrait scaling shows that TPDP's picture
+and its Wine title/border do not line up consistently. The pinned Winlator
+renderer computes a separate fullscreen transformation for the game client
+and its decorated parent. Both were scaled to 86%, but the parent's 488x387
+aspect ratio differs from the actual 480x360 game client. Independently
+centering those transforms therefore offsets the picture and border.
+
+The repair in Charoite Core `CharoiteWindowPolicy.alignWindowFrame`
+derives the parent frame's position and dimensions directly from the
+already-sized client transform. Both now use the *same* pixel scaling,
+taking the original border offsets from their X11 root coordinates.
+Scaled TPDP sessions no longer also move the original X11 parent geometry:
+that earlier center-window policy was adding a second independent offset.
+
+This only affects presentation of TPDP's phone game view. The proven
+DXVK 1.10.3 + Turnip renderer, the 86%-width image, game data, audio,
+controls and saves remain untouched. Confirm border alignment on phone;
+GitHub CI can verify compilation but not Android device rendering.

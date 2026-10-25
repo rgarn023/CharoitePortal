@@ -522,7 +522,7 @@ code = code.replace(window_map_anchor, window_map_anchor + """
                         window.getName(), window.getWidth(), window.getHeight());
                 centerTpdpGameWindow(window);
 """)
-geometry_tracking_anchor = "            public void onUnmapWindow(Window window) {"
+geometry_tracking_anchor = "            @Override\n            public void onUnmapWindow(Window window) {"
 assert code.count(geometry_tracking_anchor) == 1, "Wine window unmap listener changed"
 code = code.replace(geometry_tracking_anchor, """
             @Override

@@ -41,6 +41,8 @@ public final class CharoiteDiagnostics {
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
             .putString("charoite_last_guest_exit", "No launcher termination callback yet.")
+            .putString("charoite_dxvk_log_dir", "")
+            .putString("charoite_dxvk_log_excerpt", "No DXVK diagnostic files captured.")
             .putString("touhou_launch_file", executable == null ? "unknown" :
                 executable.substring(Math.max(0, executable.lastIndexOf('/') + 1)))
             .putString("touhou_launch_error", "")
@@ -142,7 +144,50 @@ public final class CharoiteDiagnostics {
                 " size=" + width + "x" + height).apply();
     }
 
+    /** Owned runtime temp directory, explicitly outside all imported games. */
+    public static void setDxvkLogDirectory(Context context, java.io.File folder) {
+        if (folder == null || !folder.isDirectory()) return;
+        prefs(context).edit().putString("charoite_dxvk_log_dir",
+                folder.getAbsolutePath()).apply();
+    }
+
+    /** Read only a bounded tail of DXVK logs before the temporary rootfs
+     * directory is cleared at the next launch. Never read game/save files. */
+    private static void captureDxvkLogs(Context context) {
+        String folder = prefs(context).getString("charoite_dxvk_log_dir", "");
+        if (folder.isEmpty() || !folder.endsWith("/tmp/charoite-tpdp-dxvk"))
+            return;
+        java.io.File[] logs = new java.io.File(folder).listFiles();
+        if (logs == null) return;
+        java.util.Arrays.sort(logs, (a, b) -> a.getName().compareTo(b.getName()));
+        StringBuilder report = new StringBuilder();
+        int included = 0;
+        for (java.io.File log : logs) {
+            if (!log.isFile() || !log.getName().endsWith(".log")) continue;
+            if (++included > 4) break;
+            report.append("\n").append(log.getName())
+                  .append(" (").append(log.length()).append(" bytes):\n");
+            try (java.io.RandomAccessFile input =
+                    new java.io.RandomAccessFile(log, "r")) {
+                long offset = Math.max(0L, input.length() - 12000L);
+                input.seek(offset);
+                byte[] data = new byte[(int)(input.length() - offset)];
+                input.readFully(data);
+                report.append(new String(data,
+                        java.nio.charset.StandardCharsets.UTF_8)).append("\n");
+            } catch (Exception e) {
+                report.append("Cannot read DXVK diagnostic: ").append(e).append("\n");
+            }
+        }
+        if (included == 0)
+            report.append("DXVK did not produce a .log file in its private directory. "
+                    + "Verify native d3d9.dll loaded.\n");
+        prefs(context).edit().putString("charoite_dxvk_log_excerpt",
+                report.toString()).apply();
+    }
+
     public static void finishGuestProcess(Context context, int exitCode) {
+        captureDxvkLogs(context);
         long elapsed = Math.max(0L,
                 android.os.SystemClock.elapsedRealtime() - startedAtMillis);
         prefs(context).edit().putString("charoite_last_guest_exit",
@@ -327,6 +372,9 @@ public final class CharoiteDiagnostics {
             }
         }
         if (tpdpGraphicsProbe) {
+            report += "\n\nDXVK D3D9 DIAGNOSTIC FILES:\n" +
+                    p.getString("charoite_dxvk_log_excerpt",
+                            "No DXVK diagnostic files captured.");
             report += "\n\nEXCEPTIONS / UNIMPLEMENTED GRAPHICS OPERATIONS:\n";
             synchronized (crashLines) {
                 if (crashLines.isEmpty()) report += "None captured.\n";

@@ -287,3 +287,42 @@ string and effective WineD3D configuration for verification.
 This is an experimental change requiring on-phone visual confirmation.
 
 Reference: https://www.winehq.org/pipermail/wine-bugs/2020-February/529471.html
+
+## Oct 25: actual EGL asset audit and TPDP legacy DXVK diagnostic
+
+A separate GitHub Actions audit of the pinned upstream rootfs + graphics
+archives verified that neither rootfs, Mesa Zink 22.2.5, nor Gladio 1.1
+contains `libEGL.so.1`. The rootfs **does** contain `libGL.so.1`.
+Wine's EGL loader therefore fails, but it can fall back to GLX. The same
+TPDP report shows that GLX then fails to create a pbuffer and advertises
+insufficient extensions. Do not symlink libEGL to libGL or import a random
+Linux EGL library into the phone runtime. EGL alone has not been shown to
+be the sole cause.
+
+Zink's bundled Mesa 22.2.5 GLX implementation is significantly older
+than the bundled Turnip 26.2 Vulkan driver. A full Mesa/EGL replacement
+would require ABI-compatible ARM64 libraries, Box64 integration, and
+device testing; the audit provides no safe drop-in candidate.
+
+As a reversible TPDP-only comparison, use the **already bundled DXVK
+1.10.3** (legacy D3D9) rather than DXVK 2.4.1 selected by the previous
+DXVK+Turnip mode. Version 1.10.3 uses a different D3D9 translator and
+bypasses WineD3D's unavailable OpenGL functions entirely. Turnip Vulkan
+and the original ALSA driver remain unchanged. It is not a proven fix.
+
+System -> **TRY DXVK 1.10.3 (D3D9)** selects mode 6 directly and displays
+**DXVK 1.10.3 SELECTED**. The TPDP backend reports
+`TPDP override: DXVK 1.10.3 + TURNIP`.
+
+The normal Winlator DXVK config disables logging; this test changes
+`DXVK_LOG_LEVEL` to info for TPDP only and stores logs under an
+app-private temporary runtime directory, not the installed game. On
+launcher completion, the diagnostics retain a bounded tail of up to
+four DXVK logs before the next game launch clears /tmp. The log can
+confirm actual d3d9.dll loading and Vulkan surface/device failures.
+All prior graphics options remain selectable.
+
+Never uninstall TPDP, clear storage, reinstall the game, or mutate saves
+based on the probe. Gameplay must be visibly confirmed on the phone.
+
+Audit job: .github/workflows/graphics-libraries-audit.yml

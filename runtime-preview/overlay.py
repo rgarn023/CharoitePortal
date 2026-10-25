@@ -517,6 +517,16 @@ code = code.replace(tpdp_backend_anchor, """
                     dxwrapper = DXWrappers.WINED3D;
                     dxwrapperConfig = "renderer=gl,csmt=0,strict_shader_math=0";
                     graphicsDriverConfig = "";
+                } else if (tpdpMode ==
+                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY) {
+                    // Bundled DXVK 1.10.3 provides a different legacy D3D9
+                    // implementation from DXVK 2.4.1. Avoid WineD3D/GLX
+                    // on this phone while retaining the Turnip Vulkan driver.
+                    graphicsDriver = GraphicsDrivers.TURNIP + "," +
+                            GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
+                    dxwrapper = DXWrappers.DXVK;
+                    dxwrapperConfig = "version=1.10.3";
+                    graphicsDriverConfig = "";
                 }
             }
 """ + tpdp_backend_anchor)
@@ -699,6 +709,26 @@ code = code.replace(tpdp_debug_anchor, """
                         "TPDP Zink stability: OpenGL 3.1 profile, " +
                         "single-threaded CSMT/Zink, Mesa override=" +
                         envVars.get("MESA_GL_VERSION_OVERRIDE"));
+            }
+            if (tpdpMode ==
+                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY) {
+                // The pinned DXVK logs to files, rather than Wine's stdout.
+                // Keep those files in the temporary private rootfs, never
+                // next to the user's installed game, saves or patch data.
+                java.io.File dxvkLogs = new java.io.File(
+                        rootFS.getRootDir(), "tmp/charoite-tpdp-dxvk");
+                if (!dxvkLogs.isDirectory() && !dxvkLogs.mkdirs())
+                    com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                            "Unable to create private DXVK diagnostics directory");
+                if (dxvkLogs.isDirectory()) {
+                    envVars.put("DXVK_LOG_PATH", dxvkLogs.getAbsolutePath());
+                    com.charoitegames.core.CharoiteDiagnostics.setDxvkLogDirectory(
+                            this, dxvkLogs);
+                }
+                envVars.put("DXVK_LOG_LEVEL", "info");
+                com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                        "TPDP D3D9 via bundled DXVK 1.10.3 + Turnip; "
+                        + "DXVK logs redirected to private runtime");
             }
             com.charoitegames.core.CharoiteDiagnostics.recordLine(
                 "Effective WineD3D configuration: " + envVars.get("WINE_D3D_CONFIG"));

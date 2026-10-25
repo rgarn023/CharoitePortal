@@ -15,6 +15,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
             'TPDP_GRAPHICS_WINED3D_ZINK = 3',
             'TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK = 4',
             'TPDP_GRAPHICS_WINED3D_ZINK_SAFE = 5',
+            'TPDP_GRAPHICS_DXVK_D3D9_LEGACY = 6',
             '"tpdp_graphics_mode"',
             'scopedKey(host, TPDP_GRAPHICS_KEY)',
             'setTpdpGraphicsMode(AppCompatActivity host, int mode)',
@@ -27,7 +28,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('file.equals("enbu_ap.exe")',CORE)
         self.assertIn('TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED',CORE)
         self.assertIn('TPDP GRAPHICS: ',PORTAL)
-        self.assertIn('int next = (mode + 1) % 6;',PORTAL)
+        self.assertIn('int next = (mode + 1) % 7;',PORTAL)
         self.assertIn('GraphicsDrivers.ZINK',OVERLAY)
         self.assertIn('TPDP_GRAPHICS_WINED3D_ZINK',OVERLAY)
         self.assertIn('TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK',OVERLAY)
@@ -46,6 +47,15 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
         self.assertIn('this::cycleTpdpGraphics',PORTAL)
         self.assertIn('this::selectTpdpStability',PORTAL)
+        self.assertIn('this::selectTpdpLegacyDxvk',PORTAL)
+        self.assertIn('DXVK 1.10.3 SELECTED',PORTAL)
+        self.assertIn('TPDP_GRAPHICS_DXVK_D3D9_LEGACY',OVERLAY)
+        self.assertIn('dxwrapperConfig = "version=1.10.3"',OVERLAY)
+        self.assertIn('DXVK_LOG_PATH',OVERLAY)
+        self.assertIn('DXVK_LOG_LEVEL", "info"',OVERLAY)
+        self.assertIn('setDxvkLogDirectory(',DIAGNOSTICS)
+        self.assertIn('captureDxvkLogs(context);',DIAGNOSTICS)
+        self.assertIn('DXVK D3D9 DIAGNOSTIC FILES:',DIAGNOSTICS)
         self.assertIn('tpdpStabilityButton.setText(',PORTAL)
         self.assertIn('"ZINK STABILITY SELECTED"',PORTAL)
         self.assertIn('envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1")',OVERLAY)

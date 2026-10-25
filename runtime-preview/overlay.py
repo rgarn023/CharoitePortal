@@ -496,6 +496,19 @@ code = code.replace(tpdp_backend_anchor, """
                     dxwrapper = DXWrappers.WINED3D;
                     dxwrapperConfig = "";
                     graphicsDriverConfig = "";
+                } else if (tpdpMode ==
+                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK) {
+                    // WineD3D itself translates D3D9 to Vulkan here, without
+                    // the OpenGL/WGL pbuffer path failing under VirGL.
+                    // Vortek is the Vulkan ICD; GLADIO is present only as the
+                    // runtime's unused OpenGL driver slot in this mode.
+                    graphicsDriver = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO;
+                    dxwrapper = DXWrappers.WINED3D;
+                    // WineD3DConfigDialog merges these settings into its
+                    // normal WINE_D3D_CONFIG, preserving video memory, CSMT
+                    // and all other defaults. No registry changes.
+                    dxwrapperConfig = "renderer=vulkan";
+                    graphicsDriverConfig = "";
                 }
             }
 """ + tpdp_backend_anchor)
@@ -629,6 +642,28 @@ code = code.replace(tpdp_debug_anchor, """
                 com.charoitegames.core.CharoiteDiagnostics.recordLine(
                     "TPDP WineD3D + Zink: Turnip Vulkan / Zink OpenGL selected");
             }
+            if (tpdpMode ==
+                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK) {
+                // Reassert renderer only if the container provided its own
+                // WINE_D3D_CONFIG; retain WineD3D's other generated fields.
+                String actual = envVars.get("WINE_D3D_CONFIG");
+                StringBuilder normalized = new StringBuilder();
+                if (actual != null && !actual.isEmpty()) {
+                    for (String entry : actual.split("[,;]")) {
+                        if (!entry.trim().startsWith("renderer=")) {
+                            if (normalized.length() != 0) normalized.append(",");
+                            normalized.append(entry.trim());
+                        }
+                    }
+                }
+                envVars.put("WINE_D3D_CONFIG",
+                        "renderer=vulkan" +
+                        (normalized.length() == 0 ? "" : "," + normalized));
+                com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                    "TPDP Vulkan-native WineD3D requested; OpenGL pbuffer path bypassed");
+            }
+            com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                "Effective WineD3D configuration: " + envVars.get("WINE_D3D_CONFIG"));
             com.charoitegames.core.CharoiteDiagnostics.recordLine(
                     "TPDP graphics warning/error diagnostics enabled");
         } else if (getIntent().hasExtra("exec_path") &&

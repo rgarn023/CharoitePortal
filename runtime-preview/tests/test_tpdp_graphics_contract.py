@@ -13,6 +13,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
             'TPDP_GRAPHICS_SAVED = 0','TPDP_GRAPHICS_DXVK_TURNIP = 1',
             'TPDP_GRAPHICS_WINED3D_VIRGL = 2',
             'TPDP_GRAPHICS_WINED3D_ZINK = 3',
+            'TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK = 4',
             '"tpdp_graphics_mode"',
             'scopedKey(host, TPDP_GRAPHICS_KEY)',
             'setTpdpGraphicsMode(AppCompatActivity host, int mode)',
@@ -25,9 +26,16 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('file.equals("enbu_ap.exe")',CORE)
         self.assertIn('TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED',CORE)
         self.assertIn('TPDP GRAPHICS: ',PORTAL)
-        self.assertIn('int next = (mode + 1) % 4;',PORTAL)
+        self.assertIn('int next = (mode + 1) % 5;',PORTAL)
         self.assertIn('GraphicsDrivers.ZINK',OVERLAY)
         self.assertIn('TPDP_GRAPHICS_WINED3D_ZINK',OVERLAY)
+        self.assertIn('TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK',OVERLAY)
+        self.assertIn('GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO',OVERLAY)
+        self.assertIn('dxwrapperConfig = "renderer=vulkan";',OVERLAY)
+        self.assertIn('envVars.put("WINE_D3D_CONFIG",',OVERLAY)
+        self.assertIn('String actual = envVars.get("WINE_D3D_CONFIG");',OVERLAY)
+        self.assertIn('FIRST DISTINCT DIRECT3D / GPU EVENTS:',DIAGNOSTICS)
+        self.assertIn('MAX_EARLY_GRAPHICS = 24',DIAGNOSTICS)
         self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
         self.assertIn('this::cycleTpdpGraphics',PORTAL)
 

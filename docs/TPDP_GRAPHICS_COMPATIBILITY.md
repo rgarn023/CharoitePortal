@@ -199,3 +199,34 @@ Additional TPDP-only read-only diagnostics:
 No additional driver roulette or audio configuration changes. The cause
 of the black frame is still unverified; inspect the report from the
 next physical-device launch before choosing a repair.
+
+## 2026-10-25 — Native WineD3D Vulkan compatibility experiment
+
+Device report for **WINED3D + VIRGL**: game data folder exists (286,592,608
+direct bytes), XServer receives drawable updates, ALSA audio works, and
+WineD3D reports OpenGL context/pbuffer warnings. These observations do not
+prove the error is specifically caused by OpenGL, but establish a useful
+alternative to compare. Previous DXVK+Turnip and WineD3D+VirGL screens
+remained black.
+
+Added **WINED3D VULKAN + VORTEK**, TPDP games only, via the existing
+Winlator WineD3D configuration mechanism (per launch). It uses Vortek as
+the actual Vulkan driver and GLADIO for the unused OpenGL slot. 
+`renderer=vulkan` is passed in `WINE_D3D_CONFIG`, avoiding WGL/GLX
+pbuffer creation if the driver works. Other WineD3D configuration values
+and the game's selected audio backend are preserved. The choice remains
+reversible with **TPDP GRAPHICS** (five choices), and other Windows
+programs and installers are unaffected.
+
+Wine upstream documentation: WINE_D3D_CONFIG accepts `renderer=vulkan`
+without editing registry files. Note that Vulkan support may differ by Wine
+release and device driver: this is **not confirmed playable** on the Galaxy.
+
+For diagnostic clarity, the report now retains first distinct renderer
+warnings separately from the last 75 matching output lines. High-frequency
+esync/RPC messages should not conceal early D3D setup failures.
+
+Device check: select WINED3D VULKAN + VORTEK in System, launch installed
+`gn_enbu.exe`, look for title graphics with sound, then copy the new
+graphics report, especially `FIRST DISTINCT DIRECT3D / GPU EVENTS`.
+Do not reimport or reinstall TPDP or clear the existing Wine prefix.

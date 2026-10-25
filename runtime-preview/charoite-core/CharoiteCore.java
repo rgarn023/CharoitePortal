@@ -57,6 +57,7 @@ public final class CharoiteCore {
     public static final int TPDP_GRAPHICS_DXVK_TURNIP = 1;
     public static final int TPDP_GRAPHICS_WINED3D_VIRGL = 2;
     public static final int TPDP_GRAPHICS_WINED3D_ZINK = 3;
+    public static final int TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK = 4;
 
     private CharoiteCore() {}
     /** Existing Touhou preference keys remain unchanged; other profiles isolate settings. */
@@ -154,11 +155,11 @@ public final class CharoiteCore {
                         CharoiteEnvironments.isTouhou(host)
                                 ? TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED);
         return (mode >= TPDP_GRAPHICS_SAVED &&
-                mode <= TPDP_GRAPHICS_WINED3D_ZINK) ? mode : TPDP_GRAPHICS_SAVED;
+                mode <= TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK) ? mode : TPDP_GRAPHICS_SAVED;
     }
 
     public static void setTpdpGraphicsMode(AppCompatActivity host, int mode) {
-        if (mode < TPDP_GRAPHICS_SAVED || mode > TPDP_GRAPHICS_WINED3D_ZINK)
+        if (mode < TPDP_GRAPHICS_SAVED || mode > TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK)
             throw new IllegalArgumentException("Unsupported TPDP graphics mode");
         host.getPreferences(Context.MODE_PRIVATE).edit()
                 .putInt(scopedKey(host, TPDP_GRAPHICS_KEY), mode).apply();
@@ -177,6 +178,7 @@ public final class CharoiteCore {
             case TPDP_GRAPHICS_DXVK_TURNIP: return "DXVK + TURNIP";
             case TPDP_GRAPHICS_WINED3D_VIRGL: return "WINED3D + VIRGL";
             case TPDP_GRAPHICS_WINED3D_ZINK: return "WINED3D + ZINK";
+            case TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK: return "WINED3D VULKAN + VORTEK";
             default: return "SAVED SETTINGS";
         }
     }

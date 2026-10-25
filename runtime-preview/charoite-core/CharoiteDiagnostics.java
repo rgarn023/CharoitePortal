@@ -11,6 +11,10 @@ public final class CharoiteDiagnostics {
     private static final int MAX_LINES = 70;
     private static final ArrayDeque<String> lines = new ArrayDeque<>();
     private static final ArrayDeque<String> graphicsLines = new ArrayDeque<>();
+    // Distinct early graphics failures must survive later esync warning spam.
+    private static final java.util.LinkedHashMap<String, String> earlyGraphics =
+            new java.util.LinkedHashMap<>();
+    private static final int MAX_EARLY_GRAPHICS = 24;
     private static final ArrayDeque<String> mappedWindows = new ArrayDeque<>();
     private static final ArrayDeque<String> audioLines = new ArrayDeque<>();
     private static final int MAX_AUDIO_LINES = 40;
@@ -24,6 +28,7 @@ public final class CharoiteDiagnostics {
         CharoiteRenderingDiagnostics.clearReportForAnotherLaunch(context, executable);
         synchronized (lines) { lines.clear(); }
         synchronized (graphicsLines) { graphicsLines.clear(); }
+        synchronized (earlyGraphics) { earlyGraphics.clear(); }
         synchronized (mappedWindows) { mappedWindows.clear(); }
         synchronized (audioLines) { audioLines.clear(); }
         tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
@@ -178,6 +183,24 @@ public final class CharoiteDiagnostics {
                     graphicsLines.addLast(line.length() > 400 ?
                             line.substring(0, 400) : line);
                 }
+                // Prioritize meaningful renderer setup errors, not repetitive
+                // esync and RPC teardown warnings that filled the old report.
+                boolean significant = lower.contains("winediag") ||
+                        lower.contains("wined3d") || lower.contains("wgl:") ||
+                        lower.contains("ddraw") || lower.contains("d3d9") ||
+                        lower.contains("vulkan") || lower.contains("dxvk") ||
+                        lower.contains("shader") || lower.contains("pbuffer") ||
+                        lower.contains("context_attribute") ||
+                        lower.contains("surface") || lower.contains("texture");
+                if (significant) {
+                    String message = line.length() > 320 ? line.substring(0, 320) : line;
+                    String key = message.replaceFirst("^[0-9a-fA-F]+:", "");
+                    synchronized (earlyGraphics) {
+                        if (!earlyGraphics.containsKey(key) &&
+                                earlyGraphics.size() < MAX_EARLY_GRAPHICS)
+                            earlyGraphics.put(key, message);
+                    }
+                }
             }
         }
     }
@@ -274,6 +297,13 @@ public final class CharoiteDiagnostics {
             }
         }
         if (tpdpGraphicsProbe) {
+            report += "\n\nFIRST DISTINCT DIRECT3D / GPU EVENTS:\n";
+            synchronized (earlyGraphics) {
+                if (earlyGraphics.isEmpty())
+                    report += "No renderer setup event captured.\n";
+                else for (String event : earlyGraphics.values())
+                    report += event + "\n";
+            }
             report += "\n\nTPDP DIRECT3D / GRAPHICS OUTPUT (last " +
                     MAX_GRAPHICS_LINES + " matching lines):\n";
             synchronized (graphicsLines) {

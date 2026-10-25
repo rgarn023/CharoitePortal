@@ -1,0 +1,43 @@
+name: Charoite Graphics Libraries Audit
+on:
+  push:
+    paths:
+      - '.github/workflows/graphics-libraries-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Fetch pinned Winlator graphics archives
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --depth 1 https://github.com/brunodev85/winlator-app.git upstream
+          cd upstream
+          git fetch --depth 1 origin 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          git checkout --detach 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          command -v zstd
+      - name: Inspect actual x86-64 and ARM graphics libraries
+        run: |
+          set -euo pipefail
+          for archive in             upstream/app/src/main/assets/rootfs.tzst             upstream/app/src/main/assets/graphics_driver/zink-22.2.5.tzst             upstream/app/src/main/assets/graphics_driver/gladio-1.1.tzst
+          do
+            echo "=== ARCHIVE: $archive ==="
+            test -f "$archive"
+            tar -I zstd -tf "$archive" | grep -Ei '/(lib(EGL|GL|GLES|GLX|gbm|vulkan|drm)|.*(zink|dri))[A-Za-z0-9._-]*(/|$)' | head -100 || true
+          done
+      - name: Inspect loaders and link dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/graphics-root
+          tar -I zstd -xf upstream/app/src/main/assets/rootfs.tzst -C /tmp/graphics-root
+          echo "=== ROOTFS LIBRARY LOCATIONS ==="
+          find /tmp/graphics-root -type f -o -type l | grep -Ei '/lib(EGL|GL|GLES|GLX|vulkan|gbm)[^/]*$' | head -100 || true
+          echo "=== GL VENDOR LOADER LOCATIONS ==="
+          find /tmp/graphics-root -iname '*EGL*' -o -iname '*glvnd*' | head -100 || true
+          echo "=== MATCHING FILE ARCHITECTURES ==="
+          find /tmp/graphics-root -type f \( -name 'libGL.so*' -o -name 'libEGL.so*' \) -exec file {} \; | head -40 || true

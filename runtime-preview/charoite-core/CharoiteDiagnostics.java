@@ -11,6 +11,7 @@ public final class CharoiteDiagnostics {
     private static final int MAX_LINES = 70;
     private static final ArrayDeque<String> lines = new ArrayDeque<>();
     private static final ArrayDeque<String> graphicsLines = new ArrayDeque<>();
+    private static final ArrayDeque<String> mappedWindows = new ArrayDeque<>();
     private static final int MAX_GRAPHICS_LINES = 75;
     private static volatile boolean tpdpGraphicsProbe;
     public static final Callback<String> CALLBACK = CharoiteDiagnostics::recordLine;
@@ -21,13 +22,76 @@ public final class CharoiteDiagnostics {
         CharoiteRenderingDiagnostics.clearReportForAnotherLaunch(context, executable);
         synchronized (lines) { lines.clear(); }
         synchronized (graphicsLines) { graphicsLines.clear(); }
+        synchronized (mappedWindows) { mappedWindows.clear(); }
         tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
             .putString("touhou_launch_file", executable == null ? "unknown" :
                 executable.substring(Math.max(0, executable.lastIndexOf('/') + 1)))
             .putString("touhou_launch_error", "")
+            .putString("charoite_last_mapped_windows", "No mapped Windows program window yet.")
             .apply();
+        recordLaunchPackage(context, executable);
+    }
+
+    /** Inspect filenames/counts only: no game data or saved files are changed. */
+    private static void recordLaunchPackage(Context context, String executable) {
+        String report = "No executable provided.";
+        if (executable != null) {
+            java.io.File exe = new java.io.File(executable);
+            java.io.File folder = exe.getParentFile();
+            if (exe.isFile() && folder != null) {
+                java.io.File[] contents = folder.listFiles();
+                int files = 0, folders = 0, parts = 0;
+                if (contents != null) for (java.io.File part : contents) {
+                    if (part.isDirectory()) folders++;
+                    else if (part.isFile()) {
+                        files++;
+                        String name = part.getName().toLowerCase(java.util.Locale.ROOT);
+                        if (name.endsWith(".cab") || name.endsWith(".bin") ||
+                                name.endsWith(".dat") || name.endsWith(".pak")) parts++;
+                    }
+                }
+                report = "Executable: present (" + exe.length() + " bytes)" +
+                        "\nAdjacent files: " + Math.max(0, files - 1) +
+                        "; folders: " + folders + "; media archives: " + parts;
+                if (CharoiteCore.isTpdpGameExecutable(executable))
+                    report += "\nTPDP dat folder: " +
+                            new java.io.File(folder, "dat").isDirectory();
+                if (CharoiteCore.isJapaneseInstallerCandidate(executable) &&
+                        files <= 1 && folders == 0)
+                    report += "\nThis imported installer has no adjacent media. " +
+                            "For multi-file installers, use IMPORT COMPLETE INSTALLER FOLDER.";
+            } else report = "Executable file present: " + exe.isFile();
+        }
+        prefs(context).edit().putString("charoite_last_launch_files", report).apply();
+    }
+
+    /** Window mapping is not proof of visible Direct3D pixels. */
+    public static void recordMappedWindow(Context context, String clazz,
+                                          String title, int width, int height) {
+        String cls = clazz == null ? "" : clazz.replace('\n', ' ').replace('\r', ' ');
+        String caption = title == null ? "" : title.replace('\n', ' ').replace('\r', ' ');
+        if (cls.length() > 65) cls = cls.substring(0, 65);
+        if (caption.length() > 65) caption = caption.substring(0, 65);
+        synchronized (mappedWindows) {
+            if (mappedWindows.size() == 12) mappedWindows.removeFirst();
+            mappedWindows.addLast("class=" + cls + " title=" + caption +
+                    " size=" + width + "x" + height);
+            StringBuilder detail = new StringBuilder();
+            for (String item : mappedWindows) detail.append(item).append('\n');
+            prefs(context).edit().putString("charoite_last_mapped_windows",
+                    detail.toString()).apply();
+        }
+    }
+
+    public static void finishGuestProcess(Context context, int exitCode) {
+        if (exitCode != 0) fail(context, "Wine/Box64 exited with status " +
+                exitCode + ". See launch package and X-window details.");
+        else if (!"game window appeared".equals(
+                prefs(context).getString("touhou_launch_status", "")))
+            fail(context, "Windows program exited without a mapped game/installer window. " +
+                    "If setup includes separate media files, import the whole installer folder.");
     }
 
     public static void recordLine(String line) {
@@ -101,6 +165,10 @@ public final class CharoiteDiagnostics {
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
+        report += "\n\nLAUNCH PACKAGE:\n" +
+                p.getString("charoite_last_launch_files", "Not inspected.");
+        report += "\n\nMAPPED WINDOWS:\n" +
+                p.getString("charoite_last_mapped_windows", "No window events recorded.");
         report += "\n\nGRAPHICS BACKEND:\n" +
                 p.getString("charoite_last_graphics_backend",
                         "Not recorded in this build.");

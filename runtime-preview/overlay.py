@@ -432,6 +432,13 @@ code = code.replace(tpdp_backend_anchor, """
                     dxwrapper = DXWrappers.WINED3D;
                     dxwrapperConfig = "";
                     graphicsDriverConfig = "";
+                } else if (tpdpMode ==
+                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK) {
+                    // WineD3D D3D9 -> OpenGL -> Zink -> Turnip.
+                    graphicsDriver = GraphicsDrivers.TURNIP + "," + GraphicsDrivers.ZINK;
+                    dxwrapper = DXWrappers.WINED3D;
+                    dxwrapperConfig = "";
+                    graphicsDriverConfig = "";
                 }
             }
 """ + tpdp_backend_anchor)
@@ -460,6 +467,16 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
             }, 45000);
         }
 """ + old_show)
+window_map_anchor = "            public void onMapWindow(Window window) {"
+assert code.count(window_map_anchor) == 1, "Wine window map listener changed"
+code = code.replace(window_map_anchor, window_map_anchor + """
+                // Record mapped Wine X-windows; window mapping does not
+                // necessarily mean the game has presented visible pixels.
+                if (getIntent().hasExtra("exec_path") && window.isRenderable())
+                    com.charoitegames.core.CharoiteDiagnostics.recordMappedWindow(
+                        XServerDisplayActivity.this, window.getClassName(),
+                        window.getName(), window.getWidth(), window.getHeight());
+""")
 old_cursor = "                    xServerView.getRenderer().setCursorVisible(true);"
 assert code.count(old_cursor) == 1, "Window-open marker changed"
 code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;
@@ -489,8 +506,8 @@ code = code.replace(old_exit, """        if (intent.hasExtra("exec_path")) {
 old_callback = "        guestProgramLauncherComponent.setTerminationCallback((status) -> exit());"
 assert code.count(old_callback) == 1, "Guest-process exit callback changed"
 code = code.replace(old_callback, """        guestProgramLauncherComponent.setTerminationCallback((status) -> {
-            if (getIntent().hasExtra("exec_path") && status != 0)
-                com.charoitegames.core.CharoiteDiagnostics.fail(this, "Wine/Box64 process exited with status " + status + ". See logs below.");
+            if (getIntent().hasExtra("exec_path"))
+                com.charoitegames.core.CharoiteDiagnostics.finishGuestProcess(this, status);
             runOnUiThread(this::exit);
         });""")
 # Apply TPDP-only diagnostics after Wine's saved container env-vars have
@@ -514,8 +531,20 @@ code = code.replace(tpdp_debug_anchor, """
                 com.charoitegames.core.CharoiteDiagnostics.recordLine(
                     "TPDP WineD3D/VirGL: readback allowed, Mesa checks enabled");
             }
+            if (tpdpMode ==
+                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK) {
+                envVars.put("MESA_NO_ERROR", "0");
+                com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                    "TPDP WineD3D + Zink: Turnip Vulkan / Zink OpenGL selected");
+            }
             com.charoitegames.core.CharoiteDiagnostics.recordLine(
                     "TPDP graphics warning/error diagnostics enabled");
+        } else if (getIntent().hasExtra("exec_path") &&
+                com.charoitegames.core.CharoiteCore.japaneseCompatibilityEnabled(this) &&
+                com.charoitegames.core.CharoiteCore.isJapaneseInstallerCandidate(
+                        getIntent().getStringExtra("exec_path"))) {
+            // Capture setup failure warnings even without an installer UI.
+            envVars.put("WINEDEBUG", "err+all,warn+all");
         }
 """ + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")

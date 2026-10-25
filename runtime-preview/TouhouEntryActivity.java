@@ -84,6 +84,7 @@ import java.util.concurrent.ExecutorService;
 public final class TouhouEntryActivity extends AppCompatActivity {
     private static final int FOLDER_REQUEST = 1001;
     private static final int EXE_REQUEST = 1002;
+    private static final int INSTALLER_FOLDER_REQUEST = 1007;
     private static final int WALLPAPER_REQUEST = 1003;
     private static final int ENVIRONMENT_OPEN_REQUEST = 1004;
     private static final int ENVIRONMENT_CREATE_REQUEST = 1005;
@@ -110,6 +111,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button initButton;
     private Button folderButton;
     private Button installerButton;
+    private Button installerFolderButton;
     private Button scanButton;
     private Button compatButton;
     private Button tpdpGraphicsButton;
@@ -342,6 +344,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             startActivityForResult(picker, EXE_REQUEST);
         });
         exeCard.addView(installerButton);
+        exeCard.addView(label("For expansions or installers with adjacent .bin/.cab/data files, import the complete extracted setup folder instead of a lone EXE.", 12, SECONDARY, false));
+        installerFolderButton = outlinedButton("IMPORT COMPLETE INSTALLER FOLDER", () -> {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            startActivityForResult(picker, INSTALLER_FOLDER_REQUEST);
+        });
+        exeCard.addView(installerFolderButton);
         importScreen.addView(exeCard);
         spacerIn(importScreen, 12);
 
@@ -392,7 +402,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
-        graphicsCard.addView(label("TPDP black-window troubleshooting: DXVK + Turnip still shows a black window on this device. Try WINED3D + VIRGL or Saved Settings. This changes only TPDP launches, never your installed game or saves.", 12, SECONDARY, false));
+        graphicsCard.addView(label("TPDP black-screen investigation: DXVK + Turnip and WineD3D + VirGL both stayed black. Next compare WineD3D + Zink. Graphics-wrapper switching replaces Wine-managed DLLs but does not delete your game or saves.", 12, SECONDARY, false));
         tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
                 this::cycleTpdpGraphics);
         graphicsCard.addView(tpdpGraphicsButton);
@@ -907,6 +917,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 "Engine not ready. Retry automatic preparation here if necessary.");
         folderButton.setEnabled(!busy && ready);
         installerButton.setEnabled(!busy && ready);
+        if (installerFolderButton != null) installerFolderButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
@@ -1020,7 +1031,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void cycleTpdpGraphics() {
         if (busy || containerId <= 0) return;
         int mode = CharoiteCore.tpdpGraphicsMode(this);
-        int next = (mode + 1) % 3;
+        int next = (mode + 1) % 4;
         CharoiteCore.setTpdpGraphicsMode(this, next);
         updateButtons();
         setStatus("TPDP graphics on NEXT game launch: " +
@@ -1139,8 +1150,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             return;
         }
         Uri uri = data.getData();
-        if (requestCode == FOLDER_REQUEST) importGame(uri, true);
-        else if (requestCode == EXE_REQUEST) importGame(uri, false);
+        if (requestCode == FOLDER_REQUEST)
+            importGame(uri, CharoiteGameImport.Selection.GAME_FOLDER);
+        else if (requestCode == EXE_REQUEST)
+            importGame(uri, CharoiteGameImport.Selection.STANDALONE_INSTALLER);
+        else if (requestCode == INSTALLER_FOLDER_REQUEST)
+            importGame(uri, CharoiteGameImport.Selection.INSTALLER_FOLDER);
         else if (requestCode == WALLPAPER_REQUEST) importLauncherWallpaper(uri);
         else if (requestCode == ENVIRONMENT_OPEN_REQUEST) openEnvironmentDocument(uri);
         else if (requestCode == ENVIRONMENT_CREATE_REQUEST) saveEnvironmentDocument(uri, true);
@@ -1186,14 +1201,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
      * Thin Portal UI adapter. All Windows file copying, executable detection,
      * cleanup and the no-autolaunch policy belong to shared Charoite Core.
      */
-    private void importGame(Uri uri, boolean folder) {
+    private void importGame(Uri uri, CharoiteGameImport.Selection selection) {
         if (busy || containerId <= 0) return;
         busy = true;
-        setStatus(folder ? "Importing selected game folder…" : "Importing Windows installer…");
+        setStatus(selection == CharoiteGameImport.Selection.GAME_FOLDER
+                ? "Importing selected game folder…" :
+                selection == CharoiteGameImport.Selection.INSTALLER_FOLDER
+                ? "Importing complete installer folder…" : "Importing Windows installer…");
         updateButtons();
-        final CharoiteGameImport.Selection selection = folder
-                ? CharoiteGameImport.Selection.GAME_FOLDER
-                : CharoiteGameImport.Selection.STANDALONE_INSTALLER;
         worker.execute(() -> {
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);

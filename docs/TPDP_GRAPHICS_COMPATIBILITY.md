@@ -111,3 +111,34 @@ changed, and existing prefixes are never reset/deleted.
 Device validation: launch base `gn_enbu.exe` in WineD3D + VirGL mode, check
 for graphics and touch keys, and copy the new TPDP DIRECT3D / GRAPHICS OUTPUT
 section from Launch Diagnostics if the screen is still black.
+
+## October 24: black screen persists in WineD3D/VirGL
+
+The user confirmed both previously tested renderers produce a black TPDP
+game viewport on Galaxy S26 Ultra. The latest option is **WineD3D + Zink**,
+a reversible TPDP-only comparison translating Direct3D9 through WineD3D,
+OpenGL/Zink and Turnip Vulkan. It is **not yet a verified fix**.
+
+Launch Diagnostics now reports the selected executable's adjacent file/media
+counts, whether a TPDP `dat` directory exists, and mapped Wine X-window names,
+classes and sizes. Silent installer exits record an error. These are diagnostics,
+not an invasive DLL/game-file repair.
+
+### Complete expansion installer folders
+
+Selecting `SELECT INSTALLER .EXE` copies only the .exe. Some expansion
+installers depend on adjacent .cab/.bin files, folders or setup media that
+would be lost by this import path. The new **IMPORT COMPLETE INSTALLER
+FOLDER** copies the entire source folder into a new private import directory,
+selects the setup.exe/installer executable and presents **RUN INSTALLER** on
+the Setup tab. **Folder imports never auto-run the installer.** No existing
+installation, Wine prefix or save directory is reset.
+
+If the expansion installer still fails, inspect the new LAUNCH PACKAGE and
+MAPPED WINDOWS diagnostics. The installer might also depend on registration
+data from the original base-game installation; do not infer it installed
+successfully from a process or window alone.
+
+References:
+https://gist.github.com/RobertTheSable/6c4d705623b4de8d8cb3c954eac4814f
+https://thpp.supersanctuary.net/tpdp/manual/ynk/

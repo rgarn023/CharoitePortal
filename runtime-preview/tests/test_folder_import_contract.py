@@ -22,6 +22,13 @@ class CoreImportContract(unittest.TestCase):
         self.assertNotIn("launchGame(", CORE_IMPORT)
         self.assertNotIn("startActivity(", CORE_IMPORT)
         self.assertIn("CharoiteGameImport.shouldLaunchAfterImport(selection)", PORTAL)
+        self.assertIn("INSTALLER_FOLDER", CORE_IMPORT)
+        self.assertIn("selection == Selection.GAME_FOLDER || selection == Selection.INSTALLER_FOLDER", CORE_IMPORT)
+        self.assertIn("selection == Selection.STANDALONE_INSTALLER", CORE_IMPORT)
+        self.assertIn("IMPORT COMPLETE INSTALLER FOLDER", PORTAL)
+        self.assertIn("INSTALLER_FOLDER_REQUEST", PORTAL)
+        self.assertIn("detectExe(target, selection, touhou)", CORE_IMPORT)
+        self.assertIn('new String[]{"setup.exe", "install.exe", "installer.exe"}', CORE_IMPORT)
         self.assertIn("CharoiteGameImport.importSelected(", PORTAL)
 
     def test_importer_saf_copy_and_protections_are_owned_by_core(self):

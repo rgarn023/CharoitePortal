@@ -12,6 +12,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         for token in (
             'TPDP_GRAPHICS_SAVED = 0','TPDP_GRAPHICS_DXVK_TURNIP = 1',
             'TPDP_GRAPHICS_WINED3D_VIRGL = 2',
+            'TPDP_GRAPHICS_WINED3D_ZINK = 3',
             '"tpdp_graphics_mode"',
             'scopedKey(host, TPDP_GRAPHICS_KEY)',
             'setTpdpGraphicsMode(AppCompatActivity host, int mode)',
@@ -24,6 +25,9 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('file.equals("enbu_ap.exe")',CORE)
         self.assertIn('TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED',CORE)
         self.assertIn('TPDP GRAPHICS: ',PORTAL)
+        self.assertIn('int next = (mode + 1) % 4;',PORTAL)
+        self.assertIn('GraphicsDrivers.ZINK',OVERLAY)
+        self.assertIn('TPDP_GRAPHICS_WINED3D_ZINK',OVERLAY)
         self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
         self.assertIn('this::cycleTpdpGraphics',PORTAL)
 
@@ -59,6 +63,11 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('tpdpGraphicsProbe',DIAGNOSTICS)
         self.assertIn('TPDP DIRECT3D / GRAPHICS OUTPUT',DIAGNOSTICS)
         self.assertIn('graphicsLines',DIAGNOSTICS)
+        self.assertIn('recordLaunchPackage(context, executable)',DIAGNOSTICS)
+        self.assertIn('TPDP dat folder:',DIAGNOSTICS)
+        self.assertIn('recordMappedWindow(Context context',DIAGNOSTICS)
+        self.assertIn('finishGuestProcess(Context context, int exitCode)',DIAGNOSTICS)
+        self.assertIn('MAPPED WINDOWS:',DIAGNOSTICS)
         self.assertIn('envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag")',OVERLAY)
         self.assertIn('envVars.put("VIRGL_NO_READBACK", "false")',OVERLAY)
         self.assertIn('envVars.put("MESA_NO_ERROR", "0")',OVERLAY)

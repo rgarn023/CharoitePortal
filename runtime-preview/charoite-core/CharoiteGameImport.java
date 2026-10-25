@@ -29,7 +29,7 @@ public final class CharoiteGameImport {
     private static final AtomicLong UNIQUE = new AtomicLong();
 
     public enum Selection {
-        GAME_FOLDER, STANDALONE_INSTALLER
+        GAME_FOLDER, STANDALONE_INSTALLER, INSTALLER_FOLDER
     }
 
     public static final class Result {
@@ -79,10 +79,10 @@ public final class CharoiteGameImport {
         if (!target.mkdir()) throw new IllegalStateException("Could not create a game import directory");
         try {
             Counter counter = new Counter();
-            if (selection == Selection.GAME_FOLDER) {
+            if (selection == Selection.GAME_FOLDER || selection == Selection.INSTALLER_FOLDER) {
                 DocumentFile tree = DocumentFile.fromTreeUri(host, selectedUri);
                 if (tree == null || !tree.isDirectory())
-                    throw new IllegalArgumentException("Select a complete Windows game folder");
+                    throw new IllegalArgumentException("Select a complete Windows game or installer folder");
                 copyFolder(host, tree, target, counter, 0);
             } else {
                 DocumentFile file = DocumentFile.fromSingleUri(host, selectedUri);
@@ -95,8 +95,8 @@ public final class CharoiteGameImport {
             if (executable == null)
                 throw new IllegalArgumentException("No Windows executable found in selected files");
             File exe = new File(target, executable);
-            boolean installer = selection == Selection.STANDALONE_INSTALLER
-                    || isLikelyInstaller(executable);
+            boolean installer = selection == Selection.STANDALONE_INSTALLER ||
+                    selection == Selection.INSTALLER_FOLDER || isLikelyInstaller(executable);
             return new Result(exe.getAbsolutePath(), exe.getName(), installer,
                     counter.files, selection);
         } catch (Exception failure) {
@@ -159,6 +159,26 @@ public final class CharoiteGameImport {
         collectExecutables(root, root, matches, 0);
         if (matches.isEmpty()) return null;
         if (selection == Selection.STANDALONE_INSTALLER) return matches.get(0);
+        if (selection == Selection.INSTALLER_FOLDER) {
+            // Prioritize setup over playable binaries, while keeping all
+            // companion installation archives and directories alongside it.
+            for (String name : new String[]{"setup.exe", "install.exe", "installer.exe"}) {
+                String preferred = null;
+                for (String candidate : matches)
+                    if (new File(candidate).getName().equalsIgnoreCase(name) &&
+                            (preferred == null || candidate.length() < preferred.length()))
+                        preferred = candidate;
+                if (preferred != null) return preferred;
+            }
+            String preferred = null;
+            for (String candidate : matches)
+                if (isLikelyInstaller(candidate) &&
+                        (preferred == null || candidate.length() < preferred.length()))
+                    preferred = candidate;
+            if (preferred == null) throw new IllegalArgumentException(
+                    "No setup.exe or installer found in selected folder");
+            return preferred;
+        }
         if (touhou) {
             for (String priority : new String[]{
                     "enbu_ap.exe", "gn_enbu.exe", "th20.exe", "th19.exe"}) {

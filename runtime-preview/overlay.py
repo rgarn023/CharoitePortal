@@ -509,6 +509,14 @@ code = code.replace(tpdp_backend_anchor, """
                     // and all other defaults. No registry changes.
                     dxwrapperConfig = "renderer=vulkan";
                     graphicsDriverConfig = "";
+                } else if (tpdpMode ==
+                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE) {
+                    // WineD3D's native Vulkan shader constant updater is not
+                    // implemented; use its OpenGL shader path via Turnip/Zink.
+                    graphicsDriver = GraphicsDrivers.TURNIP + "," + GraphicsDrivers.ZINK;
+                    dxwrapper = DXWrappers.WINED3D;
+                    dxwrapperConfig = "renderer=gl,csmt=0,strict_shader_math=0";
+                    graphicsDriverConfig = "";
                 }
             }
 """ + tpdp_backend_anchor)
@@ -661,6 +669,29 @@ code = code.replace(tpdp_debug_anchor, """
                         (normalized.length() == 0 ? "" : "," + normalized));
                 com.charoitegames.core.CharoiteDiagnostics.recordLine(
                     "TPDP Vulkan-native WineD3D requested; OpenGL pbuffer path bypassed");
+            }
+            if (tpdpMode ==
+                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE) {
+                // Turnip/Zink upstream normally enables threaded Zink.
+                // Override only this TPDP launch, never the saved container.
+                envVars.put("ZINK_CONTEXT_THREADED", "0");
+                envVars.put("MESA_NO_ERROR", "0");
+                String prior = envVars.get("WINE_D3D_CONFIG");
+                StringBuilder extras = new StringBuilder();
+                if (prior != null && !prior.isEmpty()) {
+                    for (String option : prior.split("[,;]")) {
+                        option = option.trim();
+                        if (option.isEmpty() || option.startsWith("renderer=") ||
+                                option.startsWith("csmt=") ||
+                                option.startsWith("strict_shader_math=")) continue;
+                        extras.append(",").append(option);
+                    }
+                }
+                envVars.put("WINE_D3D_CONFIG",
+                        "renderer=gl,csmt=0x00000000,strict_shader_math=0x00000000" +
+                        extras.toString());
+                com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                        "TPDP Zink stability: OpenGL shaders, single-threaded CSMT/Zink");
             }
             com.charoitegames.core.CharoiteDiagnostics.recordLine(
                 "Effective WineD3D configuration: " + envVars.get("WINE_D3D_CONFIG"));

@@ -17,6 +17,10 @@ public final class CharoiteDiagnostics {
     private static final int MAX_EARLY_GRAPHICS = 24;
     private static final ArrayDeque<String> mappedWindows = new ArrayDeque<>();
     private static final ArrayDeque<String> audioLines = new ArrayDeque<>();
+    private static final java.util.LinkedHashMap<String,String> crashLines =
+            new java.util.LinkedHashMap<>();
+    private static final int MAX_CRASH_LINES = 20;
+    private static volatile long startedAtMillis;
     private static final int MAX_AUDIO_LINES = 40;
     private static final int MAX_GRAPHICS_LINES = 75;
     private static volatile boolean tpdpGraphicsProbe;
@@ -31,9 +35,12 @@ public final class CharoiteDiagnostics {
         synchronized (earlyGraphics) { earlyGraphics.clear(); }
         synchronized (mappedWindows) { mappedWindows.clear(); }
         synchronized (audioLines) { audioLines.clear(); }
+        synchronized (crashLines) { crashLines.clear(); }
+        startedAtMillis = android.os.SystemClock.elapsedRealtime();
         tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
+            .putString("charoite_last_guest_exit", "No launcher termination callback yet.")
             .putString("touhou_launch_file", executable == null ? "unknown" :
                 executable.substring(Math.max(0, executable.lastIndexOf('/') + 1)))
             .putString("touhou_launch_error", "")
@@ -136,8 +143,13 @@ public final class CharoiteDiagnostics {
     }
 
     public static void finishGuestProcess(Context context, int exitCode) {
+        long elapsed = Math.max(0L,
+                android.os.SystemClock.elapsedRealtime() - startedAtMillis);
+        prefs(context).edit().putString("charoite_last_guest_exit",
+                "Guest launcher returned " + exitCode + " after " +
+                elapsed / 1000L + " seconds (does not prove game process exit).").apply();
         if (exitCode != 0) fail(context, "Wine/Box64 exited with status " +
-                exitCode + ". See launch package and X-window details.");
+                exitCode + ". See game exception details.");
         else if (!"game window appeared".equals(
                 prefs(context).getString("touhou_launch_status", "")))
             fail(context, "Windows program exited without a mapped game/installer window. " +
@@ -149,6 +161,22 @@ public final class CharoiteDiagnostics {
         synchronized (lines) {
             if (lines.size() == MAX_LINES) lines.removeFirst();
             lines.addLast(line.length() > 600 ? line.substring(0, 600) : line);
+        }
+        if (tpdpGraphicsProbe) {
+            String lower = line.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("err:seh") || lower.contains("winedbg") ||
+                    lower.contains("unhandled exception") ||
+                    lower.contains("fatal error") || lower.contains("segfault") ||
+                    lower.contains("unimplemented") ||
+                    lower.contains("not implemented")) {
+                String clipped = line.length() > 450 ? line.substring(0, 450) : line;
+                String key = clipped.replaceFirst("^[0-9a-fA-F]+:", "");
+                synchronized (crashLines) {
+                    if (!crashLines.containsKey(key) &&
+                            crashLines.size() < MAX_CRASH_LINES)
+                        crashLines.put(key, clipped);
+                }
+            }
         }
         // Wine game audio failures can occur independently of the D3D9
         // black screen. Preserve only short lines of the native backend
@@ -257,6 +285,8 @@ public final class CharoiteDiagnostics {
                 p.getString("charoite_last_x11_updates", "Not recorded.");
         report += "\n\nTPDP WINDOW LAYOUT:\n" +
                 p.getString("charoite_last_window_layout", "Not recorded.");
+        report += "\n\nGUEST LAUNCHER EXIT:\n" +
+                p.getString("charoite_last_guest_exit", "Not recorded.");
         report += "\n\nAUDIO BACKEND:\n" +
                 p.getString("charoite_last_audio_backend", "Not recorded.");
         report += "\n\nGRAPHICS BACKEND:\n" +
@@ -297,6 +327,12 @@ public final class CharoiteDiagnostics {
             }
         }
         if (tpdpGraphicsProbe) {
+            report += "\n\nEXCEPTIONS / UNIMPLEMENTED GRAPHICS OPERATIONS:\n";
+            synchronized (crashLines) {
+                if (crashLines.isEmpty()) report += "None captured.\n";
+                else for (String event : crashLines.values())
+                    report += event + "\n";
+            }
             report += "\n\nFIRST DISTINCT DIRECT3D / GPU EVENTS:\n";
             synchronized (earlyGraphics) {
                 if (earlyGraphics.isEmpty())

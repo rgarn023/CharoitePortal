@@ -402,7 +402,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
-        graphicsCard.addView(label("TPDP graphics repair: VirGL reported OpenGL pbuffer/context warnings while the game played audio but stayed black. Try WINED3D VULKAN + VORTEK to bypass the OpenGL renderer. Other modes remain selectable. No game or save files are deleted.", 12, SECONDARY, false));
+        graphicsCard.addView(label("TPDP now draws its Japanese startup notice under Vulkan, then leaves the game. Try WINED3D + ZINK STABILITY: GL shaders over Turnip with conservative threading. Your audio, files, saves and other graphics modes remain available.", 12, SECONDARY, false));
         tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
                 this::cycleTpdpGraphics);
         graphicsCard.addView(tpdpGraphicsButton);
@@ -1031,7 +1031,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void cycleTpdpGraphics() {
         if (busy || containerId <= 0) return;
         int mode = CharoiteCore.tpdpGraphicsMode(this);
-        int next = (mode + 1) % 5;
+        int next = (mode + 1) % 6;
         CharoiteCore.setTpdpGraphicsMode(this, next);
         updateButtons();
         setStatus("TPDP graphics on NEXT game launch: " +

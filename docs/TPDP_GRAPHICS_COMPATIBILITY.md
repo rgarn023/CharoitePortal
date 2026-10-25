@@ -230,3 +230,34 @@ Device check: select WINED3D VULKAN + VORTEK in System, launch installed
 `gn_enbu.exe`, look for title graphics with sound, then copy the new
 graphics report, especially `FIRST DISTINCT DIRECT3D / GPU EVENTS`.
 Do not reimport or reinstall TPDP or clear the existing Wine prefix.
+
+## 2026-10-25: startup video and native Vulkan shader limitation
+
+17.4-second Samsung recording `157333.mp4` shows the Portal launcher,
+brief black game window, then the actual TPDP Japanese copyright notice,
+animated character and `演舞準備中` loading graphic for several seconds.
+The game area subsequently goes black, followed by Portal returning.
+This disproves a blanket "never renders any game content" interpretation
+but does not alone establish whether the process crashed or exited normally.
+
+The log confirms WineD3D's native Vulkan mode was selected and emitted
+`shader_spirv_update_float_vertex_constants Not implemented` and
+`shader_spirv_update_float_pixel_constants Not implemented`. The corresponding
+Wine SPIR-V backend functions are unimplemented. This mode can show some
+startup assets but is not a dependable verified TPDP gameplay mode.
+
+Next mode **WINED3D + ZINK STABILITY** (game executables only) uses WineD3D
+OpenGL shaders through Zink/Turnip, sets `renderer=gl`, `csmt=0`,
+`strict_shader_math=0`, `ZINK_CONTEXT_THREADED=0` and `MESA_NO_ERROR=0`.
+Its OpenGL API can use mature shader constant functionality rather than
+Wine's incomplete native Vulkan shader updater. This may trade performance
+for compatibility and remains experimental pending device confirmation.
+All previous modes, the saved ALSA audio driver, Wine prefix and installed
+games/saves remain preserved.
+
+Diagnostics now capture a bounded set of SEH / winedbg / unimplemented
+warnings and Wine/Box64 guest launcher termination code and elapsed runtime.
+A launcher return code alone does not prove the actual Windows game process
+crashed. Report what is seen and avoid certainty before validation.
+
+Code reference: https://fossies.org/linux/wine/dlls/wined3d/shader_spirv.c

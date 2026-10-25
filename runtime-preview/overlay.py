@@ -337,24 +337,32 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
         }
         AppUtils.keepScreenOn(this);""")
 
-# Reuse the TPDP XServer-native keyboard controls (no synthetic Android
-# gamepad, package ID changes or edits to installed game files).
-tpdp_controls_source = overlay.parent / "CharoiteTpdpTouchControls.java"
-tpdp_controls_target = java_root / "com/winlator/CharoiteTpdpTouchControls.java"
-assert tpdp_controls_source.is_file() and not tpdp_controls_target.exists()
-tpdp_controls_target.write_bytes(tpdp_controls_source.read_bytes())
+# Reuse the TPDP Charoite Core keyboard buttons, without loading a
+# duplicate Winlator controls profile or changing Wine container settings.
+tpdp_touch_source = overlay.parent / "charoite-core/CharoiteTpdpTouchControls.java"
+tpdp_touch_target = java_root / "com/charoitegames/core/CharoiteTpdpTouchControls.java"
+assert tpdp_touch_source.is_file() and not tpdp_touch_target.exists()
+tpdp_touch_target.parent.mkdir(parents=True, exist_ok=True)
+tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())
 
 tpdp_touch_anchor = "        rootView.addView(inputControlsView);"
 assert code.count(tpdp_touch_anchor)==1, "Winlator input layer changed"
 code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
-        // TPDP uses keyboard arrows + Z/X/C/S/A/D/Space. Use existing XServer
-        // key press/release, never mouse movement or a fake XInput device.
-        // Hide this touch overlay in desktop/DeX sessions.
+        // TPDP's documented arrow + Z/X/C/S/A/D/Space bindings; keyboard
+        // input is sent to Wine through the existing XServer keyboard.
+        // Touch-only: DeX remains usable with real keyboard/mouse devices.
         if (getIntent().hasExtra("exec_path") &&
                 com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
                     getIntent().getStringExtra("exec_path")) &&
                 !getIntent().getBooleanExtra("touhou_desktop_window", false)) {
-            CharoiteTpdpTouchControls.attach(this,rootView,xServer);
+            com.charoitegames.core.CharoiteTpdpTouchControls.attach(
+                    this,rootView,(keyCode,pressed) -> {
+                        long tick=android.os.SystemClock.uptimeMillis();
+                        int action=pressed ? android.view.KeyEvent.ACTION_DOWN :
+                                android.view.KeyEvent.ACTION_UP;
+                        xServer.keyboard.onKeyEvent(new android.view.KeyEvent(
+                                tick,tick,action,keyCode,0));
+                    });
         }
 """)
 

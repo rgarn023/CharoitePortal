@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-CONTROLS=(ROOT/"CharoiteTpdpTouchControls.java").read_text()
+CONTROLS=(ROOT/"charoite-core/CharoiteTpdpTouchControls.java").read_text()
 OVERLAY=(ROOT/"overlay.py").read_text()
 CORE=(ROOT/"charoite-core/CharoiteCore.java").read_text()
 SESSION=(ROOT/"charoite-core/CharoiteGameSessions.java").read_text()
@@ -18,14 +18,14 @@ class TpdpTouchContract(unittest.TestCase):
         for key in keys:
             self.assertIn("XKeycode."+key,CONTROLS)
         for event in ("MotionEvent.ACTION_DOWN","MotionEvent.ACTION_UP",
-                      "MotionEvent.ACTION_CANCEL","releaseAll()",
-                      "xServer.injectKeyPress(key)","xServer.injectKeyRelease(key)"):
+                      "MotionEvent.ACTION_CANCEL","releaseAll.run()",
+                      "sink.send(code,pressed)"):
             self.assertIn(event,CONTROLS)
         self.assertNotIn("setKeysyms(",CONTROLS)
 
     def test_safely_scope_overlay_to_tpdp_on_phone(self):
-        for token in ('CharoiteTpdpTouchControls.attach(this,rootView,xServer)',
-                      'tpdp_controls_target.write_bytes(tpdp_controls_source.read_bytes())',
+        for token in ('com.charoitegames.core.CharoiteTpdpTouchControls.attach(',
+                      'tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())',
                       'getIntent().hasExtra("exec_path")',
                       'isTpdpGameExecutable(',
                       'getBooleanExtra("touhou_desktop_window", false)'):

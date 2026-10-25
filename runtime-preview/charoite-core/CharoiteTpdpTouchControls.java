@@ -56,23 +56,18 @@ public final class CharoiteTpdpTouchControls {
         button.setLayoutParams(new LinearLayout.LayoutParams(dp(host,width),dp(host,height)));
         button.setContentDescription(caption + " keyboard control");
         button.setOnTouchListener(new View.OnTouchListener() {
-            boolean down = false;
             @Override public boolean onTouch(View view, MotionEvent event) {
                 switch(event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        if (!down) {
-                            down=true;
-                            view.setAlpha(.66f);
-                            sink.send(code,true);
-                        }
+                        view.setAlpha(.66f);
+                        // The shared guarded sink deduplicates key downs and
+                        // handles releases caused by lost window focus.
+                        sink.send(code,true);
                         return true;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        if (down) {
-                            down=false;
-                            view.setAlpha(1f);
-                            sink.send(code,false);
-                        }
+                        view.setAlpha(1f);
+                        sink.send(code,false);
                         return true;
                     default:
                         return true;

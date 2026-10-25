@@ -10,6 +10,9 @@ import java.util.ArrayDeque;
 public final class CharoiteDiagnostics {
     private static final int MAX_LINES = 70;
     private static final ArrayDeque<String> lines = new ArrayDeque<>();
+    private static final ArrayDeque<String> graphicsLines = new ArrayDeque<>();
+    private static final int MAX_GRAPHICS_LINES = 75;
+    private static volatile boolean tpdpGraphicsProbe;
     public static final Callback<String> CALLBACK = CharoiteDiagnostics::recordLine;
 
     private CharoiteDiagnostics() {}
@@ -17,6 +20,8 @@ public final class CharoiteDiagnostics {
     public static void begin(Context context, String executable) {
         CharoiteRenderingDiagnostics.clearReportForAnotherLaunch(context, executable);
         synchronized (lines) { lines.clear(); }
+        synchronized (graphicsLines) { graphicsLines.clear(); }
+        tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
             .putString("touhou_launch_file", executable == null ? "unknown" :
@@ -31,16 +36,37 @@ public final class CharoiteDiagnostics {
             if (lines.size() == MAX_LINES) lines.removeFirst();
             lines.addLast(line.length() > 600 ? line.substring(0, 600) : line);
         }
+        // Keep a bounded Direct3D/error subset after a successful window
+        // open. Previously successful launches hid their Wine log entirely.
+        if (tpdpGraphicsProbe) {
+            String lower = line.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("d3d") || lower.contains("dxvk") ||
+                    lower.contains("vulkan") || lower.contains("virgl") ||
+                    lower.contains("vortek") || lower.contains("mesa") ||
+                    lower.contains("shader") || lower.contains("texture") ||
+                    lower.contains("surface") || lower.contains("swapchain") ||
+                    lower.contains("present") || lower.contains("winediag") ||
+                    lower.contains("err:") || lower.contains("warn:")) {
+                synchronized (graphicsLines) {
+                    if (graphicsLines.size() == MAX_GRAPHICS_LINES)
+                        graphicsLines.removeFirst();
+                    graphicsLines.addLast(line.length() > 400 ?
+                            line.substring(0, 400) : line);
+                }
+            }
+        }
     }
 
     /** Record the backend selected by the actual Windows runtime, even if
      * the app reaches 60 FPS with no visible game pixels. */
     public static void recordGraphicsBackend(Context context, String wrapper,
-                                             String driver, int tpdpMode) {
+                                             String driver, String openGlDriver,
+                                             int tpdpMode) {
         prefs(context).edit()
             .putString("charoite_last_graphics_backend",
                     "DirectX wrapper: " + (wrapper == null ? "unknown" : wrapper) +
                     "\nVulkan driver: " + (driver == null ? "unknown" : driver) +
+                    "\nOpenGL driver: " + (openGlDriver == null ? "unknown" : openGlDriver) +
                     "\nTPDP override: " +
                     CharoiteCore.tpdpGraphicsModeLabel(tpdpMode))
             .apply();
@@ -111,6 +137,16 @@ public final class CharoiteDiagnostics {
                     report += "\n" + name + ": " + error;
                 }
             }
+        }
+        if (tpdpGraphicsProbe) {
+            report += "\n\nTPDP DIRECT3D / GRAPHICS OUTPUT (last " +
+                    MAX_GRAPHICS_LINES + " matching lines):\n";
+            synchronized (graphicsLines) {
+                if (graphicsLines.isEmpty())
+                    report += "No graphics messages captured; this does NOT verify rendering.\n";
+                else for (String line : graphicsLines) report += line + "\n";
+            }
+            report += "A visible image must still be confirmed on the phone.\n";
         }
         report += CharoiteRenderingDiagnostics.report(context);
         return report;

@@ -54,6 +54,14 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('p.getString("charoite_last_graphics_backend"',DIAGNOSTICS)
         self.assertIn('CharoiteDiagnostics.recordGraphicsBackend(',OVERLAY)
         self.assertIn('this.dxwrapper, this.graphicsDriver[0]',OVERLAY)
+        self.assertIn('this.graphicsDriver[1]',OVERLAY)
+        self.assertIn('OpenGL driver: ',DIAGNOSTICS)
+        self.assertIn('tpdpGraphicsProbe',DIAGNOSTICS)
+        self.assertIn('TPDP DIRECT3D / GRAPHICS OUTPUT',DIAGNOSTICS)
+        self.assertIn('graphicsLines',DIAGNOSTICS)
+        self.assertIn('envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag")',OVERLAY)
+        self.assertIn('envVars.put("VIRGL_NO_READBACK", "false")',OVERLAY)
+        self.assertIn('envVars.put("MESA_NO_ERROR", "0")',OVERLAY)
 
 
     def test_tpdp_touch_keyboard_uses_real_key_hold_and_release(self):

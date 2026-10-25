@@ -24,6 +24,9 @@ class TpdpTouchContract(unittest.TestCase):
                       "sink.send(code,pressed)"):
             self.assertIn(event,CONTROLS)
         self.assertNotIn("setKeysyms(",CONTROLS)
+        self.assertNotIn("boolean down = false;",CONTROLS)
+        self.assertIn("sink.send(code,true)",CONTROLS)
+        self.assertIn("sink.send(code,false)",CONTROLS)
 
     def test_safely_scope_overlay_to_tpdp_on_phone(self):
         for token in ('com.charoitegames.core.CharoiteTpdpTouchControls.attach(',

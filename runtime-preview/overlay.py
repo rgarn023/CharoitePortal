@@ -443,6 +443,7 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
             com.charoitegames.core.CharoiteDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
             com.charoitegames.core.CharoiteDiagnostics.recordGraphicsBackend(
                     this, this.dxwrapper, this.graphicsDriver[0],
+                    this.graphicsDriver[1],
                     getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0));
             ProcessHelper.addDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
@@ -492,6 +493,31 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
                 com.charoitegames.core.CharoiteDiagnostics.fail(this, "Wine/Box64 process exited with status " + status + ". See logs below.");
             runOnUiThread(this::exit);
         });""")
+# Apply TPDP-only diagnostics after Wine's saved container env-vars have
+# loaded, so the user can inspect actual Direct3D failures after black frames.
+tpdp_debug_anchor = "        guestProgramLauncherComponent.setEnvVars(envVars);"
+assert code.count(tpdp_debug_anchor) == 1, "Winlator guest environment marker changed"
+code = code.replace(tpdp_debug_anchor, """
+        // TPDP-only: capture diagnostic error/warning channels even when
+        // a game window opens without any visible graphics.
+        if (getIntent().hasExtra("exec_path") &&
+                com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                    getIntent().getStringExtra("exec_path"))) {
+            envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag");
+            int tpdpMode = getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0);
+            if (tpdpMode ==
+                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VIRGL) {
+                // Upstream VirGL sets NO_READBACK=true. Let this older
+                // Direct3D9 renderer read back its framebuffer if needed.
+                envVars.put("VIRGL_NO_READBACK", "false");
+                envVars.put("MESA_NO_ERROR", "0");
+                com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                    "TPDP WineD3D/VirGL: readback allowed, Mesa checks enabled");
+            }
+            com.charoitegames.core.CharoiteDiagnostics.recordLine(
+                    "TPDP graphics warning/error diagnostics enabled");
+        }
+""" + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")
 
 # Existing game foreground notifications were still hardcoded "Winlator"

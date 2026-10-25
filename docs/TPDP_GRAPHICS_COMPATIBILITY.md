@@ -87,3 +87,27 @@ No game file, Wine container or installed expansion is modified.
 
 Official TPDP controls reference:
 https://thpp.supersanctuary.net/tpdp/manual/
+
+## October 24: TPDP Direct3D diagnostics and VirGL readback comparison
+
+Wine graphics warnings/errors previously disappeared from the report when a
+game window opened successfully. The next build retains a bounded subset of
+Direct3D errors, shaders, surfaces and driver warnings in Launch Diagnostics.
+Both the Vulkan and OpenGL drivers are reported.
+
+When **WineD3D + VirGL** is chosen for TPDP, the launch-only environment now
+sets `VIRGL_NO_READBACK=false` and `MESA_NO_ERROR=0`. Pinned upstream VirGL
+otherwise disables framebuffer readback. This is an **unverified compatibility
+experiment**, not evidence that the black screen is resolved, and may be slower.
+Non-TPDP launches are unchanged.
+
+Implementation clarification: upstream `extractDXWrapperFiles()` does replace
+Winlator-managed Wine Direct3D DLLs and wrapper cache when switching graphics
+modes. The saved graphics selection is unaffected and a later Saved Settings
+launch can restore the corresponding wrapper, but the operation is not strictly
+read-only to Wine's system DLLs. Game data and saves are not intentionally
+changed, and existing prefixes are never reset/deleted.
+
+Device validation: launch base `gn_enbu.exe` in WineD3D + VirGL mode, check
+for graphics and touch keys, and copy the new TPDP DIRECT3D / GRAPHICS OUTPUT
+section from Launch Diagnostics if the screen is still black.

@@ -261,3 +261,29 @@ A launcher return code alone does not prove the actual Windows game process
 crashed. Report what is seen and avoid certainty before validation.
 
 Code reference: https://fossies.org/linux/wine/dlls/wined3d/shader_spirv.c
+
+## October 25 follow-up: wrong TPDP graphics profile tested
+
+Latest user report explicitly reads **TPDP override: WINED3D + ZINK** with
+WineD3D `csmt=0x00000003` and `strict_shader_math=0x00000001`, which
+identifies the *original* Zink mode 3. The stability mode is **mode 5**,
+and should report `WINED3D + ZINK STABILITY` and both options zero.
+Thus this report **does not measure** the mode introduced in commit
+`336e418` and must not be interpreted as its failure.
+
+The original Zink report reveals `wgl:egl_init Failed to load libEGL.so.1`
+and missing legacy OpenGL extensions including
+`GL_ARB_multitexture`/`glActiveTextureARB`. The EGL library is an optional
+OpenGL path and its missing loader warning alone is not proof of failure.
+The extension warnings merit a scoped test: in Zink Stability only,
+`MESA_GL_VERSION_OVERRIDE=3.1` now requests Mesa to advertise OpenGL
+3.1; WineHQ documented a comparable missing glActiveTextureARB case
+fixed by this override. Other modes, game files, prefix, and ALSA unchanged.
+
+The System screen also exposes a one-tap **USE TPDP ZINK STABILITY**
+button and **ZINK STABILITY SELECTED** state to avoid accidentally
+testing the original Zink mode again. Launch Diagnostics shows the mode
+string and effective WineD3D configuration for verification.
+This is an experimental change requiring on-phone visual confirmation.
+
+Reference: https://www.winehq.org/pipermail/wine-bugs/2020-February/529471.html

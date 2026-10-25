@@ -45,6 +45,11 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('startedAtMillis = android.os.SystemClock.elapsedRealtime()',DIAGNOSTICS)
         self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
         self.assertIn('this::cycleTpdpGraphics',PORTAL)
+        self.assertIn('this::selectTpdpStability',PORTAL)
+        self.assertIn('tpdpStabilityButton.setText(',PORTAL)
+        self.assertIn('"ZINK STABILITY SELECTED"',PORTAL)
+        self.assertIn('envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1")',OVERLAY)
+        self.assertIn('envVars.get("MESA_GL_VERSION_OVERRIDE")',OVERLAY)
 
     def test_session_scopes_only_known_exes(self):
         self.assertIn('play.putExtra("charoite_tpdp_graphics_mode"',SESSION)

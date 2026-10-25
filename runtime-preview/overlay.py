@@ -676,6 +676,11 @@ code = code.replace(tpdp_debug_anchor, """
                 // Override only this TPDP launch, never the saved container.
                 envVars.put("ZINK_CONTEXT_THREADED", "0");
                 envVars.put("MESA_NO_ERROR", "0");
+                // Wine's GL_ARB_multitexture / glActiveTextureARB lookups can
+                // return no function on certain advertised core profiles.
+                // An upstream Wine compatibility case was resolved by Mesa
+                // presenting OpenGL 3.1. Keep this strictly TPDP-only.
+                envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1");
                 String prior = envVars.get("WINE_D3D_CONFIG");
                 StringBuilder extras = new StringBuilder();
                 if (prior != null && !prior.isEmpty()) {
@@ -691,7 +696,9 @@ code = code.replace(tpdp_debug_anchor, """
                         "renderer=gl,csmt=0x00000000,strict_shader_math=0x00000000" +
                         extras.toString());
                 com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                        "TPDP Zink stability: OpenGL shaders, single-threaded CSMT/Zink");
+                        "TPDP Zink stability: OpenGL 3.1 profile, " +
+                        "single-threaded CSMT/Zink, Mesa override=" +
+                        envVars.get("MESA_GL_VERSION_OVERRIDE"));
             }
             com.charoitegames.core.CharoiteDiagnostics.recordLine(
                 "Effective WineD3D configuration: " + envVars.get("WINE_D3D_CONFIG"));

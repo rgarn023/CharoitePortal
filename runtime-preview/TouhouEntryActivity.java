@@ -115,6 +115,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button scanButton;
     private Button compatButton;
     private Button tpdpGraphicsButton;
+    private Button tpdpStabilityButton;
     private Button japaneseButton;
     private Button installerFontButton;
     private Button displayButton;
@@ -406,6 +407,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
                 this::cycleTpdpGraphics);
         graphicsCard.addView(tpdpGraphicsButton);
+        tpdpStabilityButton = outlinedButton("USE TPDP ZINK STABILITY", this::selectTpdpStability);
+        graphicsCard.addView(tpdpStabilityButton);
         graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
         japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
         graphicsCard.addView(japaneseButton);
@@ -927,6 +930,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             tpdpGraphicsButton.setText("TPDP GRAPHICS: " +
                     CharoiteCore.tpdpGraphicsModeLabel(CharoiteCore.tpdpGraphicsMode(this)));
         }
+        if (tpdpStabilityButton != null) {
+            int selected = CharoiteCore.tpdpGraphicsMode(this);
+            tpdpStabilityButton.setEnabled(!busy && ready &&
+                    selected != CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE);
+            tpdpStabilityButton.setText(
+                    selected == CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE
+                    ? "ZINK STABILITY SELECTED" : "USE TPDP ZINK STABILITY");
+        }
         if (japaneseButton != null) {
             japaneseButton.setEnabled(!busy && ready);
             japaneseButton.setText(CharoiteCore.japaneseCompatibilityEnabled(this)
@@ -1037,6 +1048,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setStatus("TPDP graphics on NEXT game launch: " +
                 CharoiteCore.tpdpGraphicsModeLabel(next) +
                 ". Only TPDP executables use this selection. Close and relaunch the game.");
+    }
+
+    /** Direct, visible selection; avoid cycling past the intended backend. */
+    private void selectTpdpStability() {
+        if (busy || containerId <= 0) return;
+        CharoiteCore.setTpdpGraphicsMode(
+                this, CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE);
+        updateButtons();
+        setStatus("Selected TPDP graphics: WINED3D + ZINK STABILITY. " +
+                "Reopen gn_enbu.exe to apply. The original game and saves are unchanged.");
     }
 
     private void toggleCompatibility() {

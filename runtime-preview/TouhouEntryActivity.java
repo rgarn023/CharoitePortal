@@ -392,7 +392,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
-        graphicsCard.addView(label("TPDP base game: if audio plays and the game window is black, use DXVK + Turnip. This selection affects only gn_enbu.exe or enbu_ap.exe at launch, not your other installed games or Wine container.", 12, SECONDARY, false));
+        graphicsCard.addView(label("TPDP black-window troubleshooting: DXVK + Turnip still shows a black window on this device. Try WINED3D + VIRGL or Saved Settings. This changes only TPDP launches, never your installed game or saves.", 12, SECONDARY, false));
         tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
                 this::cycleTpdpGraphics);
         graphicsCard.addView(tpdpGraphicsButton);

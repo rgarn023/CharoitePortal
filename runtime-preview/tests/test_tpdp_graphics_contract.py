@@ -22,7 +22,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
             self.assertIn(token,CORE)
         self.assertIn('file.equals("gn_enbu.exe")',CORE)
         self.assertIn('file.equals("enbu_ap.exe")',CORE)
-        self.assertIn('TPDP_GRAPHICS_DXVK_TURNIP : TPDP_GRAPHICS_SAVED',CORE)
+        self.assertIn('TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED',CORE)
         self.assertIn('TPDP GRAPHICS: ',PORTAL)
         self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
         self.assertIn('this::cycleTpdpGraphics',PORTAL)

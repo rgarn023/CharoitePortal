@@ -151,7 +151,7 @@ public final class CharoiteCore {
         int mode = host.getPreferences(Context.MODE_PRIVATE)
                 .getInt(scopedKey(host, TPDP_GRAPHICS_KEY),
                         CharoiteEnvironments.isTouhou(host)
-                                ? TPDP_GRAPHICS_DXVK_TURNIP : TPDP_GRAPHICS_SAVED);
+                                ? TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED);
         return (mode >= TPDP_GRAPHICS_SAVED &&
                 mode <= TPDP_GRAPHICS_WINED3D_VIRGL) ? mode : TPDP_GRAPHICS_SAVED;
     }

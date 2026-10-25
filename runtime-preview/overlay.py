@@ -355,13 +355,7 @@ code = code.replace(touch_insert_after, touch_insert_after + """
                         getIntent().getStringExtra("exec_path")) &&
                 !getIntent().getBooleanExtra("touhou_desktop_window", false)) {
             com.charoitegames.core.CharoiteTpdpTouchControls.attach(
-                    this, rootView, (keyCode, pressed) -> {
-                        long tick=android.os.SystemClock.uptimeMillis();
-                        int action=pressed ? android.view.KeyEvent.ACTION_DOWN :
-                                android.view.KeyEvent.ACTION_UP;
-                        xServer.keyboard.onKeyEvent(new android.view.KeyEvent(
-                                tick,tick,action,keyCode,0));
-                    });
+                    this, rootView, xServer);
         }
 """)
 

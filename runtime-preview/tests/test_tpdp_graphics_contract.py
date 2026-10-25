@@ -71,7 +71,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('centerTpdpGameWindow(window);',OVERLAY)
         self.assertIn('frame.setX((short)(frame.getX() + deltaX))',OVERLAY)
         self.assertIn('frame.setY((short)(frame.getY() + deltaY))',OVERLAY)
-        self.assertIn('window.getParent() != xServer.windowManager.rootWindow',OVERLAY)
+        self.assertIn('frame.getParent() != xServer.windowManager.rootWindow',OVERLAY)
         self.assertIn('!getIntent().hasExtra("exec_path")',OVERLAY)
         self.assertIn('isTpdpGameExecutable(',OVERLAY)
         self.assertIn('onUpdateWindowGeometry(Window window, boolean resized)',OVERLAY)
@@ -88,7 +88,7 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('TPDP AUDIO / DIRECTSOUND OUTPUT',DIAGNOSTICS)
         self.assertIn('Selected audio driver:',DIAGNOSTICS)
         self.assertIn('recordAudioBackend(',OVERLAY)
-        self.assertIn('envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag")',OVERLAY)
+        self.assertIn('envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag,trace+loaddll")',OVERLAY)
         self.assertIn('envVars.put("VIRGL_NO_READBACK", "false")',OVERLAY)
         self.assertIn('envVars.put("MESA_NO_ERROR", "0")',OVERLAY)
 

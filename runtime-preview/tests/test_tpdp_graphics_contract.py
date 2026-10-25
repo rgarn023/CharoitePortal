@@ -55,4 +55,28 @@ class TpdpDirectx9GraphicsContract(unittest.TestCase):
         self.assertIn('CharoiteDiagnostics.recordGraphicsBackend(',OVERLAY)
         self.assertIn('this.dxwrapper, this.graphicsDriver[0]',OVERLAY)
 
+
+    def test_tpdp_touch_keyboard_uses_real_key_hold_and_release(self):
+        keys=(ROOT/"CharoiteTpdpTouchControls.java").read_text()
+        for marker in (
+            "XKeycode.KEY_UP", "XKeycode.KEY_DOWN",
+            "XKeycode.KEY_LEFT", "XKeycode.KEY_RIGHT",
+            "XKeycode.KEY_Z", "XKeycode.KEY_X",
+            "XKeycode.KEY_S", "XKeycode.KEY_C",
+            "XKeycode.KEY_A", "XKeycode.KEY_D",
+            "XKeycode.KEY_SPACE", "XKeycode.KEY_SHIFT_L",
+            "XKeycode.KEY_ENTER", "XKeycode.KEY_ESC",
+            "MotionEvent.ACTION_DOWN", "MotionEvent.ACTION_UP",
+            "MotionEvent.ACTION_CANCEL", "releaseAll()",
+            "xServer.injectKeyPress(key)", "xServer.injectKeyRelease(key)",
+            "HIDE KEYS", "SHOW KEYS",
+        ):
+            self.assertIn(marker,keys)
+        self.assertIn('isTpdpGameExecutable(',OVERLAY)
+        self.assertIn('CharoiteTpdpTouchControls.attach(this,rootView,xServer)',OVERLAY)
+        self.assertIn('tpdp_controls_target.write_bytes(tpdp_controls_source.read_bytes())',OVERLAY)
+        # The existing Winlator input profile and Wine saves are left intact.
+        self.assertNotIn("setKeysyms(",keys)
+        self.assertNotIn("container.saveData(",keys)
+
 if __name__=="__main__": unittest.main()

@@ -55,3 +55,33 @@ https://thpp.supersanctuary.net/tpdp/manual/
 https://ss1.xrea.com/poyogame.s322.xrea.com/play_tpdp/
 
 Do not claim the black screen fixed without an on-device gameplay test.
+
+
+## On-device follow-up: DXVK + Turnip also displays black
+
+User confirmed that the TPDP 1.34 game window still shows a black
+viewport even when launch diagnostics report DXVK + Turnip, with music
+audible and the window title showing ~60 FPS. Consequently neither the
+saved renderer nor DXVK+Turnip can be described as a verified fix.
+Do not assume the presence of frame-rate text means the DirectX9
+scene/textures are actually presenting. The existing reversible
+WINED3D+VIRGL TPDP-only option is the next controlled comparison,
+not a guaranteed solution. Collect a fresh graphics backend diagnostic
+and screenshot for each test before introducing additional risky
+Wine/driver changes.
+
+## Dedicated on-screen TPDP keyboard
+
+Charoite Portal now adds a TPDP-only XServer keyboard overlay to
+gn_enbu.exe and enbu_ap.exe launches. An on-screen D-pad sends the game's
+original Up/Down/Left/Right keys; Z confirms, X cancels and runs while
+held, S opens menu, C opens the pose/display function, A and D switch
+menu pages, and Space, Left Shift, Enter and Esc are also available.
+Buttons use true X key-down on press and key-up on release/cancellation
+and release all held keys when focus changes. HIDE KEYS / SHOW KEYS
+toggles overlay visibility without changing any user input profile
+or saved game data. Other game binaries and setup.exe do not receive
+this overlay; physical keyboards and Winlator input profiles still work.
+
+Source: TPDP official controls manual
+https://thpp.supersanctuary.net/tpdp/manual/

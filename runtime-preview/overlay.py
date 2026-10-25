@@ -220,6 +220,15 @@ assert not core_destination.exists(), "Upstream Charoite Core path conflict"
 core_destination.parent.mkdir(parents=True, exist_ok=True)
 core_destination.write_bytes(core_source.read_bytes())
 
+
+# TPDP-only touch keys live above Winlator's regular XServer touchpad.
+# They send real X key presses and releases (including held movement keys),
+# not Android buttons that merely simulate clicks.
+tpdp_controls_source = overlay.parent / "CharoiteTpdpTouchControls.java"
+tpdp_controls_target = java_root / "com/winlator/CharoiteTpdpTouchControls.java"
+assert tpdp_controls_source.is_file() and not tpdp_controls_target.exists()
+tpdp_controls_target.write_bytes(tpdp_controls_source.read_bytes())
+
 # Shared Charoite Core owns all game import and Japanese compatibility,
 # including Japanese locale/font registration independent of Touhou UI.
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
@@ -377,6 +386,19 @@ assert code.count(old_mouse) == 1, "Upstream mouse-capture marker changed"
 code = code.replace(old_mouse,
     '        capturePointerOnExternalMouse = getIntent().getBooleanExtra("touhou_pointer_capture", ' +
     'preferences.getBoolean("capture_pointer_on_external_mouse", true));')
+# TPDP 1.34 uses arrows + Z/X/S/C/A/D/Space/Shift, NOT a gamepad
+# by default. A self-contained toggleable touchscreen keyboard allows
+# playing without losing the original Winlator mouse/touch behavior.
+tpdp_touch_anchor = "        rootView.addView(inputControlsView);"
+assert code.count(tpdp_touch_anchor) == 1, "Winlator input surface marker changed"
+code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
+        if (getIntent().hasExtra("exec_path") &&
+                com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                        getIntent().getStringExtra("exec_path"))) {
+            com.winlator.CharoiteTpdpTouchControls.attach(this,rootView,xServer);
+        }
+""")
+
 # TPDP base game can run at 60 FPS with audio but present a black DirectX 9
 # window under some WineD3D backends. Use a per-launch DXVK/Turnip selection:
 # the original container and every other game keep their saved settings.

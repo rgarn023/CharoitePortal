@@ -384,6 +384,48 @@ rotation_java = """    @Override
     }
 
 """
+tpdp_window_layout = """    /**
+     * TPDP uses a small fixed-size Win32 window. The portrait XServer
+     * desktop currently puts that game against its left edge. Reposition
+     * only the base/expansion game top-level window; never resize it, its
+     * Direct3D surface, other apps, installer windows or the Wine prefix.
+     */
+    private void centerTpdpGameWindow(Window window) {
+        if (window == null || xServer == null || screenInfo == null ||
+                getIntent().getBooleanExtra("touhou_desktop_window", false) ||
+                !getIntent().hasExtra("exec_path") ||
+                !com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                        getIntent().getStringExtra("exec_path"))) return;
+        if (window.getParent() != xServer.windowManager.rootWindow ||
+                !window.isRenderable() || window.isDesktopWindow() ||
+                window.isDialogBox()) return;
+        String clazz = window.getClassName();
+        String title = window.getName();
+        clazz = clazz == null ? "" : clazz.toLowerCase(java.util.Locale.ROOT);
+        title = title == null ? "" : title;
+        if (!clazz.contains("gn_enbu") && !clazz.contains("enbu_ap") &&
+                !title.contains("人形演舞")) return;
+        int width = window.getWidth(), height = window.getHeight();
+        if (width < 320 || height < 240 ||
+                width >= screenInfo.width || height >= screenInfo.height) return;
+        // Portrait view: keep the window above the bottom-screen touch pad.
+        // Landscape view: give the game comfortable symmetric margins.
+        int targetX = (screenInfo.width - width) / 2;
+        int targetY = (screenInfo.height - height) /
+                (screenInfo.height > screenInfo.width ? 3 : 2);
+        if (window.getX() == targetX && window.getY() == targetY) return;
+        window.setX((short)targetX);
+        window.setY((short)targetY);
+        xServer.windowManager.triggerOnUpdateWindowGeometry(window, false);
+        com.charoitegames.core.CharoiteDiagnostics.recordWindowPlacement(
+                this, window.getName(), targetX, targetY, width, height);
+    }
+
+"""
+assert code.count("    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {") == 1, "Window focus insertion point changed"
+code = code.replace(
+    "    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {",
+    tpdp_window_layout + "    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {")
 rotation_anchor = "    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {"
 assert code.count(rotation_anchor) == 1, "Upstream game rotation insertion changed"
 code = code.replace(rotation_anchor, rotation_java + rotation_anchor)
@@ -452,6 +494,8 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
                     this, this.dxwrapper, this.graphicsDriver[0],
                     this.graphicsDriver[1],
                     getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0));
+            com.charoitegames.core.CharoiteDiagnostics.recordAudioBackend(
+                    this, this.audioDriver);
             ProcessHelper.addDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                 if (!isFinishing() && !touhouWindowOpened[0]) {
@@ -476,7 +520,17 @@ code = code.replace(window_map_anchor, window_map_anchor + """
                     com.charoitegames.core.CharoiteDiagnostics.recordMappedWindow(
                         XServerDisplayActivity.this, window.getClassName(),
                         window.getName(), window.getWidth(), window.getHeight());
+                centerTpdpGameWindow(window);
 """)
+geometry_tracking_anchor = "            public void onUnmapWindow(Window window) {"
+assert code.count(geometry_tracking_anchor) == 1, "Wine window unmap listener changed"
+code = code.replace(geometry_tracking_anchor, """
+            @Override
+            public void onUpdateWindowGeometry(Window window, boolean resized) {
+                centerTpdpGameWindow(window);
+            }
+
+""" + geometry_tracking_anchor)
 old_cursor = "                    xServerView.getRenderer().setCursorVisible(true);"
 assert code.count(old_cursor) == 1, "Window-open marker changed"
 code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;

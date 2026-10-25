@@ -142,3 +142,27 @@ successfully from a process or window alone.
 References:
 https://gist.github.com/RobertTheSable/6c4d705623b4de8d8cb3c954eac4814f
 https://thpp.supersanctuary.net/tpdp/manual/ynk/
+
+## October 24: portrait TPDP window and silent game session
+
+New Galaxy screenshot shows the native TPDP touch buttons are present but
+the game window's original Direct3D client is black, and sound has
+disappeared. Frame counter at approximately 60 FPS is not proof of audio or
+GPU frame presentation.
+
+For phone TPDP game executables only, center the game's main Wine X11
+window inside the virtual desktop, leaving its existing Direct3D client
+width and height unchanged. Keep portrait game higher than the touch
+controls. Reapply when X11 changes geometry. Do not reposition installers,
+DeX applications or unrelated Windows programs. This is a presentation
+change, **not a graphics black-screen solution**.
+
+Add selected audio-backend reporting and a separate bounded filter for
+Wine DirectSound/MMDevAPI/Pulse/ALSA messages, without changing backend
+selection, game assets, registry or saves.
+
+For the next device reproduction, launch `gn_enbu.exe` and copy the full
+Last Launch Diagnostics report after returning to Portal. A missing
+`dat` directory, Wine D3D warnings, or audio initialization messages
+would indicate different root causes. Do not declare the game playable
+until visible graphics **and** audible game audio are confirmed.

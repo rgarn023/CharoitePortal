@@ -12,6 +12,8 @@ public final class CharoiteDiagnostics {
     private static final ArrayDeque<String> lines = new ArrayDeque<>();
     private static final ArrayDeque<String> graphicsLines = new ArrayDeque<>();
     private static final ArrayDeque<String> mappedWindows = new ArrayDeque<>();
+    private static final ArrayDeque<String> audioLines = new ArrayDeque<>();
+    private static final int MAX_AUDIO_LINES = 40;
     private static final int MAX_GRAPHICS_LINES = 75;
     private static volatile boolean tpdpGraphicsProbe;
     public static final Callback<String> CALLBACK = CharoiteDiagnostics::recordLine;
@@ -23,6 +25,7 @@ public final class CharoiteDiagnostics {
         synchronized (lines) { lines.clear(); }
         synchronized (graphicsLines) { graphicsLines.clear(); }
         synchronized (mappedWindows) { mappedWindows.clear(); }
+        synchronized (audioLines) { audioLines.clear(); }
         tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
@@ -30,6 +33,7 @@ public final class CharoiteDiagnostics {
                 executable.substring(Math.max(0, executable.lastIndexOf('/') + 1)))
             .putString("touhou_launch_error", "")
             .putString("charoite_last_mapped_windows", "No mapped Windows program window yet.")
+            .putString("charoite_last_window_layout", "No TPDP window repositioned.")
             .apply();
         recordLaunchPackage(context, executable);
     }
@@ -85,6 +89,20 @@ public final class CharoiteDiagnostics {
         }
     }
 
+    /** Purely informational: reports the existing saved audio backend. */
+    public static void recordAudioBackend(Context context, String driver) {
+        prefs(context).edit().putString("charoite_last_audio_backend",
+                "Selected audio driver: " + (driver == null ? "unknown" : driver) +
+                "\nNo audio playback verification is available from window FPS.").apply();
+    }
+
+    public static void recordWindowPlacement(Context context, String caption,
+                                             int x, int y, int width, int height) {
+        prefs(context).edit().putString("charoite_last_window_layout",
+                "TPDP window centered: x=" + x + " y=" + y +
+                " size=" + width + "x" + height).apply();
+    }
+
     public static void finishGuestProcess(Context context, int exitCode) {
         if (exitCode != 0) fail(context, "Wine/Box64 exited with status " +
                 exitCode + ". See launch package and X-window details.");
@@ -99,6 +117,22 @@ public final class CharoiteDiagnostics {
         synchronized (lines) {
             if (lines.size() == MAX_LINES) lines.removeFirst();
             lines.addLast(line.length() > 600 ? line.substring(0, 600) : line);
+        }
+        // Wine game audio failures can occur independently of the D3D9
+        // black screen. Preserve only short lines of the native backend
+        // error stream; never alter ALSA/PulseAudio runtime selection.
+        if (tpdpGraphicsProbe) {
+            String check = line.toLowerCase(java.util.Locale.ROOT);
+            if (check.contains("dsound") || check.contains("mmdevapi") ||
+                    check.contains("alsa") || check.contains("pulse") ||
+                    check.contains("audio") || check.contains("winmm") ||
+                    check.contains("midi") || check.contains("xaudio")) {
+                synchronized (audioLines) {
+                    if (audioLines.size() == MAX_AUDIO_LINES) audioLines.removeFirst();
+                    audioLines.addLast(line.length() > 400 ?
+                            line.substring(0, 400) : line);
+                }
+            }
         }
         // Keep a bounded Direct3D/error subset after a successful window
         // open. Previously successful launches hid their Wine log entirely.
@@ -169,6 +203,10 @@ public final class CharoiteDiagnostics {
                 p.getString("charoite_last_launch_files", "Not inspected.");
         report += "\n\nMAPPED WINDOWS:\n" +
                 p.getString("charoite_last_mapped_windows", "No window events recorded.");
+        report += "\n\nTPDP WINDOW LAYOUT:\n" +
+                p.getString("charoite_last_window_layout", "Not recorded.");
+        report += "\n\nAUDIO BACKEND:\n" +
+                p.getString("charoite_last_audio_backend", "Not recorded.");
         report += "\n\nGRAPHICS BACKEND:\n" +
                 p.getString("charoite_last_graphics_backend",
                         "Not recorded in this build.");
@@ -215,6 +253,13 @@ public final class CharoiteDiagnostics {
                 else for (String line : graphicsLines) report += line + "\n";
             }
             report += "A visible image must still be confirmed on the phone.\n";
+            report += "\nTPDP AUDIO / DIRECTSOUND OUTPUT (last " +
+                    MAX_AUDIO_LINES + " matching lines):\n";
+            synchronized (audioLines) {
+                if (audioLines.isEmpty())
+                    report += "No audio messages captured; silence is not ruled out.\n";
+                else for (String line : audioLines) report += line + "\n";
+            }
         }
         report += CharoiteRenderingDiagnostics.report(context);
         return report;

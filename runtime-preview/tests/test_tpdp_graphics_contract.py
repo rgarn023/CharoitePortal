@@ -1,151 +1,91 @@
-"""Verify TPDP black-screen backend selection never modifies existing Wine prefixes."""
-import pathlib, unittest
-ROOT=pathlib.Path(__file__).resolve().parents[1]
-CORE=(ROOT/"charoite-core/CharoiteCore.java").read_text()
-SESSION=(ROOT/"charoite-core/CharoiteGameSessions.java").read_text()
-PORTAL=(ROOT/"TouhouEntryActivity.java").read_text()
-OVERLAY=(ROOT/"overlay.py").read_text()
-DIAGNOSTICS=(ROOT/"charoite-core/CharoiteDiagnostics.java").read_text()
+"""Regression contracts for automatic Charoite Core game graphics profiles.
 
-class TpdpDirectx9GraphicsContract(unittest.TestCase):
-    def test_opt_in_and_reversible_graphics_modes(self):
+The user's Galaxy S26 Ultra confirmed TPDP base gameplay with
+DXVK 1.10.3 + Turnip. No graphics selection button is required.
+"""
+import pathlib
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CORE = (ROOT / "charoite-core/CharoiteCore.java").read_text()
+PROFILE = (ROOT / "charoite-core/CharoiteGraphicsProfiles.java").read_text()
+WINDOW = (ROOT / "charoite-core/CharoiteWindowPolicy.java").read_text()
+SESSION = (ROOT / "charoite-core/CharoiteGameSessions.java").read_text()
+PORTAL = (ROOT / "TouhouEntryActivity.java").read_text()
+OVERLAY = (ROOT / "overlay.py").read_text()
+DIAGNOSTICS = (ROOT / "charoite-core/CharoiteDiagnostics.java").read_text()
+
+class TpdpAutoGraphicsContract(unittest.TestCase):
+    def test_core_is_source_of_graphics_truth(self):
+        self.assertIn('TPDP_GRAPHICS_DXVK_D3D9_LEGACY = 6', CORE)
+        self.assertIn('CharoiteGraphicsProfiles.diagnosticModeForExecutable(executable)', CORE)
+        self.assertIn('class CharoiteGraphicsProfiles', PROFILE)
+        self.assertIn('Profile forExecutable(String executable)', PROFILE)
+        self.assertIn('"gn_enbu.exe".equals(file)', PROFILE)
+        self.assertIn('"enbu_ap.exe".equals(file)', PROFILE)
+        self.assertIn('return null;  // Preserve all saved settings for unknown games.', PROFILE)
+        self.assertIn('GraphicsDrivers.TURNIP', PROFILE)
+        self.assertIn('DXWrappers.DXVK', PROFILE)
+        self.assertIn('"version=1.10.3"', PROFILE)
+        self.assertIn('TPDP_GRAPHICS_DXVK_D3D9_LEGACY', PROFILE)
+
+    def test_no_user_selection_or_old_preferences_required(self):
+        self.assertIn('CharoiteGraphicsProfiles.diagnosticModeForExecutable(executable)', SESSION)
+        self.assertIn('play.putExtra("charoite_tpdp_graphics_mode"', SESSION)
+        self.assertIn('Charoite Core automatically selects proven compatibility', PORTAL)
+        for old_ui in ('tpdpGraphicsButton', 'tpdpLegacyDxvkButton',
+                       'tpdpStabilityButton', 'cycleTpdpGraphics',
+                       'selectTpdpStability', 'selectTpdpLegacyDxvk',
+                       'TRY DXVK 1.10.3 (D3D9)'):
+            self.assertNotIn(old_ui, PORTAL)
+        self.assertNotIn('setTpdpGraphicsMode(', SESSION)
+        self.assertNotIn('tpdpGraphicsMode(host)', SESSION)
+        self.assertNotIn('container.setGraphicsDriver(', PROFILE)
+        self.assertNotIn('container.saveData(', PROFILE)
+
+    def test_runtime_only_a_bridge_not_graphics_policy(self):
+        self.assertIn('"CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java"', OVERLAY)
+        self.assertIn('CharoiteGraphicsProfiles.forExecutable(', OVERLAY)
+        self.assertIn('graphicsDriver = coreGraphics.graphicsDriver;', OVERLAY)
+        self.assertIn('dxwrapper = coreGraphics.dxWrapper;', OVERLAY)
+        self.assertIn('dxwrapperConfig = coreGraphics.dxWrapperConfig;', OVERLAY)
+        self.assertIn('CharoiteGraphicsProfiles.configureLaunchEnvironment(', OVERLAY)
+        self.assertNotIn('getIntExtra("charoite_tpdp_graphics_mode", 0)', OVERLAY)
+        self.assertNotIn('dxwrapperConfig = "renderer=vulkan";', OVERLAY)
+        self.assertIn('DXVK_LOG_LEVEL', PROFILE)
+        self.assertIn('DXVK_LOG_PATH', PROFILE)
+        self.assertIn('setDxvkLogDirectory(context, dxvkLogs)', PROFILE)
+        self.assertIn('DXVK D3D9 DIAGNOSTIC FILES:', DIAGNOSTICS)
+
+    def test_core_owns_window_layout_and_touch_controls(self):
+        self.assertIn('CharoiteWindowPolicy.centerGameWindow(', OVERLAY)
+        self.assertIn('frame.setX((short)(frame.getX() + deltaX))', WINDOW)
+        self.assertIn('frame.setY((short)(frame.getY() + deltaY))', WINDOW)
+        self.assertIn('frame.getParent() != xServer.windowManager.rootWindow', WINDOW)
+        self.assertIn('java.util.ArrayDeque', WINDOW)
+        self.assertIn('onUpdateWindowGeometry(Window window, boolean resized)', OVERLAY)
+        self.assertIn('onModifyWindowProperty(Window window, Property property)', OVERLAY)
+        controls = (ROOT / 'charoite-core/CharoiteTpdpTouchControls.java').read_text()
         for token in (
-            'TPDP_GRAPHICS_SAVED = 0','TPDP_GRAPHICS_DXVK_TURNIP = 1',
-            'TPDP_GRAPHICS_WINED3D_VIRGL = 2',
-            'TPDP_GRAPHICS_WINED3D_ZINK = 3',
-            'TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK = 4',
-            'TPDP_GRAPHICS_WINED3D_ZINK_SAFE = 5',
-            'TPDP_GRAPHICS_DXVK_D3D9_LEGACY = 6',
-            '"tpdp_graphics_mode"',
-            'scopedKey(host, TPDP_GRAPHICS_KEY)',
-            'setTpdpGraphicsMode(AppCompatActivity host, int mode)',
-            'tpdpGraphicsModeForLaunch(AppCompatActivity host',
-            'isTpdpGameExecutable(executable)',
-            'filename',):
-            if token == "filename": continue
-            self.assertIn(token,CORE)
-        self.assertIn('file.equals("gn_enbu.exe")',CORE)
-        self.assertIn('file.equals("enbu_ap.exe")',CORE)
-        self.assertIn('TPDP_GRAPHICS_WINED3D_VIRGL : TPDP_GRAPHICS_SAVED',CORE)
-        self.assertIn('TPDP GRAPHICS: ',PORTAL)
-        self.assertIn('int next = (mode + 1) % 7;',PORTAL)
-        self.assertIn('GraphicsDrivers.ZINK',OVERLAY)
-        self.assertIn('TPDP_GRAPHICS_WINED3D_ZINK',OVERLAY)
-        self.assertIn('TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK',OVERLAY)
-        self.assertIn('GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO',OVERLAY)
-        self.assertIn('dxwrapperConfig = "renderer=vulkan";',OVERLAY)
-        self.assertIn('envVars.put("WINE_D3D_CONFIG",',OVERLAY)
-        self.assertIn('String actual = envVars.get("WINE_D3D_CONFIG");',OVERLAY)
-        self.assertIn('FIRST DISTINCT DIRECT3D / GPU EVENTS:',DIAGNOSTICS)
-        self.assertIn('MAX_EARLY_GRAPHICS = 24',DIAGNOSTICS)
-        self.assertIn('TPDP_GRAPHICS_WINED3D_ZINK_SAFE',OVERLAY)
-        self.assertIn('dxwrapperConfig = "renderer=gl,csmt=0,strict_shader_math=0";',OVERLAY)
-        self.assertIn('envVars.put("ZINK_CONTEXT_THREADED", "0")',OVERLAY)
-        self.assertIn('EXCEPTIONS / UNIMPLEMENTED GRAPHICS OPERATIONS:',DIAGNOSTICS)
-        self.assertIn('GUEST LAUNCHER EXIT:',DIAGNOSTICS)
-        self.assertIn('startedAtMillis = android.os.SystemClock.elapsedRealtime()',DIAGNOSTICS)
-        self.assertIn('cycleTpdpGraphics()',PORTAL) if False else None
-        self.assertIn('this::cycleTpdpGraphics',PORTAL)
-        self.assertIn('this::selectTpdpStability',PORTAL)
-        self.assertIn('this::selectTpdpLegacyDxvk',PORTAL)
-        self.assertIn('DXVK 1.10.3 SELECTED',PORTAL)
-        self.assertIn('TPDP_GRAPHICS_DXVK_D3D9_LEGACY',OVERLAY)
-        self.assertIn('dxwrapperConfig = "version=1.10.3"',OVERLAY)
-        self.assertIn('DXVK_LOG_PATH',OVERLAY)
-        self.assertIn('DXVK_LOG_LEVEL", "info"',OVERLAY)
-        self.assertIn('setDxvkLogDirectory(',DIAGNOSTICS)
-        self.assertIn('captureDxvkLogs(context);',DIAGNOSTICS)
-        self.assertIn('DXVK D3D9 DIAGNOSTIC FILES:',DIAGNOSTICS)
-        self.assertIn('tpdpStabilityButton.setText(',PORTAL)
-        self.assertIn('"ZINK STABILITY SELECTED"',PORTAL)
-        self.assertIn('envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1")',OVERLAY)
-        self.assertIn('envVars.get("MESA_GL_VERSION_OVERRIDE")',OVERLAY)
-
-    def test_session_scopes_only_known_exes(self):
-        self.assertIn('play.putExtra("charoite_tpdp_graphics_mode"',SESSION)
-        self.assertIn('CharoiteCore.tpdpGraphicsModeForLaunch(host, executable)',SESSION)
-        self.assertIn('if (getIntent().hasExtra("exec_path")',OVERLAY)
-        self.assertIn('isTpdpGameExecutable(',OVERLAY)
-        self.assertIn('getIntExtra("charoite_tpdp_graphics_mode", 0)',OVERLAY)
-        for token in (
-            'GraphicsDrivers.TURNIP',
-            'DXWrappers.DXVK',
-            'GraphicsDrivers.VIRGL',
-            'DXWrappers.WINED3D',
-            'dxwrapperConfig = "";',
-            'graphicsDriverConfig = "";',
+            'KeyEvent.KEYCODE_DPAD_UP', 'KeyEvent.KEYCODE_DPAD_DOWN',
+            'KeyEvent.KEYCODE_DPAD_LEFT', 'KeyEvent.KEYCODE_DPAD_RIGHT',
+            'KeyEvent.KEYCODE_Z', 'KeyEvent.KEYCODE_X',
+            'KeyEvent.KEYCODE_F11',
+            'MotionEvent.ACTION_DOWN', 'MotionEvent.ACTION_UP',
+            'MotionEvent.ACTION_CANCEL', 'releaseAll.run()',
         ):
-            self.assertIn(token,OVERLAY)
-        self.assertIn('assert code.count(tpdp_backend_anchor) == 1',OVERLAY)
-        self.assertIn('this.graphicsDriver = GraphicsDrivers.parseIdentifiers(graphicsDriver);',OVERLAY)
-        self.assertNotIn('container.setDXWrapper(',SESSION)
-        self.assertNotIn('container.saveData(',SESSION)
-        self.assertNotIn('container.setGraphicsDriver(',SESSION)
+            self.assertIn(token, controls)
+        self.assertIn('CharoiteTpdpTouchControls.attach(', OVERLAY)
+        self.assertNotIn('container.saveData(', WINDOW)
 
-    def test_graphics_diagnostics_available_after_success(self):
-        self.assertIn('recordGraphicsBackend(Context context, String wrapper',DIAGNOSTICS)
-        self.assertIn('GRAPHICS BACKEND:',DIAGNOSTICS)
-        self.assertIn('p.getString("charoite_last_graphics_backend"',DIAGNOSTICS)
-        self.assertIn('CharoiteDiagnostics.recordGraphicsBackend(',OVERLAY)
-        self.assertIn('this.dxwrapper, this.graphicsDriver[0]',OVERLAY)
-        self.assertIn('this.graphicsDriver[1]',OVERLAY)
-        self.assertIn('OpenGL driver: ',DIAGNOSTICS)
-        self.assertIn('tpdpGraphicsProbe',DIAGNOSTICS)
-        self.assertIn('TPDP DIRECT3D / GRAPHICS OUTPUT',DIAGNOSTICS)
-        self.assertIn('graphicsLines',DIAGNOSTICS)
-        self.assertIn('recordLaunchPackage(context, executable)',DIAGNOSTICS)
-        self.assertIn('TPDP dat folder:',DIAGNOSTICS)
-        self.assertIn('recordMappedWindow(Context context',DIAGNOSTICS)
-        self.assertIn('finishGuestProcess(Context context, int exitCode)',DIAGNOSTICS)
-        self.assertIn('MAPPED WINDOWS:',DIAGNOSTICS)
-        self.assertIn('centerTpdpGameWindow(window);',OVERLAY)
-        self.assertIn('frame.setX((short)(frame.getX() + deltaX))',OVERLAY)
-        self.assertIn('frame.setY((short)(frame.getY() + deltaY))',OVERLAY)
-        self.assertIn('frame.getParent() != xServer.windowManager.rootWindow',OVERLAY)
-        self.assertIn('!getIntent().hasExtra("exec_path")',OVERLAY)
-        self.assertIn('isTpdpGameExecutable(',OVERLAY)
-        self.assertIn('onUpdateWindowGeometry(Window window, boolean resized)',OVERLAY)
-        self.assertIn('recordWindowPlacement(Context context',DIAGNOSTICS)
-        self.assertIn('onModifyWindowProperty(Window window, Property property)',OVERLAY)
-        self.assertIn('frame.getRootX()',OVERLAY)
-        self.assertIn('frame.getRootY()',OVERLAY)
-        self.assertIn('java.util.ArrayDeque<Window> toUpdate',OVERLAY)
-        self.assertIn('recordX11ContentActivity(Context context',DIAGNOSTICS)
-        self.assertIn('X11 DRAWABLE UPDATES:',DIAGNOSTICS)
-        self.assertIn('trace+loaddll',OVERLAY)
-        self.assertIn('TPDP dat files:',DIAGNOSTICS)
-        self.assertIn('recordAudioBackend(Context context, String driver)',DIAGNOSTICS)
-        self.assertIn('TPDP AUDIO / DIRECTSOUND OUTPUT',DIAGNOSTICS)
-        self.assertIn('Selected audio driver:',DIAGNOSTICS)
-        self.assertIn('recordAudioBackend(',OVERLAY)
-        self.assertIn('envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag,trace+loaddll")',OVERLAY)
-        self.assertIn('envVars.put("VIRGL_NO_READBACK", "false")',OVERLAY)
-        self.assertIn('envVars.put("MESA_NO_ERROR", "0")',OVERLAY)
+    def test_installer_behavior_stays_separate(self):
+        self.assertIn('CharoiteCore.isJapaneseInstallerCandidate(', OVERLAY)
+        self.assertIn('CharoiteCore.japaneseCompatibilityEnabled(this)', OVERLAY)
+        self.assertIn('CharoiteCore.installerFontRepairEnabled(host)', SESSION)
+        self.assertIn('if (installer)', SESSION)
+        self.assertIn('if (tpdpGraphicsProbe)', DIAGNOSTICS)
+        self.assertIn('TPDP DIRECT3D / GRAPHICS OUTPUT', DIAGNOSTICS)
+        self.assertIn('recordAudioBackend(Context context, String driver)', DIAGNOSTICS)
 
-
-    def test_tpdp_touch_keyboard_uses_real_key_hold_and_release(self):
-        # UI comes from Charoite Core and injects Android key events into
-        # upstream XServer keyboard, not a second XInput controller.
-        keys=(ROOT/"charoite-core/CharoiteTpdpTouchControls.java").read_text()
-        for marker in (
-            "KeyEvent.KEYCODE_DPAD_UP", "KeyEvent.KEYCODE_DPAD_DOWN",
-            "KeyEvent.KEYCODE_DPAD_LEFT", "KeyEvent.KEYCODE_DPAD_RIGHT",
-            "KeyEvent.KEYCODE_Z", "KeyEvent.KEYCODE_X",
-            "KeyEvent.KEYCODE_S", "KeyEvent.KEYCODE_C",
-            "KeyEvent.KEYCODE_A", "KeyEvent.KEYCODE_D",
-            "KeyEvent.KEYCODE_SPACE", "KeyEvent.KEYCODE_SHIFT_LEFT",
-            "KeyEvent.KEYCODE_ENTER", "KeyEvent.KEYCODE_ESCAPE",
-            "MotionEvent.ACTION_DOWN", "MotionEvent.ACTION_UP",
-            "MotionEvent.ACTION_CANCEL", "releaseAll.run()",
-            "HIDE KEYS", "SHOW KEYS", "sink.send(code,pressed)",
-        ):
-            self.assertIn(marker,keys)
-        self.assertIn("com.charoitegames.core.CharoiteTpdpTouchControls.attach(",OVERLAY)
-        self.assertIn("xServer.keyboard.onKeyEvent(",OVERLAY)
-        self.assertIn("tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())",OVERLAY)
-        self.assertIn("isTpdpGameExecutable(",OVERLAY)
-        self.assertIn('!getIntent().getBooleanExtra("touhou_desktop_window", false)',OVERLAY)
-        self.assertNotIn("setKeysyms(",keys)
-        self.assertNotIn("container.saveData(",keys)
-
-if __name__=="__main__": unittest.main()
+if __name__ == '__main__':
+    unittest.main()

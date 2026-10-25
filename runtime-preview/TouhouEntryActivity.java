@@ -114,9 +114,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button installerFolderButton;
     private Button scanButton;
     private Button compatButton;
-    private Button tpdpGraphicsButton;
-    private Button tpdpStabilityButton;
-    private Button tpdpLegacyDxvkButton;
     private Button japaneseButton;
     private Button installerFontButton;
     private Button displayButton;
@@ -404,14 +401,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
-        graphicsCard.addView(label("TPDP remains black with WineD3D/Zink Stability and its GLX renderer reports missing capabilities. Try bundled DXVK 1.10.3 + Turnip: a separate legacy D3D9 Vulkan implementation with diagnostic logs. Game files, saves and audio remain intact.", 12, SECONDARY, false));
-        tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
-                this::cycleTpdpGraphics);
-        graphicsCard.addView(tpdpGraphicsButton);
-        tpdpStabilityButton = outlinedButton("USE TPDP ZINK STABILITY", this::selectTpdpStability);
-        graphicsCard.addView(tpdpStabilityButton);
-        tpdpLegacyDxvkButton = outlinedButton("TRY DXVK 1.10.3 (D3D9)", this::selectTpdpLegacyDxvk);
-        graphicsCard.addView(tpdpLegacyDxvkButton);
+        graphicsCard.addView(label(
+                "Charoite Core automatically selects proven compatibility " +
+                "profiles when a game starts. Puppet Dance Performance uses " +
+                "DXVK 1.10.3 + Turnip without any manual selection. " +
+                "Other games keep their own saved settings.", 12, SECONDARY, false));
         graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
         japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
         graphicsCard.addView(japaneseButton);
@@ -928,27 +922,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
-        if (tpdpGraphicsButton != null) {
-            tpdpGraphicsButton.setEnabled(!busy && ready);
-            tpdpGraphicsButton.setText("TPDP GRAPHICS: " +
-                    CharoiteCore.tpdpGraphicsModeLabel(CharoiteCore.tpdpGraphicsMode(this)));
-        }
-        if (tpdpStabilityButton != null) {
-            int selected = CharoiteCore.tpdpGraphicsMode(this);
-            tpdpStabilityButton.setEnabled(!busy && ready &&
-                    selected != CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE);
-            tpdpStabilityButton.setText(
-                    selected == CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE
-                    ? "ZINK STABILITY SELECTED" : "USE TPDP ZINK STABILITY");
-        }
-        if (tpdpLegacyDxvkButton != null) {
-            int selected = CharoiteCore.tpdpGraphicsMode(this);
-            tpdpLegacyDxvkButton.setEnabled(!busy && ready &&
-                    selected != CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY);
-            tpdpLegacyDxvkButton.setText(
-                    selected == CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY
-                            ? "DXVK 1.10.3 SELECTED" : "TRY DXVK 1.10.3 (D3D9)");
-        }
         if (japaneseButton != null) {
             japaneseButton.setEnabled(!busy && ready);
             japaneseButton.setText(CharoiteCore.japaneseCompatibilityEnabled(this)
@@ -1046,39 +1019,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setStatus(enabled
                 ? "Scoped Japanese installer font repair enabled for this environment."
                 : "Installer font repair disabled. Standard Japanese fonts remain available.");
-    }
-
-    /** Cycle a per-environment TPDP-only renderer choice; existing Wine
-     * containers, installed expansion files and save data are untouched. */
-    private void cycleTpdpGraphics() {
-        if (busy || containerId <= 0) return;
-        int mode = CharoiteCore.tpdpGraphicsMode(this);
-        int next = (mode + 1) % 7;
-        CharoiteCore.setTpdpGraphicsMode(this, next);
-        updateButtons();
-        setStatus("TPDP graphics on NEXT game launch: " +
-                CharoiteCore.tpdpGraphicsModeLabel(next) +
-                ". Only TPDP executables use this selection. Close and relaunch the game.");
-    }
-
-    /** Direct, visible selection; avoid cycling past the intended backend. */
-    private void selectTpdpStability() {
-        if (busy || containerId <= 0) return;
-        CharoiteCore.setTpdpGraphicsMode(
-                this, CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE);
-        updateButtons();
-        setStatus("Selected TPDP graphics: WINED3D + ZINK STABILITY. " +
-                "Reopen gn_enbu.exe to apply. The original game and saves are unchanged.");
-    }
-
-    /** Opt in only to the bundled legacy DXVK D3D9, not other Wine games. */
-    private void selectTpdpLegacyDxvk() {
-        if (busy || containerId <= 0) return;
-        CharoiteCore.setTpdpGraphicsMode(
-                this, CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY);
-        updateButtons();
-        setStatus("DXVK 1.10.3 + Turnip selected for TPDP. " +
-                "Restart gn_enbu.exe; game files, audio and saves remain intact.");
     }
 
     private void toggleCompatibility() {

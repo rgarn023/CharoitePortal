@@ -38,7 +38,7 @@ import java.io.File;
  * - keep selecting a display size scoped to one launch, not the saved container.
  */
 public final class CharoiteCore {
-    public static final String VERSION = "0.9";
+    public static final String VERSION = "1.0";
     public static final String[] DISPLAY_MODES = {
             "Automatic (recommended)", "1280 × 720", "1600 × 900",
             "1920 × 1080", "800 × 600 (compatibility)"
@@ -167,12 +167,11 @@ public final class CharoiteCore {
                 .putInt(scopedKey(host, TPDP_GRAPHICS_KEY), mode).apply();
     }
 
-    /** A non-TPDP Windows program always receives the original container
-     * DX wrapper and driver: no global Wine/DXVK configuration changes. */
+    /** Automatic Core compatibility overrides historical UI trial preferences.
+     * Their on-disk values remain untouched for backward compatibility. */
     public static int tpdpGraphicsModeForLaunch(AppCompatActivity host,
                                                 String executable) {
-        return isTpdpGameExecutable(executable)
-                ? tpdpGraphicsMode(host) : TPDP_GRAPHICS_SAVED;
+        return CharoiteGraphicsProfiles.diagnosticModeForExecutable(executable);
     }
 
     public static String tpdpGraphicsModeLabel(int mode) {

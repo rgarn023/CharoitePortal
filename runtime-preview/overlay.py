@@ -225,7 +225,8 @@ core_destination.write_bytes(core_source.read_bytes())
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
                "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
-               "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java"):
+               "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
+               "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"
@@ -384,56 +385,12 @@ rotation_java = """    @Override
     }
 
 """
-tpdp_window_layout = """    /**
-     * Center TPDP's nested Wine window/frame without changing its client
-     * dimensions, installed game, prefix, or other application windows.
-     */
+tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator provides XServer events.
     private void centerTpdpGameWindow(Window window) {
-        if (window == null || xServer == null || screenInfo == null ||
-                getIntent().getBooleanExtra("touhou_desktop_window", false) ||
-                !getIntent().hasExtra("exec_path") ||
-                !com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                        getIntent().getStringExtra("exec_path")) ||
-                !window.isRenderable() || window.isDesktopWindow() ||
-                window.isDialogBox()) return;
-        int width = window.getWidth(), height = window.getHeight();
-        if (width < 360 || height < 260 ||
-                width >= screenInfo.width || height >= screenInfo.height) return;
-        String clazz = window.getClassName();
-        String title = window.getName();
-        clazz = clazz == null ? "" : clazz.toLowerCase(java.util.Locale.ROOT);
-        title = title == null ? "" : title;
-        if (!clazz.contains("gn_enbu") && !clazz.contains("enbu_ap") &&
-                !title.contains("人形演舞") && !title.contains("ver1.34") &&
-                !window.isApplicationWindow()) return;
-        Window frame = window;
-        while (frame.getParent() != null &&
-                frame.getParent() != xServer.windowManager.rootWindow &&
-                !frame.getParent().isDesktopWindow() &&
-                frame.getParent().getWidth() < screenInfo.width &&
-                frame.getParent().getHeight() < screenInfo.height)
-            frame = frame.getParent();
-        if (frame.getWidth() >= screenInfo.width ||
-                frame.getHeight() >= screenInfo.height) return;
-        int targetX = (screenInfo.width - frame.getWidth()) / 2;
-        int targetY = (screenInfo.height - frame.getHeight()) /
-                (screenInfo.height > screenInfo.width ? 3 : 2);
-        int deltaX = targetX - frame.getRootX();
-        int deltaY = targetY - frame.getRootY();
-        if (deltaX == 0 && deltaY == 0) return;
-        frame.setX((short)(frame.getX() + deltaX));
-        frame.setY((short)(frame.getY() + deltaY));
-        // Refresh cached render coordinates of the decorated frame AND its
-        // child surfaces. The game's actual width/height remain unchanged.
-        java.util.ArrayDeque<Window> toUpdate = new java.util.ArrayDeque<>();
-        toUpdate.addLast(frame);
-        while (!toUpdate.isEmpty()) {
-            Window part = toUpdate.removeFirst();
-            xServer.windowManager.triggerOnUpdateWindowGeometry(part, false);
-            for (Window child : part.getChildren()) toUpdate.addLast(child);
-        }
-        com.charoitegames.core.CharoiteDiagnostics.recordWindowPlacement(
-                this, title, targetX, targetY, frame.getWidth(), frame.getHeight());
+        com.charoitegames.core.CharoiteWindowPolicy.centerGameWindow(
+                this, xServer, screenInfo, window,
+                getIntent().getStringExtra("exec_path"),
+                getIntent().getBooleanExtra("touhou_desktop_window", false));
     }
 
 """
@@ -471,63 +428,16 @@ code = code.replace(old_mouse,
 tpdp_backend_anchor = "            this.graphicsDriver = GraphicsDrivers.parseIdentifiers(graphicsDriver);"
 assert code.count(tpdp_backend_anchor) == 1, "Winlator graphics parser moved"
 code = code.replace(tpdp_backend_anchor, """
-            // Only TPDP game binaries receive Charoite's optional DirectX 9
-            // backend override. Installer/setup games and other titles do not.
-            if (getIntent().hasExtra("exec_path") &&
-                    com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                            getIntent().getStringExtra("exec_path"))) {
-                int tpdpMode = getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0);
-                if (tpdpMode == com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_TURNIP) {
-                    graphicsDriver = GraphicsDrivers.TURNIP + "," +
-                            GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
-                    dxwrapper = DXWrappers.DXVK;
-                    dxwrapperConfig = "";
-                    graphicsDriverConfig = "";
-                } else if (tpdpMode ==
-                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VIRGL) {
-                    graphicsDriver = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL;
-                    dxwrapper = DXWrappers.WINED3D;
-                    dxwrapperConfig = "";
-                    graphicsDriverConfig = "";
-                } else if (tpdpMode ==
-                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK) {
-                    // WineD3D D3D9 -> OpenGL -> Zink -> Turnip.
-                    graphicsDriver = GraphicsDrivers.TURNIP + "," + GraphicsDrivers.ZINK;
-                    dxwrapper = DXWrappers.WINED3D;
-                    dxwrapperConfig = "";
-                    graphicsDriverConfig = "";
-                } else if (tpdpMode ==
-                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK) {
-                    // WineD3D itself translates D3D9 to Vulkan here, without
-                    // the OpenGL/WGL pbuffer path failing under VirGL.
-                    // Vortek is the Vulkan ICD; GLADIO is present only as the
-                    // runtime's unused OpenGL driver slot in this mode.
-                    graphicsDriver = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO;
-                    dxwrapper = DXWrappers.WINED3D;
-                    // WineD3DConfigDialog merges these settings into its
-                    // normal WINE_D3D_CONFIG, preserving video memory, CSMT
-                    // and all other defaults. No registry changes.
-                    dxwrapperConfig = "renderer=vulkan";
-                    graphicsDriverConfig = "";
-                } else if (tpdpMode ==
-                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE) {
-                    // WineD3D's native Vulkan shader constant updater is not
-                    // implemented; use its OpenGL shader path via Turnip/Zink.
-                    graphicsDriver = GraphicsDrivers.TURNIP + "," + GraphicsDrivers.ZINK;
-                    dxwrapper = DXWrappers.WINED3D;
-                    dxwrapperConfig = "renderer=gl,csmt=0,strict_shader_math=0";
-                    graphicsDriverConfig = "";
-                } else if (tpdpMode ==
-                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY) {
-                    // Bundled DXVK 1.10.3 provides a different legacy D3D9
-                    // implementation from DXVK 2.4.1. Avoid WineD3D/GLX
-                    // on this phone while retaining the Turnip Vulkan driver.
-                    graphicsDriver = GraphicsDrivers.TURNIP + "," +
-                            GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
-                    dxwrapper = DXWrappers.DXVK;
-                    dxwrapperConfig = "version=1.10.3";
-                    graphicsDriverConfig = "";
-                }
+            // Charoite Core resolves the compatibility profile automatically
+            // for known executables; unknown games keep container defaults.
+            com.charoitegames.core.CharoiteGraphicsProfiles.Profile coreGraphics =
+                    com.charoitegames.core.CharoiteGraphicsProfiles.forExecutable(
+                        getIntent().getStringExtra("exec_path"));
+            if (coreGraphics != null) {
+                graphicsDriver = coreGraphics.graphicsDriver;
+                dxwrapper = coreGraphics.dxWrapper;
+                dxwrapperConfig = coreGraphics.dxWrapperConfig;
+                graphicsDriverConfig = coreGraphics.graphicsDriverConfig;
             }
 """ + tpdp_backend_anchor)
 
@@ -541,7 +451,8 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
             com.charoitegames.core.CharoiteDiagnostics.recordGraphicsBackend(
                     this, this.dxwrapper, this.graphicsDriver[0],
                     this.graphicsDriver[1],
-                    getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0));
+                    com.charoitegames.core.CharoiteGraphicsProfiles.diagnosticModeForExecutable(
+                         getIntent().getStringExtra("exec_path")));
             com.charoitegames.core.CharoiteDiagnostics.recordAudioBackend(
                     this, this.audioDriver);
             ProcessHelper.addDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
@@ -638,107 +549,19 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
 tpdp_debug_anchor = "        guestProgramLauncherComponent.setEnvVars(envVars);"
 assert code.count(tpdp_debug_anchor) == 1, "Winlator guest environment marker changed"
 code = code.replace(tpdp_debug_anchor, """
-        // TPDP-only: capture diagnostic error/warning channels even when
-        // a game window opens without any visible graphics.
+        // Charoite Core owns per-game graphics launch options and diagnostics.
+        // This native bridge never reads deprecated manual TPDP preferences.
+        if (getIntent().hasExtra("exec_path")) {
+            com.charoitegames.core.CharoiteGraphicsProfiles.configureLaunchEnvironment(
+                    this, rootFS, envVars, getIntent().getStringExtra("exec_path"));
+        }
         if (getIntent().hasExtra("exec_path") &&
-                com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                    getIntent().getStringExtra("exec_path"))) {
-            envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag,trace+loaddll");
-            int tpdpMode = getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0);
-            if (tpdpMode ==
-                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VIRGL) {
-                // Upstream VirGL sets NO_READBACK=true. Let this older
-                // Direct3D9 renderer read back its framebuffer if needed.
-                envVars.put("VIRGL_NO_READBACK", "false");
-                envVars.put("MESA_NO_ERROR", "0");
-                com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                    "TPDP WineD3D/VirGL: readback allowed, Mesa checks enabled");
-            }
-            if (tpdpMode ==
-                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK) {
-                envVars.put("MESA_NO_ERROR", "0");
-                com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                    "TPDP WineD3D + Zink: Turnip Vulkan / Zink OpenGL selected");
-            }
-            if (tpdpMode ==
-                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VULKAN_VORTEK) {
-                // Reassert renderer only if the container provided its own
-                // WINE_D3D_CONFIG; retain WineD3D's other generated fields.
-                String actual = envVars.get("WINE_D3D_CONFIG");
-                StringBuilder normalized = new StringBuilder();
-                if (actual != null && !actual.isEmpty()) {
-                    for (String entry : actual.split("[,;]")) {
-                        if (!entry.trim().startsWith("renderer=")) {
-                            if (normalized.length() != 0) normalized.append(",");
-                            normalized.append(entry.trim());
-                        }
-                    }
-                }
-                envVars.put("WINE_D3D_CONFIG",
-                        "renderer=vulkan" +
-                        (normalized.length() == 0 ? "" : "," + normalized));
-                com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                    "TPDP Vulkan-native WineD3D requested; OpenGL pbuffer path bypassed");
-            }
-            if (tpdpMode ==
-                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_ZINK_SAFE) {
-                // Turnip/Zink upstream normally enables threaded Zink.
-                // Override only this TPDP launch, never the saved container.
-                envVars.put("ZINK_CONTEXT_THREADED", "0");
-                envVars.put("MESA_NO_ERROR", "0");
-                // Wine's GL_ARB_multitexture / glActiveTextureARB lookups can
-                // return no function on certain advertised core profiles.
-                // An upstream Wine compatibility case was resolved by Mesa
-                // presenting OpenGL 3.1. Keep this strictly TPDP-only.
-                envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1");
-                String prior = envVars.get("WINE_D3D_CONFIG");
-                StringBuilder extras = new StringBuilder();
-                if (prior != null && !prior.isEmpty()) {
-                    for (String option : prior.split("[,;]")) {
-                        option = option.trim();
-                        if (option.isEmpty() || option.startsWith("renderer=") ||
-                                option.startsWith("csmt=") ||
-                                option.startsWith("strict_shader_math=")) continue;
-                        extras.append(",").append(option);
-                    }
-                }
-                envVars.put("WINE_D3D_CONFIG",
-                        "renderer=gl,csmt=0x00000000,strict_shader_math=0x00000000" +
-                        extras.toString());
-                com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                        "TPDP Zink stability: OpenGL 3.1 profile, " +
-                        "single-threaded CSMT/Zink, Mesa override=" +
-                        envVars.get("MESA_GL_VERSION_OVERRIDE"));
-            }
-            if (tpdpMode ==
-                    com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_D3D9_LEGACY) {
-                // The pinned DXVK logs to files, rather than Wine's stdout.
-                // Keep those files in the temporary private rootfs, never
-                // next to the user's installed game, saves or patch data.
-                java.io.File dxvkLogs = new java.io.File(
-                        rootFS.getRootDir(), "tmp/charoite-tpdp-dxvk");
-                if (!dxvkLogs.isDirectory() && !dxvkLogs.mkdirs())
-                    com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                            "Unable to create private DXVK diagnostics directory");
-                if (dxvkLogs.isDirectory()) {
-                    envVars.put("DXVK_LOG_PATH", dxvkLogs.getAbsolutePath());
-                    com.charoitegames.core.CharoiteDiagnostics.setDxvkLogDirectory(
-                            this, dxvkLogs);
-                }
-                envVars.put("DXVK_LOG_LEVEL", "info");
-                com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                        "TPDP D3D9 via bundled DXVK 1.10.3 + Turnip; "
-                        + "DXVK logs redirected to private runtime");
-            }
-            com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                "Effective WineD3D configuration: " + envVars.get("WINE_D3D_CONFIG"));
-            com.charoitegames.core.CharoiteDiagnostics.recordLine(
-                    "TPDP graphics warning/error diagnostics enabled");
-        } else if (getIntent().hasExtra("exec_path") &&
+                com.charoitegames.core.CharoiteGraphicsProfiles.forExecutable(
+                        getIntent().getStringExtra("exec_path")) == null &&
                 com.charoitegames.core.CharoiteCore.japaneseCompatibilityEnabled(this) &&
                 com.charoitegames.core.CharoiteCore.isJapaneseInstallerCandidate(
                         getIntent().getStringExtra("exec_path"))) {
-            // Capture setup failure warnings even without an installer UI.
+            // Keep existing installer diagnosis separate from game profiles.
             envVars.put("WINEDEBUG", "err+all,warn+all");
         }
 """ + tpdp_debug_anchor)

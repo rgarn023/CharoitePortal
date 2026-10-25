@@ -33,6 +33,19 @@ public final class CharoiteDiagnostics {
         }
     }
 
+    /** Record the backend selected by the actual Windows runtime, even if
+     * the app reaches 60 FPS with no visible game pixels. */
+    public static void recordGraphicsBackend(Context context, String wrapper,
+                                             String driver, int tpdpMode) {
+        prefs(context).edit()
+            .putString("charoite_last_graphics_backend",
+                    "DirectX wrapper: " + (wrapper == null ? "unknown" : wrapper) +
+                    "\nVulkan driver: " + (driver == null ? "unknown" : driver) +
+                    "\nTPDP override: " +
+                    CharoiteCore.tpdpGraphicsModeLabel(tpdpMode))
+            .apply();
+    }
+
     public static void windowOpened(Context context) {
         prefs(context).edit()
             .putString("touhou_launch_status", "game window appeared")
@@ -62,6 +75,9 @@ public final class CharoiteDiagnostics {
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
+        report += "\n\nGRAPHICS BACKEND:\n" +
+                p.getString("charoite_last_graphics_backend",
+                        "Not recorded in this build.");
         String probePath = p.getString("touhou_probe_path", "");
         if (!probePath.isEmpty()) {
             try {

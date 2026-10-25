@@ -112,6 +112,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button installerButton;
     private Button scanButton;
     private Button compatButton;
+    private Button tpdpGraphicsButton;
     private Button japaneseButton;
     private Button installerFontButton;
     private Button displayButton;
@@ -391,6 +392,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         graphicsCard.addView(label("Use compatibility graphics only when a game fails to display or launch correctly.", 12, SECONDARY, false));
         compatButton = outlinedButton("SWITCH TO COMPATIBILITY GRAPHICS", this::toggleCompatibility);
         graphicsCard.addView(compatButton);
+        graphicsCard.addView(label("TPDP base game: if audio plays and the game window is black, use DXVK + Turnip. This selection affects only gn_enbu.exe or enbu_ap.exe at launch, not your other installed games or Wine container.", 12, SECONDARY, false));
+        tpdpGraphicsButton = outlinedButton("TPDP GRAPHICS: DXVK + TURNIP",
+                this::cycleTpdpGraphics);
+        graphicsCard.addView(tpdpGraphicsButton);
         graphicsCard.addView(label("Japanese Windows text support uses Charoite Core's CP932 locale and licensed IPA Gothic/Noto fonts. Touhou Realm enables it automatically; other environments can opt in. Restart a Windows program to apply the language change.", 12, SECONDARY, false));
         japaneseButton = outlinedButton("JAPANESE TEXT SUPPORT: OFF", this::toggleJapaneseCompatibility);
         graphicsCard.addView(japaneseButton);
@@ -906,6 +911,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");
+        if (tpdpGraphicsButton != null) {
+            tpdpGraphicsButton.setEnabled(!busy && ready);
+            tpdpGraphicsButton.setText("TPDP GRAPHICS: " +
+                    CharoiteCore.tpdpGraphicsModeLabel(CharoiteCore.tpdpGraphicsMode(this)));
+        }
         if (japaneseButton != null) {
             japaneseButton.setEnabled(!busy && ready);
             japaneseButton.setText(CharoiteCore.japaneseCompatibilityEnabled(this)
@@ -1003,6 +1013,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setStatus(enabled
                 ? "Scoped Japanese installer font repair enabled for this environment."
                 : "Installer font repair disabled. Standard Japanese fonts remain available.");
+    }
+
+    /** Cycle a per-environment TPDP-only renderer choice; existing Wine
+     * containers, installed expansion files and save data are untouched. */
+    private void cycleTpdpGraphics() {
+        if (busy || containerId <= 0) return;
+        int mode = CharoiteCore.tpdpGraphicsMode(this);
+        int next = (mode + 1) % 3;
+        CharoiteCore.setTpdpGraphicsMode(this, next);
+        updateButtons();
+        setStatus("TPDP graphics on NEXT game launch: " +
+                CharoiteCore.tpdpGraphicsModeLabel(next) +
+                ". Only TPDP executables use this selection. Close and relaunch the game.");
     }
 
     private void toggleCompatibility() {

@@ -49,6 +49,13 @@ public final class CharoiteCore {
     private static final String PREPARED_APK_KEY = "engine_prepared_apk_timestamp";
     private static final String DISPLAY_MODE_KEY = "game_display_mode";
     private static final String DESKTOP_CAPTURE_KEY = "desktop_pointer_capture";
+    // TPDP base game: sound / 60 FPS but a black DirectX 9 game surface is
+    // reported under some Winlator graphics combinations. Overrides are
+    // PER LAUNCH, never written into an existing Wine container.
+    private static final String TPDP_GRAPHICS_KEY = "tpdp_graphics_mode";
+    public static final int TPDP_GRAPHICS_SAVED = 0;
+    public static final int TPDP_GRAPHICS_DXVK_TURNIP = 1;
+    public static final int TPDP_GRAPHICS_WINED3D_VIRGL = 2;
 
     private CharoiteCore() {}
     /** Existing Touhou preference keys remain unchanged; other profiles isolate settings. */
@@ -128,6 +135,48 @@ public final class CharoiteCore {
     /** Compatibility alias for the earlier Touhou-specific caller. */
     public static boolean useTouhouInstallerFontProbe(Context host) {
         return installerFontRepairEnabled(host);
+    }
+
+    /** Only known FocasLens game binaries qualify, never an installer or
+     * other Windows game's executable. Reversible per-environment setting. */
+    public static boolean isTpdpGameExecutable(String executable) {
+        if (executable == null) return false;
+        String path = executable.trim().replace('\\', '/');
+        int slash = path.lastIndexOf('/');
+        String file = path.substring(slash + 1).toLowerCase(java.util.Locale.ROOT);
+        return file.equals("gn_enbu.exe") || file.equals("enbu_ap.exe");
+    }
+
+    public static int tpdpGraphicsMode(AppCompatActivity host) {
+        int mode = host.getPreferences(Context.MODE_PRIVATE)
+                .getInt(scopedKey(host, TPDP_GRAPHICS_KEY),
+                        CharoiteEnvironments.isTouhou(host)
+                                ? TPDP_GRAPHICS_DXVK_TURNIP : TPDP_GRAPHICS_SAVED);
+        return (mode >= TPDP_GRAPHICS_SAVED &&
+                mode <= TPDP_GRAPHICS_WINED3D_VIRGL) ? mode : TPDP_GRAPHICS_SAVED;
+    }
+
+    public static void setTpdpGraphicsMode(AppCompatActivity host, int mode) {
+        if (mode < TPDP_GRAPHICS_SAVED || mode > TPDP_GRAPHICS_WINED3D_VIRGL)
+            throw new IllegalArgumentException("Unsupported TPDP graphics mode");
+        host.getPreferences(Context.MODE_PRIVATE).edit()
+                .putInt(scopedKey(host, TPDP_GRAPHICS_KEY), mode).apply();
+    }
+
+    /** A non-TPDP Windows program always receives the original container
+     * DX wrapper and driver: no global Wine/DXVK configuration changes. */
+    public static int tpdpGraphicsModeForLaunch(AppCompatActivity host,
+                                                String executable) {
+        return isTpdpGameExecutable(executable)
+                ? tpdpGraphicsMode(host) : TPDP_GRAPHICS_SAVED;
+    }
+
+    public static String tpdpGraphicsModeLabel(int mode) {
+        switch (mode) {
+            case TPDP_GRAPHICS_DXVK_TURNIP: return "DXVK + TURNIP";
+            case TPDP_GRAPHICS_WINED3D_VIRGL: return "WINED3D + VIRGL";
+            default: return "SAVED SETTINGS";
+        }
     }
 
     public static boolean compatibleGraphics(AppCompatActivity host) {

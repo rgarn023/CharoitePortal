@@ -377,11 +377,44 @@ assert code.count(old_mouse) == 1, "Upstream mouse-capture marker changed"
 code = code.replace(old_mouse,
     '        capturePointerOnExternalMouse = getIntent().getBooleanExtra("touhou_pointer_capture", ' +
     'preferences.getBoolean("capture_pointer_on_external_mouse", true));')
+# TPDP base game can run at 60 FPS with audio but present a black DirectX 9
+# window under some WineD3D backends. Use a per-launch DXVK/Turnip selection:
+# the original container and every other game keep their saved settings.
+# Source: pinned Winlator XServerDisplayActivity local variables before the
+# existing wrapper and graphics-driver parsers.
+tpdp_backend_anchor = "            this.graphicsDriver = GraphicsDrivers.parseIdentifiers(graphicsDriver);"
+assert code.count(tpdp_backend_anchor) == 1, "Winlator graphics parser moved"
+code = code.replace(tpdp_backend_anchor, """
+            // Only TPDP game binaries receive Charoite's optional DirectX 9
+            // backend override. Installer/setup games and other titles do not.
+            if (getIntent().hasExtra("exec_path") &&
+                    com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                            getIntent().getStringExtra("exec_path"))) {
+                int tpdpMode = getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0);
+                if (tpdpMode == com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_DXVK_TURNIP) {
+                    graphicsDriver = GraphicsDrivers.TURNIP + "," +
+                            GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
+                    dxwrapper = DXWrappers.DXVK;
+                    dxwrapperConfig = "";
+                    graphicsDriverConfig = "";
+                } else if (tpdpMode ==
+                        com.charoitegames.core.CharoiteCore.TPDP_GRAPHICS_WINED3D_VIRGL) {
+                    graphicsDriver = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL;
+                    dxwrapper = DXWrappers.WINED3D;
+                    dxwrapperConfig = "";
+                    graphicsDriverConfig = "";
+                }
+            }
+""" + tpdp_backend_anchor)
+
 old_show = "        preloaderDialog.show(R.string.starting_up);"
 assert code.count(old_show) == 1, "Startup dialog marker changed"
 code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {false};
         if (getIntent().hasExtra("exec_path")) {
             com.charoitegames.core.CharoiteDiagnostics.begin(this, getIntent().getStringExtra("exec_path"));
+            com.charoitegames.core.CharoiteDiagnostics.recordGraphicsBackend(
+                    this, this.dxwrapper, this.graphicsDriver[0],
+                    getIntent().getIntExtra("charoite_tpdp_graphics_mode", 0));
             ProcessHelper.addDebugCallback(com.charoitegames.core.CharoiteDiagnostics.CALLBACK);
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                 if (!isFinishing() && !touhouWindowOpened[0]) {

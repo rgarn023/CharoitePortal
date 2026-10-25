@@ -47,6 +47,10 @@ public final class CharoiteGameSessions {
         play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(host));
         play.putExtra("touhou_display_size", CharoiteCore.chosenGameResolution(host));
         play.putExtra("touhou_pointer_capture", CharoiteCore.shouldCapturePointer(host));
+        // Selected DirectX 9 workaround applies solely to TPDP game EXEs at
+        // launch. Do not mutate the container's persisted graphics settings.
+        play.putExtra("charoite_tpdp_graphics_mode",
+                CharoiteCore.tpdpGraphicsModeForLaunch(host, executable));
 
         // Keep the in-process font monitor limited to opted-in Japanese
         // Inno Setup installers, never game launchers or arbitrary EXEs.

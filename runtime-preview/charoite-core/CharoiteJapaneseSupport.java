@@ -194,7 +194,7 @@ public final class CharoiteJapaneseSupport {
      * The installer font hook and Wine-wide font substitution are unchanged.
      */
     private static void configureJapaneseNotepadDefaults(File userReg) {
-        final String key = "Software\\\\Microsoft\\\\Notepad";
+        final String key = "Software\\Microsoft\\Notepad";
         try (WineRegistryEditor registry = new WineRegistryEditor(userReg)) {
             String face = registry.getStringValue(key, "lfFaceName", "");
             if (face == null) face = "";

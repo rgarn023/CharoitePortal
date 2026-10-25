@@ -59,6 +59,21 @@ class GeneralJapaneseInstallerContract(unittest.TestCase):
         self.assertNotIn("deleteRecursively",SUPPORT)
         self.assertNotIn("formatPrefix",SUPPORT)
 
+    def test_notepad_cp932_font_default_without_overwriting_user_choice(self):
+        # Wine Notepad's own Edit control defaults to the "System" face:
+        # correcting dialog fonts alone cannot display Shift-JIS README text.
+        self.assertIn('configureJapaneseNotepadDefaults(userReg);',SUPPORT)
+        self.assertEqual(SUPPORT.count('configureJapaneseNotepadDefaults(userReg);'),2)
+        self.assertIn('String face = registry.getStringValue(key, "lfFaceName", "");',SUPPORT)
+        self.assertIn('!face.isEmpty() && !face.equalsIgnoreCase("System")',SUPPORT)
+        self.assertIn('registry.setStringValue(key, "lfFaceName", IPA_GOTHIC);',SUPPORT)
+        self.assertIn('registry.setDwordValue(key, "lfCharSet", 128);',SUPPORT)
+        self.assertIn('charset == null || charset == 0 || charset == 1',SUPPORT)
+        self.assertIn('WineRegistryEditor registry = new WineRegistryEditor(userReg)',SUPPORT)
+        self.assertNotIn('notepad.exe',OVERLAY)
+        self.assertNotIn('SetWindowTextW(',SUPPORT)
+        self.assertNotIn('deleteRecursively',SUPPORT)
+
     def test_working_v10_rendering_remains_as_fallback(self):
         for v in ("select_japanese_before_installer_draw(item)",
                   "restore_installer_prepaint(item)",

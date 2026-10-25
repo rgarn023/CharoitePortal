@@ -105,6 +105,10 @@ public final class CharoiteJapaneseSupport {
                 && windowsFont.length() == linuxFont.length()
                 && winIPA.isFile() && winIPA.length() == ipaGothic.length()
                 && winIPAP.isFile() && winIPAP.length() == ipaPGothic.length()) {
+            // The legacy fonts-v5 marker predates Notepad's independent
+            // document-font preference. Run its one-time default migration
+            // even for already-installed prefixes; never reformat a prefix.
+            configureJapaneseNotepadDefaults(userReg);
             CharoiteDiagnostics.recordLine("Japanese TrueType fonts installed (v5).");
             return;
         }
@@ -169,11 +173,45 @@ public final class CharoiteJapaneseSupport {
                 user.setStringValue(replacements, face, IPA_P_GOTHIC);
             }
         }
+        // Notepad's edit control does not use the system dialog font.
+        // Seed a Japanese-capable font only if Notepad has no custom choice.
+        configureJapaneseNotepadDefaults(userReg);
         if (!FileUtils.writeString(registrationMarker, DIALOG_FALLBACK_VERSION + "\n")) {
             throw new IOException("Could not mark Japanese font registration complete");
         }
         CharoiteDiagnostics.recordLine("Japanese UI fonts registered (" + DIALOG_FALLBACK_VERSION +
                 "): IPA Gothic/IPA P Gothic, ACP=932, MS Shell Dlg.");
+    }
+
+    /**
+     * Wine's built-in Notepad reads HKCU\\Software\\Microsoft\\Notepad
+     * lfFaceName and lfCharSet for its document Edit control. Its stock face
+     * is "System", which lacks the Japanese glyphs used by Shift-JIS README
+     * files even when localized menus and the Wine CP932 locale are correct.
+     *
+     * Only the uncustomized default may be upgraded. Preserve deliberately
+     * chosen fonts/charsets, every game file and all unrelated Wine apps.
+     * The installer font hook and Wine-wide font substitution are unchanged.
+     */
+    private static void configureJapaneseNotepadDefaults(File userReg) {
+        final String key = "Software\\\\Microsoft\\\\Notepad";
+        try (WineRegistryEditor registry = new WineRegistryEditor(userReg)) {
+            String face = registry.getStringValue(key, "lfFaceName", "");
+            if (face == null) face = "";
+            face = face.trim();
+            if (!face.isEmpty() && !face.equalsIgnoreCase("System")) {
+                // A prior choice such as Consolas or MS Gothic is user-owned.
+                return;
+            }
+            registry.setStringValue(key, "lfFaceName", IPA_GOTHIC);
+            Integer charset = registry.getDwordValue(key, "lfCharSet");
+            // 1=DEFAULT_CHARSET, 0=ANSI_CHARSET, 128=SHIFTJIS_CHARSET.
+            if (charset == null || charset == 0 || charset == 1)
+                registry.setDwordValue(key, "lfCharSet", 128);
+            CharoiteDiagnostics.recordLine(
+                    "Japanese Notepad default: IPAGothic, Shift-JIS compatible font; " +
+                    "readme bytes and custom Notepad preferences preserved.");
+        }
     }
 
     /** Fontconfig is used by Wine/Freetype for font selection. This only

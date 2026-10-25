@@ -38,8 +38,17 @@ public final class CharoiteWindowPolicy {
         if (frame.getWidth() >= screenInfo.width ||
                 frame.getHeight() >= screenInfo.height) return;
         int targetX = (screenInfo.width - frame.getWidth()) / 2;
-        int targetY = (screenInfo.height - frame.getHeight()) /
-                (screenInfo.height > screenInfo.width ? 3 : 2);
+        // Handheld portrait layout: preserve TPDP's native Direct3D client
+        // size while placing the game in the upper display region, leaving
+        // the central Select/Start and shoulder buttons unobstructed.
+        int targetY;
+        if (screenInfo.height > screenInfo.width) {
+            float gameAreaHeight = screenInfo.height * 0.51f;
+            targetY = Math.max(16, Math.round(
+                    (gameAreaHeight - frame.getHeight()) / 2.0f));
+        } else {
+            targetY = (screenInfo.height - frame.getHeight()) / 2;
+        }
         int deltaX = targetX - frame.getRootX();
         int deltaY = targetY - frame.getRootY();
         if (deltaX == 0 && deltaY == 0) return;

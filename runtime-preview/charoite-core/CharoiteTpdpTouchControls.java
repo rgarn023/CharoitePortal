@@ -4,22 +4,23 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Touch controls for TPDP's native keyboard layout; not a Windows gamepad.
+ * TPDP pocket-handheld layout, owned by Charoite Core.
  *
- * Winlator's XServer keyboard remains the source of truth for key injection.
- * Each button releases its key when touch ends, moves out, or is cancelled.
- * Separate view-level listeners permit multi-touch (e.g. X + arrow to run).
- * The visual overlay is transient and never modifies an installed game.
+ * Visual controls match the user's sketch: game above, Select/Start below,
+ * shoulder L/R below those, D-pad bottom-left and ABXY bottom-right.
+ * Inputs send the game's ORIGINAL keyboard bindings, not XInput buttons.
+ * No Wine mappings, graphics, installed data, or saves are modified.
  */
 public final class CharoiteTpdpTouchControls {
     @FunctionalInterface
@@ -27,173 +28,244 @@ public final class CharoiteTpdpTouchControls {
 
     private CharoiteTpdpTouchControls() {}
 
-    private static int dp(Activity host, int value) {
-        return Math.round(host.getResources().getDisplayMetrics().density * value);
+    private static int dp(Activity activity, float value) {
+        return Math.round(activity.getResources().getDisplayMetrics().density * value);
     }
 
-    private static GradientDrawable background(int fill, int stroke) {
+    private static GradientDrawable background(boolean secondary) {
         GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(fill);
-        drawable.setStroke(2, stroke);
-        drawable.setCornerRadius(17);
+        drawable.setColor(secondary ? 0xD122293F : 0xD12B2247);
+        drawable.setStroke(dpStroke(), secondary ? 0xB099B6CC : 0xB0D7CEFA);
+        drawable.setCornerRadius(20);
         return drawable;
     }
 
-    private static Button key(Activity host, String caption, int code, int width,
-                              int height, KeySink sink) {
+    private static int dpStroke() { return 2; }
+
+    private static Button button(Activity host, String title, String mapping,
+                                 int keyCode, boolean secondary, KeySink sink) {
         Button button = new Button(host);
+        button.setText(title);
         button.setAllCaps(false);
-        button.setText(caption);
-        button.setTextSize(14);
-        button.setTextColor(Color.WHITE);
+        button.setTextSize(secondary ? 12f : 18f);
         button.setTypeface(null, Typeface.BOLD);
-        button.setPadding(0,0,0,0);
-        button.setMinHeight(0);
-        button.setMinimumHeight(0);
+        button.setTextColor(Color.WHITE);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(0, 0, 0, 0);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
-        button.setBackground(background(0xB02B2247, 0x99D7CEFA));
-        button.setLayoutParams(new LinearLayout.LayoutParams(dp(host,width),dp(host,height)));
-        button.setContentDescription(caption + " keyboard control");
-        button.setOnTouchListener(new View.OnTouchListener() {
-            @Override public boolean onTouch(View view, MotionEvent event) {
-                switch(event.getActionMasked()) {
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        GradientDrawable drawable = background(secondary);
+        // Traditional A/B/X/Y gamepad buttons are round in the sketch.
+        if (!secondary && title.length() == 1 &&
+                "ABXY".contains(title)) drawable.setShape(GradientDrawable.OVAL);
+        button.setBackground(drawable);
+        button.setContentDescription(title + ", keyboard " + mapping);
+        if (keyCode >= 0) {
+            button.setOnTouchListener((view, event) -> {
+                switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        view.setAlpha(.66f);
-                        // The shared guarded sink deduplicates key downs and
-                        // handles releases caused by lost window focus.
-                        sink.send(code,true);
+                        view.setAlpha(0.7f);
+                        sink.send(keyCode, true);
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        // A held touch dragged away must release its key.
+                        float x = event.getX();
+                        float y = event.getY();
+                        boolean inside = x >= 0 && y >= 0 &&
+                                x < view.getWidth() && y < view.getHeight();
+                        view.setAlpha(inside ? 0.7f : 1f);
+                        sink.send(keyCode, inside);
                         return true;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
                         view.setAlpha(1f);
-                        sink.send(code,false);
+                        sink.send(keyCode, false);
                         return true;
                     default:
                         return true;
                 }
-            }
-        });
+            });
+        }
         return button;
     }
 
-    private static LinearLayout row(Activity host) {
-        LinearLayout panel = new LinearLayout(host);
-        panel.setOrientation(LinearLayout.HORIZONTAL);
-        panel.setGravity(Gravity.CENTER);
-        return panel;
+    private static void position(Button button, int x, int y, int width, int height) {
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                width, height, Gravity.TOP | Gravity.LEFT);
+        params.leftMargin = Math.max(0, x);
+        params.topMargin = Math.max(0, y);
+        button.setLayoutParams(params);
     }
 
-    private static void addSpacer(Activity host, LinearLayout row, int width, int height) {
-        View spacer = new View(host);
-        row.addView(spacer,new LinearLayout.LayoutParams(dp(host,width),dp(host,height)));
+    private static int clamp(int n, int minimum, int maximum) {
+        return Math.max(minimum, Math.min(n, maximum));
     }
 
-    /** Adds non-fullscreen button panels; uncovered game area remains touchable. */
+    /** The XServer display remains visible and touchable between controls. */
     public static void attach(Activity host, FrameLayout root, KeySink sink) {
-        final int control=46;
-        final int gap=4;
-        // Track held keys centrally, so hiding the panel or losing focus
-        // never strands a movement key in the running Windows game.
-        final java.util.Set<Integer> held=new java.util.HashSet<>();
-        final KeySink guarded=(code,pressed) -> {
-            if(pressed ? held.add(code) : held.remove(code))
-                sink.send(code,pressed);
+        final Set<Integer> held = new HashSet<>();
+        final KeySink guarded = (code, pressed) -> {
+            // Deduplicate repeated ACTION_MOVE updates and release on focus loss.
+            if (pressed ? held.add(code) : held.remove(code)) sink.send(code, pressed);
         };
-        final Runnable releaseAll=() -> {
-            for(Integer key : new java.util.ArrayList<>(held)) guarded.send(key,false);
+        final Runnable releaseAll = () -> {
+            for (Integer code : new ArrayList<>(held)) guarded.send(code, false);
         };
         root.getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus -> {
-            if(!hasFocus) releaseAll.run();
+            if (!hasFocus) releaseAll.run();
         });
 
-        LinearLayout pad = new LinearLayout(host);
-        pad.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout top=row(host);
-        addSpacer(host,top,control+gap,control);
-        top.addView(key(host,"↑",KeyEvent.KEYCODE_DPAD_UP,control,control,guarded));
-        addSpacer(host,top,control+gap,control);
-        pad.addView(top);
-        LinearLayout middle=row(host);
-        middle.addView(key(host,"←",KeyEvent.KEYCODE_DPAD_LEFT,control,control,guarded));
-        addSpacer(host,middle,gap,control);
-        middle.addView(key(host,"↓",KeyEvent.KEYCODE_DPAD_DOWN,control,control,guarded));
-        addSpacer(host,middle,gap,control);
-        middle.addView(key(host,"→",KeyEvent.KEYCODE_DPAD_RIGHT,control,control,guarded));
-        pad.addView(middle);
-        FrameLayout.LayoutParams padParams=new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM|Gravity.LEFT);
-        padParams.leftMargin=dp(host,11);
-        padParams.bottomMargin=dp(host,23);
-        root.addView(pad,padParams);
+        // Gamepad mapping: A=Z, B=X, X=C, Y=S, L=A, R=D,
+        // Select=Shift, Start=Space. Arrow keys implement the D-pad.
+        final Button select = button(host, "Select", "Left Shift",
+                KeyEvent.KEYCODE_SHIFT_LEFT, true, guarded);
+        final Button start = button(host, "Start", "Space",
+                KeyEvent.KEYCODE_SPACE, true, guarded);
+        final Button leftShoulder = button(host, "L", "A",
+                KeyEvent.KEYCODE_A, true, guarded);
+        final Button rightShoulder = button(host, "R", "D",
+                KeyEvent.KEYCODE_D, true, guarded);
 
-        LinearLayout actions = new LinearLayout(host);
-        actions.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout first=row(host);
-        first.addView(key(host,"S",KeyEvent.KEYCODE_S,47,control,guarded));
-        addSpacer(host,first,gap,control);
-        first.addView(key(host,"C",KeyEvent.KEYCODE_C,47,control,guarded));
-        actions.addView(first);
-        LinearLayout second=row(host);
-        second.addView(key(host,"X Run",KeyEvent.KEYCODE_X,47,control,guarded));
-        addSpacer(host,second,gap,control);
-        second.addView(key(host,"Z OK",KeyEvent.KEYCODE_Z,47,control,guarded));
-        actions.addView(second);
-        LinearLayout third=row(host);
-        third.addView(key(host,"L",KeyEvent.KEYCODE_A,47,35,guarded));
-        addSpacer(host,third,gap,35);
-        third.addView(key(host,"Start",KeyEvent.KEYCODE_SPACE,47,35,guarded));
-        addSpacer(host,third,gap,35);
-        third.addView(key(host,"R",KeyEvent.KEYCODE_D,47,35,guarded));
-        actions.addView(third);
-        FrameLayout.LayoutParams actionParams=new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM|Gravity.RIGHT);
-        actionParams.rightMargin=dp(host,11);
-        actionParams.bottomMargin=dp(host,23);
-        LinearLayout fourth=row(host);
-        fourth.addView(key(host,"Shift",KeyEvent.KEYCODE_SHIFT_LEFT,47,35,guarded));
-        addSpacer(host,fourth,gap,35);
-        fourth.addView(key(host,"Enter",KeyEvent.KEYCODE_ENTER,47,35,guarded));
-        addSpacer(host,fourth,gap,35);
-        fourth.addView(key(host,"Esc",KeyEvent.KEYCODE_ESCAPE,47,35,guarded));
-        actions.addView(fourth);
-        root.addView(actions,actionParams);
+        final Button up = button(host, "↑", "Up arrow",
+                KeyEvent.KEYCODE_DPAD_UP, false, guarded);
+        final Button left = button(host, "←", "Left arrow",
+                KeyEvent.KEYCODE_DPAD_LEFT, false, guarded);
+        final Button right = button(host, "→", "Right arrow",
+                KeyEvent.KEYCODE_DPAD_RIGHT, false, guarded);
+        final Button down = button(host, "↓", "Down arrow",
+                KeyEvent.KEYCODE_DPAD_DOWN, false, guarded);
 
-        // Keep the original mouse/touchpad accessible without restarting
-        // the Windows game. This toggle is independent of Winlator profiles.
-        Button toggle=new Button(host);
-        toggle.setText("HIDE KEYS");
-        toggle.setAllCaps(false);
-        toggle.setTextSize(11);
-        toggle.setTextColor(Color.WHITE);
-        toggle.setMinHeight(0);
-        toggle.setMinimumHeight(0);
-        toggle.setPadding(0,0,0,0);
-        toggle.setBackground(background(0xB02B2247,0x99D7CEFA));
-        FrameLayout.LayoutParams toggleParams=new FrameLayout.LayoutParams(
-            dp(host,105),dp(host,36),Gravity.TOP|Gravity.RIGHT);
-        toggleParams.topMargin=dp(host,10);
-        toggleParams.rightMargin=dp(host,10);
-        root.addView(toggle,toggleParams);
+        final Button yButton = button(host, "Y", "S",
+                KeyEvent.KEYCODE_S, false, guarded);
+        final Button xButton = button(host, "X", "C",
+                KeyEvent.KEYCODE_C, false, guarded);
+        final Button aButton = button(host, "A", "Z",
+                KeyEvent.KEYCODE_Z, false, guarded);
+        final Button bButton = button(host, "B", "X",
+                KeyEvent.KEYCODE_X, false, guarded);
 
-        // The original TPDP manual maps F11 to window/fullscreen. This lets
-        // phone-only players test the game's own Direct3D display-mode path,
-        // without changing the Android activity orientation or Wine prefix.
-        Button fullscreen=key(host,"F11 Full",KeyEvent.KEYCODE_F11,80,36,guarded);
-        FrameLayout.LayoutParams screenParams=new FrameLayout.LayoutParams(
-                dp(host,80),dp(host,36),Gravity.TOP|Gravity.LEFT);
-        screenParams.topMargin=dp(host,10);
-        screenParams.leftMargin=dp(host,11);
-        root.addView(fullscreen,screenParams);
+        final Button[] main = {
+                select, start, leftShoulder, rightShoulder,
+                up, left, right, down, yButton, xButton, aButton, bButton
+        };
+        for (Button button : main) root.addView(button);
+
+        // Keep F11/Enter/Esc/screenshot P available without cluttering
+        // the handheld layout. These are secondary, initially hidden.
+        final Button f11 = button(host, "F11 Full", "F11",
+                KeyEvent.KEYCODE_F11, true, guarded);
+        final Button enter = button(host, "Enter", "Enter",
+                KeyEvent.KEYCODE_ENTER, true, guarded);
+        final Button esc = button(host, "Esc", "Escape",
+                KeyEvent.KEYCODE_ESCAPE, true, guarded);
+        final Button screenshot = button(host, "P Shot", "P",
+                KeyEvent.KEYCODE_P, true, guarded);
+        final Button[] extras = {f11, enter, esc, screenshot};
+        for (Button button : extras) {
+            root.addView(button);
+            button.setVisibility(View.GONE);
+        }
+
+        final Button more = button(host, "MORE", "Extra keyboard controls",
+                -1, true, guarded);
+        final Button toggle = button(host, "HIDE KEYS", "Hide handheld controls",
+                -1, true, guarded);
+        root.addView(more);
+        root.addView(toggle);
+
+        // Recalculate the layout on rotation, DeX size changes or cutouts.
+        // Pixel positions are computed from the actual Android root view,
+        // never from an assumed Galaxy screen size.
+        final Runnable relayout = () -> {
+            final int width = root.getWidth(), height = root.getHeight();
+            if (width <= 0 || height <= 0) return;
+            boolean portrait = height >= width;
+            final int margin = dp(host, 9);
+            final int gap = dp(host, 5);
+            final int size = clamp((width - margin * 2 - gap * 8) / 7,
+                    dp(host, 34), dp(host, portrait ? 52 : 43));
+            final int clusterWidth = size * 3 + gap * 2;
+            final int clusterHeight = size * 3 + gap * 2;
+            final int dpadX = margin;
+            final int diamondX = width - margin - clusterWidth;
+            // Keep both input clusters below the game in portrait mode.
+            final int clusterY = portrait ?
+                    height - margin - clusterHeight :
+                    height - margin - clusterHeight;
+            final int topControls = portrait ?
+                    Math.min((int)(height * .55f), clusterY - dp(host, 110)) :
+                    Math.max(dp(host, 44), (int)(height * .53f));
+            final int barHeight = dp(host, portrait ? 34 : 30);
+            final int centerWidth = dp(host, portrait ? 76 : 64);
+            final int centerGap = dp(host, 10);
+            final int centerX = (width - 2 * centerWidth - centerGap) / 2;
+            position(select, centerX, topControls, centerWidth, barHeight);
+            position(start, centerX + centerWidth + centerGap,
+                    topControls, centerWidth, barHeight);
+
+            final int shoulderY = portrait ?
+                    clamp(topControls + dp(host, 75),
+                            topControls + barHeight + dp(host, 8),
+                            clusterY - barHeight - dp(host, 12)) :
+                    topControls + dp(host, 36);
+            final int shoulderW = dp(host, portrait ? 88 : 65);
+            position(leftShoulder, margin + dp(host, 12),
+                    shoulderY, shoulderW, barHeight);
+            position(rightShoulder, width - margin - dp(host, 12) - shoulderW,
+                    shoulderY, shoulderW, barHeight);
+
+            position(up, dpadX + size + gap, clusterY, size, size);
+            position(left, dpadX, clusterY + size + gap, size, size);
+            position(right, dpadX + (size + gap) * 2,
+                    clusterY + size + gap, size, size);
+            position(down, dpadX + size + gap,
+                    clusterY + (size + gap) * 2, size, size);
+
+            position(yButton, diamondX + size + gap, clusterY, size, size);
+            position(xButton, diamondX, clusterY + size + gap, size, size);
+            position(aButton, diamondX + (size + gap) * 2,
+                    clusterY + size + gap, size, size);
+            position(bButton, diamondX + size + gap,
+                    clusterY + (size + gap) * 2, size, size);
+
+            int topButtonH = dp(host, 32);
+            position(more, margin, margin, dp(host, 68), topButtonH);
+            position(toggle, width - margin - dp(host, 93),
+                    margin, dp(host, 93), topButtonH);
+
+            int extraW = Math.min(dp(host, 76),
+                    (width - margin * 2 - gap * 3) / 4);
+            int extrasWidth = extraW * 4 + gap * 3;
+            int extraX = (width - extrasWidth) / 2;
+            int extraY = portrait ? topControls - dp(host, 53) :
+                    margin + topButtonH + gap;
+            for (int i = 0; i < extras.length; i++)
+                position(extras[i], extraX + i * (extraW + gap),
+                        extraY, extraW, dp(host, 34));
+        };
+        root.addOnLayoutChangeListener((v, l, t, r, b, oldL, oldT, oldR, oldB) -> {
+            if (r - l != oldR - oldL || b - t != oldB - oldT) relayout.run();
+        });
+        root.post(relayout);
+
+        more.setOnClickListener(v -> {
+            boolean show = extras[0].getVisibility() != View.VISIBLE;
+            if (!show) releaseAll.run();
+            for (Button button : extras)
+                button.setVisibility(show ? View.VISIBLE : View.GONE);
+            more.setText(show ? "LESS" : "MORE");
+        });
         toggle.setOnClickListener(v -> {
-            boolean shouldShow=pad.getVisibility()!=View.VISIBLE;
-            if(!shouldShow) releaseAll.run();
-            pad.setVisibility(shouldShow?View.VISIBLE:View.GONE);
-            actions.setVisibility(shouldShow?View.VISIBLE:View.GONE);
-            fullscreen.setVisibility(shouldShow?View.VISIBLE:View.GONE);
-            toggle.setText(shouldShow?"HIDE KEYS":"SHOW KEYS");
+            boolean show = select.getVisibility() != View.VISIBLE;
+            if (!show) releaseAll.run();
+            for (Button button : main)
+                button.setVisibility(show ? View.VISIBLE : View.GONE);
+            for (Button button : extras) button.setVisibility(View.GONE);
+            more.setVisibility(show ? View.VISIBLE : View.GONE);
+            more.setText("MORE");
+            toggle.setText(show ? "HIDE KEYS" : "SHOW KEYS");
         });
     }
 }

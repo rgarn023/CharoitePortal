@@ -21,12 +21,12 @@ class TpdpTouchContract(unittest.TestCase):
             self.assertIn("KeyEvent."+key,CONTROLS)
         for event in ("MotionEvent.ACTION_DOWN","MotionEvent.ACTION_UP",
                       "MotionEvent.ACTION_CANCEL","releaseAll.run()",
-                      "sink.send(code,pressed)"):
+                      "sink.send(code, pressed)"):
             self.assertIn(event,CONTROLS)
         self.assertNotIn("setKeysyms(",CONTROLS)
         self.assertNotIn("boolean down = false;",CONTROLS)
-        self.assertIn("sink.send(code,true)",CONTROLS)
-        self.assertIn("sink.send(code,false)",CONTROLS)
+        self.assertIn("sink.send(keyCode, true)",CONTROLS)
+        self.assertIn("sink.send(keyCode, false)",CONTROLS)
         self.assertIn('KeyEvent.KEYCODE_F11',CONTROLS)
         self.assertIn('"F11 Full"',CONTROLS)
         self.assertIn('button.setVisibility(View.GONE)',CONTROLS)

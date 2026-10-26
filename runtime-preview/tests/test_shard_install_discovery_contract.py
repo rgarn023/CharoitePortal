@@ -19,7 +19,7 @@ class ShardInstallDiscoveryContract(unittest.TestCase):
     def test_discovery_is_executable_based_and_non_destructive(self):
         self.assertIn('name.equals("enbu_ap.exe")', PROFILES)
         self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(name)', PROFILES)
-        self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(name)', SHARD)
+        self.assertIn('if (isExpansionGame(name))', SHARD)
         self.assertIn('JAPANESE_EXECUTABLE = "幻想人形演舞-ユメノカケラ-.exe"', SHARD)
         self.assertIn('installedExecutable(dest)', SHARD)
         self.assertIn('isExpansionGame(name)', SHARD)

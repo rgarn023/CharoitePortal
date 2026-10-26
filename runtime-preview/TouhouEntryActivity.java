@@ -1350,6 +1350,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         new FrameLayout.LayoutParams(-1, -1));
                 ImageView officialGameIcon = new ImageView(this);
                 officialGameIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                officialGameIcon.setVisibility(View.GONE);
                 officialGameIcon.setPadding(dp(3), dp(3), dp(3), dp(3));
                 officialGameIcon.setContentDescription(name + " official game icon");
                 iconHolder.addView(officialGameIcon,

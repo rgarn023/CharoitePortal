@@ -30,6 +30,15 @@ class CoreImportContract(unittest.TestCase):
         self.assertIn("detectExe(target, selection, touhou)", CORE_IMPORT)
         self.assertIn('new String[]{"setup.exe", "install.exe", "installer.exe"}', CORE_IMPORT)
         self.assertIn("CharoiteGameImport.importSelected(", PORTAL)
+        self.assertIn("listInstallerCandidates(root)", CORE_IMPORT)
+        self.assertIn('return root.toPath().relativize(', CORE_IMPORT)
+        self.assertIn('new File(installers.get(0)).toPath()).toString();', CORE_IMPORT)
+        self.assertIn('imported.installerCandidates.size() > 1', PORTAL)
+        self.assertIn('showInstallerChooser(entry)', PORTAL)
+        self.assertIn('!selectionPending && new File(path).isFile()', PORTAL)
+        self.assertIn('"CHOOSE INSTALLER" : "CHANGE INSTALLER"', PORTAL)
+        self.assertIn('root.toURI().relativize', CORE_IMPORT)
+        self.assertNotIn('return installers.get(0);', CORE_IMPORT)
 
     def test_importer_saf_copy_and_protections_are_owned_by_core(self):
         for check in ("DocumentFile.fromTreeUri", "MAX_BYTES", "MAX_FILES", "safeName(",

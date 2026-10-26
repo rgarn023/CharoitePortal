@@ -43,6 +43,7 @@ import com.charoitegames.core.CharoiteGameIcons;
 import com.charoitegames.core.CharoiteGameRemoval;
 import com.charoitegames.core.CharoiteGameDiscovery;
 import com.charoitegames.core.CharoiteGameProfiles;
+import com.charoitegames.core.CharoiteGameControlProfiles;
 import com.charoitegames.core.CharoiteGameSessions;
 import com.charoitegames.core.CharoiteDiagnostics;
 import com.charoitegames.core.CharoiteRenderingDiagnostics;
@@ -1449,10 +1450,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Manage " + title)
                 .setItems(new String[]{
+                    "Controls: detected defaults and button mapping",
                     "Remove from Library only",
                     "Delete installation folder and remove from Library"
                 }, (dialog, selected) -> {
-                    if (selected == 0) confirmLibraryRemoval(title, executable);
+                    if (selected == 0)
+                        CharoiteGameControlProfiles.showEditor(this, executable);
+                    else if (selected == 1) confirmLibraryRemoval(title, executable);
                     else confirmGameDeletion(title, executable);
                 })
                 .setNegativeButton("Cancel", null).show();

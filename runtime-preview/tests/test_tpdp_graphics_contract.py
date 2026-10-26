@@ -57,6 +57,9 @@ class TpdpAutoGraphicsContract(unittest.TestCase):
         self.assertNotIn('dxwrapperConfig = "renderer=vulkan";', OVERLAY)
         self.assertIn('DXVK_LOG_LEVEL', PROFILE)
         self.assertIn('DXVK_LOG_PATH', PROFILE)
+        self.assertIn('shard ? "-all,err+all"', PROFILE)
+        self.assertIn('shard ? "warn" : "info"', PROFILE)
+        self.assertIn('"version=1.10.3"', PROFILE)
         self.assertIn('setDxvkLogDirectory(context, dxvkLogs)', PROFILE)
         self.assertIn('DXVK D3D9 DIAGNOSTIC FILES:', DIAGNOSTICS)
 

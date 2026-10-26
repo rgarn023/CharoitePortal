@@ -27,12 +27,45 @@ public final class CharoiteWindowPolicy {
         return lastHandheldScreen;
     }
 
+    /**
+     * The base game renders ~480x360; Shard of Dreams may open at larger
+     * integer-scaled 4:3 dimensions (e.g. 640x480 or 960x720).
+     * Only game-shaped clients for these exact executables receive a
+     * handheld transform. Native Wine dialogs retain their normal geometry.
+     */
+    private static boolean isHandheldGameClient(Window client, ScreenInfo screenInfo,
+                                                 String executable, boolean desktopWindow) {
+        if (!enlargeHandheldGame(executable, desktopWindow) || client == null ||
+                screenInfo == null || screenInfo.height <= screenInfo.width)
+            return false;
+        int width = client.getWidth(), height = client.getHeight();
+        if (width >= 460 && width <= 485 && height >= 335 && height <= 375)
+            return true; // Keep the verified base-game presentation unchanged.
+        if (!CharoiteShardOfDreamsSupport.isExpansionGame(executable))
+            return false;
+        // Shard can start at several sizes. Ignore tiny splash/dialog surfaces,
+        // giant desktops, and non-4:3 windows.
+        if (width < 460 || height < 335 || width > 1920 || height > 1440)
+            return false;
+        return Math.abs((float) width / height - (4f / 3f)) < 0.13f;
+    }
+
+    /**
+     * Winlator ordinarily requires the client to fit INSIDE Wine's desktop
+     * before applying its fullscreen transformation. Shard's startup window
+     * may equal or exceed that desktop, leaving its title bar visible and
+     * clipping the game over the controls. Allow only Shard game clients.
+     */
+    public static boolean allowOversizedShardGame(Window client, ScreenInfo screenInfo,
+                                                    String executable, boolean desktopWindow) {
+        return CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
+                isHandheldGameClient(client, screenInfo, executable, desktopWindow);
+    }
+
     private static void rememberClientScreen(FullscreenTransformation rect,
-                                             ScreenInfo screenInfo, Window client) {
-        // A TPDP session can map dialogs and container windows too. Only
-        // record the genuine ~480x360 game surface, never a top-level frame.
-        if (client.getWidth() < 460 || client.getWidth() > 485 ||
-                client.getHeight() < 335 || client.getHeight() > 375) return;
+                                             ScreenInfo screenInfo, Window client,
+                                             String executable, boolean desktopWindow) {
+        if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow)) return;
         int[] next = new int[]{
                 rect.x, rect.y, rect.width, rect.height,
                 screenInfo.width, screenInfo.height};
@@ -59,8 +92,7 @@ public final class CharoiteWindowPolicy {
             return false;
         int dw = frame.getWidth() - client.getWidth();
         int dh = frame.getHeight() - client.getHeight();
-        return client.getWidth() >= 460 && client.getWidth() <= 485 &&
-                client.getHeight() >= 335 && client.getHeight() <= 375 &&
+        return isHandheldGameClient(client, screenInfo, executable, desktopWindow) &&
                 dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
                 (dw > 0 || dh > 0);
     }
@@ -88,8 +120,7 @@ public final class CharoiteWindowPolicy {
                 !enlargeHandheldGame(executable, desktopWindow)) return;
         if (screenInfo.height <= screenInfo.width) return;
         // Do not resize Wine's decorated parent or its other guest windows.
-        if (client.getWidth() < 460 || client.getWidth() > 485 ||
-                client.getHeight() < 335 || client.getHeight() > 375) return;
+        if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow)) return;
         // The full-width 720px enlargement clips the decorated TPDP window
         // on tall phones. Use a comfortable 86% of the available desktop
         // width (about 619x464 for TPDP's 480x360 image at 720px).
@@ -107,7 +138,7 @@ public final class CharoiteWindowPolicy {
         int y = topMargin + Math.max(0, (gameAreaHeight - transform.height) / 2);
         transform.y = (short)Math.min(
                 Math.max(0, screenInfo.height - transform.height), y);
-        rememberClientScreen(transform, screenInfo, client);
+        rememberClientScreen(transform, screenInfo, client, executable, desktopWindow);
     }
 
     /**

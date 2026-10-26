@@ -89,7 +89,12 @@ public final class CharoiteGraphicsProfiles {
                                                    String executable) {
         Profile profile = forExecutable(executable);
         if (profile == null) return;
-        envVars.put("WINEDEBUG", "err+all,warn+all,fixme+winediag,trace+loaddll");
+        // Shard's dense transitions can stall with verbose Wine/DXVK logging.
+        // Use errors only during regular Shard gameplay, without changing DXVK,
+        // Turnip, Wine, Box64, or the existing base TPDP diagnostic profile.
+        boolean shard = CharoiteShardOfDreamsSupport.isExpansionGame(executable);
+        envVars.put("WINEDEBUG", shard ? "-all,err+all" :
+                "err+all,warn+all,fixme+winediag,trace+loaddll");
 
         File dxvkLogs = new File(rootFS.getRootDir(),
                 "tmp/charoite-tpdp-dxvk");
@@ -101,10 +106,11 @@ public final class CharoiteGraphicsProfiles {
             envVars.put("DXVK_LOG_PATH", dxvkLogs.getAbsolutePath());
             CharoiteDiagnostics.setDxvkLogDirectory(context, dxvkLogs);
         }
-        envVars.put("DXVK_LOG_LEVEL", "info");
+        envVars.put("DXVK_LOG_LEVEL", shard ? "warn" : "info");
         CharoiteDiagnostics.recordLine(
                 "Core auto-selected " + profile.id +
-                "; DXVK=1.10.3, graphics=Turnip, previous UI preference ignored");
+                "; DXVK=1.10.3, graphics=Turnip, previous UI preference ignored" +
+                (shard ? "; reduced game logging" : ""));
         CharoiteDiagnostics.recordLine(
                 "Core automatic renderer: " + profile.title);
     }

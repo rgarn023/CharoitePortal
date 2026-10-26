@@ -356,6 +356,8 @@ assert tpdp_touch_source.is_file() and not tpdp_touch_target.exists()
 tpdp_touch_target.parent.mkdir(parents=True, exist_ok=True)
 tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())
 
+# The base game's 480x360 and Shard's larger 4:3 windows require the same
+# upper-handheld surface, but with independent native window sizes.
 # TPDP's 480x360 game window remains small if we only reposition it in
 # the Wine desktop. Use the existing Winlator compositor's aspect-ratio-
 # preserving fullscreen-window transformation on phones. Importantly, this
@@ -627,6 +629,25 @@ display.write_text(code, encoding="utf-8")
 # transform handles touch/pointer hit testing as well as display scaling.
 gl_renderer = java_root / "com/winlator/renderer/GLRenderer.java"
 gl_renderer_code = gl_renderer.read_text(encoding="utf-8")
+
+# Shard of Dreams can render at an integer-scaled 4:3 size larger than Wine's
+# virtual desktop. Without this exception, the client remains untransformed
+# and its title bar is drawn in the middle of the handheld controls.
+oversized_shard_anchor = (    "                boolean inBounds = width >= ScreenInfo.MIN_WIDTH && height >= ScreenInfo.MIN_HEIGHT && width < xServer.screenInfo.width && height < xServer.screenInfo.height;"
+)
+assert gl_renderer_code.count(oversized_shard_anchor) == 1, (
+    "Upstream fullscreen client-size policy changed"
+)
+gl_renderer_code = gl_renderer_code.replace(oversized_shard_anchor,
+    oversized_shard_anchor + """
+                inBounds = inBounds ||
+                        com.charoitegames.core.CharoiteWindowPolicy.allowOversizedShardGame(
+                                window, xServer.screenInfo,
+                                xServer.activity.getIntent().getStringExtra("exec_path"),
+                                xServer.activity.getIntent().getBooleanExtra(
+                                        "touhou_desktop_window", false));
+""")
+
 tpdp_viewport_anchor = (
     "                    fullscreenTransformation.update(xServer.screenInfo, "
     "window.getWidth(), window.getHeight());"

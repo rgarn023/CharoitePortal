@@ -54,9 +54,23 @@ public final class CharoiteGameControlProfiles {
         KeyEvent.KEYCODE_Z, KeyEvent.KEYCODE_X
     };
 
+    /** Recognize the original Touhou 8 game and common translated executables.
+     * Explicitly exclude configuration utilities and installers.
+     */
+    public static boolean isTouhou8Executable(String path) {
+        String name = new File(path == null ? "" : path).getName().toLowerCase(Locale.ROOT);
+        return (name.startsWith("th08") &&
+                name.endsWith(".exe") &&
+                !name.contains("config") && !name.contains("setup") &&
+                !name.contains("install")) ||
+                name.equals("imperishable-night.exe") ||
+                name.equals("imperishable_night.exe");
+    }
+
     public static String idForExecutable(String path) {
         String name = new File(path == null ? "" : path).getName().toLowerCase(Locale.ROOT);
         if (CharoiteCore.isTpdpGameExecutable(path)) return "tpdp";
+        if (isTouhou8Executable(path)) return "touhou_shmup";
         // Known PC bullet-hell Touhou releases. Fighting spin-offs are not
         // included: a name match for every "th*.exe" would be misleading.
         if (name.matches("th(0[6789]|1[0-9]|20)\\.exe") &&

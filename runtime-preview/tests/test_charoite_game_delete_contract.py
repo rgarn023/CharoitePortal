@@ -14,7 +14,7 @@ class GameDeletionContract(unittest.TestCase):
         self.assertIn('import com.charoitegames.core.CharoiteGameRemoval;', PORTAL)
         self.assertIn('outlinedButton("MANAGE",', PORTAL)
         self.assertIn('manageGame(name, path)', PORTAL)
-        self.assertIn('onLongClickListener(v -> {', PORTAL)
+        self.assertIn('tile.setOnLongClickListener(v -> {', PORTAL)
 
     def test_remove_shortcut_keeps_files(self):
         self.assertIn('public static synchronized boolean remove(', LIBRARY)

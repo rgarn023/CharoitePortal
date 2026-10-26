@@ -14,6 +14,8 @@ class MultipleInstallerContract(unittest.TestCase):
         self.assertIn('public final List<String> installerCandidates;', CORE)
         self.assertIn('public final String importDirectory;', CORE)
         self.assertIn('listInstallerCandidates(target)', CORE)
+        self.assertIn('selection != Selection.STANDALONE_INSTALLER', CORE)
+        self.assertIn('selection != CharoiteGameImport.Selection.STANDALONE_INSTALLER', PORTAL)
         self.assertIn('collectExecutables(root, root, all, 0)', CORE)
         self.assertIn('new File(root, relative).getAbsolutePath()', CORE)
         self.assertIn('relativeA.compareToIgnoreCase(relativeB)', CORE)

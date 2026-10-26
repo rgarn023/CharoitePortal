@@ -1252,7 +1252,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 entry.put("installer", imported.installer);
                 entry.put("files", imported.fileCount);
                 if (imported.installer &&
-                        selection == CharoiteGameImport.Selection.INSTALLER_FOLDER) {
+                        selection != CharoiteGameImport.Selection.STANDALONE_INSTALLER) {
                     entry.put("importRoot", imported.importDirectory);
                     entry.put("installerCandidates",
                             new JSONArray(imported.installerCandidates));

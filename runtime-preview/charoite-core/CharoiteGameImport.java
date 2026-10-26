@@ -107,7 +107,11 @@ public final class CharoiteGameImport {
             File exe = new File(target, executable);
             boolean installer = selection == Selection.STANDALONE_INSTALLER ||
                     selection == Selection.INSTALLER_FOLDER || isLikelyInstaller(executable);
-            List<String> candidates = selection == Selection.INSTALLER_FOLDER
+            // "Import game folder" also accepts a copied setup bundle.
+            // When it contains multiple setup EXEs, the user must choose
+            // just as they would with "Import complete installer folder".
+            List<String> candidates = installer &&
+                    selection != Selection.STANDALONE_INSTALLER
                     ? listInstallerCandidates(target)
                     : Collections.emptyList();
             return new Result(exe.getAbsolutePath(), exe.getName(), installer,

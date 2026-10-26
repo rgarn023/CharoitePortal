@@ -48,6 +48,7 @@ import com.charoitegames.core.CharoiteGameSessions;
 import com.charoitegames.core.CharoiteDiagnostics;
 import com.charoitegames.core.CharoiteRenderingDiagnostics;
 import com.charoitegames.core.CharoiteEnvironments;
+import com.charoitegames.core.CharoiteBattleNetSupport;
 import com.charoitegames.core.CharoiteEnvironmentFiles;
 import com.charoitegames.core.CharoiteFileManagerActivity;
 import com.charoitegames.core.CharoiteThemes;
@@ -116,6 +117,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button folderButton;
     private Button installerButton;
     private Button installerFolderButton;
+    private Button battleNetDownloadButton;
+    private Button battleNetInstallButton;
+    private Button battleNetOpenButton;
+    private TextView battleNetDownloadStatus;
     private Button scanButton;
     private Button compatButton;
     private Button japaneseButton;
@@ -365,6 +370,43 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         importScreen.addView(exeCard);
         spacerIn(importScreen, 12);
 
+        // Battle.net is a separate installed environment, not an importer
+        // panel shown in Touhou Realm or General Gaming.
+        battleNetDownloadButton = null;
+        battleNetInstallButton = null;
+        battleNetOpenButton = null;
+        battleNetDownloadStatus = null;
+        if (CharoiteEnvironments.isBattleNet(this)) {
+            LinearLayout battleCard = card();
+            battleCard.addView(label("BATTLE.NET WINDOWS DESKTOP LAUNCHER",
+                    16, FOREGROUND, true));
+            battleCard.addView(label(
+                    "Downloads Blizzard's latest official PC installer into this realm's C: drive. " +
+                    "Downloading does not run the installer. Blizzard's installed launcher " +
+                    "updates itself and its games through its own Windows client.",
+                    13, SECONDARY, false));
+            battleNetDownloadStatus = label("Checking local installer and launcher…",
+                    12, SECONDARY, false);
+            battleCard.addView(battleNetDownloadStatus);
+            battleNetDownloadButton = button("DOWNLOAD LATEST BATTLE.NET INSTALLER",
+                    this::downloadBattleNetInstaller);
+            battleCard.addView(battleNetDownloadButton);
+            battleNetInstallButton = outlinedButton("RUN DOWNLOADED WINDOWS INSTALLER",
+                    this::installBattleNet);
+            battleCard.addView(battleNetInstallButton);
+            battleNetOpenButton = outlinedButton("OPEN INSTALLED BATTLE.NET",
+                    this::openBattleNet);
+            battleCard.addView(battleNetOpenButton);
+            battleCard.addView(label(
+                    "Blizzard account sign-in happens inside its Windows client, not Charoite. " +
+                    "If its automatic updater fails, download a fresh official installer and run it. " +
+                    "Diablo IV requires DirectX 12; this Android runtime does not yet have verified " +
+                    "Diablo IV / VKD3D game compatibility. At least 90 GB of PC game storage is listed.",
+                    12, SECONDARY, false));
+            importScreen.addView(battleCard);
+            spacerIn(importScreen, 12);
+        }
+
         LinearLayout scanCard = card();
         scanCard.addView(label("03   FIND INSTALLED GAMES", 12, GOLD, true));
         scanCard.addView(label("Search this environment's Windows C: drive after installation or scan previously installed games.", 13, SECONDARY, false));
@@ -487,6 +529,88 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         refreshLibrary();
         refreshWallpaperViews();
         showSection(selectedSection);
+    }
+
+    /** Never install into Touhou or General Gaming, even if a late callback
+     * returns after the user switches realms. */
+    private File battleNetRoot() {
+        if (!CharoiteEnvironments.isBattleNet(this) || containerId <= 0)
+            throw new IllegalStateException("Switch to the Battle.net Gaming environment");
+        Container current = new ContainerManager(this).getContainerById(containerId);
+        if (current == null || current.id != CharoiteEnvironments.activeContainerId(this))
+            throw new IllegalStateException("Battle.net container is not ready");
+        return current.getRootDir();
+    }
+
+    private void downloadBattleNetInstaller() {
+        if (busy) return;
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception ex) { setStatus(ex.getMessage()); return; }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Download latest Battle.net for Windows?")
+                .setMessage("Charoite will fetch Blizzard's current Windows installer from its " +
+                        "official live downloader into this environment only. It will not run " +
+                        "any executable until you select Run Installer. " +
+                        "The existing Blizzard installation and games will not be modified.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Download", (dialog, which) -> {
+                    busy = true;
+                    setStatus("Downloading current Battle.net Windows installer from Blizzard…");
+                    updateButtons();
+                    worker.execute(() -> {
+                        try {
+                            CharoiteBattleNetSupport.Download result =
+                                    CharoiteBattleNetSupport.downloadLatestInstaller(root);
+                            runOnUiThread(() -> {
+                                busy = false;
+                                updateButtons();
+                                setStatus("Battle.net Windows installer saved (" +
+                                        (result.bytes / 1024) + " KB, SHA-256 " +
+                                        result.sha256.substring(0, 12) +
+                                        "…). Select Run Installer to install it.");
+                            });
+                        } catch (Exception failure) {
+                            runOnUiThread(() -> {
+                                busy = false;
+                                updateButtons();
+                                setStatus("Blizzard installer download failed: " +
+                                        failure.getMessage() +
+                                        ". Your previously downloaded installer remains intact.");
+                            });
+                        }
+                    });
+                }).show();
+    }
+
+    private void installBattleNet() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.downloadedInstaller(battleNetRoot());
+            if (exe == null)
+                throw new IllegalStateException("Download a valid Blizzard Windows installer first");
+            // Explicit installer action only: reuse ordinary Wine installer
+            // lifecycle, preserving installed files and the selected path.
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), true, false);
+        } catch (Exception error) {
+            setStatus("Cannot start Battle.net setup: " + error.getMessage());
+        }
+    }
+
+    private void openBattleNet() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.installedLauncher(battleNetRoot());
+            if (exe == null)
+                throw new IllegalStateException("No Battle.net launcher found in the standard Wine Program Files location");
+            // Launcher requires pointer, keyboard and Windows login fields;
+            // not the gamepad overlay. Game controls remain Core-owned.
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false);
+        } catch (Exception error) {
+            setStatus("Cannot open Battle.net: " + error.getMessage());
+        }
     }
 
     /** Select a registered environment without moving or deleting its Wine prefix. */
@@ -939,6 +1063,27 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         installerButton.setEnabled(!busy && ready);
         if (installerFolderButton != null) installerFolderButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
+        if (CharoiteEnvironments.isBattleNet(this)) {
+            File root = null;
+            try {
+                Container current = new ContainerManager(this).getContainerById(containerId);
+                if (current != null) root = current.getRootDir();
+            } catch (Exception ignored) {}
+            File setup = root == null ? null : CharoiteBattleNetSupport.downloadedInstaller(root);
+            File launcher = root == null ? null : CharoiteBattleNetSupport.installedLauncher(root);
+            if (battleNetDownloadButton != null)
+                battleNetDownloadButton.setEnabled(!busy && ready);
+            if (battleNetInstallButton != null)
+                battleNetInstallButton.setEnabled(!busy && ready && setup != null);
+            if (battleNetOpenButton != null)
+                battleNetOpenButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetDownloadStatus != null)
+                battleNetDownloadStatus.setText(!ready ? "Preparing isolated Windows container…" :
+                        (setup == null ? "Latest Windows installer not yet downloaded." :
+                         "Windows installer downloaded: " + (setup.length() / 1024) + " KB.") +
+                        (launcher == null ? "\\nInstalled launcher not detected yet." :
+                         "\\nBattle.net Windows launcher detected. Open to update games."));
+        }
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?
                 "RESTORE NORMAL GRAPHICS" : "SWITCH TO COMPATIBILITY GRAPHICS");

@@ -1083,8 +1083,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetDownloadStatus.setText(!ready ? "Preparing isolated Windows container…" :
                         (setup == null ? "Latest Windows installer not yet downloaded." :
                          "Windows installer downloaded: " + (setup.length() / 1024) + " KB.") +
-                        (launcher == null ? "\\nInstalled launcher not detected yet." :
-                         "\\nBattle.net Windows launcher detected. Open to update games."));
+                        (launcher == null ? "\nInstalled launcher not detected yet." :
+                         "\nBattle.net Windows launcher detected. Open to update games."));
         }
         compatButton.setEnabled(!busy && ready);
         compatButton.setText(CharoiteCore.compatibleGraphics(this) ?

@@ -81,6 +81,27 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertNotIn('window.setWidth(', POLICY)
         self.assertNotIn('window.setHeight(', POLICY)
 
+    def test_shard_double_tap_does_not_shrink_window(self):
+        # Intercept at the actual native TouchpadView click producer. Do not
+        # change the game, X11 window size, native mouse or base-game controls.
+        self.assertIn('touchpad_source = java_root / "com/winlator/widget/TouchpadView.java"', OVERLAY)
+        self.assertIn('touchpad_tap_anchor', OVERLAY)
+        self.assertIn('charoiteSuppressShardDoubleTap(finger1)', OVERLAY)
+        self.assertIn('private boolean charoiteSuppressShardDoubleTap(Finger finger)', OVERLAY)
+        self.assertIn('suppressShardTouchDoubleTap(', OVERLAY)
+        self.assertIn('suppressShardTouchDoubleTap(String executable,', POLICY)
+        self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(executable)', POLICY)
+        self.assertIn('frame[4] != screenInfo.width || frame[5] != screenInfo.height', POLICY)
+        self.assertIn('touchX < frame[0] || touchX >= frame[0] + frame[2]', POLICY)
+        self.assertIn('now - lastShardTouchTapAt <= 350', POLICY)
+        self.assertIn('lastShardTouchTapAt = repeated ? 0 : now;', POLICY)
+        self.assertIn('lastShardTouchTapAt = 0;', POLICY)
+        self.assertIn('lastHandheldScreen = null;', POLICY)
+        # Keep native first-tap click forwarding and all handheld key controls.
+        self.assertIn('pressPointerButtonLeft(finger1);', OVERLAY)
+        self.assertIn('!getIntent().getBooleanExtra("touhou_desktop_window", false)', OVERLAY)
+        self.assertNotIn('window.setWidth(', POLICY)
+
     def test_portrait_game_stays_above_handheld_controls(self):
         self.assertIn('screenInfo.height <= screenInfo.width', POLICY)
         self.assertIn('screenInfo.height * 0.56f', POLICY)

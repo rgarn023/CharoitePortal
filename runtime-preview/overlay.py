@@ -399,6 +399,40 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
         }
 """)
 
+# Winlator's TouchpadView converts rapid consecutive finger taps into
+# rapid native mouse clicks. In Shard's handheld game surface these can
+# toggle the Windows game window size (the user saw it shrink on double tap).
+# Suppress only the SECOND nearby single-finger TAP, never the first,
+# drag, multitouch, native mouse, non-Shard game, or DeX.
+touchpad_source = java_root / "com/winlator/widget/TouchpadView.java"
+touchpad_code = touchpad_source.read_text(encoding="utf-8")
+touchpad_tap_anchor = """                if (finger1.isTap()) {
+                    if (moveCursorToTouchpoint) xServer.injectPointerMove(finger1.x, finger1.y);
+                    pressPointerButtonLeft(finger1);
+                }"""
+assert touchpad_code.count(touchpad_tap_anchor) == 1, (
+    "Upstream TouchpadView single-finger click handler changed"
+)
+touchpad_code = touchpad_code.replace(touchpad_tap_anchor, """                if (finger1.isTap() && !charoiteSuppressShardDoubleTap(finger1)) {
+                    if (moveCursorToTouchpoint) xServer.injectPointerMove(finger1.x, finger1.y);
+                    pressPointerButtonLeft(finger1);
+                }""")
+touchpad_function_anchor = "    private void handleFingerUp(Finger finger1) {"
+assert touchpad_code.count(touchpad_function_anchor) == 1, (
+    "Upstream TouchpadView tap dispatcher changed"
+)
+touchpad_code = touchpad_code.replace(touchpad_function_anchor, """    private boolean charoiteSuppressShardDoubleTap(Finger finger) {
+        if (!(getContext() instanceof android.app.Activity)) return false;
+        android.app.Activity activity = (android.app.Activity)getContext();
+        return com.charoitegames.core.CharoiteWindowPolicy.suppressShardTouchDoubleTap(
+                activity.getIntent().getStringExtra("exec_path"),
+                activity.getIntent().getBooleanExtra("touhou_desktop_window", false),
+                xServer.screenInfo, finger.x, finger.y);
+    }
+
+""" + touchpad_function_anchor)
+touchpad_source.write_text(touchpad_code, encoding="utf-8")
+
 # TPDP/Shard handheld sessions must not inherit the upstream keyboard
 # cursor-tracking translation, which visibly pushes their Wine game image up.
 # Other Windows games and DeX retain the original cursor-following behavior.

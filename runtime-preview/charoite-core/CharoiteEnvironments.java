@@ -36,21 +36,51 @@ public final class CharoiteEnvironments {
         return item;
     }
 
-    /** Called before UI construction. Existing game library stays under game_library. */
+    /**
+     * First installation: General Gaming is home and Touhou Realm is already
+     * available in the switcher. They are independent Wine containers.
+     *
+     * In-place upgrades: preserve the exact current environment, its games,
+     * theme, settings, and container. Only add missing built-in presets.
+     * Do not overwrite the ACTIVE setting or attach a second realm to an
+     * existing Windows container.
+     */
     public static synchronized void initialize(AppCompatActivity host) {
         SharedPreferences p = prefs(host);
-        if (p.contains(KEY)) return;
         try {
+            if (p.contains(KEY)) {
+                JSONArray existing = new JSONArray(p.getString(KEY, "[]"));
+                boolean hasGeneral = false, hasTouhou = false;
+                for (int i = 0; i < existing.length(); i++) {
+                    JSONObject entry = existing.optJSONObject(i);
+                    if (entry == null) continue;
+                    hasGeneral |= GENERAL.equals(entry.optString("id"));
+                    hasTouhou |= TOUHOU.equals(entry.optString("id"));
+                }
+                if (hasGeneral && hasTouhou) return;
+                if (!hasGeneral)
+                    existing.put(make(GENERAL, "General Gaming", "general", 0));
+                if (!hasTouhou)
+                    existing.put(make(TOUHOU, "Touhou Realm", "touhou", 0));
+                if (!p.edit().putString(KEY, existing.toString()).commit())
+                    throw new IllegalStateException("Cannot register built-in environments");
+                // ACTIVE intentionally remains UNCHANGED on updates.
+                return;
+            }
             int legacyId = p.getInt("touhou_container", 0);
             ContainerManager manager = new ContainerManager(host);
             Container legacy = legacyId > 0 ? manager.getContainerById(legacyId) : null;
             if (legacy == null && !manager.getContainers().isEmpty())
                 legacy = manager.getContainers().get(0);
             JSONArray entries = new JSONArray();
+            entries.put(make(GENERAL, "General Gaming", "general", 0));
             entries.put(make(TOUHOU, "Touhou Realm", "touhou",
                     legacy == null ? 0 : legacy.id));
+            // Existing prefixes created before the environment registry
+            // belong to Touhou; a truly fresh Portal opens in General Gaming.
+            String initial = legacy == null ? GENERAL : TOUHOU;
             if (!p.edit().putString(KEY, entries.toString())
-                    .putString(ACTIVE, TOUHOU).commit())
+                    .putString(ACTIVE, initial).commit())
                 throw new IllegalStateException("Cannot save environment registry");
         } catch (Exception failure) {
             throw new IllegalStateException("Cannot initialize game environments", failure);
@@ -67,7 +97,7 @@ public final class CharoiteEnvironments {
     }
 
     public static String activeId(AppCompatActivity host) {
-        return prefs(host).getString(ACTIVE, TOUHOU);
+        return prefs(host).getString(ACTIVE, GENERAL);
     }
 
     public static String libraryKey(AppCompatActivity host) {
@@ -92,7 +122,7 @@ public final class CharoiteEnvironments {
     }
 
     public static String activeName(AppCompatActivity host) {
-        return active(host).optString("name", "Touhou Realm");
+        return active(host).optString("name", "General Gaming");
     }
 
     public static synchronized boolean switchTo(AppCompatActivity host, String id) {
@@ -198,6 +228,6 @@ public final class CharoiteEnvironments {
     }
 
     public static String activeTheme(AppCompatActivity host) {
-        return active(host).optString("template", "touhou");
+        return active(host).optString("template", "general");
     }
 }

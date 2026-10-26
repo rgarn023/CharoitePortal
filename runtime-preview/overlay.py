@@ -400,8 +400,9 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
 """)
 
 # Winlator's TouchpadView converts rapid consecutive finger taps into
-# rapid native mouse clicks. In Shard's handheld game surface these can
-# toggle the Windows game window size (the user saw it shrink on double tap).
+# rapid native mouse clicks. On Shard handheld these can toggle the
+# Windows game window. Use two taps' own coordinates, NOT the compositor
+# frame rectangle (it uses a different transform and missed real taps).
 # Suppress only the SECOND nearby single-finger TAP, never the first,
 # drag, multitouch, native mouse, non-Shard game, or DeX.
 touchpad_source = java_root / "com/winlator/widget/TouchpadView.java"

@@ -91,9 +91,14 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('suppressShardTouchDoubleTap(', OVERLAY)
         self.assertIn('suppressShardTouchDoubleTap(String executable,', POLICY)
         self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(executable)', POLICY)
-        self.assertIn('frame[4] != screenInfo.width || frame[5] != screenInfo.height', POLICY)
-        self.assertIn('touchX < frame[0] || touchX >= frame[0] + frame[2]', POLICY)
-        self.assertIn('now - lastShardTouchTapAt <= 350', POLICY)
+        # Regression: coordinates handed to the touchpad callback MUST NOT
+        # be compared to the differently transformed compositor outline.
+        self.assertNotIn('touchX < frame[0]', POLICY)
+        self.assertNotIn('frame[4] != screenInfo.width', POLICY)
+        self.assertIn('ViewConfiguration.getDoubleTapTimeout()', POLICY)
+        self.assertIn('Math.abs(touchX - lastShardTouchTapX) <= tolerance', POLICY)
+        self.assertIn('Math.abs(touchY - lastShardTouchTapY) <= tolerance', POLICY)
+        self.assertIn('int tolerance = Math.max(20, screenInfo.width / 16);', POLICY)
         self.assertIn('lastShardTouchTapAt = repeated ? 0 : now;', POLICY)
         self.assertIn('lastShardTouchTapAt = 0;', POLICY)
         self.assertIn('lastHandheldScreen = null;', POLICY)

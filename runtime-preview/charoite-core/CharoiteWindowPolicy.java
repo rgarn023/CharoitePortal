@@ -37,38 +37,38 @@ public final class CharoiteWindowPolicy {
     }
 
     /**
-     * Prevent two quick touchscreen clicks on Shard's game picture from
-     * becoming a Win32 double-click that toggles its window dimensions.
-     * Return true only for the SECOND tap, leaving the first ordinary click
-     * and all mouse motion / other multitouch gestures untouched.
+     * Filter the SECOND nearby Shard-only phone touchscreen tap at the
+     * TouchpadView click producer, preventing Wine WM_LBUTTONDBLCLK from
+     * changing the game's window dimensions.
      *
-     * Coordinates are already in Wine desktop pixels (TouchpadView.Finger
-     * uses its inverse Android view transform). Only intercept within the
-     * actually mapped compositor-scaled game rectangle for this session.
-     * Never affect physical mouse input, DeX or unrelated applications.
+     * Do NOT compare these coordinates with lastHandheldScreen. The
+     * TouchpadView maps Android touches into Wine desktop coordinates, while
+     * the fullscreen transformation draws the game elsewhere in that desktop:
+     * the two rectangles are NOT interchangeable. That old boundary check
+     * rejected legitimate taps and silently disabled the protection.
+     *
+     * Only the second short tap is consumed; the first click, holds, drags,
+     * physical mouse, handheld keyboard controls, base TPDP and DeX remain
+     * unaffected. The originating TouchpadView excludes overlay buttons.
      */
     public static boolean suppressShardTouchDoubleTap(String executable,
                                                        boolean desktopWindow,
                                                        ScreenInfo screenInfo,
                                                        int touchX, int touchY) {
         if (desktopWindow || screenInfo == null ||
-                !CharoiteShardOfDreamsSupport.isExpansionGame(executable)) return false;
-        int[] frame = lastHandheldScreen;
-        if (frame == null || frame.length < 6 ||
-                frame[4] != screenInfo.width || frame[5] != screenInfo.height)
-            return false;
-        if (touchX < frame[0] || touchX >= frame[0] + frame[2] ||
-                touchY < frame[1] || touchY >= frame[1] + frame[3]) {
+                !CharoiteShardOfDreamsSupport.isExpansionGame(executable)) {
             lastShardTouchTapAt = 0;
             return false;
         }
         long now = android.os.SystemClock.uptimeMillis();
-        int tolerance = Math.max(12, screenInfo.width / 32);
+        int tolerance = Math.max(20, screenInfo.width / 16);
         boolean repeated = lastShardTouchTapAt > 0 &&
-                now - lastShardTouchTapAt <= 350 &&
+                now - lastShardTouchTapAt <=
+                        android.view.ViewConfiguration.getDoubleTapTimeout() &&
                 Math.abs(touchX - lastShardTouchTapX) <= tolerance &&
                 Math.abs(touchY - lastShardTouchTapY) <= tolerance;
-        // Consume exactly one second tap per pair, not the first.
+        // Consume exactly the second tap of each pair rather than breaking
+        // all taps or permanently disabling game-screen mouse input.
         lastShardTouchTapAt = repeated ? 0 : now;
         lastShardTouchTapX = touchX;
         lastShardTouchTapY = touchY;

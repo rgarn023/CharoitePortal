@@ -61,11 +61,13 @@ class PurpleHandheldInputContract(unittest.TestCase):
                       'public static boolean useX11()',
                       'public static boolean useScan()',
                       'public static final int SCAN_ONLY = 3;',
+                      'public static final int WINDOW_ONLY = 4;',
+                      'public static boolean useWindow()',
                       'restoreX11Focus(xServer);'):
             self.assertIn(token, INPUT)
         self.assertIn('if (touhou8 && com.charoitegames.core', OVERLAY)
         self.assertIn('if (!touhou8 || com.charoitegames.core', OVERLAY)
-        self.assertIn('final Button backend = touhou8 ? button(host, "INPUT: DUAL"', UI)
+        self.assertIn('final Button backend = touhou8 ? button(host, "INPUT: SCAN"', UI)
         self.assertIn('CharoiteLegacyKeyboard.nextMode()', UI)
         self.assertIn('final Button diagnostics = touhou8 ?', UI)
         self.assertIn('CharoiteLegacyKeyboard.diagnosticReport(', UI)
@@ -73,6 +75,7 @@ class PurpleHandheldInputContract(unittest.TestCase):
         self.assertIn('isCharoiteKeyboardReady()', OVERLAY)
         self.assertIn('keyboard.setVisibility(show ? View.VISIBLE : View.GONE);', UI)
         self.assertIn('CharoiteLegacyKeyboard.sendScan(', OVERLAY)
+        self.assertIn('CharoiteLegacyKeyboard.sendWindow(', OVERLAY)
 
     def test_focus_targets_nested_actual_game_window(self):
         for clause in ('handheldGameClientId()', 'pending.add(wm.rootWindow)',
@@ -81,6 +84,9 @@ class PurpleHandheldInputContract(unittest.TestCase):
                        'handler.isCharoiteKeyboardReady()',
                        'handler.bringToFront(new File(executable).getName())'):
             self.assertIn(clause, INPUT)
+        self.assertIn('acceptsX11Keys(focused)', INPUT)
+        self.assertIn('hasEventListenerFor(com.winlator.xserver.events.Event.KEY_PRESS)', INPUT)
+        self.assertIn('hasEventListenerFor(com.winlator.xserver.events.Event.KEY_RELEASE)', INPUT)
         self.assertIn('return generalGameClientId;', (
             ROOT / 'charoite-core/CharoiteWindowPolicy.java').read_text())
 

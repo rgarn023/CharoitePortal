@@ -46,35 +46,79 @@ public final class CharoiteLegacyKeyboard {
                 inputMode == X11_ONLY ? "X11" : "DUAL";
     }
 
-    /** X11 and Win32 can lose input focus independently after fullscreen.
-     * Recover only if XServer currently reports no focused app, and never
-     * steal focus from a valid dialog or another active window.
-     */
+    private static volatile String focusStatus = "Focus not checked";
+    private static volatile String bridgeStatus = "Bridge not checked";
+    private static volatile String x11Status = "X11 not checked";
+
+    /** Scan nested Wine windows, not only root's direct children. */
+    private static Window findGameWindow(WindowManager wm) {
+        java.util.ArrayDeque<Window> pending = new java.util.ArrayDeque<>();
+        pending.add(wm.rootWindow);
+        int selected = CharoiteWindowPolicy.handheldGameClientId();
+        Window matching = null, fallback = null;
+        long maxSize = 0;
+        while (!pending.isEmpty()) {
+            Window candidate = pending.removeFirst();
+            for (Window child : candidate.getChildren()) pending.addLast(child);
+            if (candidate == wm.rootWindow || !candidate.isRenderable() ||
+                    candidate.isDesktopWindow() || candidate.isDialogBox() ||
+                    candidate.getWidth() < 300 || candidate.getHeight() < 180) continue;
+            if (selected != -1 && selected == candidate.id) return candidate;
+            String clazz = candidate.getClassName().toLowerCase(java.util.Locale.ROOT);
+            String title = candidate.getName().toLowerCase(java.util.Locale.ROOT);
+            if (clazz.contains("th08") || title.contains("imperishable") ||
+                    title.contains("東方永夜抄")) matching = candidate;
+            long size = (long)candidate.getWidth() * candidate.getHeight();
+            if (candidate.getChildCount() == 0 && size > maxSize) {
+                fallback = candidate;
+                maxSize = size;
+            }
+        }
+        return matching != null ? matching : fallback;
+    }
+
     private static void restoreX11Focus(XServer xServer) {
+        if (xServer == null) return;
         try (XLock lock = xServer.lock(XServer.Lockable.WINDOW_MANAGER,
                 XServer.Lockable.INPUT_DEVICE)) {
             WindowManager wm = xServer.windowManager;
             Window focused = wm.getFocusedWindow();
-            if (focused != null && focused != wm.rootWindow) return;
-            Window candidate = null;
-            for (Window child : wm.rootWindow.getChildren()) {
-                if (!child.isRenderable() || child.isDesktopWindow()) continue;
-                String name = child.getClassName().toLowerCase(java.util.Locale.ROOT);
-                if (name.contains("th08")) {
-                    candidate = child;
-                    break;
-                }
-                if (candidate == null && child.isApplicationWindow()) candidate = child;
+            if (focused != null && focused.isDialogBox()) {
+                focusStatus = "Windows dialog has focus";
+                return;
             }
-            if (candidate != null)
-                wm.setFocus(candidate, WindowManager.FocusRevertTo.POINTER_ROOT);
+            Window game = findGameWindow(wm);
+            if (game == null) {
+                focusStatus = "No mapped game client available";
+                return;
+            }
+            if (focused != game)
+                wm.setFocus(game, WindowManager.FocusRevertTo.POINTER_ROOT);
+            focusStatus = "X11 game client focused: " + game.id;
+        } catch (RuntimeException error) {
+            focusStatus = "Focus error: " + error.getClass().getSimpleName();
+            android.util.Log.w("CharoiteInput", focusStatus, error);
         }
     }
 
-    /** Needed even when the user isolates the X11-only backend. */
     public static void prepareX11Focus(XServer xServer, String executable) {
-        if (requiresWindowsKeyboard(executable) && xServer != null)
-            restoreX11Focus(xServer);
+        if (requiresWindowsKeyboard(executable)) restoreX11Focus(xServer);
+    }
+
+    /** Opt-in MORE diagnostic, not an overlay above the playing field. */
+    public static String diagnosticReport(XServer xServer) {
+        WinHandler handler = xServer == null ? null : xServer.getWinHandler();
+        boolean ready = handler != null && handler.isCharoiteKeyboardReady();
+        return "Touhou 8 input: " + modeLabel() +
+                "\nWin32 bridge: " + (ready ? "ready" : "not initialized") +
+                "\n" + bridgeStatus + "\n" + x11Status + "\n" + focusStatus +
+                "\nKey injection does not guarantee the game received it.";
+    }
+
+    public static void recordX11(int key, boolean pressed) {
+        x11Status = "X11 " + CharoiteGameControlProfiles.label(key) +
+                (pressed ? " down" : " up");
+        android.util.Log.d("CharoiteInput", x11Status);
     }
 
     /** Win32 virtual-key values; KEYEVENTF_KEYUP = 0x0002. */
@@ -102,27 +146,29 @@ public final class CharoiteLegacyKeyboard {
         }
     }
 
-    /** Returns false to retain the regular X11 path when not applicable. */
+    /** Only report queued input after the Wine keyboard bridge initializes. */
     public static boolean send(XServer xServer, String executable,
                                int androidKey, boolean pressed) {
         if (!requiresWindowsKeyboard(executable) || xServer == null) return false;
         int vk = virtualKey(androidKey);
         WinHandler handler = xServer.getWinHandler();
-        if (vk < 0 || handler == null) return false;
-        if (pressed) {
-            boolean missingFocus = xServer.windowManager.getFocusedWindow() == null ||
-                    xServer.windowManager.getFocusedWindow() ==
-                            xServer.windowManager.rootWindow;
-            if (missingFocus) {
-                restoreX11Focus(xServer);
-                // The executable may be th08e.exe or a renamed translation.
-                handler.bringToFront(new File(executable).getName());
-            }
+        if (vk < 0 || handler == null || !handler.isCharoiteKeyboardReady()) {
+            bridgeStatus = "Win32 unavailable; X11 fallback enabled";
+            android.util.Log.w("CharoiteInput", bridgeStatus);
+            return false;
         }
-        // Win32 KEYEVENTF_EXTENDEDKEY=1 (arrows), KEYEVENTF_KEYUP=2.
+        if (pressed) {
+            restoreX11Focus(xServer);
+            handler.bringToFront(new File(executable).getName());
+        }
         int flags = (pressed ? 0 : 0x0002) |
                 (vk >= 0x25 && vk <= 0x28 ? 0x0001 : 0);
-        handler.keyboardEvent((byte) vk, flags);
+        handler.keyboardEvent((byte)vk, flags);
+        bridgeStatus = "Win32 queued " +
+                CharoiteGameControlProfiles.label(androidKey) +
+                (pressed ? " down" : " up");
+        android.util.Log.d("CharoiteInput", bridgeStatus);
         return true;
     }
+
 }

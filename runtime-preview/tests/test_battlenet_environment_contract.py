@@ -29,7 +29,10 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertIn('!validPe(part)', CORE)
         self.assertIn('StandardCopyOption.ATOMIC_MOVE', CORE)
         self.assertIn('StandardCopyOption.REPLACE_EXISTING', CORE)
-        self.assertIn('new File(drive, "CharoitePortal/BattleNet/Installer")', CORE)
+        self.assertIn('CharoiteEnvironments.storageFolder(', CORE)
+        self.assertIn('CharoiteEnvironments.BATTLE_NET, "Installers"', CORE)
+        # An older downloaded installer remains available without migration.
+        self.assertIn('"CharoitePortal/BattleNet/Installer/" + FILENAME', CORE)
         self.assertIn('if (part.exists()) part.delete();', CORE)
         self.assertIn('File installedLauncher(File root)', CORE)
         self.assertNotIn('System.load(', CORE)

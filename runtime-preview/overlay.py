@@ -233,6 +233,7 @@ core_destination.write_bytes(core_source.read_bytes())
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
                "CharoiteGameProfiles.java", "CharoiteGameControlProfiles.java", "CharoiteGameSessions.java",
+               "CharoiteBattleNetSupport.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
                "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
                "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java",

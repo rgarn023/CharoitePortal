@@ -22,12 +22,21 @@ public final class CharoiteWindowPolicy {
     private static long lastShardTouchTapAt;
     private static int lastShardTouchTapX;
     private static int lastShardTouchTapY;
+    // When the game changes its native size (including on double-click), it
+    // remains the SAME X11 game client. Do not lose the fullscreen transform
+    // merely because the new dimensions no longer pass the startup heuristic.
+    private static volatile int activeShardClientId = -1;
+    private static volatile int activeShardClientWidth = -1;
+    private static volatile int activeShardClientHeight = -1;
 
     public static void setHandheldOutline(View outline) {
         // A new game session must not inherit the previous game's tap or
         // screen coordinates. Do not touch the actual Wine window or files.
         lastShardTouchTapAt = 0;
         lastHandheldScreen = null;
+        activeShardClientId = -1;
+        activeShardClientWidth = -1;
+        activeShardClientHeight = -1;
         outlineRef = new WeakReference<>(outline);
         if (outline != null) outline.postInvalidate();
     }
@@ -88,23 +97,57 @@ public final class CharoiteWindowPolicy {
                 screenInfo == null || screenInfo.height <= screenInfo.width)
             return false;
         int width = client.getWidth(), height = client.getHeight();
-        if (width >= 460 && width <= 485 && height >= 335 && height <= 375)
-            return true; // Keep the verified base-game presentation unchanged.
-        if (!CharoiteShardOfDreamsSupport.isExpansionGame(executable))
+        boolean shard = CharoiteShardOfDreamsSupport.isExpansionGame(executable);
+        if (!shard) {
+            // Preserve the verified TPDP base-game selection exactly.
+            return width >= 460 && width <= 485 &&
+                    height >= 335 && height <= 375;
+        }
+        if (client.isDesktopWindow() || client.isDialogBox() ||
+                client.getType() != Window.Type.NORMAL) return false;
+        // An X11 window keeps the same id when Wine resizes it. This is the
+        // crucial difference from the former min-460x335 heuristic, which
+        // dropped fullscreen scaling as soon as Shard switched window mode.
+        boolean sameClient = activeShardClientId == client.id;
+        if (sameClient) {
+            if (width < 96 || height < 72 || width > 4096 || height > 4096)
+                return false;
+            if (activeShardClientWidth != width || activeShardClientHeight != height) {
+                CharoiteDiagnostics.recordShardWindowChange(client.id,
+                        activeShardClientWidth, activeShardClientHeight, width, height,
+                        "same game window retained");
+                activeShardClientWidth = width;
+                activeShardClientHeight = height;
+            }
+            return true;
+        }
+        // Do not select the separately decorated Wine parent frame.
+        if (client.getChildCount() > 0 &&
+                client.hasDecoration(com.winlator.xserver.Decoration.TITLE))
             return false;
-        // Shard's actual game window is not guaranteed to be 4:3; a 16:9
-        // D3D9 drawable is valid too. Exclude tiny dialogs/titlebar fragments,
-        // whole Wine desktops and implausible aspect ratios.
-        if (client.getType() != Window.Type.NORMAL ||
-                client.isDesktopWindow() || client.isDialogBox() ||
-                width < 460 || height < 335 || width > 1920 || height > 1440)
-            return false;
-        float ratio = (float) width / height;
-        if (ratio < 0.95f || ratio > 2.4f) return false;
-        // Never transform the decorated frame as if it were the child game
-        // surface; its drawable is suppressed separately by hideNativeFrame.
-        return !(client.getChildCount() > 0 &&
-                client.hasDecoration(com.winlator.xserver.Decoration.TITLE));
+        float ratio = height > 0 ? (float)width / height : 0;
+        boolean normalGameSize = width >= 460 && height >= 335 &&
+                width <= 1920 && height <= 1440 &&
+                ratio >= 0.95f && ratio <= 2.4f;
+        // A game can replace its X11 drawable on a mode switch; recover by
+        // title/class evidence instead of accepting every tiny Wine dialog.
+        String title = client.getName();
+        String clazz = client.getClassName();
+        boolean shardIdentity =
+                (title != null && (title.contains("人形演舞") ||
+                        title.contains("ユメノカケラ"))) ||
+                (clazz != null && (clazz.contains("enbu_ap") ||
+                        clazz.contains("幻想人形演舞")));
+        boolean smallIdentifiedGame = shardIdentity && width >= 240 &&
+                height >= 180 && width <= 1920 && height <= 1440 &&
+                ratio >= 0.8f && ratio <= 2.4f;
+        if (!normalGameSize && !smallIdentifiedGame) return false;
+        activeShardClientId = client.id;
+        activeShardClientWidth = width;
+        activeShardClientHeight = height;
+        CharoiteDiagnostics.recordShardWindowChange(client.id, 0, 0,
+                width, height, "Shard game window selected");
+        return true;
     }
 
     /**
@@ -164,8 +207,16 @@ public final class CharoiteWindowPolicy {
             return false;
         int dw = frame.getWidth() - client.getWidth();
         int dh = frame.getHeight() - client.getHeight();
-        return isHandheldGameClient(client, screenInfo, executable, desktopWindow) &&
-                dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
+        if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow))
+            return false;
+        // If Shard switches to a smaller guest window, the decorated Wine
+        // parent can briefly retain its old dimensions. Keep its old frame
+        // hidden while the tracked game drawable remains scaled.
+        if (CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
+                activeShardClientId == client.id)
+            return frame.hasDecoration(com.winlator.xserver.Decoration.TITLE)
+                    && dw >= 0 && dh >= 0 && (dw > 0 || dh > 0);
+        return dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
                 (dw > 0 || dh > 0);
     }
 

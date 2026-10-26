@@ -49,7 +49,19 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('Window client,', POLICY)
         self.assertIn('rememberClientScreen(transform, screenInfo, client, executable, desktopWindow);', POLICY)
         self.assertIn('isHandheldGameClient(client, screenInfo, executable, desktopWindow)', POLICY)
-        self.assertIn('width >= 460 && width <= 485 && height >= 335 && height <= 375', POLICY)
+        self.assertIn('width >= 460 && width <= 485 &&', POLICY)
+        self.assertIn('height >= 335 && height <= 375', POLICY)
+        # Once a Shard game window has been selected, mode-switch resizing
+        # must NOT discard the compositor transform just because it is now
+        # less than the initial game's 460x335 threshold.
+        self.assertIn('activeShardClientId == client.id', POLICY)
+        self.assertIn('if (sameClient) {', POLICY)
+        self.assertIn('width < 96 || height < 72', POLICY)
+        self.assertIn('activeShardClientWidth = width;', POLICY)
+        self.assertIn('boolean smallIdentifiedGame = shardIdentity && width >= 240', POLICY)
+        self.assertIn('activeShardClientId = client.id;', POLICY)
+        self.assertIn('activeShardClientId = -1;', POLICY)
+        self.assertIn('recordShardWindowChange(', POLICY)
         self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(executable)', POLICY)
         self.assertIn('if (ratio < 0.95f || ratio > 2.4f) return false;', POLICY)
         self.assertIn('allowDecoratedShardClient(Window client,', POLICY)
@@ -78,6 +90,19 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertNotIn('CharoiteWindowPolicy.placeScaledGame(\\n                                parentFullscreenTransformation', OVERLAY)
         # Native game resolution remains unchanged; only its display quad
         # and decorated parent are reduced to an 86%-width presentation.
+        self.assertNotIn('window.setWidth(', POLICY)
+        self.assertNotIn('window.setHeight(', POLICY)
+
+    def test_shard_resize_keeps_same_compositor_window(self):
+        # Repeated taps may cause Shard itself to resize. Even if the input
+        # debounce misses, the native guest resize must remain inside its
+        # Charoite-scaled handheld frame instead of losing the transform.
+        self.assertIn('boolean sameClient = activeShardClientId == client.id;', POLICY)
+        self.assertIn('if (sameClient) {', POLICY)
+        self.assertIn('return true;', POLICY)
+        self.assertIn('activeShardClientWidth != width || activeShardClientHeight != height', POLICY)
+        self.assertIn('CharoiteDiagnostics.recordShardWindowChange(', POLICY)
+        self.assertIn('frame.hasDecoration(com.winlator.xserver.Decoration.TITLE)', POLICY)
         self.assertNotIn('window.setWidth(', POLICY)
         self.assertNotIn('window.setHeight(', POLICY)
 

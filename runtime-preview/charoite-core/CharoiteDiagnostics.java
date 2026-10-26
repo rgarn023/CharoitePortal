@@ -16,6 +16,8 @@ public final class CharoiteDiagnostics {
             new java.util.LinkedHashMap<>();
     private static final int MAX_EARLY_GRAPHICS = 24;
     private static final ArrayDeque<String> mappedWindows = new ArrayDeque<>();
+    // Actual X11 window size transitions observed on Shard (not click guesses).
+    private static final ArrayDeque<String> shardWindowChanges = new ArrayDeque<>();
     private static final ArrayDeque<String> audioLines = new ArrayDeque<>();
     private static final java.util.LinkedHashMap<String,String> crashLines =
             new java.util.LinkedHashMap<>();
@@ -51,6 +53,7 @@ public final class CharoiteDiagnostics {
         synchronized (graphicsLines) { graphicsLines.clear(); }
         synchronized (earlyGraphics) { earlyGraphics.clear(); }
         synchronized (mappedWindows) { mappedWindows.clear(); }
+        synchronized (shardWindowChanges) { shardWindowChanges.clear(); }
         synchronized (audioLines) { audioLines.clear(); }
         synchronized (crashLines) { crashLines.clear(); }
         startedAtMillis = android.os.SystemClock.elapsedRealtime();
@@ -218,6 +221,17 @@ public final class CharoiteDiagnostics {
                     "If setup includes separate media files, import the whole installer folder.");
     }
 
+    public static void recordShardWindowChange(int id, int oldWidth,
+                                               int oldHeight, int width,
+                                               int height, String reason) {
+        String entry = "X11 window " + id + ": " + oldWidth + "x" + oldHeight +
+                " -> " + width + "x" + height + " (" + reason + ")";
+        synchronized (shardWindowChanges) {
+            if (shardWindowChanges.size() >= 16) shardWindowChanges.removeFirst();
+            shardWindowChanges.addLast(entry);
+        }
+    }
+
     public static void recordLine(String line) {
         if (line == null || line.trim().isEmpty()) return;
         synchronized (lines) {
@@ -349,6 +363,11 @@ public final class CharoiteDiagnostics {
                 p.getString("charoite_last_mapped_windows", "No window events recorded.");
         report += "\n\nX11 DRAWABLE UPDATES:\n" +
                 p.getString("charoite_last_x11_updates", "Not recorded.");
+        report += "\n\nSHARD HANDHELD WINDOW SIZE CHANGES:\n";
+        synchronized (shardWindowChanges) {
+            if (shardWindowChanges.isEmpty()) report += "No Shard X11 window dimensions captured.";
+            else for (String change : shardWindowChanges) report += change + "\n";
+        }
         report += "\n\nTPDP WINDOW LAYOUT:\n" +
                 p.getString("charoite_last_window_layout", "Not recorded.");
         report += "\n\nGUEST LAUNCHER EXIT:\n" +

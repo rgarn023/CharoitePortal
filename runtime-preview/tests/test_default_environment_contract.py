@@ -12,10 +12,9 @@ class DefaultEnvironmentContract(unittest.TestCase):
     def test_two_builtin_realms_available_on_first_launch(self):
         self.assertIn('entries.put(make(GENERAL, "General Gaming", "general", 0));', ENV)
         self.assertIn('entries.put(make(TOUHOU, "Touhou Realm", "touhou",', ENV)
-        self.assertLess(
-            ENV.index('entries.put(make(GENERAL, "General Gaming", "general", 0));'),
-            ENV.index('entries.put(make(TOUHOU, "Touhou Realm", "touhou",'))
-        )
+        first_general = ENV.index('entries.put(make(GENERAL, "General Gaming"')
+        later_touhou = ENV.index('entries.put(make(TOUHOU, "Touhou Realm"')
+        self.assertLess(first_general, later_touhou)
         self.assertIn('String initial = legacy == null ? GENERAL : TOUHOU;', ENV)
         self.assertIn('.putString(ACTIVE, initial).commit()', ENV)
         self.assertIn('getString(ACTIVE, GENERAL)', ENV)

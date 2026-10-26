@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * TPDP pocket-handheld layout, owned by Charoite Core.
+ * Shared pocket-handheld layout for Charoite Core game sessions.
  *
  * Visual controls match the user's sketch: game above, Select/Start below,
  * shoulder L/Keyboard/R below those, D-pad bottom-left and ABXY bottom-right.
@@ -166,7 +166,7 @@ public final class CharoiteTpdpTouchControls {
 
     /** The XServer display remains visible and touchable between controls. */
     public static void attach(Activity host, FrameLayout root, KeySink sink,
-                              Runnable returnToPortal) {
+                              Runnable returnToPortal, boolean tpdpMapping) {
         if (host instanceof XServerDisplayActivity) {
             XServerView display = ((XServerDisplayActivity)host).getXServerView();
             if (display != null) {
@@ -189,16 +189,23 @@ public final class CharoiteTpdpTouchControls {
             if (!hasFocus) releaseAll.run();
         });
 
-        // Gamepad mapping: A=Z, B=X, X=C, Y=S, L=A, R=D,
-        // Select=Shift, Start=Space. Arrow keys implement the D-pad.
+        // TPDP preserves its proven custom mapping. Generic games use the
+        // common arrow/Z/X/Shift/Enter/Space keyboard layout (e.g. Touhou 8).
+        // This changes only Android key injection, not Wine game settings.
         final Button select = button(host, "Select", "Left Shift",
                 KeyEvent.KEYCODE_SHIFT_LEFT, true, guarded);
-        final Button start = button(host, "Start", "Space",
-                KeyEvent.KEYCODE_SPACE, true, guarded);
-        final Button leftShoulder = button(host, "L", "A",
-                KeyEvent.KEYCODE_A, true, guarded);
-        final Button rightShoulder = button(host, "R", "D",
-                KeyEvent.KEYCODE_D, true, guarded);
+        final Button start = button(host, "Start",
+                tpdpMapping ? "Space" : "Enter",
+                tpdpMapping ? KeyEvent.KEYCODE_SPACE : KeyEvent.KEYCODE_ENTER,
+                true, guarded);
+        final Button leftShoulder = button(host, "L",
+                tpdpMapping ? "A" : "Shift",
+                tpdpMapping ? KeyEvent.KEYCODE_A : KeyEvent.KEYCODE_SHIFT_LEFT,
+                true, guarded);
+        final Button rightShoulder = button(host, "R",
+                tpdpMapping ? "D" : "Space",
+                tpdpMapping ? KeyEvent.KEYCODE_D : KeyEvent.KEYCODE_SPACE,
+                true, guarded);
         // These are Windows key events, not application-exit actions.
         final Button enter = button(host, "Enter", "Enter",
                 KeyEvent.KEYCODE_ENTER, true, guarded);
@@ -214,8 +221,10 @@ public final class CharoiteTpdpTouchControls {
         final Button down = button(host, "↓", "Down arrow",
                 KeyEvent.KEYCODE_DPAD_DOWN, false, guarded);
 
-        final Button yButton = button(host, "Y", "S",
-                KeyEvent.KEYCODE_S, false, guarded);
+        final Button yButton = button(host, "Y",
+                tpdpMapping ? "S" : "V",
+                tpdpMapping ? KeyEvent.KEYCODE_S : KeyEvent.KEYCODE_V,
+                false, guarded);
         final Button xButton = button(host, "X", "C",
                 KeyEvent.KEYCODE_C, false, guarded);
         final Button aButton = button(host, "A", "Z",

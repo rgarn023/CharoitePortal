@@ -39,6 +39,13 @@ public final class CharoiteGameSessions {
      */
     public static void launch(AppCompatActivity host, Class<? extends Activity> target,
                               int containerId, String executable, boolean installer) {
+        launch(host, target, containerId, executable, installer, true);
+    }
+
+    /** Allow Core diagnostic programs to run windowed, without game buttons. */
+    public static void launch(AppCompatActivity host, Class<? extends Activity> target,
+                              int containerId, String executable, boolean installer,
+                              boolean gamePresentation) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
         // Shard of Dreams uses the original TPDP installation. Some Wine
@@ -56,7 +63,7 @@ public final class CharoiteGameSessions {
         // Charoite Core provides one shared phone handheld surface for games.
         // Installers are always normal Windows setup windows; DeX retains
         // its keyboard, mouse and resizable desktop presentation.
-        play.putExtra("charoite_handheld_game", !installer &&
+        play.putExtra("charoite_handheld_game", !installer && gamePresentation &&
                 !CharoiteCore.isDesktopWindow(host));
         play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(host));
         play.putExtra("touhou_display_size",

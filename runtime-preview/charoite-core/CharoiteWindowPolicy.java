@@ -152,10 +152,29 @@ public final class CharoiteWindowPolicy {
         // native D3D9 pixels. FullscreenTransformation retains the correct
         // inverse pointer scaling for taps on the enlarged image.
         final float portraitDisplayScale = 0.86f;
-        transform.width = (short)Math.max(1,
-                Math.round(transform.width * portraitDisplayScale));
-        transform.height = (short)Math.max(1,
-                Math.round(transform.height * portraitDisplayScale));
+        // Leave the verified base TPDP 480x360 transform unchanged.
+        // Shard may draw to a *square* 4:3-ish or widescreen X11 surface;
+        // scaling only its width to 86% can produce a 620x620 viewport on
+        // a 720-pixel desktop, overlapping controls and cropping its art.
+        // Fit its ORIGINAL surface aspect ratio INSIDE the same 4:3 handheld
+        // screen rectangle as the base game. No guest window resize/stretch.
+        if (CharoiteShardOfDreamsSupport.isExpansionGame(executable)) {
+            final int targetWidth = Math.max(1,
+                    Math.round(screenInfo.width * portraitDisplayScale));
+            final int top = Math.max(12, Math.round(screenInfo.height * 0.04f));
+            final int targetHeight = Math.max(1, Math.min(
+                    Math.round(targetWidth * 0.75f),
+                    Math.round(screenInfo.height * 0.50f) - top));
+            final float fit = Math.min((float) targetWidth / transform.width,
+                    (float) targetHeight / transform.height);
+            transform.width = (short)Math.max(1, Math.round(transform.width * fit));
+            transform.height = (short)Math.max(1, Math.round(transform.height * fit));
+        } else {
+            transform.width = (short)Math.max(1,
+                    Math.round(transform.width * portraitDisplayScale));
+            transform.height = (short)Math.max(1,
+                    Math.round(transform.height * portraitDisplayScale));
+        }
         transform.x = (short)((screenInfo.width - transform.width) / 2);
         int topMargin = Math.max(12, Math.round(screenInfo.height * 0.04f));
         int gameAreaHeight = Math.round(screenInfo.height * 0.56f) - topMargin;

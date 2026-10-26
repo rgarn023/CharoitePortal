@@ -530,7 +530,12 @@ code = code.replace(old_show, """        final boolean[] touhouWindowOpened = {f
 content_anchor = "                if (window.id == frameRatingWindowId) frameRating.update();"
 assert code.count(content_anchor) == 1, "XServer content update hook changed"
 code = code.replace(content_anchor, content_anchor + """
+                // X11 content callbacks can fire once per frame or more.
+                // Do not collect counters on Shard's rendering hot path;
+                // base TPDP keeps its existing diagnostic sampling.
                 if (getIntent().hasExtra("exec_path") &&
+                        !com.charoitegames.core.CharoiteShardOfDreamsSupport.isExpansionGame(
+                                getIntent().getStringExtra("exec_path")) &&
                         com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
                                 getIntent().getStringExtra("exec_path")) &&
                         window.isRenderable() && !window.isDesktopWindow()) {

@@ -75,6 +75,66 @@ public final class CharoiteBattleNetSupport {
         return null;
     }
 
+    /**
+     * Agent diagnostic is deliberately READ-ONLY. The same Blizzard error
+     * can mean an Agent process failed, DLLs are unavailable, or the updater
+     * cannot communicate; never delete ProgramData or a Wine prefix merely
+     * because the installer reports BLZBNTBTS0000005C.
+     */
+    public static String inspectAgent(File root) {
+        final File drive;
+        try { drive = wineDrive(root); }
+        catch (Exception error) {
+            return "Battle.net diagnostics unavailable: " + error.getMessage();
+        }
+        StringBuilder report = new StringBuilder();
+        report.append("BATTLE.NET UPDATE AGENT\n");
+        report.append("Installer error BLZBNTBTS0000005C indicates that the " +
+                "Blizzard Update Agent did not start or communicate.\n");
+        File programData = new File(drive, "ProgramData/Battle.net/Agent");
+        report.append("Agent directory exists: ").append(programData.isDirectory()).append("\n");
+        java.io.File[] versions = programData.listFiles();
+        int agents = 0, logs = 0, errors = 0;
+        long newestLog = 0;
+        if (versions != null) {
+            for (File item : versions) {
+                if (java.nio.file.Files.isSymbolicLink(item.toPath())) continue;
+                if (item.isFile() && item.getName().equalsIgnoreCase("Agent.exe"))
+                    agents++;
+                if (!item.isDirectory() ||
+                        !item.getName().matches("Agent\\.[0-9]+")) continue;
+                File exe = new File(item, "Agent.exe");
+                if (exe.isFile() && !java.nio.file.Files.isSymbolicLink(exe.toPath()))
+                    agents++;
+                File logFolder = new File(item, "Logs");
+                File[] recent = logFolder.listFiles();
+                if (recent != null) for (File log : recent) {
+                    if (log.isFile() && !java.nio.file.Files.isSymbolicLink(log.toPath())
+                            && (log.getName().endsWith(".log") ||
+                                log.getName().endsWith(".txt"))) {
+                        logs++;
+                        if (log.getName().toLowerCase(Locale.ROOT).contains("error"))
+                            errors++;
+                        newestLog = Math.max(newestLog, log.lastModified());
+                    }
+                }
+            }
+        }
+        report.append("Agent.exe copies detected: ").append(agents).append("\n");
+        report.append("Agent log files: ").append(logs)
+                .append(" (error-named: ").append(errors).append(")\n");
+        if (newestLog > 0) report.append("Newest log modified: ")
+                .append(new java.util.Date(newestLog)).append("\n");
+        report.append("Launcher executable detected: ")
+                .append(installedLauncher(root) != null).append("\n");
+        report.append("No game files, logs or Agent state have been changed.\n");
+        report.append("Check System > Launch Diagnostics for Wine process/DLL " +
+                "errors. If Agent.exe exists but cannot execute, this may be " +
+                "a Wine/Box64 runtime incompatibility rather than a bad download. " +
+                "DirectX 12 game compatibility is still unverified.");
+        return report.toString();
+    }
+
     private static boolean trustedWindowsDownload(URL target) {
         if (target == null || !"https".equalsIgnoreCase(target.getProtocol()) ||
                 target.getPort() != -1 && target.getPort() != 443)

@@ -453,6 +453,18 @@ touchpad_code = touchpad_code.replace(touchpad_viewport_anchor,
                 xServer.activity.getIntent().getStringExtra("exec_path"),
                 xServer.activity.getIntent().getBooleanExtra(
                         "touhou_desktop_window", false));""")
+# GL uses a bottom-origin viewport Y, but pointer gestures arrive in
+# top-origin Android coordinates. Convert the projected scene offset back
+# before constructing the physical -> guest touch transform.
+touchpad_top_origin_anchor = """            XForm.makeTranslation(xform, -viewTransformation.viewOffsetX, -viewTransformation.viewOffsetY);"""
+assert touchpad_code.count(touchpad_top_origin_anchor) == 1, (
+    "Upstream Android touch coordinate transform changed"
+)
+touchpad_code = touchpad_code.replace(touchpad_top_origin_anchor,
+    """            int charoiteViewTop = outerHeight -
+                    viewTransformation.viewOffsetY - viewTransformation.viewHeight;
+            XForm.makeTranslation(xform,
+                    -viewTransformation.viewOffsetX, -charoiteViewTop);""")
 touchpad_rotation_anchor = """    public boolean onTouchEvent(MotionEvent event) {
 """
 assert touchpad_code.count(touchpad_rotation_anchor) == 1, (

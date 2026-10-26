@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * The caller provides an app-private Wine container directory; Core handles
  * safe SAF copy, executable selection and classification, and explicit launch
- * policy. Touhou's established C:\TouhouPocket storage is preserved.
+ * policy. New imports use the active environment folder; old game paths remain intact.
  *
  * IMPORTANT: no import method executes an .exe; the host may launch ONLY
  * when shouldLaunchAfterImport() returns true for an explicit installer action.
@@ -77,13 +77,13 @@ public final class CharoiteGameImport {
     }
 
     public static Result importSelected(Context host, Uri selectedUri, Selection selection,
-                                        File containerRoot, boolean touhou) throws Exception {
+                                        File containerRoot, String environmentId,
+                                        boolean touhou) throws Exception {
         if (host == null || selectedUri == null || selection == null || containerRoot == null)
             throw new IllegalArgumentException("Invalid game import request");
-        File directory = new File(containerRoot,
-                touhou ? ".wine/drive_c/TouhouPocket" : ".wine/drive_c/CharoitePortal");
-        if (!directory.isDirectory() && !directory.mkdirs())
-            throw new IllegalStateException("Unable to create game storage directory");
+        // Never move older imported games: saved paths and saves must still work.
+        File directory = CharoiteEnvironments.ensureStorageFolder(
+                containerRoot, environmentId, "Imports");
         File target = new File(directory,
                 "game-" + System.currentTimeMillis() + "-" + UNIQUE.incrementAndGet());
         if (!target.mkdir()) throw new IllegalStateException("Could not create a game import directory");

@@ -33,22 +33,20 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('releaseAll.run()',CONTROLS)
 
     def test_handheld_sketch_abxy_and_ergonomics(self):
-        # Labels are conventional gamepad buttons; keyboard bindings are
-        # unchanged (A-Z, B-X, X-C, Y-S, L-A, R-D).
-        bindings = {
-            'select': ('Select', 'Left Shift', 'KEYCODE_SHIFT_LEFT'),
-            'start': ('Start', 'Space', 'KEYCODE_SPACE'),
-            'leftShoulder': ('L', 'A', 'KEYCODE_A'),
-            'rightShoulder': ('R', 'D', 'KEYCODE_D'),
-            'aButton': ('A', 'Z', 'KEYCODE_Z'),
-            'bButton': ('B', 'X', 'KEYCODE_X'),
-            'xButton': ('X', 'C', 'KEYCODE_C'),
-            'yButton': ('Y', 'S', 'KEYCODE_S'),
-        }
-        for var,(label,key,keycode) in bindings.items():
-            self.assertIn('final Button '+var+' = button(host, "'+label+
-                          '", "'+key+'",',CONTROLS)
-            self.assertIn('KeyEvent.'+keycode,CONTROLS)
+        # Keep the established TPDP keys, but support a standard mapping
+        # in exactly the same reusable, portrait/landscape gamepad UI.
+        for label, key, code in (
+            ('Select', 'Left Shift', 'KEYCODE_SHIFT_LEFT'),
+            ('A', 'Z', 'KEYCODE_Z'),
+            ('B', 'X', 'KEYCODE_X'),
+            ('X', 'C', 'KEYCODE_C'),
+        ):
+            self.assertIn('button(host, "'+label+'", "'+key+'",',CONTROLS)
+            self.assertIn('KeyEvent.'+code,CONTROLS)
+        self.assertIn('tpdpMapping ? "Space" : "Enter"', CONTROLS)
+        self.assertIn('tpdpMapping ? "A" : "Shift"', CONTROLS)
+        self.assertIn('tpdpMapping ? "D" : "Space"', CONTROLS)
+        self.assertIn('tpdpMapping ? "S" : "V"', CONTROLS)
         self.assertIn('GradientDrawable.OVAL',CONTROLS)
         self.assertIn('position(up, dpadX + size + gap, clusterY, size, size)',CONTROLS)
         self.assertIn('position(yButton, diamondX + size + gap, clusterY, size, size)',CONTROLS)
@@ -72,7 +70,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('position(portal, margin, margin, portalW, topButtonH)', CONTROLS)
         self.assertIn('portal.setOnClickListener(v -> {', CONTROLS)
         self.assertIn('returnToPortal.run();', CONTROLS)
-        self.assertIn('Runnable returnToPortal)', CONTROLS)
+        self.assertIn('Runnable returnToPortal, boolean tpdpMapping)', CONTROLS)
         self.assertIn('this::confirmReturnToCharoitePortal', OVERLAY)
         self.assertIn('private void confirmReturnToCharoitePortal()', OVERLAY)
         self.assertIn('.setNegativeButton("Keep Playing", null)', OVERLAY)
@@ -89,7 +87,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertNotIn('"X Run"',CONTROLS)
         self.assertNotIn('"Z OK"',CONTROLS)
 
-    def test_safely_scope_overlay_to_tpdp_on_phone(self):
+    def test_scope_handheld_to_games_and_preserve_tpdp_mapping(self):
         for token in ('com.charoitegames.core.CharoiteTpdpTouchControls.attach(',
                       'tpdp_touch_target.write_bytes(tpdp_touch_source.read_bytes())',
                       'getIntent().hasExtra("exec_path")',
@@ -100,6 +98,11 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('file.equals("enbu_ap.exe")',CORE)
         self.assertIn("TPDP_GRAPHICS_WINED3D_VIRGL",CORE)
         self.assertIn('play.putExtra("charoite_tpdp_graphics_mode"',SESSION)
+        self.assertIn('play.putExtra("charoite_handheld_game", !installer &&', SESSION)
+        self.assertIn('getBooleanExtra("charoite_handheld_game", false)', OVERLAY)
+        self.assertIn('CharoiteWindowPolicy.configureSession(', OVERLAY)
+        self.assertIn('main_menu_header.xml', OVERLAY)
+        self.assertIn('android:text="Charoite Core"', OVERLAY)
 
     def test_runtime_not_mutated_by_overlay(self):
         for token in ("container.saveData(","setKeysyms(","deleteRecursively",

@@ -39,6 +39,7 @@ import androidx.documentfile.provider.DocumentFile;
 import com.charoitegames.core.CharoiteCore;
 import com.charoitegames.core.CharoiteGameImport;
 import com.charoitegames.core.CharoiteGameLibrary;
+import com.charoitegames.core.CharoiteGameRemoval;
 import com.charoitegames.core.CharoiteGameDiscovery;
 import com.charoitegames.core.CharoiteGameProfiles;
 import com.charoitegames.core.CharoiteGameSessions;
@@ -1312,7 +1313,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             empty.addView(hint);
             libraryArea.addView(empty);
         } else {
-            libraryArea.addView(label("Tap an icon to play · Touch and hold to rearrange", 12, SECONDARY, false));
+            libraryArea.addView(label("Tap to play · Hold and drag to arrange · Manage to remove or delete", 12, SECONDARY, false));
             spacerIn(libraryArea, 10);
             int columns = getResources().getConfiguration().screenWidthDp >= 600 ? 4 : 3;
             GridLayout grid = new GridLayout(this);
@@ -1349,6 +1350,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, -2);
                 nameParams.topMargin = dp(9);
                 tile.addView(gameTitle, nameParams);
+                Button manage = outlinedButton("MANAGE", () ->
+                        manageGame(name, path));
+                manage.setTextSize(11);
+                manage.setMinHeight(dp(34));
+                manage.setMinimumHeight(dp(34));
+                manage.setEnabled(!busy);
+                tile.addView(manage);
 
                 if (exists && !busy && containerId > 0)
                     tile.setOnClickListener(v -> launchGame(path, false));
@@ -1400,6 +1408,91 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             });
         }
         refreshSetup(library);
+    }
+
+    /** The user chooses metadata removal or confirmed deletion separately.
+     * Windows installers may scatter game dependencies into shared locations;
+     * never attempt to remove those automatically.
+     */
+    private void manageGame(String name, String executable) {
+        if (busy || executable == null || executable.isEmpty()) return;
+        String title = name == null || name.isEmpty() ? "Windows game" : name;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Manage " + title)
+                .setItems(new String[]{
+                    "Remove from Library only",
+                    "Delete installation folder and remove from Library"
+                }, (dialog, selected) -> {
+                    if (selected == 0) confirmLibraryRemoval(title, executable);
+                    else confirmGameDeletion(title, executable);
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void confirmLibraryRemoval(String name, String executable) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Remove Library shortcut?")
+                .setMessage(name + " will disappear from this Library. The " +
+                        "installed Windows game and save data stay on your phone. " +
+                        "A later installed-game scan can find it again.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Remove shortcut", (dialog, which) -> {
+                    if (CharoiteGameLibrary.remove(this, executable)) {
+                        refreshLibrary();
+                        setStatus("Library shortcut removed. Game files retained.");
+                    }
+                }).show();
+    }
+
+    private void confirmGameDeletion(String name, String executable) {
+        final java.io.File target;
+        try {
+            target = CharoiteGameRemoval.safeGameFolder(this, containerId, executable);
+        } catch (Exception error) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Folder deletion unavailable")
+                    .setMessage(error.getMessage() +
+                            "\n\nYou can still remove the Library shortcut, " +
+                            "or use the Windows file manager for manual inspection.")
+                    .setPositiveButton("OK", null).show();
+            return;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Permanently delete " + name + "?")
+                .setMessage("This will permanently delete ALL files, including " +
+                        "possible saves, in the following installation folder:\n\n" +
+                        target.getAbsolutePath() +
+                        "\n\nIt does not uninstall shared Wine components. " +
+                        "There is no undo. Export any saves first.")
+                .setNegativeButton("Keep game", null)
+                .setPositiveButton("Delete installed game", (dialog, which) -> {
+                    if (busy) return;
+                    busy = true;
+                    updateButtons();
+                    worker.execute(() -> {
+                        try {
+                            CharoiteGameRemoval.deleteGameFolder(
+                                    this, containerId, executable);
+                            runOnUiThread(() -> {
+                                CharoiteGameLibrary.remove(this, executable);
+                                busy = false;
+                                refreshLibrary();
+                                updateButtons();
+                                setStatus("Installed game folder deleted: " + name);
+                            });
+                        } catch (Exception failure) {
+                            runOnUiThread(() -> {
+                                busy = false;
+                                refreshLibrary();
+                                updateButtons();
+                                new androidx.appcompat.app.AlertDialog.Builder(this)
+                                        .setTitle("Could not delete game")
+                                        .setMessage(failure.getMessage())
+                                        .setPositiveButton("OK", null).show();
+                            });
+                        }
+                    });
+                }).show();
     }
 
     private String gameIconCharacter(String path) {

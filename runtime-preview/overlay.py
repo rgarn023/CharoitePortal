@@ -303,6 +303,13 @@ for arch in ("32", "64"):
 
 
 
+# Additional Wine-side legacy scan-code input backend (Touhou 8 only).
+scan_binary = overlay.parent / "charoite-core/input/charoite_keyscan.exe"
+assert scan_binary.is_file(), "Compile charoite_keyscan.exe before overlay"
+scan_asset = root / "app/src/main/assets/input/charoite_keyscan.exe"
+scan_asset.parent.mkdir(parents=True, exist_ok=True)
+scan_asset.write_bytes(scan_binary.read_bytes())
+
 # General, read-only Windows GDI rendering diagnostic. This is an ordinary
 # test program, not an injected Wine DLL or visual text overlay.
 gdi_binary = overlay.parent / "charoite-core/rendering/charoite_gdi_probe32.exe"

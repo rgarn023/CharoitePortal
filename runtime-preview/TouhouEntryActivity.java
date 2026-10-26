@@ -46,6 +46,7 @@ import com.charoitegames.core.CharoiteDiagnostics;
 import com.charoitegames.core.CharoiteRenderingDiagnostics;
 import com.charoitegames.core.CharoiteEnvironments;
 import com.charoitegames.core.CharoiteEnvironmentFiles;
+import com.charoitegames.core.CharoiteFileManagerActivity;
 import com.charoitegames.core.CharoiteThemes;
 import com.charoitegames.core.CharoitePageTabs;
 import com.charoitegames.core.CharoiteSwipePager;
@@ -391,6 +392,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         environmentCard.addView(environmentExportButton);
         environmentCard.addView(label("Install opens a downloaded .cenv file from your phone. Create saves a reusable .cenv profile to a folder you choose. Export an existing realm to share its settings. These files contain no Windows games or saves.", 12, SECONDARY, false));
         systemScreen.addView(environmentCard);
+        spacerIn(systemScreen, 12);
+
+        LinearLayout fileCard = card();
+        fileCard.addView(label("Windows C: file manager", 17, FOREGROUND, true));
+        fileCard.addView(label("Browse all existing Charoite Wine containers, including older ones. Inspect games and save files, export copies to Samsung My Files, or import files without overwriting.", 12, SECONDARY, false));
+        fileCard.addView(outlinedButton("OPEN WINDOWS FILE MANAGER", () ->
+                startActivity(new Intent(this, CharoiteFileManagerActivity.class))));
+        fileCard.addView(label("For an old separate Winlator installation, choose an exported/accessible backup. Android prevents Charoite from reading another app's private /data/user/0 files.", 12, SECONDARY, false));
+        systemScreen.addView(fileCard);
         spacerIn(systemScreen, 12);
 
         LinearLayout runtimeCard = card();

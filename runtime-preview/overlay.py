@@ -171,6 +171,14 @@ intent = ET.SubElement(entry, "intent-filter")
 ET.SubElement(intent, "action", {a + "name": "android.intent.action.MAIN"})
 ET.SubElement(intent, "category", {a + "name": "android.intent.category.LAUNCHER"})
 app.insert(0, entry)
+file_manager_activity = ET.Element("activity", {
+    a + "name": "com.charoitegames.core.CharoiteFileManagerActivity",
+    a + "exported": "false",
+    a + "screenOrientation": "fullSensor",
+    a + "resizeableActivity": "true",
+    a + "theme": "@style/AppThemeDark"
+})
+app.insert(1, file_manager_activity)
 # Upstream forces games into landscape, which can interfere with DeX
 # freeform windows. Phone launches request sensor-landscape at runtime.
 xserver_activity = next((activity for activity in app.findall("activity")
@@ -227,7 +235,8 @@ for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
                "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
-               "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java"):
+               "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java",
+               "CharoiteFileManagerActivity.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"

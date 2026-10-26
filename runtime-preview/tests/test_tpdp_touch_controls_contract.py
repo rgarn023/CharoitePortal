@@ -47,7 +47,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('CharoiteGameControlProfiles.keyFor(host, executable, index)',CONTROLS)
         self.assertIn('final Map<Integer, Integer> held = new HashMap<>();', CONTROLS)
         self.assertIn('GradientDrawable.OVAL',CONTROLS)
-        self.assertIn('position(up, dpadX + size + gap, clusterY, size, size)',CONTROLS)
+        self.assertIn('position(up, dpadCenterX, dpadCenterY - size - gap, size, size)',CONTROLS)
         self.assertIn('position(yButton, diamondX + size + gap, clusterY, size, size)',CONTROLS)
         self.assertIn('position(aButton, diamondX + (size + gap) * 2',CONTROLS)
         self.assertIn('position(bButton, diamondX + size + gap',CONTROLS)

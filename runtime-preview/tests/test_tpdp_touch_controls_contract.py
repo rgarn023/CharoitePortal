@@ -7,6 +7,7 @@ CONTROLS=(ROOT/"charoite-core/CharoiteTpdpTouchControls.java").read_text()
 OVERLAY=(ROOT/"overlay.py").read_text()
 CORE=(ROOT/"charoite-core/CharoiteCore.java").read_text()
 SESSION=(ROOT/"charoite-core/CharoiteGameSessions.java").read_text()
+PROFILES=(ROOT/"charoite-core/CharoiteGameControlProfiles.java").read_text()
 
 class TpdpTouchContract(unittest.TestCase):
     def test_real_native_keyboard_keys(self):
@@ -18,35 +19,33 @@ class TpdpTouchContract(unittest.TestCase):
             "KEYCODE_ENTER","KEYCODE_ESCAPE",
         )
         for key in keys:
-            self.assertIn("KeyEvent."+key,CONTROLS)
+            self.assertIn("KeyEvent."+key,PROFILES)
         for event in ("MotionEvent.ACTION_DOWN","MotionEvent.ACTION_UP",
                       "MotionEvent.ACTION_CANCEL","releaseAll.run()",
-                      "sink.send(code, pressed)"):
+                      "sink.send(code, true)", "sink.send(code, false)"):
             self.assertIn(event,CONTROLS)
         self.assertNotIn("setKeysyms(",CONTROLS)
         self.assertNotIn("boolean down = false;",CONTROLS)
-        self.assertIn("sink.send(keyCode, true)",CONTROLS)
-        self.assertIn("sink.send(keyCode, false)",CONTROLS)
+        self.assertIn("sink.send(keyCode, pressed);",CONTROLS)
+        self.assertIn("sink.send(code, true)",CONTROLS)
+        self.assertIn("sink.send(code, false)",CONTROLS)
         self.assertIn('KeyEvent.KEYCODE_F11',CONTROLS)
         self.assertIn('"F11 Full"',CONTROLS)
         self.assertIn('button.setVisibility(View.GONE)',CONTROLS)
         self.assertIn('releaseAll.run()',CONTROLS)
 
     def test_handheld_sketch_abxy_and_ergonomics(self):
-        # Keep the established TPDP keys, but support a standard mapping
-        # in exactly the same reusable, portrait/landscape gamepad UI.
-        for label, key, code in (
-            ('Select', 'Left Shift', 'KEYCODE_SHIFT_LEFT'),
-            ('A', 'Z', 'KEYCODE_Z'),
-            ('B', 'X', 'KEYCODE_X'),
-            ('X', 'C', 'KEYCODE_C'),
-        ):
-            self.assertIn('button(host, "'+label+'", "'+key+'",',CONTROLS)
-            self.assertIn('KeyEvent.'+code,CONTROLS)
-        self.assertIn('tpdpMapping ? "Space" : "Enter"', CONTROLS)
-        self.assertIn('tpdpMapping ? "A" : "Shift"', CONTROLS)
-        self.assertIn('tpdpMapping ? "D" : "Space"', CONTROLS)
-        self.assertIn('tpdpMapping ? "S" : "V"', CONTROLS)
+        # Button geometry stays fixed; executable-scoped mappings come from
+        # Core instead of hard-coded literals in the UI.
+        for code in ("KEYCODE_SHIFT_LEFT", "KEYCODE_Z", "KEYCODE_X",
+                     "KEYCODE_C", "KEYCODE_S", "KEYCODE_A",
+                     "KEYCODE_D", "KEYCODE_SPACE", "KEYCODE_CTRL_LEFT"):
+            self.assertIn("KeyEvent."+code,PROFILES)
+        for label in ("Esc", "Select", "Start", "Enter", "L", "R",
+                      "↑", "←", "→", "↓", "Y", "X", "A", "B"):
+            self.assertIn('button(host, "'+label+'", binding.apply(',CONTROLS)
+        self.assertIn('CharoiteGameControlProfiles.keyFor(host, executable, index)',CONTROLS)
+        self.assertIn('final Map<Integer, Integer> held = new HashMap<>();', CONTROLS)
         self.assertIn('GradientDrawable.OVAL',CONTROLS)
         self.assertIn('position(up, dpadX + size + gap, clusterY, size, size)',CONTROLS)
         self.assertIn('position(yButton, diamondX + size + gap, clusterY, size, size)',CONTROLS)
@@ -70,7 +69,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('position(portal, margin, margin, portalW, topButtonH)', CONTROLS)
         self.assertIn('portal.setOnClickListener(v -> {', CONTROLS)
         self.assertIn('returnToPortal.run();', CONTROLS)
-        self.assertIn('Runnable returnToPortal, boolean tpdpMapping)', CONTROLS)
+        self.assertIn('Runnable returnToPortal, boolean tpdpMapping,', CONTROLS)
         self.assertIn('this::confirmReturnToCharoitePortal', OVERLAY)
         self.assertIn('private void confirmReturnToCharoitePortal()', OVERLAY)
         self.assertIn('.setNegativeButton("Keep Playing", null)', OVERLAY)
@@ -100,6 +99,9 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('play.putExtra("charoite_tpdp_graphics_mode"',SESSION)
         self.assertIn('play.putExtra("charoite_handheld_game", !installer &&', SESSION)
         self.assertIn('getBooleanExtra("charoite_handheld_game", false)', OVERLAY)
+        self.assertIn('xServer.injectKeyPress(key);', OVERLAY)
+        self.assertIn('xServer.injectKeyRelease(key);', OVERLAY)
+        self.assertNotIn('xServer.keyboard.onKeyEvent(new android.view.KeyEvent(', OVERLAY)
         self.assertIn('CharoiteWindowPolicy.configureSession(', OVERLAY)
         self.assertIn('main_menu_header.xml', OVERLAY)
         self.assertIn('android:text="Charoite Core"', OVERLAY)

@@ -1171,6 +1171,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         CharoiteGameDiscovery.scan(current.getRootDir(),
                                 CharoiteGameProfiles.forEnvironment(
                                         CharoiteEnvironments.activeId(this)));
+                if (touhou) {
+                    // FocasLens install.ini may point at the real C: target
+                    // even when bounded recursive discovery missed that EXE.
+                    discovered.addAll(com.charoitegames.core.CharoiteShardOfDreamsSupport
+                            .discoverRegisteredExpansion(current.getRootDir()));
+                }
                 int count = CharoiteGameLibrary.mergeInstalled(this, discovered);
                 final String shardReport = touhou ?
                         com.charoitegames.core.CharoiteShardOfDreamsSupport
@@ -1442,6 +1448,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         LinearLayout installerCard = card();
         installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
         installerCard.addView(label(new File(path).getName(), 16, FOREGROUND, true));
+        int mediaFiles = lastInstaller.optInt("files", 0);
+        installerCard.addView(label("Imported installer files: " + mediaFiles +
+                (mediaFiles == 1
+                    ? ". Only setup.exe was imported. If the Shard installer " +
+                      "also came with .bin/.cab archives or folders, use " +
+                      "IMPORT COMPLETE INSTALLER FOLDER before running setup."
+                    : ". Keep the original media files together while running setup."),
+                12, SECONDARY, false));
         installerCard.addView(label("The imported installer is saved here. Run it when you choose; imported files are preserved.", 12, SECONDARY, false));
         Button rerun = outlinedButton("RUN INSTALLER", () -> launchGame(path, true));
         rerun.setEnabled(!busy && containerId > 0 && new File(path).isFile());

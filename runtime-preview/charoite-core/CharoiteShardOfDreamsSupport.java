@@ -4,6 +4,7 @@ import android.content.Context;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Locale;
+import java.nio.charset.Charset;
 
 /**
  * Shard of Dreams reads the base TPDP game's files via a directory named
@@ -15,6 +16,139 @@ import java.util.Locale;
  */
 public final class CharoiteShardOfDreamsSupport {
     private CharoiteShardOfDreamsSupport() {}
+
+
+    // FocasLens keeps its installed-game destination in an AppData
+    // install.ini. The AppData folder is metadata, not the game itself.
+    private static java.util.List<String> shardFolders(File drive) {
+        java.util.ArrayList<String> folders = new java.util.ArrayList<>();
+        inspectCandidateDirectories(drive, 0, new int[]{0}, folders);
+        return folders;
+    }
+
+    /** Read only a small, validated Shift-JIS registration file. */
+    private static String registeredPath(File folder) {
+        File ini = new File(folder, "install.ini");
+        if (!ini.isFile() || Files.isSymbolicLink(ini.toPath()) ||
+                ini.length() < 1 || ini.length() > 8192) return null;
+        try {
+            String content = new String(Files.readAllBytes(ini.toPath()),
+                    Charset.forName("windows-31j"));
+            boolean inSettings = false;
+            for (String raw : content.split("\\r?\\n")) {
+                String line = raw.trim();
+                if (line.startsWith("[") && line.endsWith("]")) {
+                    inSettings = line.equalsIgnoreCase("[InstallSettings]");
+                } else if (inSettings &&
+                        line.regionMatches(true, 0, "InstallPath=", 0, 12)) {
+                    String value = line.substring(12).trim();
+                    if (value.length() >= 2 && value.startsWith("\"") &&
+                            value.endsWith("\""))
+                        value = value.substring(1, value.length() - 1);
+                    return value.isEmpty() ? null : value;
+                }
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    /** Reject paths outside this exact Wine C: drive, including symlinks. */
+    private static File verifiedDestination(File drive, String windowsPath) {
+        if (windowsPath == null || windowsPath.length() < 4 ||
+                !windowsPath.regionMatches(true, 0, "C:", 0, 2) ||
+                (windowsPath.charAt(2) != '\\' && windowsPath.charAt(2) != '/'))
+            return null;
+        try {
+            File root = drive.getCanonicalFile();
+            File dest = new File(root,
+                    windowsPath.substring(3).replace('\\', '/')).getCanonicalFile();
+            return dest.toPath().startsWith(root.toPath()) ? dest : null;
+        } catch (Exception ignored) { return null; }
+    }
+
+    /**
+     * Recover a genuinely installed Shard EXE at the location recorded by
+     * FocasLens when the bounded general scan happens to miss that location.
+     * Never invent entries for registration-only or incomplete installs.
+     */
+    public static java.util.List<org.json.JSONObject> discoverRegisteredExpansion(
+            File containerRoot) {
+        java.util.ArrayList<org.json.JSONObject> found = new java.util.ArrayList<>();
+        File drive = new File(containerRoot, ".wine/drive_c");
+        if (!drive.isDirectory()) return found;
+        for (String path : shardFolders(drive)) {
+            String value = registeredPath(new File(path));
+            File target = verifiedDestination(drive, value);
+            if (target == null) continue;
+            File executable = new File(target, "enbu_ap.exe");
+            if (!executable.isFile() || Files.isSymbolicLink(executable.toPath()))
+                continue;
+            try {
+                org.json.JSONObject entry = new org.json.JSONObject();
+                entry.put("name", "Touhou Puppet Dance Performance: Shard of Dreams");
+                entry.put("path", executable.getCanonicalPath());
+                entry.put("installer", false);
+                entry.put("files", 0);
+                found.add(entry);
+                break;
+            } catch (Exception ignored) { }
+        }
+        return found;
+    }
+
+    /** Bounded summary of a folder; never read, extract, or modify game data. */
+    private static String contents(File dir) {
+        if (!dir.isDirectory() || Files.isSymbolicLink(dir.toPath()))
+            return "folder not readable";
+        File[] entries = dir.listFiles();
+        if (entries == null) return "folder not listable";
+        java.util.Arrays.sort(entries,
+                (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        if (entries.length == 0) return "EMPTY folder";
+        java.util.ArrayList<String> sample = new java.util.ArrayList<>();
+        int files = 0, folders = 0;
+        for (File item : entries) {
+            if (Files.isSymbolicLink(item.toPath())) continue;
+            if (item.isDirectory()) folders++;
+            if (item.isFile()) files++;
+            if (sample.size() < 8) sample.add(item.getName() +
+                    (item.isDirectory() ? "/" : " (" + item.length() / 1024 + " KB)"));
+        }
+        return files + " files, " + folders + " directories; sample: " +
+                String.join(", ", sample) +
+                (entries.length > sample.size() ? ", ..." : "");
+    }
+
+    private static String installationEvidence(File drive,
+                                                java.util.List<String> folders) {
+        StringBuilder report = new StringBuilder();
+        for (String path : folders) {
+            File dir = new File(path);
+            boolean metadata = path.replace('\\', '/').toLowerCase(Locale.ROOT)
+                    .contains("/appdata/roaming/");
+            report.append("\n").append(metadata ? "AppData registration: " :
+                    "Game directory: ").append(path)
+                    .append("\n  Contents: ").append(contents(dir));
+            if (metadata) {
+                String registered = registeredPath(dir);
+                report.append("\n  install.ini InstallPath: ")
+                        .append(registered == null ? "(missing/unreadable)" : registered);
+                File dest = verifiedDestination(drive, registered);
+                if (registered != null && dest == null) {
+                    report.append("\n  InstallPath does not resolve inside this Wine C:.");
+                } else if (dest != null) {
+                    report.append("\n  Registered folder exists: ")
+                            .append(dest.isDirectory())
+                            .append("; enbu_ap.exe exists: ")
+                            .append(new File(dest, "enbu_ap.exe").isFile());
+                    if (dest.isDirectory() && !dest.equals(dir))
+                        report.append("\n  Registered folder contents: ")
+                                .append(contents(dest));
+                }
+            }
+        }
+        return report.toString();
+    }
 
     /**
      * Read-only explanation for a Shard installer that appears to finish
@@ -50,15 +184,16 @@ public final class CharoiteShardOfDreamsSupport {
         }
         // Bound the inspection to installed directory names. Never invent a
         // playable entry for a setup.exe or an incomplete install directory.
-        java.util.ArrayList<String> candidates = new java.util.ArrayList<>();
-        int[] visited = {0};
-        inspectCandidateDirectories(drive, 0, visited, candidates);
+        java.util.List<String> candidates = shardFolders(drive);
         if (!candidates.isEmpty())
             return "Shard installation folder(s) detected, but enbu_ap.exe " +
                     "is missing: " + String.join("; ", candidates) +
-                    "\nThe installer may not have completed, or its files " +
-                    "may be in another environment. Re-open the installer " +
-                    "and check for its Finish page. No files were changed.";
+                    "\nThe AppData folder is only registration metadata, not a second installation." +
+                    installationEvidence(drive, candidates) +
+                    "\nIf the registered destination does not contain enbu_ap.exe, " +
+                    "the installer has not produced a complete playable game there. " +
+                    "Check that all original setup media was imported and the " +
+                    "installer reached Finish. No files were changed.";
         return "Shard executable enbu_ap.exe was NOT found in this active " +
                 "environment's Windows C:. " +
                 (baseFound ? "Original TPDP is present. " : "") +

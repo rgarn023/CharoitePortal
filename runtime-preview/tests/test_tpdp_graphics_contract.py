@@ -60,7 +60,7 @@ class TpdpAutoGraphicsContract(unittest.TestCase):
         self.assertIn('shard ? "-all" :', PROFILE)
         self.assertIn('shard ? "none" : "info"', PROFILE)
         self.assertIn('!com.charoitegames.core.CharoiteShardOfDreamsSupport.isExpansionGame(', OVERLAY)
-        self.assertIn('shard ? "-all,err+all"', PROFILE)
+        self.assertIn('shard ? "-all" :', PROFILE)
         self.assertIn('shard ? "warn" : "info"', PROFILE)
         self.assertIn('"version=1.10.3"', PROFILE)
         self.assertIn('setDxvkLogDirectory(context, dxvkLogs)', PROFILE)

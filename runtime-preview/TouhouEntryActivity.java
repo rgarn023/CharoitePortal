@@ -353,7 +353,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             startActivityForResult(picker, EXE_REQUEST);
         });
         exeCard.addView(installerButton);
-        exeCard.addView(label("For expansions or installers with adjacent .bin/.cab/data files, import the complete extracted setup folder instead of a lone EXE.", 12, SECONDARY, false));
+        exeCard.addView(label("For installers with adjacent .bin/.cab/data files, import the complete folder instead of a lone EXE. If multiple setup programs are found, Charoite will ask which one you want to run.", 12, SECONDARY, false));
         installerFolderButton = outlinedButton("IMPORT COMPLETE INSTALLER FOLDER", () -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION |
@@ -1208,8 +1208,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                             : shardFound
                                 ? "Shard of Dreams already registered in Library."
                                 : afterInstaller && touhou
-                                    ? "Installer closed, but Shard of Dreams executable enbu_ap.exe " +
-                                      "was not detected. See Setup > Shard installation check."
+                                    ? "Installer closed; no new Touhou game was detected. " +
+                                      "Retry Find Installed Games or view System diagnostics."
                                     : afterInstaller
                                         ? "Installer closed; no new game executable found on C:."
                                         : "No new supported games found on C:.";
@@ -1251,17 +1251,30 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 entry.put("path", imported.executablePath);
                 entry.put("installer", imported.installer);
                 entry.put("files", imported.fileCount);
+                if (imported.installer &&
+                        selection == CharoiteGameImport.Selection.INSTALLER_FOLDER) {
+                    entry.put("importRoot", imported.importDirectory);
+                    entry.put("installerCandidates",
+                            new JSONArray(imported.installerCandidates));
+                    entry.put("installerSelectionPending",
+                            imported.installerCandidates.size() > 1);
+                }
                 saveEntry(entry);
                 runOnUiThread(() -> {
                     if (imported.installer) {
+                        boolean chooseInstaller = entry.optBoolean("installerSelectionPending", false);
                         finishOperation(CharoiteGameImport.shouldLaunchAfterImport(selection)
                                 ? "Installer imported. Opening the Windows setup wizard…"
-                                : "Installer folder imported. Open Setup and tap RUN INSTALLER when ready.");
+                                : chooseInstaller
+                                    ? "Folder imported. Select the correct setup executable before running it."
+                                    : "Installer folder imported. Open Setup and tap RUN INSTALLER when ready.");
                         showSection(1);
-                        // The shared Core policy is the single authority:
-                        // selecting "Use this folder" can NEVER launch an EXE.
+                        // Importing a folder NEVER launches an EXE, even
+                        // when there are several plausible setup programs.
                         if (CharoiteGameImport.shouldLaunchAfterImport(selection))
                             launchGame(imported.executablePath, true);
+                        else if (chooseInstaller)
+                            showInstallerChooser(entry);
                     } else {
                         finishOperation("Game imported into Library. Tap its tile to play.");
                         refreshLibrary();
@@ -1542,19 +1555,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void refreshSetup(JSONArray library) {
         if (setupArea == null) return;
         setupArea.removeAllViews();
-        if (CharoiteEnvironments.isTouhou(this)) {
-            LinearLayout shardCard = card();
-            shardCard.addView(label("SHARD OF DREAMS INSTALLATION", 12, GOLD, true));
-            shardCard.addView(label(
-                    CharoiteDiagnostics.shardInstallationScan(this),
-                    12, SECONDARY, false));
-            Button shardCheck = outlinedButton("CHECK SHARD OF DREAMS",
-                    () -> findInstalledGames(false));
-            shardCheck.setEnabled(!busy && containerId > 0);
-            shardCard.addView(shardCheck);
-            setupArea.addView(shardCard);
-            spacerIn(setupArea, 12);
-        }
         JSONObject lastInstaller = null;
         for (int i = library.length() - 1; i >= 0; i--) {
             JSONObject entry = library.optJSONObject(i);
@@ -1565,25 +1565,93 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
         if (lastInstaller == null) return;
         String path = lastInstaller.optString("path", "");
+        boolean selectionPending = lastInstaller.optBoolean("installerSelectionPending", false);
+        JSONArray installerCandidates = lastInstaller.optJSONArray("installerCandidates");
         LinearLayout installerCard = card();
         installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
         installerCard.addView(label(new File(path).getName(), 16, FOREGROUND, true));
+        if (installerCandidates != null && installerCandidates.length() > 1) {
+            installerCard.addView(label(selectionPending
+                    ? "Multiple setup executables found. Choose the correct installer before running."
+                    : "Installer selected. You can change it without re-importing the folder.",
+                    12, SECONDARY, false));
+            final JSONObject selectedEntry = lastInstaller;
+            Button choose = outlinedButton(selectionPending ?
+                    "CHOOSE INSTALLER" : "CHANGE INSTALLER",
+                    () -> showInstallerChooser(selectedEntry));
+            choose.setEnabled(!busy && containerId > 0);
+            installerCard.addView(choose);
+        }
         int mediaFiles = lastInstaller.optInt("files", 0);
         installerCard.addView(label("Imported installer files: " + mediaFiles +
                 (mediaFiles == 1
-                    ? ". Only setup.exe was imported. If the Shard installer " +
-                      "also came with .bin/.cab archives or folders, use " +
-                      "IMPORT COMPLETE INSTALLER FOLDER before running setup."
+                    ? ". If the original installer also requires .bin/.cab archives " +
+                      "or supporting folders, import the complete setup folder instead."
                     : ". Keep the original media files together while running setup."),
                 12, SECONDARY, false));
         installerCard.addView(label("The imported installer is saved here. Run it when you choose; imported files are preserved.", 12, SECONDARY, false));
         Button rerun = outlinedButton("RUN INSTALLER", () -> launchGame(path, true));
-        rerun.setEnabled(!busy && containerId > 0 && new File(path).isFile());
+        rerun.setEnabled(!busy && containerId > 0 &&
+                !selectionPending && new File(path).isFile());
         installerCard.addView(rerun);
         setupArea.addView(installerCard);
         spacerIn(setupArea, 12);
     }
 
+
+    /** Explicitly select which setup EXE to use from a copied installer folder.
+     * Identically named setup files in separate subfolders are shown with
+     * their relative paths. Cancel leaves the folder intact and RUN disabled.
+     */
+    private void showInstallerChooser(JSONObject entry) {
+        if (busy || entry == null) return;
+        JSONArray candidates = entry.optJSONArray("installerCandidates");
+        if (candidates == null || candidates.length() < 2) return;
+        String rootPath = entry.optString("importRoot", "");
+        if (rootPath.isEmpty()) {
+            setStatus("Imported setup folder location is missing.");
+            return;
+        }
+        String[] labels = new String[candidates.length()];
+        try {
+            String root = new File(rootPath).getCanonicalPath() + File.separator;
+            for (int i = 0; i < candidates.length(); i++) {
+                String path = candidates.optString(i, "");
+                File executable = new File(path);
+                String canonical = executable.getCanonicalPath();
+                if (!canonical.startsWith(root) || !executable.isFile() ||
+                        java.nio.file.Files.isSymbolicLink(executable.toPath()) ||
+                        !CharoiteGameImport.isLikelyInstaller(executable.getName())) {
+                    throw new java.io.IOException("Installer file is missing or outside the imported folder");
+                }
+                labels[i] = canonical.substring(root.length());
+            }
+        } catch (Exception error) {
+            setStatus("Unable to list setup programs: " + error.getMessage());
+            return;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Which installer should Charoite run?")
+                .setMessage("Multiple setup programs were found. Choose the original installer; other files stay in the imported folder.")
+                .setItems(labels, (dialog, which) -> {
+                    try {
+                        String selected = candidates.getString(which);
+                        entry.put("path", selected);
+                        entry.put("name", "Windows installer: " +
+                                new File(selected).getName());
+                        entry.put("installerSelectionPending", false);
+                        saveEntry(entry);
+                        refreshLibrary();
+                        setStatus("Installer selected: " + labels[which] +
+                                ". Tap RUN INSTALLER when ready.");
+                        showSection(1);
+                    } catch (Exception error) {
+                        setStatus("Cannot select installer: " + error.getMessage());
+                    }
+                })
+                .setNegativeButton("Not now", null)
+                .show();
+    }
 
     /**
      * Launch the selected original Windows installer without adding /DIR or

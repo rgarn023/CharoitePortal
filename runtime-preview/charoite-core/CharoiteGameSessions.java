@@ -53,6 +53,11 @@ public final class CharoiteGameSessions {
         Intent play = new Intent(host, target);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", executable);
+        // Charoite Core provides one shared phone handheld surface for games.
+        // Installers are always normal Windows setup windows; DeX retains
+        // its keyboard, mouse and resizable desktop presentation.
+        play.putExtra("charoite_handheld_game", !installer &&
+                !CharoiteCore.isDesktopWindow(host));
         play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(host));
         play.putExtra("touhou_display_size",
                 CharoiteCore.resolutionForExecutable(host, executable));

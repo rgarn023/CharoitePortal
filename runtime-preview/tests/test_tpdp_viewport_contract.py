@@ -45,7 +45,7 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('client.getChildCount() == 0', POLICY)
         self.assertIn('client.hasDecoration(com.winlator.xserver.Decoration.TITLE)', POLICY)
         self.assertIn('shard_decorations_anchor', OVERLAY)
-        self.assertIn('window.hasNoDecorations() || ', OVERLAY)
+        self.assertIn('window.hasNoDecorations() ||', OVERLAY)
         self.assertIn('allowDecoratedShardClient(', OVERLAY)
         self.assertIn('allowOversizedShardGame(', POLICY)
         self.assertIn('oversized_shard_anchor', OVERLAY)

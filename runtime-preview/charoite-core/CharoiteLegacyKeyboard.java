@@ -43,6 +43,10 @@ public final class CharoiteLegacyKeyboard {
         scanAcknowledged = false;
         scanStatus = "Scan bridge not started";
         windowStatus = "Window bridge not started";
+        scanLauncher = null;
+        scanExecutable = null;
+        scanLaunchAt = 0;
+        scanLaunchCount = 0;
     }
     public static int nextMode() {
         inputMode = (inputMode + 1) % 5;
@@ -165,7 +169,29 @@ public final class CharoiteLegacyKeyboard {
     private static volatile boolean scanAcknowledged = false;
     private static volatile String windowStatus = "Window bridge not started";
     private static volatile boolean scanPrepared = false;
+    private static volatile WinHandler scanLauncher = null;
+    private static volatile String scanExecutable = null;
+    private static volatile long scanLaunchAt = 0;
+    private static volatile int scanLaunchCount = 0;
     private static final int SCAN_PORT = 7949;
+
+    /** Retry a receiver which never acknowledged startup, but do not spawn
+     * a new Wine process for every tap. The bridge itself is still a separate
+     * process and the explicit input diagnostic reports the missing ACK.
+     */
+    private static synchronized void restartUnresponsiveScanBridge() {
+        WinHandler handler = scanLauncher;
+        if (handler == null || scanExecutable == null ||
+                !handler.isCharoiteKeyboardReady()) return;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - scanLaunchAt < 2000) return;
+        scanLaunchAt = now;
+        scanLaunchCount++;
+        handler.exec(scanExecutable, "");
+        scanStatus = "Wine launch retry " + scanLaunchCount +
+                "; waiting for receiver acknowledgment";
+        android.util.Log.w("CharoiteInput", scanStatus);
+    }
 
     /**
      * Start the independently compiled Wine-side SendInput scan-code receiver.
@@ -216,9 +242,16 @@ public final class CharoiteLegacyKeyboard {
                 throw new java.io.IOException("Invalid Wine scan helper");
             String winePath = "C:\\CharoitePortal\\Core\\charoite_keyscan.exe";
             scanInstallPath = winePath + " (" + target.length() + " bytes)";
-            handler.exec(winePath, "");
+            scanLauncher = handler;
+            scanExecutable = winePath;
             scanPrepared = true;
-            scanStatus = "Scan helper launch requested inside Wine container";
+            // setupUI runs before the Wine guest is ready. The existing
+            // WinHandler action queue waits for INIT and executes this request
+            // after the Wine-side handler has connected.
+            handler.exec(winePath, "");
+            scanLaunchAt = android.os.SystemClock.uptimeMillis();
+            scanLaunchCount = 1;
+            scanStatus = "Waiting for Windows receiver on C: (launch queued)";
             android.util.Log.i("CharoiteInput", scanStatus + ": " + scanInstallPath);
         } catch (Exception error) {
             scanStatus = "Scan helper setup failed: " + error.getClass().getSimpleName();
@@ -241,6 +274,7 @@ public final class CharoiteLegacyKeyboard {
     private static void sendGuestKey(int code, boolean pressed, char route) {
         int vk = virtualKey(code);
         if (vk < 0) return;
+        if (pressed && !scanAcknowledged) restartUnresponsiveScanBridge();
         scanSender.execute(() -> {
             byte[] packet = {(byte)'C',(byte)'K',(byte)route,(byte)'1',
                              (byte)vk, (byte)(pressed ? 1 : 0)};
@@ -282,8 +316,9 @@ public final class CharoiteLegacyKeyboard {
                 }
                 if (route == 'S') {
                     scanAcknowledged = false;
-                    scanStatus = "No Wine scan receiver ACK (Wine helper not running)";
-                } else windowStatus = "No Wine window receiver ACK";
+                    scanStatus = "NO ACK after launch " + scanLaunchCount +
+                            " (Windows receiver absent or UDP unreachable)";
+                } else windowStatus = "No ACK from Wine window receiver";
             } catch (Exception error) {
                 String message = "Guest input socket: " +
                         error.getClass().getSimpleName();

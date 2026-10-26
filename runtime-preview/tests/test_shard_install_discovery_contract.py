@@ -47,17 +47,21 @@ class ShardInstallDiscoveryContract(unittest.TestCase):
         self.assertIn('IMPORT COMPLETE INSTALLER FOLDER', PORTAL)
         self.assertIn('enbu_ap.exe', SHARD)
         self.assertIn('new File(containerRoot, ".wine/drive_c")', SHARD)
-        self.assertIn('CharoiteGameLibrary.mergeInstalled(this, discovered)', PORTAL)
+        self.assertIn('showShortcutPicker(discovered)', PORTAL)
+        self.assertIn('CharoiteGameLibrary.mergeInstalled(this, chosen)', PORTAL)
         self.assertIn('CharoiteGameLibrary.load', PORTAL)
 
     def test_visible_library_refreshed_immediately_after_scan(self):
         start = PORTAL.index('private void findInstalledGames(boolean afterInstaller)')
         end = PORTAL.index('private void importGame(', start)
         scanned = PORTAL[start:end]
-        self.assertIn('CharoiteGameLibrary.mergeInstalled(this, discovered)', scanned)
-        self.assertIn('refreshLibrary();', scanned)
-        self.assertIn('if (count > 0 || shardFound) showSection(0);', scanned)
-        self.assertLess(scanned.index('refreshLibrary();'), scanned.index('showSection(0)'))
+        # The old scanner auto-created a shortcut for every detected EXE.
+        # Discovery is now read-only until the user selects a game in a dialog.
+        self.assertIn('showShortcutPicker(discovered);', scanned)
+        self.assertNotIn('CharoiteGameLibrary.mergeInstalled(this, discovered)', scanned)
+        self.assertIn('CharoiteGameLibrary.mergeInstalled(this, chosen)', PORTAL)
+        self.assertIn('refreshLibrary();', PORTAL)
+        self.assertIn('setMultiChoiceItems(labels, selected,', PORTAL)
         self.assertIn('CharoiteGameSessions.consumePendingInstallerScan(this);', scanned)
         self.assertNotIn('consumePendingInstallerScan(this))', PORTAL[
             PORTAL.index('@Override protected void onResume()'):

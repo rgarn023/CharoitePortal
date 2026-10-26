@@ -32,7 +32,7 @@ public final class CharoiteEnvironmentFiles {
     }
 
     public static String normalizeTheme(String theme) {
-        if (!"sakura".equals(theme) && !"cosmic".equals(theme))
+        if (!"sakura".equals(theme) && !"cosmic".equals(theme) && !"battlenet".equals(theme))
             throw new IllegalArgumentException("Unrecognized environment theme.");
         return theme;
     }

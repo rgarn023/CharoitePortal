@@ -231,11 +231,28 @@ public final class CharoiteTpdpTouchControls {
                 CharoiteWindowPolicy.setHandheldOutline(outline);
             }
         }
+        final boolean touhou8 = CharoiteLegacyKeyboard.requiresWindowsKeyboard(executable);
+        if (touhou8) CharoiteLegacyKeyboard.resetMode();
+        final TextView inputStatus = touhou8 ? new TextView(host) : null;
+        if (inputStatus != null) {
+            inputStatus.setText("TH08 · DUAL");
+            inputStatus.setTextColor(0xFFE4D8FF);
+            inputStatus.setTextSize(10f);
+            inputStatus.setGravity(Gravity.CENTER);
+            inputStatus.setSingleLine(false);
+            inputStatus.setClickable(false);
+            inputStatus.setFocusable(false);
+            inputStatus.setBackgroundColor(0x9340275E);
+        }
         final Map<Integer, Integer> held = new HashMap<>();
         final KeySink guarded = (code, pressed) -> {
             // Reference-count simultaneous buttons mapped to the same X key.
             // Releasing Shoot must not release Focus; releasing one of two
             // mapped Shift buttons must not release the other one's Shift.
+            if (inputStatus != null)
+                inputStatus.setText("TH08 " + CharoiteLegacyKeyboard.modeLabel() +
+                        "\\n" + CharoiteGameControlProfiles.label(code) +
+                        (pressed ? " DOWN" : " UP"));
             int count = held.containsKey(code) ? held.get(code) : 0;
             if (pressed) {
                 held.put(code, count + 1);
@@ -294,6 +311,16 @@ public final class CharoiteTpdpTouchControls {
                 esc, select, start, enter, leftShoulder, rightShoulder,
                 up, left, right, down, yButton, xButton, aButton, bButton
         };
+        // Acrylic purple plates are behind the actual touch buttons, and
+        // never intercept presses on the underlying game window.
+        final View dpadPlate = new View(host);
+        dpadPlate.setBackground(clusterPlate());
+        dpadPlate.setClickable(false);
+        final View facePlate = new View(host);
+        facePlate.setBackground(clusterPlate());
+        facePlate.setClickable(false);
+        root.addView(dpadPlate);
+        root.addView(facePlate);
         for (Button button : main) root.addView(button);
 
         // Only the infrequent F11 and screenshot keys remain under More.
@@ -301,7 +328,12 @@ public final class CharoiteTpdpTouchControls {
                 KeyEvent.KEYCODE_F11, true, guarded);
         final Button screenshot = button(host, "P Shot", "P",
                 KeyEvent.KEYCODE_P, true, guarded);
-        final Button[] extras = {f11, screenshot};
+        final Button backend = touhou8 ? button(host, "INPUT: DUAL",
+                "Select Touhou 8 keyboard backend: dual, Win32, or X11",
+                -1, true, guarded) : null;
+        final Button[] extras = touhou8 ?
+                new Button[]{f11, screenshot, backend} :
+                new Button[]{f11, screenshot};
         for (Button button : extras) {
             root.addView(button);
             button.setVisibility(View.GONE);
@@ -322,6 +354,7 @@ public final class CharoiteTpdpTouchControls {
         root.addView(more);
         root.addView(keyboard);
         root.addView(toggle);
+        if (inputStatus != null) root.addView(inputStatus);
 
         // Recalculate the layout on rotation, DeX size changes or cutouts.
         // Pixel positions are computed from the actual Android root view,
@@ -338,10 +371,17 @@ public final class CharoiteTpdpTouchControls {
             final int clusterHeight = size * 3 + gap * 2;
             final int dpadX = margin;
             final int diamondX = width - margin - clusterWidth;
-            // Keep both input clusters below the game in portrait mode.
-            final int clusterY = portrait ?
-                    height - margin - clusterHeight :
-                    height - margin - clusterHeight;
+            // All four direction buttons use precisely the same square
+            // dimensions; every center lies on one symmetric cross.
+            final int clusterY = height - margin - clusterHeight;
+            final int dpadCenterX = dpadX + size + gap;
+            final int dpadCenterY = clusterY + size + gap;
+            position(dpadPlate, dpadX - dp(host, 3),
+                    clusterY - dp(host, 3),
+                    clusterWidth + dp(host, 6), clusterHeight + dp(host, 6));
+            position(facePlate, diamondX - dp(host, 3),
+                    clusterY - dp(host, 3),
+                    clusterWidth + dp(host, 6), clusterHeight + dp(host, 6));
             final int topControls = portrait ?
                     Math.min((int)(height * .55f), clusterY - dp(host, 110)) :
                     Math.max(dp(host, 44), (int)(height * .53f));
@@ -383,12 +423,10 @@ public final class CharoiteTpdpTouchControls {
             position(keyboard, (width - keyboardW) / 2,
                     shoulderY, keyboardW, barHeight);
 
-            position(up, dpadX + size + gap, clusterY, size, size);
-            position(left, dpadX, clusterY + size + gap, size, size);
-            position(right, dpadX + (size + gap) * 2,
-                    clusterY + size + gap, size, size);
-            position(down, dpadX + size + gap,
-                    clusterY + (size + gap) * 2, size, size);
+            position(up, dpadCenterX, dpadCenterY - size - gap, size, size);
+            position(left, dpadCenterX - size - gap, dpadCenterY, size, size);
+            position(right, dpadCenterX + size + gap, dpadCenterY, size, size);
+            position(down, dpadCenterX, dpadCenterY + size + gap, size, size);
 
             position(yButton, diamondX + size + gap, clusterY, size, size);
             position(xButton, diamondX, clusterY + size + gap, size, size);
@@ -404,6 +442,13 @@ public final class CharoiteTpdpTouchControls {
                     dp(host, 68), topButtonH);
             position(toggle, width - margin - dp(host, 93),
                     margin, dp(host, 93), topButtonH);
+            if (inputStatus != null) {
+                int statusX = margin + portalW + gap + dp(host, 68) + gap;
+                int statusWidth = Math.max(0,
+                        width - statusX - margin - dp(host, 93) - gap);
+                position(inputStatus, statusX, margin,
+                        statusWidth, topButtonH);
+            }
 
             int extraW = Math.min(dp(host, 76),
                     (width - margin * 2 - gap * (extras.length - 1))
@@ -430,6 +475,13 @@ public final class CharoiteTpdpTouchControls {
             releaseAll.run();
             CharoiteSoftKeyboard.show(host);
         });
+        if (backend != null) backend.setOnClickListener(v -> {
+            releaseAll.run();
+            CharoiteLegacyKeyboard.nextMode();
+            backend.setText("INPUT: " + CharoiteLegacyKeyboard.modeLabel());
+            if (inputStatus != null)
+                inputStatus.setText("TH08 · " + CharoiteLegacyKeyboard.modeLabel());
+        });
         more.setOnClickListener(v -> {
             boolean show = extras[0].getVisibility() != View.VISIBLE;
             if (!show) releaseAll.run();
@@ -443,6 +495,8 @@ public final class CharoiteTpdpTouchControls {
             for (Button button : main)
                 button.setVisibility(show ? View.VISIBLE : View.GONE);
             keyboard.setVisibility(show ? View.VISIBLE : View.GONE);
+            if (inputStatus != null)
+                inputStatus.setVisibility(show ? View.VISIBLE : View.GONE);
             for (Button button : extras) button.setVisibility(View.GONE);
             more.setVisibility(show ? View.VISIBLE : View.GONE);
             more.setText("MORE");

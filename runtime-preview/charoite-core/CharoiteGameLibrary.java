@@ -143,6 +143,22 @@ public final class CharoiteGameLibrary {
         return found;
     }
 
+    /** Bulk shortcut cleanup never touches the Windows installation. Keep the
+     * current installer entry and its multiple-setup selection information.
+     * Existing games can be manually re-added by scanning their C: drive. */
+    public static synchronized int clearGameShortcuts(AppCompatActivity host) {
+        JSONArray current = load(host), retained = new JSONArray();
+        int count = 0;
+        for (int i = 0; i < current.length(); i++) {
+            JSONObject entry = current.optJSONObject(i);
+            if (entry == null) continue;
+            if (entry.optBoolean("installer")) retained.put(entry);
+            else count++;
+        }
+        if (count > 0) persist(host, retained);
+        return count;
+    }
+
     public static JSONObject newestInstaller(JSONArray library) {
         for (int i = library.length() - 1; i >= 0; i--) {
             JSONObject item = library.optJSONObject(i);

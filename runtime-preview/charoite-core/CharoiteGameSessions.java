@@ -60,6 +60,13 @@ public final class CharoiteGameSessions {
         Intent play = new Intent(host, target);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", executable);
+        // Snapshot the selected environment from the same Portal registry
+        // used for selecting this Wine container. XServerDisplayActivity
+        // must NEVER infer the realm from its own Activity.getPreferences().
+        // These are display labels only, not container selection overrides.
+        play.putExtra("charoite_environment_id", CharoiteEnvironments.activeId(host));
+        play.putExtra("charoite_environment_name", CharoiteEnvironments.activeName(host));
+        play.putExtra("charoite_environment_theme", CharoiteEnvironments.activeTheme(host));
         // Charoite Core provides one shared phone handheld surface for games.
         // Installers are always normal Windows setup windows; DeX retains
         // its keyboard, mouse and resizable desktop presentation.

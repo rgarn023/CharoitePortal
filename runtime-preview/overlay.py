@@ -630,10 +630,12 @@ display.write_text(code, encoding="utf-8")
 gl_renderer = java_root / "com/winlator/renderer/GLRenderer.java"
 gl_renderer_code = gl_renderer.read_text(encoding="utf-8")
 
-# Shard of Dreams can render at an integer-scaled 4:3 size larger than Wine's
-# virtual desktop. Without this exception, the client remains untransformed
-# and its title bar is drawn in the middle of the handheld controls.
-oversized_shard_anchor = (    "                boolean inBounds = width >= ScreenInfo.MIN_WIDTH && height >= ScreenInfo.MIN_HEIGHT && width < xServer.screenInfo.width && height < xServer.screenInfo.height;"
+# Shard's game drawable can be a larger or widescreen window. The two
+# upstream filters (size and decoration) must BOTH be relaxed for Shard's
+# verified game drawable, or it stays native-sized with a floating titlebar.
+# Other executables and TPDP base retain the original fullscreen filtering.
+oversized_shard_anchor = (
+    "                boolean inBounds = width >= ScreenInfo.MIN_WIDTH && height >= ScreenInfo.MIN_HEIGHT && width < xServer.screenInfo.width && height < xServer.screenInfo.height;"
 )
 assert gl_renderer_code.count(oversized_shard_anchor) == 1, (
     "Upstream fullscreen client-size policy changed"
@@ -647,6 +649,23 @@ gl_renderer_code = gl_renderer_code.replace(oversized_shard_anchor,
                                 xServer.activity.getIntent().getBooleanExtra(
                                         "touhou_desktop_window", false));
 """)
+
+# Upstream also rejects windows that report decorations even if their real
+# client surface is the Shard game. The core identifies only leaf game windows.
+shard_decorations_anchor = (
+    "window.getType() == Window.Type.NORMAL && inBounds && window.hasNoDecorations()"
+)
+assert gl_renderer_code.count(shard_decorations_anchor) == 1, (
+    "Upstream fullscreen decoration filter changed"
+)
+gl_renderer_code = gl_renderer_code.replace(shard_decorations_anchor,
+    "window.getType() == Window.Type.NORMAL && inBounds && " +
+    "(window.hasNoDecorations() || " +
+    "com.charoitegames.core.CharoiteWindowPolicy.allowDecoratedShardClient(" +
+    "window, xServer.screenInfo, " +
+    "xServer.activity.getIntent().getStringExtra(\\\"exec_path\\\"), " +
+    "xServer.activity.getIntent().getBooleanExtra(\\\"touhou_desktop_window\\\", false)))"
+)
 
 tpdp_viewport_anchor = (
     "                    fullscreenTransformation.update(xServer.screenInfo, "

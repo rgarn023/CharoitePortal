@@ -28,10 +28,11 @@ public final class CharoiteWindowPolicy {
     }
 
     /**
-     * The base game renders ~480x360; Shard of Dreams may open at larger
-     * integer-scaled 4:3 dimensions (e.g. 640x480 or 960x720).
-     * Only game-shaped clients for these exact executables receive a
-     * handheld transform. Native Wine dialogs retain their normal geometry.
+     * Keep the working TPDP base-game client selection unchanged. Shard's
+     * Japanese executable may map a larger game client with either 4:3 or
+     * widescreen dimensions and may advertise window decorations.
+     * Restrict the exception to recognized Shard launches, the real game
+     * drawable (not its decorated parent), and portrait handheld sessions.
      */
     private static boolean isHandheldGameClient(Window client, ScreenInfo screenInfo,
                                                  String executable, boolean desktopWindow) {
@@ -43,11 +44,19 @@ public final class CharoiteWindowPolicy {
             return true; // Keep the verified base-game presentation unchanged.
         if (!CharoiteShardOfDreamsSupport.isExpansionGame(executable))
             return false;
-        // Shard can start at several sizes. Ignore tiny splash/dialog surfaces,
-        // giant desktops, and non-4:3 windows.
-        if (width < 460 || height < 335 || width > 1920 || height > 1440)
+        // Shard's actual game window is not guaranteed to be 4:3; a 16:9
+        // D3D9 drawable is valid too. Exclude tiny dialogs/titlebar fragments,
+        // whole Wine desktops and implausible aspect ratios.
+        if (client.getType() != Window.Type.NORMAL ||
+                client.isDesktopWindow() || client.isDialogBox() ||
+                width < 460 || height < 335 || width > 1920 || height > 1440)
             return false;
-        return Math.abs((float) width / height - (4f / 3f)) < 0.13f;
+        float ratio = (float) width / height;
+        if (ratio < 0.95f || ratio > 2.4f) return false;
+        // Never transform the decorated frame as if it were the child game
+        // surface; its drawable is suppressed separately by hideNativeFrame.
+        return !(client.getChildCount() > 0 &&
+                client.hasDecoration(com.winlator.xserver.Window.Decoration.TITLE));
     }
 
     /**
@@ -60,6 +69,21 @@ public final class CharoiteWindowPolicy {
                                                     String executable, boolean desktopWindow) {
         return CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
                 isHandheldGameClient(client, screenInfo, executable, desktopWindow);
+    }
+
+    /**
+     * The upstream compositor applies fullscreen only to undecorated windows.
+     * Shard's real D3D9 client can still advertise decorations; its separate
+     * parent frame is discarded, never stretched along with the game.
+     * Do not permit this override for installers, dialogs, or other games.
+     */
+    public static boolean allowDecoratedShardClient(Window client,
+                                                     ScreenInfo screenInfo,
+                                                     String executable,
+                                                     boolean desktopWindow) {
+        return CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
+                isHandheldGameClient(client, screenInfo, executable, desktopWindow) &&
+                client.getChildCount() == 0;
     }
 
     private static void rememberClientScreen(FullscreenTransformation rect,

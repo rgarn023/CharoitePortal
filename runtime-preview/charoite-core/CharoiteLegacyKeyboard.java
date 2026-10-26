@@ -53,31 +53,43 @@ public final class CharoiteLegacyKeyboard {
     private static volatile String bridgeStatus = "Bridge not checked";
     private static volatile String x11Status = "X11 not checked";
 
-    /** Scan nested Wine windows, not only root's direct children. */
+    /**
+     * Winlator's X11 key dispatcher does not deliver a key merely because a
+     * window has focus. Its InputDeviceManager also requires an enabled
+     * window subscribed to KEY_PRESS/KEY_RELEASE. The prior implementation
+     * selected a renderable GL drawable regardless of keyboard event masks;
+     * the diagnostic could say "focused" while every key was discarded.
+     */
+    private static boolean acceptsX11Keys(Window window) {
+        return window != null && window.attributes.isEnabled() &&
+                window.attributes.isMapped() &&
+                window.hasEventListenerFor(com.winlator.xserver.events.Event.KEY_PRESS) &&
+                window.hasEventListenerFor(com.winlator.xserver.events.Event.KEY_RELEASE);
+    }
+
     private static Window findGameWindow(WindowManager wm) {
         java.util.ArrayDeque<Window> pending = new java.util.ArrayDeque<>();
         pending.add(wm.rootWindow);
-        int selected = CharoiteWindowPolicy.handheldGameClientId();
-        Window matching = null, fallback = null;
-        long maxSize = 0;
+        final int selected = CharoiteWindowPolicy.handheldGameClientId();
+        Window chosen = null;
+        long best = -1;
         while (!pending.isEmpty()) {
-            Window candidate = pending.removeFirst();
-            for (Window child : candidate.getChildren()) pending.addLast(child);
-            if (candidate == wm.rootWindow || !candidate.isRenderable() ||
-                    candidate.isDesktopWindow() || candidate.isDialogBox() ||
-                    candidate.getWidth() < 300 || candidate.getHeight() < 180) continue;
-            if (selected != -1 && selected == candidate.id) return candidate;
-            String clazz = candidate.getClassName().toLowerCase(java.util.Locale.ROOT);
-            String title = candidate.getName().toLowerCase(java.util.Locale.ROOT);
+            Window window = pending.removeFirst();
+            for (Window child : window.getChildren()) pending.addLast(child);
+            if (window == wm.rootWindow || window.isDesktopWindow() ||
+                    window.isDialogBox() || !acceptsX11Keys(window)) continue;
+            String clazz = window.getClassName().toLowerCase(java.util.Locale.ROOT);
+            String title = window.getName().toLowerCase(java.util.Locale.ROOT);
+            long score = 0;
+            if (window.id == selected) score += 10000000L;
             if (clazz.contains("th08") || title.contains("imperishable") ||
-                    title.contains("東方永夜抄")) matching = candidate;
-            long size = (long)candidate.getWidth() * candidate.getHeight();
-            if (candidate.getChildCount() == 0 && size > maxSize) {
-                fallback = candidate;
-                maxSize = size;
-            }
+                    title.contains("東方永夜抄")) score += 1000000L;
+            if (window.isApplicationWindow()) score += 100000L;
+            if (window.isRenderable()) score += 10000L;
+            score += Math.min(9999, (long)window.getWidth()*window.getHeight()/256);
+            if (score > best) { best = score; chosen = window; }
         }
-        return matching != null ? matching : fallback;
+        return chosen;
     }
 
     private static void restoreX11Focus(XServer xServer) {
@@ -87,17 +99,24 @@ public final class CharoiteLegacyKeyboard {
             WindowManager wm = xServer.windowManager;
             Window focused = wm.getFocusedWindow();
             if (focused != null && focused.isDialogBox()) {
-                focusStatus = "Windows dialog has focus";
+                focusStatus = "Active Wine dialog retained";
+                return;
+            }
+            // Respect a valid existing keyboard focus: scanning over it can
+            // steal keys from the actual DirectInput game window.
+            if (acceptsX11Keys(focused) && !focused.isDesktopWindow()) {
+                focusStatus = "X11 keyboard subscriber #" + focused.id + " active";
                 return;
             }
             Window game = findGameWindow(wm);
             if (game == null) {
-                focusStatus = "No mapped game client available";
+                focusStatus = "NO enabled X11 key-event subscriber";
+                android.util.Log.w("CharoiteInput", focusStatus);
                 return;
             }
             if (focused != game)
                 wm.setFocus(game, WindowManager.FocusRevertTo.POINTER_ROOT);
-            focusStatus = "X11 game client focused: " + game.id;
+            focusStatus = "X11 key-event subscriber focused #" + game.id;
         } catch (RuntimeException error) {
             focusStatus = "Focus error: " + error.getClass().getSimpleName();
             android.util.Log.w("CharoiteInput", focusStatus, error);
@@ -115,6 +134,7 @@ public final class CharoiteLegacyKeyboard {
         return "Touhou 8 input: " + modeLabel() +
                 "\nWin32 bridge: " + (ready ? "ready" : "not initialized") +
                 "\n" + bridgeStatus + "\n" + x11Status + "\n" + focusStatus +
+                "\nHelper: " + scanInstallPath +
                 "\nScan: " + scanStatus +
                 "\nScan acknowledged: " + scanAcknowledged +
                 "\nKey injection does not guarantee the game received it.";
@@ -125,6 +145,8 @@ public final class CharoiteLegacyKeyboard {
                 (pressed ? " down" : " up");
         android.util.Log.d("CharoiteInput", x11Status);
     }
+
+    private static volatile String scanInstallPath = "Not installed";
 
     private static final java.util.concurrent.ExecutorService scanSender =
             java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -141,30 +163,47 @@ public final class CharoiteLegacyKeyboard {
      */
     public static synchronized void prepareScanBridge(android.app.Activity host,
                                                        XServer xServer) {
-        if (scanPrepared || host == null || xServer == null) return;
+        if (scanPrepared || !(host instanceof com.winlator.XServerDisplayActivity) ||
+                xServer == null) return;
         WinHandler handler = xServer.getWinHandler();
-        if (handler == null) return;
+        com.winlator.container.Container container =
+                ((com.winlator.XServerDisplayActivity)host).getContainer();
+        if (handler == null || container == null || container.getRootDir() == null) {
+            scanStatus = "Game container not available for scan helper";
+            return;
+        }
         try {
-            java.io.File target = new java.io.File(host.getFilesDir(),
-                    "charoite_keyscan.exe");
-            if (!target.isFile() || target.length() < 5000) {
-                try (java.io.InputStream input = host.getAssets().open(
-                        "input/charoite_keyscan.exe");
-                     java.io.FileOutputStream output =
-                             new java.io.FileOutputStream(target)) {
-                    byte[] buffer = new byte[8192];
-                    int n;
-                    while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
-                }
+            // The guest's Z: drive is rooted in its own chroot, not Android's
+            // /data/user/0/... directory. Copy into this environment's REAL
+            // C: drive instead; do not assume Android paths are Wine-visible.
+            java.io.File target = new java.io.File(container.getRootDir(),
+                    ".wine/drive_c/CharoitePortal/Core/charoite_keyscan.exe");
+            java.io.File parent = target.getParentFile();
+            if (parent == null || (!parent.isDirectory() && !parent.mkdirs()))
+                throw new java.io.IOException("Cannot create Wine Core directory");
+            // Refresh on each app update. Atomic replacement avoids a torn EXE.
+            java.io.File pending = new java.io.File(parent, "charoite_keyscan.new");
+            try (java.io.InputStream input = host.getAssets().open(
+                    "input/charoite_keyscan.exe");
+                 java.io.FileOutputStream output = new java.io.FileOutputStream(pending)) {
+                byte[] buffer = new byte[8192];
+                int n;
+                while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
             }
-            // Wine maps the Android app's private Linux files through Z:.
-            String winePath = "Z:" + target.getAbsolutePath().replace('/', '\\');
+            if (!pending.renameTo(target)) {
+                if (!target.delete() || !pending.renameTo(target))
+                    throw new java.io.IOException("Cannot replace Wine scan helper");
+            }
+            if (target.length() < 5000)
+                throw new java.io.IOException("Invalid Wine scan helper");
+            String winePath = "C:\\CharoitePortal\\Core\\charoite_keyscan.exe";
+            scanInstallPath = winePath + " (" + target.length() + " bytes)";
             handler.exec(winePath, "");
             scanPrepared = true;
-            scanStatus = "Wine scan-code receiver startup queued";
-            android.util.Log.i("CharoiteInput", scanStatus + " " + winePath);
+            scanStatus = "Scan helper launch requested inside Wine container";
+            android.util.Log.i("CharoiteInput", scanStatus + ": " + scanInstallPath);
         } catch (Exception error) {
-            scanStatus = "Scan helper setup: " + error.getClass().getSimpleName();
+            scanStatus = "Scan helper setup failed: " + error.getClass().getSimpleName();
             android.util.Log.w("CharoiteInput", scanStatus, error);
         }
     }

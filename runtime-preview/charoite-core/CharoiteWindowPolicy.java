@@ -105,6 +105,12 @@ public final class CharoiteWindowPolicy {
         }
         if (client.isDesktopWindow() || client.isDialogBox() ||
                 client.getType() != Window.Type.NORMAL) return false;
+        // Shard maps a 968x747 top-level frame AND its 960x720 child.
+        // The old size heuristic selected both, repeatedly switching
+        // activeShardClientId and rendering two scaled overlapping windows.
+        // Do not treat a container with children as the game drawable.
+        // Check BEFORE reusing a sticky window ID from an earlier frame.
+        if (client.getChildCount() > 0) return false;
         // An X11 window keeps the same id when Wine resizes it. This is the
         // crucial difference from the former min-460x335 heuristic, which
         // dropped fullscreen scaling as soon as Shard switched window mode.
@@ -156,6 +162,19 @@ public final class CharoiteWindowPolicy {
      * may equal or exceed that desktop, leaving its title bar visible and
      * clipping the game over the controls. Allow only Shard game clients.
      */
+    /** Prevent a Shard window container from receiving its own fullscreen
+     * projection, even when it passes upstream's original size check. */
+    public static boolean isShardHandheldContainer(Window window,
+                                                    ScreenInfo screenInfo,
+                                                    String executable,
+                                                    boolean desktopWindow) {
+        return CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
+                enlargeHandheldGame(executable, desktopWindow) &&
+                screenInfo != null && screenInfo.height > screenInfo.width &&
+                window != null && !window.isDesktopWindow() &&
+                window.getChildCount() > 0;
+    }
+
     public static boolean allowOversizedShardGame(Window client, ScreenInfo screenInfo,
                                                     String executable, boolean desktopWindow) {
         return CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
@@ -209,13 +228,17 @@ public final class CharoiteWindowPolicy {
         int dh = frame.getHeight() - client.getHeight();
         if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow))
             return false;
-        // If Shard switches to a smaller guest window, the decorated Wine
-        // parent can briefly retain its old dimensions. Keep its old frame
-        // hidden while the tracked game drawable remains scaled.
+        // The Shard frame is a separate X11 drawable, about 8x27px larger
+        // than the game. Hide its quad even when Wine decoration flags are
+        // absent, but ONLY for the selected direct child/parent pair.
+        // Do not delete either X11 window or affect game files/input.
         if (CharoiteShardOfDreamsSupport.isExpansionGame(executable) &&
                 activeShardClientId == client.id)
-            return frame.hasDecoration(com.winlator.xserver.Decoration.TITLE)
-                    && dw >= 0 && dh >= 0 && (dw > 0 || dh > 0);
+            return client.getParent() == frame &&
+                    frame.getChildCount() == 1 &&
+                    !frame.isDesktopWindow() &&
+                    dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
+                    (dw > 0 || dh > 0);
         return dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80 &&
                 (dw > 0 || dh > 0);
     }

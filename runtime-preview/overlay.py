@@ -693,12 +693,22 @@ assert gl_renderer_code.count(oversized_shard_anchor) == 1, (
 )
 gl_renderer_code = gl_renderer_code.replace(oversized_shard_anchor,
     oversized_shard_anchor + """
-                inBounds = inBounds ||
+                // The Shard parent and 960x720 client must NOT both be
+                // transformed, including when the parent passes normal bounds.
+                if (com.charoitegames.core.CharoiteWindowPolicy.isShardHandheldContainer(
+                        window, xServer.screenInfo,
+                        xServer.activity.getIntent().getStringExtra("exec_path"),
+                        xServer.activity.getIntent().getBooleanExtra(
+                                "touhou_desktop_window", false))) {
+                    inBounds = false;
+                } else {
+                    inBounds = inBounds ||
                         com.charoitegames.core.CharoiteWindowPolicy.allowOversizedShardGame(
                                 window, xServer.screenInfo,
                                 xServer.activity.getIntent().getStringExtra("exec_path"),
                                 xServer.activity.getIntent().getBooleanExtra(
                                         "touhou_desktop_window", false));
+                }
 """)
 
 # Upstream also rejects windows that report decorations even if their real

@@ -73,6 +73,19 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('allowOversizedShardGame(', POLICY)
         self.assertIn('oversized_shard_anchor', OVERLAY)
         self.assertIn('inBounds = inBounds ||', OVERLAY)
+        # Regression from user diagnostics: a 968x747 Wine parent and a
+        # 960x720 game drawable must not both get fullscreen transforms.
+        self.assertIn('if (client.getChildCount() > 0) return false;', POLICY)
+        self.assertLess(
+            POLICY.index('if (client.getChildCount() > 0) return false;'),
+            POLICY.index('boolean sameClient = activeShardClientId == client.id;'))
+        self.assertIn('isShardHandheldContainer(Window window,', POLICY)
+        self.assertIn('window.getChildCount() > 0;', POLICY)
+        self.assertIn('CharoiteWindowPolicy.isShardHandheldContainer(', OVERLAY)
+        self.assertIn('inBounds = false;', OVERLAY)
+        self.assertIn('client.getParent() == frame', POLICY)
+        self.assertIn('dw >= 0 && dw <= 48 && dh >= 0 && dh <= 80', POLICY)
+        self.assertIn('removeRenderableWindow(parent);', OVERLAY)
         self.assertIn('setHandheldOutline(View outline)', POLICY)
         self.assertIn('handheldScreenBounds()', POLICY)
         self.assertIn('class ScreenOutline extends View', CONTROLS)
@@ -102,7 +115,8 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('return true;', POLICY)
         self.assertIn('activeShardClientWidth != width || activeShardClientHeight != height', POLICY)
         self.assertIn('CharoiteDiagnostics.recordShardWindowChange(', POLICY)
-        self.assertIn('frame.hasDecoration(com.winlator.xserver.Decoration.TITLE)', POLICY)
+        self.assertIn('client.getParent() == frame', POLICY)
+        self.assertIn('frame.getChildCount() == 1', POLICY)
         self.assertNotIn('window.setWidth(', POLICY)
         self.assertNotIn('window.setHeight(', POLICY)
 

@@ -43,7 +43,7 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('if (ratio < 0.95f || ratio > 2.4f) return false;', POLICY)
         self.assertIn('allowDecoratedShardClient(Window client,', POLICY)
         self.assertIn('client.getChildCount() == 0', POLICY)
-        self.assertIn('client.hasDecoration(com.winlator.xserver.Window.Decoration.TITLE)', POLICY)
+        self.assertIn('client.hasDecoration(com.winlator.xserver.Decoration.TITLE)', POLICY)
         self.assertIn('shard_decorations_anchor', OVERLAY)
         self.assertIn('window.hasNoDecorations() || ', OVERLAY)
         self.assertIn('allowDecoratedShardClient(', OVERLAY)

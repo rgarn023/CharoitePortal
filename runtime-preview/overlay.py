@@ -659,13 +659,14 @@ assert gl_renderer_code.count(shard_decorations_anchor) == 1, (
     "Upstream fullscreen decoration filter changed"
 )
 gl_renderer_code = gl_renderer_code.replace(shard_decorations_anchor,
-    "window.getType() == Window.Type.NORMAL && inBounds && " +
-    "(window.hasNoDecorations() || " +
-    "com.charoitegames.core.CharoiteWindowPolicy.allowDecoratedShardClient(" +
-    "window, xServer.screenInfo, " +
-    "xServer.activity.getIntent().getStringExtra(\\\"exec_path\\\"), " +
-    "xServer.activity.getIntent().getBooleanExtra(\\\"touhou_desktop_window\\\", false)))"
-)
+    """window.getType() == Window.Type.NORMAL && inBounds &&
+                    (window.hasNoDecorations() ||
+                     com.charoitegames.core.CharoiteWindowPolicy.allowDecoratedShardClient(
+                         window, xServer.screenInfo,
+                         xServer.activity.getIntent().getStringExtra("exec_path"),
+                         xServer.activity.getIntent().getBooleanExtra(
+                             "touhou_desktop_window", false)))""")
+
 
 tpdp_viewport_anchor = (
     "                    fullscreenTransformation.update(xServer.screenInfo, "

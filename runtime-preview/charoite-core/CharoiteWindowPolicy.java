@@ -56,7 +56,7 @@ public final class CharoiteWindowPolicy {
         // Never transform the decorated frame as if it were the child game
         // surface; its drawable is suppressed separately by hideNativeFrame.
         return !(client.getChildCount() > 0 &&
-                client.hasDecoration(com.winlator.xserver.Window.Decoration.TITLE));
+                client.hasDecoration(com.winlator.xserver.Decoration.TITLE));
     }
 
     /**

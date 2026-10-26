@@ -157,110 +157,6 @@ public final class CharoiteTpdpTouchControls {
         }
 
 
-        /**
-         * Display-model-aware artwork beneath transparent tinted plastic.
-         * Android has no API to photograph or expose the physical phone's
-         * internals. This is an original schematic-style illustration, not
-         * a claim to be a literal teardown photograph.
-         */
-        private void drawCircuitArtwork(Canvas canvas, float width, float height) {
-            String model = android.os.Build.MODEL == null ? "Android" :
-                    android.os.Build.MODEL;
-            boolean ultra = model.toUpperCase(java.util.Locale.ROOT)
-                    .startsWith("SM-S948") ||
-                    model.toUpperCase(java.util.Locale.ROOT).contains("S26 ULTRA");
-            float sx = width / 480f, sy = height / 960f;
-            canvas.save();
-            canvas.scale(sx, sy);
-            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xE71D2E40);
-            canvas.drawRoundRect(new RectF(35, 42, 445, 916), 38, 38, p);
-            // Upper mainboard, shielding cans, sensor array and camera barrels.
-            p.setColor(0xFF315D60);
-            canvas.drawRoundRect(new RectF(55, 65, 423, 306), 20, 20, p);
-            p.setColor(0xFFB0A0B9);
-            canvas.drawRoundRect(new RectF(202, 77, 407, 225), 12, 12, p);
-            p.setColor(0xFF54686F);
-            canvas.drawRoundRect(new RectF(217, 90, 393, 210), 9, 9, p);
-            p.setColor(0xFF223140);
-            int cameraCount = ultra ? 4 : 3;
-            for (int i = 0; i < cameraCount; i++) {
-                float cx = 92 + (i % 2) * 77;
-                float cy = 110 + (i / 2) * 82;
-                p.setColor(0xFF0F192E);
-                canvas.drawCircle(cx, cy, 32, p);
-                p.setColor(0xFFD6A8E7);
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(5);
-                canvas.drawCircle(cx, cy, 25, p);
-                p.setColor(0xFF536B8E);
-                p.setStrokeWidth(3);
-                canvas.drawCircle(cx, cy, 15, p);
-                p.setStyle(Paint.Style.FILL);
-            }
-            // Exposed copper buses, flex interconnects, heat spreader.
-            p.setColor(0xFFBA7B5B);
-            canvas.drawRoundRect(new RectF(200, 260, 285, 710), 9, 9, p);
-            p.setColor(0xFF836E9C);
-            canvas.drawRoundRect(new RectF(243, 239, 404, 315), 9, 9, p);
-            p.setColor(0xFF46606D);
-            canvas.drawRoundRect(new RectF(70, 322, 411, 755), 18, 18, p);
-            p.setColor(0xFF212C3E);
-            canvas.drawRoundRect(new RectF(82, 333, 399, 742), 14, 14, p);
-            p.setColor(0xFF7E6992);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(3);
-            canvas.drawRoundRect(new RectF(92, 346, 389, 728), 10, 10, p);
-            p.setStyle(Paint.Style.FILL);
-            // Distinct round NFC / wireless-charging winding above the battery.
-            p.setColor(0xFFC3A4CE);
-            p.setStyle(Paint.Style.STROKE);
-            for (int radius = 92; radius >= 55; radius -= 9) {
-                p.setStrokeWidth(5);
-                canvas.drawCircle(241, 522, radius, p);
-            }
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFF1E3D4E);
-            canvas.drawRoundRect(new RectF(61, 763, 419, 883), 14, 14, p);
-            p.setColor(0xFF9FA6B6);
-            canvas.drawRoundRect(new RectF(196, 857, 284, 882), 7, 7, p);
-            p.setColor(0xFF37485A);
-            canvas.drawRoundRect(new RectF(206, 866, 274, 875), 4, 4, p);
-            // A stylus tunnel is depicted only for known Ultra hardware.
-            if (ultra) {
-                p.setColor(0xFFB6A3BE);
-                canvas.drawRoundRect(new RectF(411, 322, 423, 895), 6, 6, p);
-                p.setColor(0xFF2A2539);
-                canvas.drawRoundRect(new RectF(415, 333, 420, 881), 3, 3, p);
-            }
-            // Copper traces and surface mount components.
-            p.setColor(0xFFAF8C84);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(2);
-            for (int i = 0; i < 9; i++) {
-                float y = 270 + i * 6;
-                canvas.drawLine(65, y, 160, y, p);
-                canvas.drawLine(160, y, 187, y + 18, p);
-                canvas.drawLine(187, y + 18, 195, y + 18, p);
-            }
-            for (int i = 0; i < 7; i++) {
-                float x = 75 + i * 44;
-                canvas.drawLine(x, 789, x + 14, 808, p);
-                canvas.drawLine(x + 14, 808, x + 14, 845, p);
-            }
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFFDDC6E8);
-            p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
-            p.setTextSize(17f);
-            canvas.drawText(ultra ? "S26 ULTRA • HARDWARE STUDY" :
-                    "ANDROID • HARDWARE STUDY", 73, 902, p);
-            p.setTextSize(12f);
-            canvas.drawText(model.length() > 25 ? model.substring(0, 25) : model,
-                    72, 924, p);
-            canvas.restore();
-        }
-
         /** Mask the white Wine desktop, then show phone-like circuitry under
          * a truly translucent purple acrylic coating. Clip OUT the game
          * rectangle, so game pixels remain fully visible and untouched.
@@ -274,9 +170,11 @@ public final class CharoiteTpdpTouchControls {
             shell.setShader(null);
             shell.setColor(0xFF191325);
             canvas.drawRect(0, 0, w, h, shell);
-            drawCircuitArtwork(canvas, w, h);
+            // A device-matched real interior photo is displayed only when
+            // available; never show an invented diagram as exact hardware.
+            CharoiteHardwareSkin.drawInterior(canvas, (Activity)getContext(), w, h);
             shell.setShader(new LinearGradient(0, 0, w * .85f, h,
-                    new int[]{0x9B563485, 0x56311C59, 0xA247286F},
+                    new int[]{0xA0664598, 0x66392165, 0xB04F327D},
                     null, Shader.TileMode.CLAMP));
             canvas.drawRect(0, 0, w, h, shell);
             shell.setShader(null);
@@ -340,6 +238,12 @@ public final class CharoiteTpdpTouchControls {
         final boolean touhou8 = CharoiteLegacyKeyboard.requiresWindowsKeyboard(executable);
         if (touhou8) CharoiteLegacyKeyboard.resetMode();
         final Map<Integer, Integer> held = new HashMap<>();
+        // Short clicks from Android can be shorter than the next DirectInput
+        // frame. Touhou 8 must see an actual held-down state for >= 100ms.
+        final android.os.Handler keyTimer = new android.os.Handler(
+                android.os.Looper.getMainLooper());
+        final Map<Integer, Long> keyDownAt = new HashMap<>();
+        final Map<Integer, Runnable> pendingKeyUp = new HashMap<>();
         final KeySink guarded = (code, pressed) -> {
             // Reference-count simultaneous buttons mapped to the same X key.
             // Releasing Shoot must not release Focus; releasing one of two
@@ -349,18 +253,41 @@ public final class CharoiteTpdpTouchControls {
                     (pressed ? " pressed" : " released"));
             int count = held.containsKey(code) ? held.get(code) : 0;
             if (pressed) {
+                Runnable pending = pendingKeyUp.remove(code);
+                if (pending != null) keyTimer.removeCallbacks(pending);
                 held.put(code, count + 1);
-                if (count == 0) sink.send(code, true);
+                if (count == 0 && pending == null) {
+                    keyDownAt.put(code, android.os.SystemClock.uptimeMillis());
+                    sink.send(code, true);
+                }
             } else if (count > 0) {
                 if (count == 1) {
                     held.remove(code);
-                    sink.send(code, false);
+                    if (!touhou8) {
+                        sink.send(code, false);
+                    } else {
+                        long started = keyDownAt.containsKey(code) ? keyDownAt.get(code) : 0;
+                        long elapsed = android.os.SystemClock.uptimeMillis() - started;
+                        Runnable release = () -> {
+                            pendingKeyUp.remove(code);
+                            keyDownAt.remove(code);
+                            sink.send(code, false);
+                        };
+                        pendingKeyUp.put(code, release);
+                        keyTimer.postDelayed(release, Math.max(0, 110 - elapsed));
+                    }
                 } else held.put(code, count - 1);
             }
         };
         final Runnable releaseAll = () -> {
+            for (Runnable callback : new ArrayList<>(pendingKeyUp.values()))
+                keyTimer.removeCallbacks(callback);
+            for (Integer code : new ArrayList<>(pendingKeyUp.keySet()))
+                sink.send(code, false);
+            pendingKeyUp.clear();
             for (Integer code : new ArrayList<>(held.keySet())) sink.send(code, false);
             held.clear();
+            keyDownAt.clear();
         };
         final java.util.function.IntUnaryOperator mapped = index ->
                 CharoiteGameControlProfiles.keyFor(host, executable, index);
@@ -428,9 +355,12 @@ public final class CharoiteTpdpTouchControls {
         final Button diagnostics = touhou8 ? button(host, "INPUT INFO",
                 "Show Touhou 8 keyboard backend and focus status",
                 -1, true, guarded) : null;
+        final Button interior = button(host, "INTERIOR",
+                "Choose an authentic photo of this device's internal components",
+                -1, true, guarded);
         final Button[] extras = touhou8 ?
-                new Button[]{f11, screenshot, backend, diagnostics} :
-                new Button[]{f11, screenshot};
+                new Button[]{f11, screenshot, backend, diagnostics, interior} :
+                new Button[]{f11, screenshot, interior};
         for (Button button : extras) {
             root.addView(button);
             button.setVisibility(View.GONE);
@@ -568,6 +498,10 @@ public final class CharoiteTpdpTouchControls {
             releaseAll.run();
             CharoiteLegacyKeyboard.nextMode();
             backend.setText("INPUT: " + CharoiteLegacyKeyboard.modeLabel());
+        });
+        interior.setOnClickListener(v -> {
+            releaseAll.run();
+            CharoiteHardwareSkin.choosePicture(host);
         });
         if (diagnostics != null) diagnostics.setOnClickListener(v ->
                 new androidx.appcompat.app.AlertDialog.Builder(host)

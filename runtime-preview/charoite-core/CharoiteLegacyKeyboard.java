@@ -71,6 +71,12 @@ public final class CharoiteLegacyKeyboard {
         }
     }
 
+    /** Needed even when the user isolates the X11-only backend. */
+    public static void prepareX11Focus(XServer xServer, String executable) {
+        if (requiresWindowsKeyboard(executable) && xServer != null)
+            restoreX11Focus(xServer);
+    }
+
     /** Win32 virtual-key values; KEYEVENTF_KEYUP = 0x0002. */
     public static int virtualKey(int androidKey) {
         switch (androidKey) {

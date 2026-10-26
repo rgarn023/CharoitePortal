@@ -354,8 +354,8 @@ public final class CharoiteTpdpTouchControls {
                 KeyEvent.KEYCODE_F11, true, guarded);
         final Button screenshot = button(host, "P Shot", "P",
                 KeyEvent.KEYCODE_P, true, guarded);
-        final Button backend = touhou8 ? button(host, "INPUT: DUAL",
-                "Select Touhou 8 keyboard backend: dual, Win32, X11, or scan-code",
+        final Button backend = touhou8 ? button(host, "INPUT: SCAN",
+                "Select Touhou 8 keyboard backend: scan-code, window, dual, Win32 or X11",
                 -1, true, guarded) : null;
         final Button diagnostics = touhou8 ? button(host, "INPUT INFO",
                 "Show Touhou 8 keyboard backend and focus status",

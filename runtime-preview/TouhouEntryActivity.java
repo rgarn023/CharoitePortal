@@ -697,8 +697,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private JSONObject createEnvironmentManifest(String name, boolean fromCurrent)
             throws Exception {
         String theme = fromCurrent ? CharoiteEnvironments.activeTheme(this) : "cosmic";
-        if (!"touhou".equals(theme) && !"sakura".equals(theme)) theme = "cosmic";
-        else theme = "sakura";
+        if ("touhou".equals(theme) || "sakura".equals(theme)) theme = "sakura";
+        else if (!"battlenet".equals(theme)) theme = "cosmic";
         return CharoiteEnvironmentFiles.create(name, theme,
                 fromCurrent && CharoiteCore.compatibleGraphics(this),
                 fromCurrent ? CharoiteCore.getDisplayModeIndex(this) : 0,

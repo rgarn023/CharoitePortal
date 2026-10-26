@@ -429,6 +429,10 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                             com.charoitegames.core.CharoiteLegacyKeyboard.sendScan(
                                     keyCode, pressed);
                         if (touhou8 && com.charoitegames.core
+                                .CharoiteLegacyKeyboard.useWindow())
+                            com.charoitegames.core.CharoiteLegacyKeyboard.sendWindow(
+                                    keyCode, pressed);
+                        if (touhou8 && com.charoitegames.core
                                 .CharoiteLegacyKeyboard.useWin32()) {
                             com.charoitegames.core.CharoiteLegacyKeyboard.send(
                                     xServer, gameExe, keyCode, pressed);

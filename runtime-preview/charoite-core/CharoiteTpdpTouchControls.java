@@ -15,7 +15,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.TextView;
 import com.winlator.XServerDisplayActivity;
 import com.winlator.widget.XServerView;
 import com.winlator.renderer.ViewTransformation;
@@ -157,29 +156,139 @@ public final class CharoiteTpdpTouchControls {
             rim.setStrokeWidth(dp(host, 3));
         }
 
-        /** The opaque white rectangle is Wine's 4:3 desktop background.
-         * Draw Charoite's translucent shell OUTSIDE the game client only.
-         * Never recolor or obscure the real game pixels or its touch target.
+
+        /**
+         * Display-model-aware artwork beneath transparent tinted plastic.
+         * Android has no API to photograph or expose the physical phone's
+         * internals. This is an original schematic-style illustration, not
+         * a claim to be a literal teardown photograph.
+         */
+        private void drawCircuitArtwork(Canvas canvas, float width, float height) {
+            String model = android.os.Build.MODEL == null ? "Android" :
+                    android.os.Build.MODEL;
+            boolean ultra = model.toUpperCase(java.util.Locale.ROOT)
+                    .startsWith("SM-S948") ||
+                    model.toUpperCase(java.util.Locale.ROOT).contains("S26 ULTRA");
+            float sx = width / 480f, sy = height / 960f;
+            canvas.save();
+            canvas.scale(sx, sy);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xE71D2E40);
+            canvas.drawRoundRect(new RectF(35, 42, 445, 916), 38, 38, p);
+            // Upper mainboard, shielding cans, sensor array and camera barrels.
+            p.setColor(0xFF315D60);
+            canvas.drawRoundRect(new RectF(55, 65, 423, 306), 20, 20, p);
+            p.setColor(0xFFB0A0B9);
+            canvas.drawRoundRect(new RectF(202, 77, 407, 225), 12, 12, p);
+            p.setColor(0xFF54686F);
+            canvas.drawRoundRect(new RectF(217, 90, 393, 210), 9, 9, p);
+            p.setColor(0xFF223140);
+            int cameraCount = ultra ? 4 : 3;
+            for (int i = 0; i < cameraCount; i++) {
+                float cx = 92 + (i % 2) * 77;
+                float cy = 110 + (i / 2) * 82;
+                p.setColor(0xFF0F192E);
+                canvas.drawCircle(cx, cy, 32, p);
+                p.setColor(0xFFD6A8E7);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(5);
+                canvas.drawCircle(cx, cy, 25, p);
+                p.setColor(0xFF536B8E);
+                p.setStrokeWidth(3);
+                canvas.drawCircle(cx, cy, 15, p);
+                p.setStyle(Paint.Style.FILL);
+            }
+            // Exposed copper buses, flex interconnects, heat spreader.
+            p.setColor(0xFFBA7B5B);
+            canvas.drawRoundRect(new RectF(200, 260, 285, 710), 9, 9, p);
+            p.setColor(0xFF836E9C);
+            canvas.drawRoundRect(new RectF(243, 239, 404, 315), 9, 9, p);
+            p.setColor(0xFF46606D);
+            canvas.drawRoundRect(new RectF(70, 322, 411, 755), 18, 18, p);
+            p.setColor(0xFF212C3E);
+            canvas.drawRoundRect(new RectF(82, 333, 399, 742), 14, 14, p);
+            p.setColor(0xFF7E6992);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(3);
+            canvas.drawRoundRect(new RectF(92, 346, 389, 728), 10, 10, p);
+            p.setStyle(Paint.Style.FILL);
+            // Distinct round NFC / wireless-charging winding above the battery.
+            p.setColor(0xFFC3A4CE);
+            p.setStyle(Paint.Style.STROKE);
+            for (int radius = 92; radius >= 55; radius -= 9) {
+                p.setStrokeWidth(5);
+                canvas.drawCircle(241, 522, radius, p);
+            }
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFF1E3D4E);
+            canvas.drawRoundRect(new RectF(61, 763, 419, 883), 14, 14, p);
+            p.setColor(0xFF9FA6B6);
+            canvas.drawRoundRect(new RectF(196, 857, 284, 882), 7, 7, p);
+            p.setColor(0xFF37485A);
+            canvas.drawRoundRect(new RectF(206, 866, 274, 875), 4, 4, p);
+            // A stylus tunnel is depicted only for known Ultra hardware.
+            if (ultra) {
+                p.setColor(0xFFB6A3BE);
+                canvas.drawRoundRect(new RectF(411, 322, 423, 895), 6, 6, p);
+                p.setColor(0xFF2A2539);
+                canvas.drawRoundRect(new RectF(415, 333, 420, 881), 3, 3, p);
+            }
+            // Copper traces and surface mount components.
+            p.setColor(0xFFAF8C84);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(2);
+            for (int i = 0; i < 9; i++) {
+                float y = 270 + i * 6;
+                canvas.drawLine(65, y, 160, y, p);
+                canvas.drawLine(160, y, 187, y + 18, p);
+                canvas.drawLine(187, y + 18, 195, y + 18, p);
+            }
+            for (int i = 0; i < 7; i++) {
+                float x = 75 + i * 44;
+                canvas.drawLine(x, 789, x + 14, 808, p);
+                canvas.drawLine(x + 14, 808, x + 14, 845, p);
+            }
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFFDDC6E8);
+            p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+            p.setTextSize(17f);
+            canvas.drawText(ultra ? "S26 ULTRA • HARDWARE STUDY" :
+                    "ANDROID • HARDWARE STUDY", 73, 902, p);
+            p.setTextSize(12f);
+            canvas.drawText(model.length() > 25 ? model.substring(0, 25) : model,
+                    72, 924, p);
+            canvas.restore();
+        }
+
+        /** Mask the white Wine desktop, then show phone-like circuitry under
+         * a truly translucent purple acrylic coating. Clip OUT the game
+         * rectangle, so game pixels remain fully visible and untouched.
          */
         private void drawShell(Canvas canvas, RectF screen) {
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0) return;
-            shell.setShader(new LinearGradient(0, 0, w * .85f, h,
-                    new int[]{0xF0271643, 0xE84D3074, 0xF01A102E},
-                    null, Shader.TileMode.CLAMP));
-            if (screen == null) {
-                canvas.drawRect(0, 0, w, h, shell);
-            } else {
-                float top = Math.max(0, Math.min(h, screen.top));
-                float bottom = Math.max(top, Math.min(h, screen.bottom));
-                float left = Math.max(0, Math.min(w, screen.left));
-                float right = Math.max(left, Math.min(w, screen.right));
-                canvas.drawRect(0, 0, w, top, shell);
-                canvas.drawRect(0, bottom, w, h, shell);
-                canvas.drawRect(0, top, left, bottom, shell);
-                canvas.drawRect(right, top, w, bottom, shell);
-            }
+            canvas.save();
+            if (screen != null) canvas.clipOutRect(
+                    screen.left, screen.top, screen.right, screen.bottom);
             shell.setShader(null);
+            shell.setColor(0xFF191325);
+            canvas.drawRect(0, 0, w, h, shell);
+            drawCircuitArtwork(canvas, w, h);
+            shell.setShader(new LinearGradient(0, 0, w * .85f, h,
+                    new int[]{0x9B563485, 0x56311C59, 0xA247286F},
+                    null, Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, shell);
+            shell.setShader(null);
+            // Polished clear-plastic sheen and a subtle edge highlight.
+            shell.setColor(0x50DBC8FD);
+            shell.setStyle(Paint.Style.STROKE);
+            shell.setStrokeWidth(dp((Activity)getContext(), 2));
+            canvas.drawRoundRect(new RectF(4, 4, w - 4, h - 4),
+                    dp((Activity)getContext(), 18),
+                    dp((Activity)getContext(), 18), shell);
+            shell.setStyle(Paint.Style.FILL);
+            canvas.restore();
         }
 
         @Override
@@ -230,26 +339,14 @@ public final class CharoiteTpdpTouchControls {
         }
         final boolean touhou8 = CharoiteLegacyKeyboard.requiresWindowsKeyboard(executable);
         if (touhou8) CharoiteLegacyKeyboard.resetMode();
-        final TextView inputStatus = touhou8 ? new TextView(host) : null;
-        if (inputStatus != null) {
-            inputStatus.setText("TH08 · DUAL");
-            inputStatus.setTextColor(0xFFE4D8FF);
-            inputStatus.setTextSize(10f);
-            inputStatus.setGravity(Gravity.CENTER);
-            inputStatus.setSingleLine(false);
-            inputStatus.setClickable(false);
-            inputStatus.setFocusable(false);
-            inputStatus.setBackgroundColor(0x9340275E);
-        }
         final Map<Integer, Integer> held = new HashMap<>();
         final KeySink guarded = (code, pressed) -> {
             // Reference-count simultaneous buttons mapped to the same X key.
             // Releasing Shoot must not release Focus; releasing one of two
             // mapped Shift buttons must not release the other one's Shift.
-            if (inputStatus != null)
-                inputStatus.setText("TH08 " + CharoiteLegacyKeyboard.modeLabel() +
-                        "\\n" + CharoiteGameControlProfiles.label(code) +
-                        (pressed ? " DOWN" : " UP"));
+            if (touhou8) android.util.Log.d("CharoiteInput",
+                    CharoiteGameControlProfiles.label(code) +
+                    (pressed ? " pressed" : " released"));
             int count = held.containsKey(code) ? held.get(code) : 0;
             if (pressed) {
                 held.put(code, count + 1);
@@ -328,8 +425,11 @@ public final class CharoiteTpdpTouchControls {
         final Button backend = touhou8 ? button(host, "INPUT: DUAL",
                 "Select Touhou 8 keyboard backend: dual, Win32, or X11",
                 -1, true, guarded) : null;
+        final Button diagnostics = touhou8 ? button(host, "INPUT INFO",
+                "Show Touhou 8 keyboard backend and focus status",
+                -1, true, guarded) : null;
         final Button[] extras = touhou8 ?
-                new Button[]{f11, screenshot, backend} :
+                new Button[]{f11, screenshot, backend, diagnostics} :
                 new Button[]{f11, screenshot};
         for (Button button : extras) {
             root.addView(button);
@@ -351,7 +451,6 @@ public final class CharoiteTpdpTouchControls {
         root.addView(more);
         root.addView(keyboard);
         root.addView(toggle);
-        if (inputStatus != null) root.addView(inputStatus);
 
         // Recalculate the layout on rotation, DeX size changes or cutouts.
         // Pixel positions are computed from the actual Android root view,
@@ -439,13 +538,6 @@ public final class CharoiteTpdpTouchControls {
                     dp(host, 68), topButtonH);
             position(toggle, width - margin - dp(host, 93),
                     margin, dp(host, 93), topButtonH);
-            if (inputStatus != null) {
-                int statusX = margin + portalW + gap + dp(host, 68) + gap;
-                int statusWidth = Math.max(0,
-                        width - statusX - margin - dp(host, 93) - gap);
-                position(inputStatus, statusX, margin,
-                        statusWidth, topButtonH);
-            }
 
             int extraW = Math.min(dp(host, 76),
                     (width - margin * 2 - gap * (extras.length - 1))
@@ -476,9 +568,14 @@ public final class CharoiteTpdpTouchControls {
             releaseAll.run();
             CharoiteLegacyKeyboard.nextMode();
             backend.setText("INPUT: " + CharoiteLegacyKeyboard.modeLabel());
-            if (inputStatus != null)
-                inputStatus.setText("TH08 · " + CharoiteLegacyKeyboard.modeLabel());
         });
+        if (diagnostics != null) diagnostics.setOnClickListener(v ->
+                new androidx.appcompat.app.AlertDialog.Builder(host)
+                        .setTitle("Touhou 8 input diagnostics")
+                        .setMessage(CharoiteLegacyKeyboard.diagnosticReport(
+                                host instanceof XServerDisplayActivity ?
+                                ((XServerDisplayActivity)host).getXServer() : null))
+                        .setPositiveButton("OK", null).show());
         more.setOnClickListener(v -> {
             boolean show = extras[0].getVisibility() != View.VISIBLE;
             if (!show) releaseAll.run();
@@ -494,8 +591,6 @@ public final class CharoiteTpdpTouchControls {
             dpadPlate.setVisibility(show ? View.VISIBLE : View.GONE);
             facePlate.setVisibility(show ? View.VISIBLE : View.GONE);
             keyboard.setVisibility(show ? View.VISIBLE : View.GONE);
-            if (inputStatus != null)
-                inputStatus.setVisibility(show ? View.VISIBLE : View.GONE);
             for (Button button : extras) button.setVisibility(View.GONE);
             more.setVisibility(show ? View.VISIBLE : View.GONE);
             more.setText("MORE");

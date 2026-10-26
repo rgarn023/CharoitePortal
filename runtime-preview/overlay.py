@@ -617,6 +617,16 @@ code = code.replace(tpdp_backend_anchor, """
                 dxwrapperConfig = coreGraphics.dxWrapperConfig;
                 graphicsDriverConfig = coreGraphics.graphicsDriverConfig;
             }
+            if (getIntent().getBooleanExtra("charoite_bnet_agent_compatibility", false)) {
+                // Explicit retry for a Battle.net Agent launch failure:
+                // avoid Vulkan/DXVK and use the existing VirGL + WineD3D
+                // alternative. Does not edit the saved Wine container.
+                graphicsDriver = GraphicsDrivers.VIRGL + "," +
+                        GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
+                dxwrapper = DXWrappers.WINED3D;
+                dxwrapperConfig = "";
+                graphicsDriverConfig = "";
+            }
 """ + tpdp_backend_anchor)
 
 old_show = "        preloaderDialog.show(R.string.starting_up);"
@@ -732,6 +742,15 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
 tpdp_debug_anchor = "        guestProgramLauncherComponent.setEnvVars(envVars);"
 assert code.count(tpdp_debug_anchor) == 1, "Winlator guest environment marker changed"
 code = code.replace(tpdp_debug_anchor, """
+        // A safe, session-local troubleshooting mode for Battle.net Agent.
+        // Wine/Box64 process synchronization failures can prevent the
+        // updater from starting. This is experimental, opt-in only and
+        // leaves the selected container and installed games unchanged.
+        if (getIntent().getBooleanExtra("charoite_bnet_agent_compatibility", false)) {
+            envVars.put("WINEESYNC", "0");
+            envVars.put("WINEFSYNC", "0");
+            envVars.put("WINEDEBUG", "err+all,warn+all");
+        }
         // Charoite Core owns per-game graphics launch options and diagnostics.
         // This native bridge never reads deprecated manual TPDP preferences.
         if (getIntent().hasExtra("exec_path")) {

@@ -186,15 +186,12 @@ public final class CharoiteTpdpTouchControls {
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             int[] area = CharoiteWindowPolicy.handheldScreenBounds();
-            if (area == null || xServerView == null) {
-                drawShell(canvas, null);
-                return;
-            }
+            // Some Windows games never expose a compositor-tracked game
+            // rectangle. Leave those windows visible rather than tinting
+            // the entire Wine desktop on top of the actual game.
+            if (area == null || xServerView == null) return;
             ViewTransformation view = xServerView.getRenderer().viewTransformation;
-            if (view.aspect <= 0) {
-                drawShell(canvas, null);
-                return;
-            }
+            if (view.aspect <= 0) return;
             float left = xServerView.getLeft() + view.viewOffsetX + area[0] * view.aspect;
             // GL viewport Y uses a bottom origin; Canvas coordinates are
             // top-down. Convert using the complete projected guest scene so

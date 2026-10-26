@@ -28,6 +28,17 @@ public final class CharoiteDiagnostics {
 
     private CharoiteDiagnostics() {}
 
+    /** Persisted read-only installation discovery summary independent from game launches. */
+    public static void recordShardInstallationScan(Context context, String result) {
+        prefs(context).edit().putString("charoite_shard_install_scan",
+                result == null ? "Not checked." : result).apply();
+    }
+
+    public static String shardInstallationScan(Context context) {
+        return prefs(context).getString("charoite_shard_install_scan",
+                "No Shard installation scan recorded. It runs automatically after installers.");
+    }
+
     /** Persistent, read-only account of the expansion prerequisite check. */
     public static void recordExpansionStatus(Context context, String result) {
         prefs(context).edit().putString("charoite_shard_status",
@@ -328,6 +339,8 @@ public final class CharoiteDiagnostics {
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
+        report += "\n\nSHARD OF DREAMS INSTALLATION CHECK:\n" +
+                shardInstallationScan(context);
         report += "\n\nSHARD OF DREAMS COMPATIBILITY:\n" +
                 p.getString("charoite_shard_status", "Not checked.");
         report += "\n\nLAUNCH PACKAGE:\n" +

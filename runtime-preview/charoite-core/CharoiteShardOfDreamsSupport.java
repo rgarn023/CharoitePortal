@@ -16,6 +16,76 @@ import java.util.Locale;
 public final class CharoiteShardOfDreamsSupport {
     private CharoiteShardOfDreamsSupport() {}
 
+    /**
+     * Read-only explanation for a Shard installer that appears to finish
+     * without creating a playable Library tile. Missing notkey is a LAUNCH
+     * issue and cannot explain a missing enbu_ap.exe.
+     */
+    public static String inspectInstalledExpansion(
+            File containerRoot, java.util.List<org.json.JSONObject> installedGames) {
+        File drive = new File(containerRoot, ".wine/drive_c");
+        if (!drive.isDirectory())
+            return "Shard scan: Windows C: drive is missing in this environment.";
+        boolean shardFound = false;
+        String shardPath = "";
+        boolean baseFound = false;
+        if (installedGames != null) {
+            for (org.json.JSONObject item : installedGames) {
+                if (item == null) continue;
+                String path = item.optString("path", "");
+                String name = new File(path).getName().toLowerCase(Locale.ROOT);
+                if (name.equals("enbu_ap.exe")) {
+                    shardFound = true;
+                    shardPath = path;
+                }
+                if (name.equals("gn_enbu.exe")) baseFound = true;
+            }
+        }
+        if (shardFound) {
+            return "Shard executable found: " + shardPath +
+                    "\nCore can register this separate game in Library. " +
+                    "The notkey check applies only when launching enbu_ap.exe. " +
+                    (baseFound ? "Original TPDP also found." :
+                    "Original TPDP executable not found in this C: scan.");
+        }
+        // Bound the inspection to installed directory names. Never invent a
+        // playable entry for a setup.exe or an incomplete install directory.
+        java.util.ArrayList<String> candidates = new java.util.ArrayList<>();
+        int[] visited = {0};
+        inspectCandidateDirectories(drive, 0, visited, candidates);
+        if (!candidates.isEmpty())
+            return "Shard installation folder(s) detected, but enbu_ap.exe " +
+                    "is missing: " + String.join("; ", candidates) +
+                    "\nThe installer may not have completed, or its files " +
+                    "may be in another environment. Re-open the installer " +
+                    "and check for its Finish page. No files were changed.";
+        return "Shard executable enbu_ap.exe was NOT found in this active " +
+                "environment's Windows C:. " +
+                (baseFound ? "Original TPDP is present. " : "") +
+                "Check that the Shard installer completed and that it " +
+                "installed to this same environment. This is not a " +
+                "notkey failure. No files were changed.";
+    }
+
+    private static void inspectCandidateDirectories(File directory, int depth,
+            int[] visited, java.util.List<String> output) {
+        if (depth > 10 || visited[0] >= 15000 || output.size() >= 4) return;
+        File[] children = directory.listFiles();
+        if (children == null) return;
+        for (File child : children) {
+            if (++visited[0] >= 15000 || output.size() >= 4) return;
+            if (!child.isDirectory() || Files.isSymbolicLink(child.toPath()))
+                continue;
+            String name = child.getName().toLowerCase(Locale.ROOT);
+            if (name.equals("windows") || name.equals("programdata") ||
+                    name.equals("$recycle.bin")) continue;
+            if (name.contains("ユメノカケラ") || name.contains("shard of dreams") ||
+                    name.contains("yume no kakera") ||
+                    name.contains("enbu-ap")) output.add(child.getAbsolutePath());
+            inspectCandidateDirectories(child, depth + 1, visited, output);
+        }
+    }
+
     public static boolean isExpansionGame(String path) {
         if (path == null) return false;
         String name = new File(path).getName().toLowerCase(Locale.ROOT);

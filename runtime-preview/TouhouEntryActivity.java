@@ -143,6 +143,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private String pendingEnvironmentName;
     private String pendingExportEnvironmentId;
     private boolean busy = false;
+    // An installer may return while a background operation still owns the UI.
+    // Queue its scan until that operation finishes, without resetting Wine.
+    private boolean scanAfterInstallerReturn = false;
     private int containerId = 0;
     private int selectedSection = 0;
     private static final String[] DISPLAY_MODES = CharoiteCore.DISPLAY_MODES;
@@ -164,12 +167,16 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         initializeEngineOnFirstLaunch();
     }
 
-    /** Scan the Windows C: drive after returning from a game installer. */
+    /** Register newly installed games after the Windows installer returns. */
     @Override protected void onResume() {
         super.onResume();
-        if (!busy && containerId > 0 && CharoiteGameSessions.consumePendingInstallerScan(this)) {
-            showSection(1);
-            findInstalledGames(true);
+        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {
+            scanAfterInstallerReturn = true;
+            if (!busy && containerId > 0) {
+                scanAfterInstallerReturn = false;
+                showSection(1);
+                findInstalledGames(true);
+            }
         }
     }
 
@@ -1160,17 +1167,37 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);
                 if (current == null) throw new IllegalStateException("Game environment missing");
-                int count = CharoiteGameLibrary.mergeInstalled(this,
+                java.util.List<JSONObject> discovered =
                         CharoiteGameDiscovery.scan(current.getRootDir(),
                                 CharoiteGameProfiles.forEnvironment(
-                                        CharoiteEnvironments.activeId(this))));
+                                        CharoiteEnvironments.activeId(this)));
+                int count = CharoiteGameLibrary.mergeInstalled(this, discovered);
+                final String shardReport = touhou ?
+                        com.charoitegames.core.CharoiteShardOfDreamsSupport
+                            .inspectInstalledExpansion(current.getRootDir(), discovered)
+                        : "";
+                if (touhou)
+                    CharoiteDiagnostics.recordShardInstallationScan(this, shardReport);
+                final boolean shardFound = shardReport.startsWith("Shard executable found:");
                 runOnUiThread(() -> {
-                    finishOperation(count == 0
-                            ? (afterInstaller
-                                ? "Installer closed. No supported new game found yet; confirm installation completed and try scanning again."
-                                : "No new supported games found on C:.")
-                            : "Found " + count + " game(s) on C:. Ready to play.");
-                    if (count > 0) showSection(0);
+                    // Critical: mergeInstalled persists the games, but the
+                    // old UI never rebuilt its Library tiles. Do this before
+                    // opening Library or reporting a successful installer.
+                    CharoiteGameSessions.consumePendingInstallerScan(this);
+                    scanAfterInstallerReturn = false;
+                    refreshLibrary();
+                    String result = count > 0
+                            ? "Found " + count + " installed game(s). Ready to play."
+                            : shardFound
+                                ? "Shard of Dreams already registered in Library."
+                                : afterInstaller && touhou
+                                    ? "Installer closed, but Shard of Dreams executable enbu_ap.exe " +
+                                      "was not detected. See Setup > Shard installation check."
+                                    : afterInstaller
+                                        ? "Installer closed; no new game executable found on C:."
+                                        : "No new supported games found on C:.";
+                    finishOperation(result);
+                    if (count > 0 || shardFound) showSection(0);
                     else if (afterInstaller) showSection(1);
                 });
             } catch (Exception error) {
@@ -1216,6 +1243,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         if (CharoiteGameImport.shouldLaunchAfterImport(selection))
                             launchGame(imported.executablePath, true);
                     } else {
+                        refreshLibrary();
                         finishOperation("Game imported into Library. Tap its tile to play.");
                         showSection(0);
                     }
@@ -1386,6 +1414,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void refreshSetup(JSONArray library) {
         if (setupArea == null) return;
         setupArea.removeAllViews();
+        if (CharoiteEnvironments.isTouhou(this)) {
+            LinearLayout shardCard = card();
+            shardCard.addView(label("SHARD OF DREAMS INSTALLATION", 12, GOLD, true));
+            shardCard.addView(label(
+                    CharoiteDiagnostics.shardInstallationScan(this),
+                    12, SECONDARY, false));
+            Button shardCheck = outlinedButton("CHECK SHARD OF DREAMS",
+                    () -> findInstalledGames(false));
+            shardCheck.setEnabled(!busy && containerId > 0);
+            shardCard.addView(shardCheck);
+            setupArea.addView(shardCard);
+            spacerIn(setupArea, 12);
+        }
         JSONObject lastInstaller = null;
         for (int i = library.length() - 1; i >= 0; i--) {
             JSONObject entry = library.optJSONObject(i);
@@ -1460,6 +1501,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         setStatus(message);
         if (runtimeLabel != null && (message.contains("failed") || message.contains("Could not")))
             runtimeLabel.setText(message + " You can retry here.");
+        if (scanAfterInstallerReturn && containerId > 0 &&
+                CharoiteGameSessions.hasPendingInstallerScan(this)) {
+            scanAfterInstallerReturn = false;
+            showSection(1);
+            findInstalledGames(true);
+        }
     }
 
     private void setStatus(String message) {

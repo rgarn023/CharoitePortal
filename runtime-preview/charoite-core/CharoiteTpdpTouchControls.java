@@ -264,7 +264,7 @@ public final class CharoiteTpdpTouchControls {
                 -1, true, guarded);
         final Button more = button(host, "MORE", "Extra keyboard controls",
                 -1, true, guarded);
-        // Always reachable even while the Game Boy buttons are hidden.
+        // The keyboard belongs to the handheld controls and follows Hide/Show Keys.
         // Uses Android's system IME; visually positioned between L and R.
         final Button keyboard = button(host, "KEYBOARD", "Open system keyboard",
                 -1, true, guarded);
@@ -394,6 +394,7 @@ public final class CharoiteTpdpTouchControls {
             if (!show) releaseAll.run();
             for (Button button : main)
                 button.setVisibility(show ? View.VISIBLE : View.GONE);
+            keyboard.setVisibility(show ? View.VISIBLE : View.GONE);
             for (Button button : extras) button.setVisibility(View.GONE);
             more.setVisibility(show ? View.VISIBLE : View.GONE);
             more.setText("MORE");

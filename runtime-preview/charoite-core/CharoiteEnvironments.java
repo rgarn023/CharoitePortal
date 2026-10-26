@@ -118,7 +118,10 @@ public final class CharoiteEnvironments {
     }
 
     public static boolean isBattleNet(AppCompatActivity host) {
-        return BATTLE_NET.equals(activeId(host));
+        // Retain the Battle.net Setup helper after exporting/importing a
+        // .cenv environment without reusing the original Wine container.
+        return BATTLE_NET.equals(activeId(host)) ||
+                "battlenet".equals(active(host).optString("template"));
     }
 
     public static synchronized JSONObject active(AppCompatActivity host) {

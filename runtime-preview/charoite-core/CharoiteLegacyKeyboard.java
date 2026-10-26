@@ -43,6 +43,8 @@ public final class CharoiteLegacyKeyboard {
         scanAcknowledged = false;
         scanStatus = "Scan bridge not started";
         windowStatus = "Window bridge not started";
+        windowAcknowledged = false;
+        heldFallbacks.clear();
         scanLauncher = null;
         scanExecutable = null;
         scanLaunchAt = 0;
@@ -56,6 +58,22 @@ public final class CharoiteLegacyKeyboard {
     public static boolean useX11() { return inputMode == DUAL || inputMode == X11_ONLY; }
     public static boolean useScan() { return inputMode == DUAL || inputMode == SCAN_ONLY; }
     public static boolean useWindow() { return inputMode == WINDOW_ONLY; }
+
+    /**
+     * A missing receiver must NEVER mean completely dead buttons. Fall back
+     * to standard Win32 + X11 while Wine's native helper is absent. Pin the
+     * decision for each key-down so key-up reaches precisely the same paths.
+     */
+    public static boolean useFallback(int code, boolean pressed) {
+        if (pressed) {
+            boolean enabled = (inputMode == SCAN_ONLY && !scanAcknowledged) ||
+                    (inputMode == WINDOW_ONLY && !windowAcknowledged);
+            heldFallbacks.put(code, enabled);
+            return enabled;
+        }
+        Boolean held = heldFallbacks.remove(code);
+        return held != null && held;
+    }
     public static String modeLabel() {
         return inputMode == WIN32_ONLY ? "WIN32" :
                 inputMode == X11_ONLY ? "X11" :
@@ -152,6 +170,9 @@ public final class CharoiteLegacyKeyboard {
                 "\nScan: " + scanStatus +
                 "\nScan acknowledged: " + scanAcknowledged +
                 "\nWindow input: " + windowStatus +
+                "\nFallback Win32/X11: " + (heldFallbacks.containsValue(Boolean.TRUE) ||
+                        (inputMode == SCAN_ONLY && !scanAcknowledged) ||
+                        (inputMode == WINDOW_ONLY && !windowAcknowledged)) +
                 "\nKey injection does not guarantee the game received it.";
     }
 
@@ -168,6 +189,9 @@ public final class CharoiteLegacyKeyboard {
     private static volatile String scanStatus = "Scan bridge not started";
     private static volatile boolean scanAcknowledged = false;
     private static volatile String windowStatus = "Window bridge not started";
+    private static volatile boolean windowAcknowledged = false;
+    private static final java.util.concurrent.ConcurrentHashMap<Integer, Boolean>
+            heldFallbacks = new java.util.concurrent.ConcurrentHashMap<>();
     private static volatile boolean scanPrepared = false;
     private static volatile WinHandler scanLauncher = null;
     private static volatile String scanExecutable = null;
@@ -305,7 +329,10 @@ public final class CharoiteLegacyKeyboard {
                             if (route == 'S') {
                                 scanAcknowledged = status == '1';
                                 scanStatus = message;
-                            } else windowStatus = message;
+                            } else {
+                                windowStatus = message;
+                                windowAcknowledged = status == '2';
+                            }
                             android.util.Log.i("CharoiteInput",
                                     (route == 'S' ? "SCAN: " : "WINDOW: ") + message);
                             return;

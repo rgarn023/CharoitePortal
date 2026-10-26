@@ -232,7 +232,7 @@ core_destination.write_bytes(core_source.read_bytes())
 # including Japanese locale/font registration independent of Touhou UI.
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
-               "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
+               "CharoiteGameProfiles.java", "CharoiteGameControlProfiles.java", "CharoiteGameSessions.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
                "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
                "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java",
@@ -403,14 +403,21 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                 !getIntent().getBooleanExtra("touhou_desktop_window", false)) {
             com.charoitegames.core.CharoiteTpdpTouchControls.attach(
                     this,rootView,(keyCode,pressed) -> {
-                        long tick=android.os.SystemClock.uptimeMillis();
-                        int action=pressed ? android.view.KeyEvent.ACTION_DOWN :
-                                android.view.KeyEvent.ACTION_UP;
-                        xServer.keyboard.onKeyEvent(new android.view.KeyEvent(
-                                tick,tick,action,keyCode,0));
+                        // Inject the physical X11 key directly, with genuine
+                        // DOWN/UP hold state. The inherited Android KeyEvent
+                        // handler otherwise releases Shift on ANY key-up:
+                        // that breaks Touhou 8 Focus + Shot combinations.
+                        com.winlator.xserver.XKeycode key =
+                                com.charoitegames.core.CharoiteGameControlProfiles
+                                        .toXKeycode(keyCode);
+                        if (key != null) {
+                            if (pressed) xServer.injectKeyPress(key);
+                            else xServer.injectKeyRelease(key);
+                        }
                     }, this::confirmReturnToCharoitePortal,
                     com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                            getIntent().getStringExtra("exec_path")));
+                            getIntent().getStringExtra("exec_path")),
+                    getIntent().getStringExtra("exec_path"));
         }
 """)
 

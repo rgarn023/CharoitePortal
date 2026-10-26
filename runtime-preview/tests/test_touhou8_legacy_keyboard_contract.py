@@ -2,7 +2,7 @@
 
 Old Touhou 8 may read Win32 / DirectInput key state even when its X11
 window has lost focus. This source contract keeps the change limited to
-th08.exe and protects existing TPDP and other games' X11 input paths.
+known Touhou 8 game variants and protects TPDP's existing X11 path.
 """
 from pathlib import Path
 import unittest
@@ -15,11 +15,11 @@ CONTROLS = (ROOT / "charoite-core/CharoiteTpdpTouchControls.java").read_text()
 
 class Touhou8InputContract(unittest.TestCase):
     def test_th08_only_windows_keyboard_bridge(self):
-        self.assertIn('"th08.exe".equals(', INPUT)
+        self.assertIn('CharoiteGameControlProfiles.isTouhou8Executable(executable)', INPUT)
         self.assertNotIn('"gn_enbu.exe".equals(', INPUT)
         self.assertNotIn('"enbu_ap.exe".equals(', INPUT)
         self.assertIn('handler.keyboardEvent((byte) vk, flags);', INPUT)
-        self.assertIn('handler.bringToFront("th08.exe");', INPUT)
+        self.assertIn('handler.bringToFront(new File(executable).getName());', INPUT)
         self.assertIn('xServer.windowManager.getFocusedWindow()', INPUT)
         self.assertIn('public static boolean send(XServer xServer, String executable,', INPUT)
         self.assertIn('if (!requiresWindowsKeyboard(executable)', INPUT)
@@ -52,7 +52,9 @@ class Touhou8InputContract(unittest.TestCase):
 
     def test_overlay_packs_backend_and_preserves_x11_fallback(self):
         self.assertIn('"CharoiteLegacyKeyboard.java"', OVERLAY)
-        self.assertIn('if (!com.charoitegames.core.CharoiteLegacyKeyboard.send(', OVERLAY)
+        self.assertIn('CharoiteLegacyKeyboard.useWin32()', OVERLAY)
+        self.assertIn('CharoiteLegacyKeyboard.useX11()', OVERLAY)
+        self.assertIn('CharoiteLegacyKeyboard.send(', OVERLAY)
         self.assertIn('xServer.injectKeyPress(key);', OVERLAY)
         self.assertIn('xServer.injectKeyRelease(key);', OVERLAY)
         self.assertIn('CharoiteGameControlProfiles', OVERLAY)

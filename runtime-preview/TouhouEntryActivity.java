@@ -1458,7 +1458,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 Container current = new ContainerManager(this).getContainerById(containerId);
                 if (current == null) throw new IllegalStateException("Game environment missing");
                 CharoiteGameImport.Result imported = CharoiteGameImport.importSelected(
-                        this, uri, selection, current.getRootDir(), CharoiteEnvironments.isTouhou(this));
+                        this, uri, selection, current.getRootDir(),
+                        CharoiteEnvironments.activeId(this),
+                        CharoiteEnvironments.isTouhou(this));
                 JSONObject entry = new JSONObject();
                 entry.put("name", imported.installer
                         ? "Windows installer: " + imported.executableName

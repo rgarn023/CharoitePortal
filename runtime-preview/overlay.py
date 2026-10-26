@@ -424,6 +424,8 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                         // the More menu also lets the user isolate either
                         // backend while testing their particular translation.
                         // TPDP and all other games use the existing X11 path.
+                        boolean fallback = touhou8 && com.charoitegames.core
+                                .CharoiteLegacyKeyboard.useFallback(keyCode, pressed);
                         if (touhou8 && com.charoitegames.core
                                 .CharoiteLegacyKeyboard.useScan())
                             com.charoitegames.core.CharoiteLegacyKeyboard.sendScan(
@@ -433,12 +435,12 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                             com.charoitegames.core.CharoiteLegacyKeyboard.sendWindow(
                                     keyCode, pressed);
                         if (touhou8 && com.charoitegames.core
-                                .CharoiteLegacyKeyboard.useWin32()) {
+                                .CharoiteLegacyKeyboard.useWin32() || fallback) {
                             com.charoitegames.core.CharoiteLegacyKeyboard.send(
                                     xServer, gameExe, keyCode, pressed);
                         }
                         if (!touhou8 || com.charoitegames.core
-                                .CharoiteLegacyKeyboard.useX11()) {
+                                .CharoiteLegacyKeyboard.useX11() || fallback) {
                             if (touhou8 && pressed) com.charoitegames.core
                                     .CharoiteLegacyKeyboard.prepareX11Focus(
                                             xServer, gameExe);

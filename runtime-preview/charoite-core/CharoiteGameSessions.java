@@ -72,6 +72,10 @@ public final class CharoiteGameSessions {
         // Core auto-resolves every known game profile; users just press Play.
         play.putExtra("charoite_tpdp_graphics_mode",
                 CharoiteGraphicsProfiles.diagnosticModeForExecutable(executable));
+        // Resolved again at EACH launch, so upgrades and per-game mappings
+        // become effective without reinstalling Windows games.
+        play.putExtra("charoite_control_profile",
+                CharoiteGameControlProfiles.idForExecutable(executable));
 
         // Keep the in-process font monitor limited to opted-in Japanese
         // Inno Setup installers, never game launchers or arbitrary EXEs.

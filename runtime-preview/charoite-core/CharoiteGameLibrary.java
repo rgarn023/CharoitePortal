@@ -124,6 +124,25 @@ public final class CharoiteGameLibrary {
         return true;
     }
 
+    /** Remove only the selected game shortcut. No Windows files are touched.
+     * Returns false when the entry is missing; installer metadata is separate.
+     */
+    public static synchronized boolean remove(AppCompatActivity host, String executable) {
+        if (executable == null || executable.isEmpty()) return false;
+        JSONArray original = load(host), kept = new JSONArray();
+        boolean found = false;
+        for (int i = 0; i < original.length(); i++) {
+            JSONObject item = original.optJSONObject(i);
+            if (item == null) continue;
+            if (!item.optBoolean("installer") &&
+                    executable.equals(item.optString("path"))) {
+                found = true;
+            } else kept.put(item);
+        }
+        if (found) persist(host, kept);
+        return found;
+    }
+
     public static JSONObject newestInstaller(JSONArray library) {
         for (int i = library.length() - 1; i >= 0; i--) {
             JSONObject item = library.optJSONObject(i);

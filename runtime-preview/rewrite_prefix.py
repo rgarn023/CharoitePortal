@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ORIGINAL = b"com.winlator"
-TARGET = b"com.touhoudr"
+TARGET = b"com.charoite"
 assert len(ORIGINAL) == len(TARGET), "ELF-safe path rewrite must preserve byte length"
 
 MANDATORY = {
@@ -30,7 +30,7 @@ def run(*args: str) -> None:
     subprocess.run(args, check=True)
 
 def rewrite_archive(archive: Path) -> int:
-    with tempfile.TemporaryDirectory(prefix="touhou-runtime-") as temp:
+    with tempfile.TemporaryDirectory(prefix="charoite-runtime-") as temp:
         extracted = Path(temp) / "unpacked"
         extracted.mkdir()
         # Archives come from a pinned, audited upstream revision. GNU tar
@@ -44,7 +44,7 @@ def rewrite_archive(archive: Path) -> int:
                     link = os.readlink(path)
                     if "com.winlator" in link:
                         path.unlink()
-                        path.symlink_to(link.replace("com.winlator", "com.touhoudr"))
+                        path.symlink_to(link.replace("com.winlator", "com.charoite"))
                         touched += 1
                 elif path.is_file():
                     blob = path.read_bytes()

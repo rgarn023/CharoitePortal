@@ -2,7 +2,7 @@
 
 **Charoite Portal** is a Charoite Games Windows gaming environment manager running entirely inside Android / Samsung One UI, with **Charoite Core v0.9** and a pinned, appropriately attributed Winlator-derived Wine/Box64 runtime. It is **not** a custom Android OS, a Windows installation, or a proprietary Wine/Box64 replacement.
 
-The application was previously **Touhou Launcher for Android**. Android package ID remains **`com.touhoudr`** intentionally, to protect access to existing Touhou game files and saves on upgrade. Do not uninstall an older installation just to rename the app.
+Charoite Portal now uses its own Android package ID **`com.charoite`** (a new app, installed separately from the original `com.touhoudr`). This clean identity deliberately does not migrate the old Wine prefix: back up games/saves separately and reinstall Windows games. The 12-byte package identifier matches the pinned native runtime's original `com.winlator` identifier length, preserving binary absolute-path offsets. Its public display name remains **Charoite Portal**.
 
 ## Features in this version
 
@@ -39,7 +39,7 @@ Source structure:
 - `runtime-preview/charoite-core/CharoiteWallpaper.java`: Per-environment image storage and Fit/Crop preferences.
 - `runtime-preview/charoite-core/CharoiteThemes.java`: Original built-in Touhou sakura / general cosmic wallpaper artwork.
 - `runtime-preview/charoite-core/CharoitePageTabs.java`: Shared connected page tab UI.
-- `runtime-preview/overlay.py`: Packages the app and Core into the pinned upstream Android source, retains original `com.touhoudr` identity and license notices.
+- `runtime-preview/overlay.py`: Packages the app and Core into the pinned upstream Android source, sets the distinct `com.charoite` identity and retains license notices.
 
 No proprietary Touhou or Windows game executables, translations or expansions are bundled. Respect all applicable Wine/Winlator/Box64/graphics/font licenses. See [runtime attribution](runtime-preview/NOTICE.md), [Core documentation](runtime-preview/charoite-core/README.md), and [development handoff](docs/HANDOFF.md).
 

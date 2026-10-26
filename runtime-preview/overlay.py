@@ -10,7 +10,7 @@ root = Path(sys.argv[1]).resolve()
 assert (root / "app/src/main/AndroidManifest.xml").is_file(), "Not a Winlator Android source tree"
 
 # Force Gradle's debug signing to use the app-specific cached keystore.
-# Upgrades must not rotate keys unexpectedly or change com.touhoudr.
+# Upgrades must not rotate keys unexpectedly or change com.charoite.
 gradle_path = root / "app/build.gradle"
 gradle_source = gradle_path.read_text(encoding="utf-8")
 gradle_marker = "    buildTypes {"
@@ -36,7 +36,7 @@ gradle_path.write_text(gradle_source, encoding="utf-8")
 gradle = root / "app/build.gradle"
 src = gradle.read_text(encoding="utf-8")
 assert "applicationId 'com.winlator'" in src, "Upstream application ID changed, review before building"
-src = src.replace("applicationId 'com.winlator'", "applicationId 'com.touhoudr'")
+src = src.replace("applicationId 'com.winlator'", "applicationId 'com.charoite'")
 assert "implementation 'androidx.appcompat:appcompat:1.4.0'" in src, "Upstream dependencies changed"
 src = src.replace("implementation 'androidx.appcompat:appcompat:1.4.0'",
     "implementation 'androidx.appcompat:appcompat:1.4.0'\n    implementation 'androidx.documentfile:documentfile:1.0.1'")
@@ -158,7 +158,7 @@ for filt in filters:
     original_main.remove(filt)
 for provider in app.findall("provider"):
     if provider.get(a + "authorities") == "com.winlator.FileProvider":
-        provider.set(a + "authorities", "com.touhoudr.FileProvider")
+        provider.set(a + "authorities", "com.charoite.FileProvider")
 entry = ET.Element("activity", {
     a + "name": "com.winlator.TouhouEntryActivity",
     a + "exported": "true",
@@ -196,7 +196,7 @@ for java in java_root.rglob("*.java"):
     text = java.read_text(encoding="utf-8")
     if '"com.winlator.FileProvider"' in text:
         java.write_text(text.replace('"com.winlator.FileProvider"',
-            '"com.touhoudr.FileProvider"'), encoding="utf-8")
+            '"com.charoite.FileProvider"'), encoding="utf-8")
 
 target = java_root / "com/winlator/TouhouEntryActivity.java"
 assert not target.exists(), "Upstream has a colliding Touhou entry activity"
@@ -326,7 +326,7 @@ for native_source in cpp_root.rglob("*"):
         before = native_source.read_bytes()
         if b"/data/data/com.winlator" in before:
             native_source.write_bytes(before.replace(
-                b"/data/data/com.winlator", b"/data/data/com.touhoudr"))
+                b"/data/data/com.winlator", b"/data/data/com.charoite"))
             native_path_changes += 1
 print(f"Rebased {native_path_changes} C/C++ app-private path sources")
 

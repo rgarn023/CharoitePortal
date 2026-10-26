@@ -1,4 +1,4 @@
-name: Touhou Wine Runtime Preview
+name: Charoite Portal Android
 on:
   push:
     paths:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: touhou-runtime-${{ github.ref }}
+  group: charoite-runtime-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -61,9 +61,11 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           box64 = Path('/tmp/touhou-elf-check/usr/local/bin/box64').read_bytes()
-          assert b'/data/data/com.touhoudr/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
+          assert b'/data/data/com.charoite/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
           assert b'/data/data/com.winlator/' not in box64
-          print('Box64 loader uses Touhou package path, not inaccessible Winlator data.')
+          assert b'/data/data/com.touhoudr/' not in box64
+          assert b'/data/data/com.charoite/' in box64
+          print('Box64 loader uses the Charoite-owned application data path.')
           PY
 
       - name: Build licensed Japanese language support pack
@@ -223,6 +225,9 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
             grep -F "application-label:'Charoite Portal'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            upstream/app/build/outputs/apk/debug/app-debug.apk | \
+            grep -F "package: name='com.charoite'"
 
       - name: Verify APK JNI native cache paths
         run: |
@@ -235,8 +240,10 @@ jobs:
               for path in z.namelist():
                   if path.startswith("lib/") and path.endswith(".so"):
                       checked += 1
-                      if b"/data/data/com.winlator" in z.read(path):
-                          raise AssertionError(f"Native library still has old inaccessible app path: {path}")
+                      content = z.read(path)
+                      for outdated in (b"/data/data/com.winlator", b"/data/data/com.touhoudr"):
+                          if outdated in content:
+                              raise AssertionError(f"Native library contains outdated application path: {path}")
               assert checked > 0, "No JNI binaries found in APK"
               print("Verified", checked, "native libraries have no stale Winlator app-data path")
           PY

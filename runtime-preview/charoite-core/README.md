@@ -13,7 +13,7 @@
 
 ## Integration
 
-GitHub Actions clones pinned upstream Winlator source, then `runtime-preview/overlay.py` copies this file to `app/src/main/java/com/charoitegames/core/CharoiteCore.java` alongside the Touhou-specific launcher source. The Android Java compiler checks the integration. The package ID remains **`com.touhoudr`**.
+GitHub Actions clones pinned upstream Winlator source, then `runtime-preview/overlay.py` copies this file to `app/src/main/java/com/charoitegames/core/CharoiteCore.java` alongside the Touhou-specific launcher source. The Android Java compiler checks the integration. The new clean-install package ID is **`com.charoite`**; the old package remains separate.
 
 The current `CharoiteCore.java` is a shared **source module**, not yet an independently published AAR/SDK, a cross-app service, or a separate GitHub repository. It currently depends on Winlator-derived runtime types. Future launchers could share this source module first, with a stable public interface added once another real client needs it. Avoid promising instant cross-app access to private Wine paths: Android sandboxes each app.
 
@@ -27,7 +27,7 @@ The current `CharoiteCore.java` is a shared **source module**, not yet an indepe
 | Launcher UI and error/diagnostic presentation | Display resolution and input launch choices |
 | Touhou-specific fonts/hooks presently in overlay | Later candidate: generalized language packs and compatibility profiles |
 
-**Preservation contract:** Do not change Android package ID, erase or rename Wine prefixes, or relocate `C:\TouhouPocket\` staging paths as part of the rebrand. Runtime ZIP archives must not contain user home prefix files. Avoid invasive refactors of tested installer behavior. No third-party games included.
+**Preservation contract:** The Oct 2026 one-time package-ID transition installs as a separate new app. Do not erase or rename Wine prefixes as part of later APK updates, or relocate `C:\TouhouPocket\` staging paths. Runtime ZIP archives must not contain user home prefix files. Avoid invasive refactors of tested installer behavior. No third-party games included.
 
 ## Future work (not yet implemented)
 
@@ -62,7 +62,7 @@ The Portal System UI can **Switch** between environments; **Install** the built-
 
 New `CharoiteThemes.java` draws distinct offline **Touhou sakura** and **Charoite cosmic** default wallpapers; CharoiteWallpaper has environment-id overloads for image selection, saved Fit/Crop mode, preview and removal. Existing Touhou wallpaper file and setting keys are preserved. `CharoiteCore.java` maintains separate graphics/DeX preferences for non-Touhou environments but retains the original preference keys for Touhou. Existing Japan-specific CP932/font hooks are scoped to Touhou Realm; general Windows profiles use the upstream English locale default.
 
-The Android icon and public brand are now **Charoite Portal** (original purple gemstone/space gateway, no Touhou icon). Android package `com.touhoudr` must remain unchanged to protect user-owned game storage. All of these modules remain within one APK, without replacing Android or One UI.
+The Android icon and public brand are now **Charoite Portal** (original purple gemstone/space gateway, no Touhou icon). Android package `com.charoite` is the new permanent identity; keep it unchanged on later updates. All of these modules remain within one APK, without replacing Android or One UI.
 
 **Validation:** Native Android compilation and APK artifact integrity can verify the source integration, but real-device testing is still required. Creating arbitrary environments consumes substantial phone storage, and Wine game compatibility is not guaranteed. A stable APK signing pipeline is needed before safe, reliable in-place releases.
 
@@ -85,7 +85,7 @@ Implemented in `runtime-preview/TouhouEntryActivity.java`; Android/One UI home-s
 
 The Portal has environment-aware messaging across Library, Setup and System. Only Touhou Realm shows the Gensokyo-specific empty-library caption or the explanation about its original Touhou game storage. Generic/created environments display their own realm name and neutral storage guidance. The System environment help message and already-installed General Gaming message are not Touhou-specific.
 
-The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the banner is 120dp tall rather than 164dp, with reduced padding and still-large bold realm lettering. These are UI-only changes: Wine/Box64, package ID, Touhou prefix paths, per-environment registry and wallpaper data are not modified.
+The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the banner is 120dp tall rather than 164dp, with reduced padding and still-large bold realm lettering. These are UI-only changes: Wine/Box64, new package ID, Touhou prefix paths, per-environment registry and wallpaper data are not modified.
 
 
 ## Charoite Core v0.5 — portable environment files and repaired tab swipes
@@ -96,7 +96,7 @@ The realm header remains reusable `CharoiteThemes.realmBanner` artwork, but the 
 
 **Swipe correction:** `CharoiteSwipePager` now observes `dispatchTouchEvent` rather than relying on `onInterceptTouchEvent`, which was unreliable when child buttons/layouts handled events. It recognizes a completed horizontal finger/stylus gesture anywhere in the scrollable content, including over child controls, while preserving vertical scrolling, touches, game-tile drag/drop and DeX mouse. Edge gestures and multipointer gestures are ignored. The page index still clamps to Library / Setup / System.
 
-The built-in General Gaming preset is **no longer installed automatically by the Install button**; a sample downloadable `environment-profiles/General-Gaming.cenv` is provided in the repository. Original Charoite Portal icon, installed game paths, and package ID `com.touhoudr` remain unchanged.
+The built-in General Gaming preset is **no longer installed automatically by the Install button**; a sample downloadable `environment-profiles/General-Gaming.cenv` is provided in the repository. Original Charoite Portal icon, installed game paths, and new package ID `com.charoite` is used on clean installs.
 
 
 ## Charoite Core v0.6 — branding isolation and device rotation
@@ -107,7 +107,7 @@ The built-in General Gaming preset is **no longer installed automatically by the
 
 **Wine desktop orientation:** `CharoiteCore.automaticGameResolution` and `chosenGameResolution` choose portrait variants of the supported game sizes (600×800, 720×1280, 900×1600, 1080×1920) for new sessions in portrait, and the corresponding landscape sizes otherwise; this applies to both installers and gameplay. It doesn't alter the persistent container's fixed resolution. Because the upstream X11 root-screen size is fixed at launch and has no dynamic RandR implementation, **rotating an already-running Wine game scales the view to fit but does not change that game's native Windows desktop resolution until its next launch**. Fixed-resolution games may letterbox. Changing this would require a significant additional Wine/X11 resizing implementation.
 
-**Testing:** GitHub Actions compiles and integrity-checks the Android APK; physical Samsung Galaxy phone and DeX tests are still needed to confirm orientation, input-controls layout and app visibility. Keep the historical Android package ID `com.touhoudr` intact to protect user-owned Wine prefixes/games/saves. Debug signing can impede an in-place APK update.
+**Testing:** GitHub Actions compiles and integrity-checks the Android APK; physical Samsung Galaxy phone and DeX tests are still needed to confirm orientation, input-controls layout and app visibility. Keep the new Android package ID `com.charoite` stable for all future APK updates. Debug signing can impede an in-place APK update.
 
 
 ## Charoite Core v0.7 — Touhou Japanese installer optional-task font rendering

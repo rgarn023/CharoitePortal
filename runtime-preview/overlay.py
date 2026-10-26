@@ -425,6 +425,10 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                         // backend while testing their particular translation.
                         // TPDP and all other games use the existing X11 path.
                         if (touhou8 && com.charoitegames.core
+                                .CharoiteLegacyKeyboard.useScan())
+                            com.charoitegames.core.CharoiteLegacyKeyboard.sendScan(
+                                    keyCode, pressed);
+                        if (touhou8 && com.charoitegames.core
                                 .CharoiteLegacyKeyboard.useWin32()) {
                             com.charoitegames.core.CharoiteLegacyKeyboard.send(
                                     xServer, gameExe, keyCode, pressed);

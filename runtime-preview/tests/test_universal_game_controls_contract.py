@@ -38,9 +38,10 @@ class UniversalGameControls(unittest.TestCase):
         self.assertIn('if (down[0] != pressed)', CONTROLS)
         self.assertIn('final Map<Integer, Integer> held = new HashMap<>();', CONTROLS)
         self.assertIn('held.put(code, count + 1);', CONTROLS)
-        self.assertIn('if (count == 0) sink.send(code, true);', CONTROLS)
+        self.assertIn('if (count == 0 && pending == null)', CONTROLS)
         self.assertIn('if (count == 1)', CONTROLS)
         self.assertIn('sink.send(code, false);', CONTROLS)
+        self.assertIn('keyTimer.postDelayed(release, Math.max(0, 110 - elapsed));', CONTROLS)
 
     def test_read_only_discovery_and_editable_per_installation(self):
         self.assertIn('CharoiteGameControlProfiles.idForExecutable(child.getAbsolutePath())', DISCOVERY)

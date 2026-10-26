@@ -17,8 +17,8 @@ import com.winlator.XServerDisplayActivity;
 import com.winlator.widget.XServerView;
 import com.winlator.renderer.ViewTransformation;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Shared pocket-handheld layout for Charoite Core game sessions.
@@ -71,29 +71,34 @@ public final class CharoiteTpdpTouchControls {
         button.setBackground(drawable);
         button.setContentDescription(title + ", keyboard " + mapping);
         if (keyCode >= 0) {
+            // Track this button independently. Two buttons may map to Shift,
+            // and repeated ACTION_MOVE events must never count as new presses.
+            final boolean[] down = {false};
             button.setOnTouchListener((view, event) -> {
+                boolean pressed;
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        view.setAlpha(0.7f);
-                        sink.send(keyCode, true);
-                        return true;
+                        pressed = true;
+                        break;
                     case MotionEvent.ACTION_MOVE:
-                        // A held touch dragged away must release its key.
                         float x = event.getX();
                         float y = event.getY();
-                        boolean inside = x >= 0 && y >= 0 &&
+                        pressed = x >= 0 && y >= 0 &&
                                 x < view.getWidth() && y < view.getHeight();
-                        view.setAlpha(inside ? 0.7f : 1f);
-                        sink.send(keyCode, inside);
-                        return true;
+                        break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        view.setAlpha(1f);
-                        sink.send(keyCode, false);
-                        return true;
+                        pressed = false;
+                        break;
                     default:
                         return true;
                 }
+                view.setAlpha(pressed ? 0.7f : 1f);
+                if (down[0] != pressed) {
+                    down[0] = pressed;
+                    sink.send(keyCode, pressed);
+                }
+                return true;
             });
         }
         return button;
@@ -166,7 +171,8 @@ public final class CharoiteTpdpTouchControls {
 
     /** The XServer display remains visible and touchable between controls. */
     public static void attach(Activity host, FrameLayout root, KeySink sink,
-                              Runnable returnToPortal, boolean tpdpMapping) {
+                              Runnable returnToPortal, boolean tpdpMapping,
+                              String executable) {
         if (host instanceof XServerDisplayActivity) {
             XServerView display = ((XServerDisplayActivity)host).getXServerView();
             if (display != null) {
@@ -177,60 +183,64 @@ public final class CharoiteTpdpTouchControls {
                 CharoiteWindowPolicy.setHandheldOutline(outline);
             }
         }
-        final Set<Integer> held = new HashSet<>();
+        final Map<Integer, Integer> held = new HashMap<>();
         final KeySink guarded = (code, pressed) -> {
-            // Deduplicate repeated ACTION_MOVE updates and release on focus loss.
-            if (pressed ? held.add(code) : held.remove(code)) sink.send(code, pressed);
+            // Reference-count simultaneous buttons mapped to the same X key.
+            // Releasing Shoot must not release Focus; releasing one of two
+            // mapped Shift buttons must not release the other one's Shift.
+            int count = held.containsKey(code) ? held.get(code) : 0;
+            if (pressed) {
+                held.put(code, count + 1);
+                if (count == 0) sink.send(code, true);
+            } else if (count > 0) {
+                if (count == 1) {
+                    held.remove(code);
+                    sink.send(code, false);
+                } else held.put(code, count - 1);
+            }
         };
         final Runnable releaseAll = () -> {
-            for (Integer code : new ArrayList<>(held)) guarded.send(code, false);
+            for (Integer code : new ArrayList<>(held.keySet())) sink.send(code, false);
+            held.clear();
         };
+        final java.util.function.IntUnaryOperator mapped = index ->
+                CharoiteGameControlProfiles.keyFor(host, executable, index);
+        final java.util.function.IntFunction<String> binding = index ->
+                CharoiteGameControlProfiles.label(mapped.applyAsInt(index));
         root.getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus -> {
             if (!hasFocus) releaseAll.run();
         });
 
-        // TPDP preserves its proven custom mapping. Generic games use the
-        // common arrow/Z/X/Shift/Enter/Space keyboard layout (e.g. Touhou 8).
-        // This changes only Android key injection, not Wine game settings.
-        final Button select = button(host, "Select", "Left Shift",
-                KeyEvent.KEYCODE_SHIFT_LEFT, true, guarded);
-        final Button start = button(host, "Start",
-                tpdpMapping ? "Space" : "Enter",
-                tpdpMapping ? KeyEvent.KEYCODE_SPACE : KeyEvent.KEYCODE_ENTER,
-                true, guarded);
-        final Button leftShoulder = button(host, "L",
-                tpdpMapping ? "A" : "Shift",
-                tpdpMapping ? KeyEvent.KEYCODE_A : KeyEvent.KEYCODE_SHIFT_LEFT,
-                true, guarded);
-        final Button rightShoulder = button(host, "R",
-                tpdpMapping ? "D" : "Space",
-                tpdpMapping ? KeyEvent.KEYCODE_D : KeyEvent.KEYCODE_SPACE,
-                true, guarded);
-        // These are Windows key events, not application-exit actions.
-        final Button enter = button(host, "Enter", "Enter",
-                KeyEvent.KEYCODE_ENTER, true, guarded);
-        final Button esc = button(host, "Esc", "Escape",
-                KeyEvent.KEYCODE_ESCAPE, true, guarded);
-
-        final Button up = button(host, "↑", "Up arrow",
-                KeyEvent.KEYCODE_DPAD_UP, false, guarded);
-        final Button left = button(host, "←", "Left arrow",
-                KeyEvent.KEYCODE_DPAD_LEFT, false, guarded);
-        final Button right = button(host, "→", "Right arrow",
-                KeyEvent.KEYCODE_DPAD_RIGHT, false, guarded);
-        final Button down = button(host, "↓", "Down arrow",
-                KeyEvent.KEYCODE_DPAD_DOWN, false, guarded);
-
-        final Button yButton = button(host, "Y",
-                tpdpMapping ? "S" : "V",
-                tpdpMapping ? KeyEvent.KEYCODE_S : KeyEvent.KEYCODE_V,
-                false, guarded);
-        final Button xButton = button(host, "X", "C",
-                KeyEvent.KEYCODE_C, false, guarded);
-        final Button aButton = button(host, "A", "Z",
-                KeyEvent.KEYCODE_Z, false, guarded);
-        final Button bButton = button(host, "B", "X",
-                KeyEvent.KEYCODE_X, false, guarded);
+        // All games get the same buttons, with Core-selected (and optionally
+        // user-overridden) keyboard keys for their individual executable.
+        final Button esc = button(host, "Esc", binding.apply(0),
+                mapped.applyAsInt(0), true, guarded);
+        final Button select = button(host, "Select", binding.apply(1),
+                mapped.applyAsInt(1), true, guarded);
+        final Button start = button(host, "Start", binding.apply(2),
+                mapped.applyAsInt(2), true, guarded);
+        final Button enter = button(host, "Enter", binding.apply(3),
+                mapped.applyAsInt(3), true, guarded);
+        final Button leftShoulder = button(host, "L", binding.apply(4),
+                mapped.applyAsInt(4), true, guarded);
+        final Button rightShoulder = button(host, "R", binding.apply(5),
+                mapped.applyAsInt(5), true, guarded);
+        final Button up = button(host, "↑", binding.apply(6),
+                mapped.applyAsInt(6), false, guarded);
+        final Button left = button(host, "←", binding.apply(7),
+                mapped.applyAsInt(7), false, guarded);
+        final Button right = button(host, "→", binding.apply(8),
+                mapped.applyAsInt(8), false, guarded);
+        final Button down = button(host, "↓", binding.apply(9),
+                mapped.applyAsInt(9), false, guarded);
+        final Button yButton = button(host, "Y", binding.apply(10),
+                mapped.applyAsInt(10), false, guarded);
+        final Button xButton = button(host, "X", binding.apply(11),
+                mapped.applyAsInt(11), false, guarded);
+        final Button aButton = button(host, "A", binding.apply(12),
+                mapped.applyAsInt(12), false, guarded);
+        final Button bButton = button(host, "B", binding.apply(13),
+                mapped.applyAsInt(13), false, guarded);
 
         final Button[] main = {
                 esc, select, start, enter, leftShoulder, rightShoulder,

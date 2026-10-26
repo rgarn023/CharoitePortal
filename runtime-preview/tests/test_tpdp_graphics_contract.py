@@ -100,14 +100,16 @@ class TpdpAutoGraphicsContract(unittest.TestCase):
         self.assertIn('onUpdateWindowGeometry(Window window, boolean resized)', OVERLAY)
         self.assertIn('onModifyWindowProperty(Window window, Property property)', OVERLAY)
         controls = (ROOT / 'charoite-core/CharoiteTpdpTouchControls.java').read_text()
+        mappings = (ROOT / 'charoite-core/CharoiteGameControlProfiles.java').read_text()
         for token in (
             'KeyEvent.KEYCODE_DPAD_UP', 'KeyEvent.KEYCODE_DPAD_DOWN',
             'KeyEvent.KEYCODE_DPAD_LEFT', 'KeyEvent.KEYCODE_DPAD_RIGHT',
             'KeyEvent.KEYCODE_Z', 'KeyEvent.KEYCODE_X',
-            'KeyEvent.KEYCODE_F11',
-            'MotionEvent.ACTION_DOWN', 'MotionEvent.ACTION_UP',
-            'MotionEvent.ACTION_CANCEL', 'releaseAll.run()',
         ):
+            self.assertIn(token, mappings)
+        for token in ('KeyEvent.KEYCODE_F11', 'MotionEvent.ACTION_DOWN',
+                      'MotionEvent.ACTION_UP', 'MotionEvent.ACTION_CANCEL',
+                      'releaseAll.run()'):
             self.assertIn(token, controls)
         self.assertIn('CharoiteTpdpTouchControls.attach(', OVERLAY)
         self.assertNotIn('container.saveData(', WINDOW)

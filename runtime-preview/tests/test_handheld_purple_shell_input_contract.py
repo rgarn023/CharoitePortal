@@ -79,7 +79,7 @@ class PurpleHandheldInputContract(unittest.TestCase):
 
     def test_focus_targets_nested_actual_game_window(self):
         for clause in ('handheldGameClientId()', 'pending.add(wm.rootWindow)',
-                       'for (Window child : candidate.getChildren())',
+                       'for (Window child : window.getChildren())',
                        'wm.setFocus(game, WindowManager.FocusRevertTo.POINTER_ROOT)',
                        'handler.isCharoiteKeyboardReady()',
                        'handler.bringToFront(new File(executable).getName())'):

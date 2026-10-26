@@ -326,7 +326,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         libraryArea = new LinearLayout(this);
         libraryArea.setOrientation(LinearLayout.VERTICAL);
         libraryScreen.addView(libraryArea);
-        libraryScreen.addView(label("To install a game, open the Setup tab below.", 13, SECONDARY, false));
+        libraryScreen.addView(label("Only shortcuts you choose appear here. Removing a shortcut never uninstalls the game.", 13, SECONDARY, false));
+        libraryScreen.addView(outlinedButton("ADD INSTALLED GAME SHORTCUT",
+                () -> { showSection(1); findInstalledGames(false); }));
+        libraryScreen.addView(outlinedButton("REMOVE ALL LIBRARY SHORTCUTS",
+                this::confirmClearLibraryShortcuts));
         spacerIn(libraryScreen, 12);
 
         importScreen = new LinearLayout(this);
@@ -409,8 +413,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
 
         LinearLayout scanCard = card();
         scanCard.addView(label("03   FIND INSTALLED GAMES", 12, GOLD, true));
-        scanCard.addView(label("Search this environment's Windows C: drive after installation or scan previously installed games.", 13, SECONDARY, false));
-        scanButton = outlinedButton("FIND INSTALLED GAMES", () -> findInstalledGames(false));
+        scanCard.addView(label("Find Windows games in this environment, then choose exactly which ones receive Library shortcuts. Scanning never adds shortcuts automatically.", 13, SECONDARY, false));
+        scanButton = outlinedButton("FIND GAMES / ADD SHORTCUTS", () -> findInstalledGames(false));
         scanCard.addView(scanButton);
         importScreen.addView(scanCard);
         spacerIn(importScreen, 15);
@@ -1337,7 +1341,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     discovered.addAll(com.charoitegames.core.CharoiteShardOfDreamsSupport
                             .discoverRegisteredExpansion(current.getRootDir()));
                 }
-                int count = CharoiteGameLibrary.mergeInstalled(this, discovered);
+                // Discovery is read-only. Never register every EXE as a
+                // shortcut: Wine tools and helper processes are not games.
+                // Shortcuts are added only by explicit checked selection.
+                int count = discovered.size();
                 final String shardReport = touhou ?
                         com.charoitegames.core.CharoiteShardOfDreamsSupport
                             .inspectInstalledExpansion(current.getRootDir(), discovered)
@@ -1351,22 +1358,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     // opening Library or reporting a successful installer.
                     CharoiteGameSessions.consumePendingInstallerScan(this);
                     scanAfterInstallerReturn = false;
-                    String result = count > 0
-                            ? "Found " + count + " installed game(s). Ready to play."
-                            : shardFound
-                                ? "Shard of Dreams already registered in Library."
-                                : afterInstaller && touhou
-                                    ? "Installer closed; no new Touhou game was detected. " +
-                                      "Retry Find Installed Games or view System diagnostics."
-                                    : afterInstaller
-                                        ? "Installer closed; no new game executable found on C:."
-                                        : "No new supported games found on C:.";
-                    finishOperation(result);
-                    // Rebuild the UI after busy=false, so the Shard rescan
-                    // button isn't left disabled following installation.
-                    refreshLibrary();
-                    if (count > 0 || shardFound) showSection(0);
-                    else if (afterInstaller) showSection(1);
+                    finishOperation(count > 0
+                            ? "Found " + count + " executable candidate(s). Select only your games."
+                            : afterInstaller
+                                ? "Installer finished. No game executable found; use Setup to scan again."
+                                : "No installed game executables found.");
+                    showSection(1);
+                    if (count > 0) showShortcutPicker(discovered);
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> finishOperation("Game search failed: " + error.getMessage()));
@@ -1407,7 +1405,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     entry.put("installerSelectionPending",
                             imported.installerCandidates.size() > 1);
                 }
-                saveEntry(entry);
+                // Installer metadata is retained for explicitly running
+                // setup again. Imported game executables NEVER produce a
+                // Library shortcut until the user confirms.
+                if (imported.installer) saveEntry(entry);
                 runOnUiThread(() -> {
                     if (imported.installer) {
                         boolean chooseInstaller = entry.optBoolean("installerSelectionPending", false);
@@ -1424,15 +1425,107 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         else if (chooseInstaller)
                             showInstallerChooser(entry);
                     } else {
-                        finishOperation("Game imported into Library. Tap its tile to play.");
-                        refreshLibrary();
-                        showSection(0);
+                        finishOperation("Game files imported. Choose whether to add a Library shortcut.");
+                        showSection(1);
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle("Create a Library shortcut?")
+                                .setMessage("Game: " + entry.optString("name") +
+                                        "\nThe imported game stays installed even if you decline. " +
+                                        "You can add a shortcut later using Find Games / Add Shortcuts.")
+                                .setPositiveButton("Add shortcut", (d, which) -> {
+                                    try {
+                                        CharoiteGameLibrary.save(this, entry);
+                                        refreshLibrary();
+                                        showSection(0);
+                                        setStatus("Game shortcut added.");
+                                    } catch (Exception e) {
+                                        setStatus("Could not add shortcut: " + e.getMessage());
+                                    }
+                                })
+                                .setNegativeButton("Not now", null)
+                                .show();
                     }
                 });
             } catch (Exception ex) {
                 runOnUiThread(() -> finishOperation("Import failed: " + ex.getMessage()));
             }
         });
+    }
+
+    /** Show candidates without mutating the Library until Add Selected is tapped. */
+    private void showShortcutPicker(java.util.List<JSONObject> discovered) {
+        JSONArray library = CharoiteGameLibrary.load(this);
+        java.util.Set<String> existing = new java.util.HashSet<>();
+        for (int i = 0; i < library.length(); i++) {
+            JSONObject saved = library.optJSONObject(i);
+            if (saved != null && !saved.optBoolean("installer"))
+                existing.add(saved.optString("path", ""));
+        }
+        java.util.ArrayList<JSONObject> available = new java.util.ArrayList<>();
+        java.util.Set<String> found = new java.util.HashSet<>();
+        for (JSONObject game : discovered) {
+            if (game == null || game.optBoolean("installer")) continue;
+            String path = game.optString("path", "");
+            if (path.isEmpty() || !new File(path).isFile() ||
+                    existing.contains(path) || !found.add(path)) continue;
+            available.add(game);
+        }
+        if (available.isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("No additional shortcuts")
+                    .setMessage("All discovered games already have shortcuts, or no new executables were found. Removed shortcuts can be added here again after a scan.")
+                    .setPositiveButton("OK", null).show();
+            return;
+        }
+        available.sort((a, b) -> a.optString("name", "")
+                .compareToIgnoreCase(b.optString("name", "")));
+        final boolean[] selected = new boolean[available.size()];
+        String[] labels = new String[available.size()];
+        for (int i = 0; i < available.size(); i++) {
+            JSONObject game = available.get(i);
+            File exe = new File(game.optString("path", ""));
+            labels[i] = game.optString("name", exe.getName()) + "\n" +
+                    exe.getParentFile().getName() + "/" + exe.getName();
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Add installed-game shortcuts")
+                .setMultiChoiceItems(labels, selected, (dialog, which, checked) ->
+                        selected[which] = checked)
+                .setPositiveButton("Add selected", (dialog, which) -> {
+                    java.util.ArrayList<JSONObject> chosen = new java.util.ArrayList<>();
+                    for (int i = 0; i < selected.length; i++)
+                        if (selected[i]) chosen.add(available.get(i));
+                    if (chosen.isEmpty()) {
+                        setStatus("No shortcuts added. Installed files were untouched.");
+                        return;
+                    }
+                    try {
+                        int added = CharoiteGameLibrary.mergeInstalled(this, chosen);
+                        refreshLibrary();
+                        if (added > 0) showSection(0);
+                        setStatus(added + " Library shortcut(s) added. Installed files untouched.");
+                    } catch (Exception error) {
+                        setStatus("Unable to add shortcuts: " + error.getMessage());
+                    }
+                })
+                .setNegativeButton("Not now", null)
+                .show();
+    }
+
+    private void confirmClearLibraryShortcuts() {
+        if (busy) return;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Remove all Library shortcuts?")
+                .setMessage("Only the shortcuts in this environment will be removed. " +
+                        "All installed games, Wine files, installers and saves remain untouched. " +
+                        "Find Games / Add Shortcuts can restore any shortcut without reinstalling.")
+                .setNegativeButton("Keep shortcuts", null)
+                .setPositiveButton("Remove shortcuts", (dialog, which) -> {
+                    int count = CharoiteGameLibrary.clearGameShortcuts(this);
+                    refreshLibrary();
+                    setStatus(count + " shortcuts removed. No game files deleted.");
+                })
+                .show();
     }
 
     /** All library metadata persistence lives in Core. */
@@ -1614,7 +1707,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 .setTitle("Remove Library shortcut?")
                 .setMessage(name + " will disappear from this Library. The " +
                         "installed Windows game and save data stay on your phone. " +
-                        "A later installed-game scan can find it again.")
+                        "Use Setup → Find Games / Add Shortcuts to restore it manually.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Remove shortcut", (dialog, which) -> {
                     if (CharoiteGameLibrary.remove(this, executable)) {

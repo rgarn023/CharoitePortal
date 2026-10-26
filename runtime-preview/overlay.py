@@ -393,7 +393,7 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                                 android.view.KeyEvent.ACTION_UP;
                         xServer.keyboard.onKeyEvent(new android.view.KeyEvent(
                                 tick,tick,action,keyCode,0));
-                    });
+                    }, this::confirmReturnToCharoitePortal);
         }
 """)
 
@@ -431,6 +431,16 @@ rotation_java = """    @Override
 
 """
 tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator provides XServer events.
+    private void confirmReturnToCharoitePortal() {
+        if (isFinishing() || isDestroyed()) return;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Return to Charoite Portal?")
+                .setMessage("The current Windows game will close. Save progress first; unsaved progress may be lost.")
+                .setNegativeButton("Keep Playing", null)
+                .setPositiveButton("Exit Game", (dialog, which) -> exit())
+                .show();
+    }
+
     private void centerTpdpGameWindow(Window window) {
         com.charoitegames.core.CharoiteWindowPolicy.centerGameWindow(
                 this, xServer, screenInfo, window,

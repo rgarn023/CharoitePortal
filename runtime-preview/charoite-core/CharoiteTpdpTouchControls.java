@@ -24,7 +24,9 @@ import java.util.Set;
  * TPDP pocket-handheld layout, owned by Charoite Core.
  *
  * Visual controls match the user's sketch: game above, Select/Start below,
- * shoulder L/R below those, D-pad bottom-left and ABXY bottom-right.
+ * shoulder L/Keyboard/R below those, D-pad bottom-left and ABXY bottom-right.
+ * Esc/Select/Start/Enter share a row; an always-visible Portal button
+ * requests a confirmed exit via the host\u0027s normal session teardown.
  * Inputs send the game's ORIGINAL keyboard bindings, not XInput buttons.
  * No Wine mappings, graphics, installed data, or saves are modified.
  */
@@ -157,7 +159,8 @@ public final class CharoiteTpdpTouchControls {
     }
 
     /** The XServer display remains visible and touchable between controls. */
-    public static void attach(Activity host, FrameLayout root, KeySink sink) {
+    public static void attach(Activity host, FrameLayout root, KeySink sink,
+                              Runnable returnToPortal) {
         if (host instanceof XServerDisplayActivity) {
             XServerView display = ((XServerDisplayActivity)host).getXServerView();
             if (display != null) {
@@ -190,6 +193,11 @@ public final class CharoiteTpdpTouchControls {
                 KeyEvent.KEYCODE_A, true, guarded);
         final Button rightShoulder = button(host, "R", "D",
                 KeyEvent.KEYCODE_D, true, guarded);
+        // These are Windows key events, not application-exit actions.
+        final Button enter = button(host, "Enter", "Enter",
+                KeyEvent.KEYCODE_ENTER, true, guarded);
+        final Button esc = button(host, "Esc", "Escape",
+                KeyEvent.KEYCODE_ESCAPE, true, guarded);
 
         final Button up = button(host, "↑", "Up arrow",
                 KeyEvent.KEYCODE_DPAD_UP, false, guarded);
@@ -210,27 +218,25 @@ public final class CharoiteTpdpTouchControls {
                 KeyEvent.KEYCODE_X, false, guarded);
 
         final Button[] main = {
-                select, start, leftShoulder, rightShoulder,
+                esc, select, start, enter, leftShoulder, rightShoulder,
                 up, left, right, down, yButton, xButton, aButton, bButton
         };
         for (Button button : main) root.addView(button);
 
-        // Keep F11/Enter/Esc/screenshot P available without cluttering
-        // the handheld layout. These are secondary, initially hidden.
+        // Only the infrequent F11 and screenshot keys remain under More.
         final Button f11 = button(host, "F11 Full", "F11",
                 KeyEvent.KEYCODE_F11, true, guarded);
-        final Button enter = button(host, "Enter", "Enter",
-                KeyEvent.KEYCODE_ENTER, true, guarded);
-        final Button esc = button(host, "Esc", "Escape",
-                KeyEvent.KEYCODE_ESCAPE, true, guarded);
         final Button screenshot = button(host, "P Shot", "P",
                 KeyEvent.KEYCODE_P, true, guarded);
-        final Button[] extras = {f11, enter, esc, screenshot};
+        final Button[] extras = {f11, screenshot};
         for (Button button : extras) {
             root.addView(button);
             button.setVisibility(View.GONE);
         }
 
+        // A separate, always-visible route back to Portal.
+        final Button portal = button(host, "PORTAL", "Exit game to Charoite Portal",
+                -1, true, guarded);
         final Button more = button(host, "MORE", "Extra keyboard controls",
                 -1, true, guarded);
         // Always reachable even while the Game Boy buttons are hidden.
@@ -239,6 +245,7 @@ public final class CharoiteTpdpTouchControls {
                 -1, true, guarded);
         final Button toggle = button(host, "HIDE KEYS", "Hide handheld controls",
                 -1, true, guarded);
+        root.addView(portal);
         root.addView(more);
         root.addView(keyboard);
         root.addView(toggle);
@@ -266,11 +273,17 @@ public final class CharoiteTpdpTouchControls {
                     Math.min((int)(height * .55f), clusterY - dp(host, 110)) :
                     Math.max(dp(host, 44), (int)(height * .53f));
             final int barHeight = dp(host, portrait ? 34 : 30);
-            final int centerWidth = dp(host, portrait ? 76 : 64);
-            final int centerGap = dp(host, 10);
-            final int centerX = (width - 2 * centerWidth - centerGap) / 2;
-            position(select, centerX, topControls, centerWidth, barHeight);
-            position(start, centerX + centerWidth + centerGap,
+            // Four compact buttons in one row directly below the game.
+            final int centerGap = dp(host, 6);
+            final int centerWidth = Math.min(dp(host, portrait ? 76 : 64),
+                    Math.max(dp(host, 36), (width - margin * 2 - 3 * centerGap) / 4));
+            final int centerX = (width - 4 * centerWidth - 3 * centerGap) / 2;
+            position(esc, centerX, topControls, centerWidth, barHeight);
+            position(select, centerX + centerWidth + centerGap,
+                    topControls, centerWidth, barHeight);
+            position(start, centerX + 2 * (centerWidth + centerGap),
+                    topControls, centerWidth, barHeight);
+            position(enter, centerX + 3 * (centerWidth + centerGap),
                     topControls, centerWidth, barHeight);
 
             final int shoulderY = portrait ?
@@ -312,13 +325,17 @@ public final class CharoiteTpdpTouchControls {
                     clusterY + (size + gap) * 2, size, size);
 
             int topButtonH = dp(host, 32);
-            position(more, margin, margin, dp(host, 68), topButtonH);
+            final int portalW = dp(host, 88);
+            position(portal, margin, margin, portalW, topButtonH);
+            position(more, margin + portalW + gap, margin,
+                    dp(host, 68), topButtonH);
             position(toggle, width - margin - dp(host, 93),
                     margin, dp(host, 93), topButtonH);
 
             int extraW = Math.min(dp(host, 76),
-                    (width - margin * 2 - gap * 3) / 4);
-            int extrasWidth = extraW * 4 + gap * 3;
+                    (width - margin * 2 - gap * (extras.length - 1))
+                            / extras.length);
+            int extrasWidth = extraW * extras.length + gap * (extras.length - 1);
             int extraX = (width - extrasWidth) / 2;
             int extraY = portrait ? topControls - dp(host, 53) :
                     margin + topButtonH + gap;
@@ -331,6 +348,11 @@ public final class CharoiteTpdpTouchControls {
         });
         root.post(relayout);
 
+        // Return remains available even while handheld keys are hidden.
+        portal.setOnClickListener(v -> {
+            releaseAll.run();
+            if (returnToPortal != null) returnToPortal.run();
+        });
         keyboard.setOnClickListener(v -> {
             releaseAll.run();
             CharoiteSoftKeyboard.show(host);

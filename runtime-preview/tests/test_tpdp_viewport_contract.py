@@ -63,7 +63,7 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('activeShardClientId = -1;', POLICY)
         self.assertIn('recordShardWindowChange(', POLICY)
         self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(executable)', POLICY)
-        self.assertIn('if (ratio < 0.95f || ratio > 2.4f) return false;', POLICY)
+        self.assertIn('ratio >= 0.95f && ratio <= 2.4f;', POLICY)
         self.assertIn('allowDecoratedShardClient(Window client,', POLICY)
         self.assertIn('client.getChildCount() == 0', POLICY)
         self.assertIn('client.hasDecoration(com.winlator.xserver.Decoration.TITLE)', POLICY)

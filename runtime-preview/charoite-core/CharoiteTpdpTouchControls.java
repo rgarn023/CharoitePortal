@@ -3,6 +3,7 @@ package com.charoitegames.core;
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Canvas;
+import android.graphics.Path;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -46,8 +47,8 @@ public final class CharoiteTpdpTouchControls {
         // Smoked translucent purple plastic, not solid black/grey buttons.
         GradientDrawable drawable = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR, secondary
-                ? new int[]{0xE3523777, 0xE1271A43}
-                : new int[]{0xE0553489, 0xE12A174B});
+                ? new int[]{0xA85E4089, 0x99301C51}
+                : new int[]{0xA65B3792, 0x92301A56});
         drawable.setStroke(dpStroke(), secondary ? 0xB6BFA9E9 : 0xB8D6B8FF);
         drawable.setCornerRadius(18);
         return drawable;
@@ -56,7 +57,7 @@ public final class CharoiteTpdpTouchControls {
     private static GradientDrawable clusterPlate() {
         GradientDrawable plate = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{0x694F3677, 0x88402A62});
+                new int[]{0x484F3677, 0x60402A62});
         plate.setStroke(2, 0x8DAE98D4);
         plate.setCornerRadius(28);
         return plate;
@@ -64,10 +65,57 @@ public final class CharoiteTpdpTouchControls {
 
     private static int dpStroke() { return 2; }
 
+    /**
+     * A single vector arrow rotated into four directions. Unicode arrow
+     * glyphs have inconsistent font metrics (left differs from right), and
+     * made the old D-pad look lopsided despite equal button dimensions.
+     */
+    private static final class DpadButton extends Button {
+        private final int quadrant;
+        private final Paint arrow = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        DpadButton(Activity context, int quadrant) {
+            super(context);
+            this.quadrant = quadrant;
+            setText("");
+            setGravity(Gravity.CENTER);
+            setIncludeFontPadding(false);
+            arrow.setColor(0xFFEADCFD);
+            arrow.setStyle(Paint.Style.STROKE);
+            arrow.setStrokeWidth(dp(context, 2.7f));
+            arrow.setStrokeCap(Paint.Cap.ROUND);
+            arrow.setStrokeJoin(Paint.Join.ROUND);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() * .5f;
+            float cy = getHeight() * .5f;
+            float unit = Math.min(getWidth(), getHeight()) * .155f;
+            canvas.save();
+            canvas.translate(cx, cy);
+            canvas.rotate(quadrant * 90f);
+            Path icon = new Path();
+            // Source arrow points UP. All four share these exact vertices.
+            icon.moveTo(0, -unit * 1.35f);
+            icon.lineTo(-unit, -unit * .24f);
+            icon.moveTo(0, -unit * 1.35f);
+            icon.lineTo(unit, -unit * .24f);
+            icon.moveTo(0, -unit * 1.24f);
+            icon.lineTo(0, unit * 1.3f);
+            canvas.drawPath(icon, arrow);
+            canvas.restore();
+        }
+    }
+
     private static Button button(Activity host, String title, String mapping,
                                  int keyCode, boolean secondary, KeySink sink) {
-        Button button = new Button(host);
-        button.setText(title);
+        final int direction = "↑".equals(title) ? 0 :
+                "→".equals(title) ? 1 : "↓".equals(title) ? 2 :
+                "←".equals(title) ? 3 : -1;
+        Button button = direction >= 0 ? new DpadButton(host, direction) :
+                new Button(host);
+        if (direction < 0) button.setText(title);
         button.setAllCaps(false);
         button.setTextSize(secondary ? 12f : 18f);
         button.setTypeface(null, Typeface.BOLD);
@@ -150,12 +198,63 @@ public final class CharoiteTpdpTouchControls {
             setFocusable(false);
             shadow.setColor(0xD01B102C);
             shadow.setStyle(Paint.Style.STROKE);
-            shadow.setStrokeWidth(dp(host, 12));
+            shadow.setStrokeWidth(dp(host, 8));
             rim.setColor(0xFFCBB4F2);
             rim.setStyle(Paint.Style.STROKE);
-            rim.setStrokeWidth(dp(host, 3));
+            rim.setStrokeWidth(dp(host, 2));
         }
 
+
+        /**
+         * An original handheld controller PCB/membrane illustration appears
+         * BEHIND translucent controls. It represents controller internals,
+         * not an unverified phone teardown.
+         */
+        private void drawControllerInternals(Canvas canvas, float w, float h) {
+            Paint board = new Paint(Paint.ANTI_ALIAS_FLAG);
+            float buttonY = h * .91f;
+            float leftX = w * .18f, rightX = w * .79f;
+            float radius = Math.min(w * .085f, h * .046f);
+            // Visible rubber/contact membranes through purple acrylic.
+            board.setColor(0x554BC0A8);
+            board.setStyle(Paint.Style.STROKE);
+            board.setStrokeWidth(Math.max(2f, w * .008f));
+            for (int i = 0; i < 4; i++) {
+                float angle = i * (float)(Math.PI / 2);
+                float r = radius * 1.75f;
+                canvas.drawCircle(leftX + (float)Math.cos(angle) * r,
+                        buttonY + (float)Math.sin(angle) * r, radius, board);
+                canvas.drawCircle(rightX + (float)Math.cos(angle) * r,
+                        buttonY + (float)Math.sin(angle) * r, radius, board);
+            }
+            board.setStyle(Paint.Style.FILL);
+            board.setColor(0x394CDCB0);
+            canvas.drawCircle(leftX, buttonY, radius * 1.32f, board);
+            canvas.drawCircle(rightX, buttonY, radius * 1.32f, board);
+            // Gold-coloured traces running to the central controller board.
+            board.setColor(0x5588CFB2);
+            board.setStyle(Paint.Style.STROKE);
+            board.setStrokeWidth(Math.max(1f, w * .004f));
+            Path traces = new Path();
+            traces.moveTo(leftX, buttonY - radius * 2);
+            traces.lineTo(w * .35f, h * .80f);
+            traces.lineTo(w * .50f, h * .80f);
+            traces.lineTo(rightX, buttonY - radius * 2);
+            traces.moveTo(leftX, buttonY + radius * 2);
+            traces.lineTo(w * .40f, h * .96f);
+            traces.lineTo(w * .60f, h * .96f);
+            traces.lineTo(rightX, buttonY + radius * 2);
+            canvas.drawPath(traces, board);
+            board.setStyle(Paint.Style.FILL);
+            board.setColor(0x704F758D);
+            RectF controller = new RectF(w * .43f, h * .79f, w * .57f, h * .87f);
+            canvas.drawRoundRect(controller, w * .01f, w * .01f, board);
+            board.setColor(0x9942B79D);
+            for (int i = 0; i < 4; i++) {
+                canvas.drawCircle(w * (.446f + .034f * i),
+                        h * .81f, Math.max(1.5f, w * .006f), board);
+            }
+        }
 
         /** Mask the white Wine desktop, then show phone-like circuitry under
          * a truly translucent purple acrylic coating. Clip OUT the game
@@ -168,13 +267,15 @@ public final class CharoiteTpdpTouchControls {
             if (screen != null) canvas.clipOutRect(
                     screen.left, screen.top, screen.right, screen.bottom);
             shell.setShader(null);
-            shell.setColor(0xFF191325);
+            // Smoked translucent shell, not opaque dark-purple wallpaper.
+            shell.setColor(0xA41D1533);
             canvas.drawRect(0, 0, w, h, shell);
+            drawControllerInternals(canvas, w, h);
             // A device-matched real interior photo is displayed only when
             // available; never show an invented diagram as exact hardware.
             CharoiteHardwareSkin.drawInterior(canvas, (Activity)getContext(), w, h);
             shell.setShader(new LinearGradient(0, 0, w * .85f, h,
-                    new int[]{0xA0664598, 0x66392165, 0xB04F327D},
+                    new int[]{0x805F3D93, 0x503F2466, 0x894C2877},
                     null, Shader.TileMode.CLAMP));
             canvas.drawRect(0, 0, w, h, shell);
             shell.setShader(null);
@@ -209,10 +310,12 @@ public final class CharoiteTpdpTouchControls {
                     area[1] * view.aspect;
             float right = left + area[2] * view.aspect;
             float bottom = top + area[3] * view.aspect;
-            bounds.set(left - dp((Activity)getContext(), 3),
-                    top - dp((Activity)getContext(), 3),
-                    right + dp((Activity)getContext(), 3),
-                    bottom + dp((Activity)getContext(), 3));
+            // The game draws an FPS/HUD baseline within a few pixels of
+            // its bottom edge. Never mask or stroke over those pixels.
+            bounds.set(left - dp((Activity)getContext(), 12),
+                    top - dp((Activity)getContext(), 12),
+                    right + dp((Activity)getContext(), 12),
+                    bottom + dp((Activity)getContext(), 22));
             drawShell(canvas, bounds);
             canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
                     dp((Activity)getContext(), 5), shadow);

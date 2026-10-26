@@ -36,10 +36,8 @@ public final class CharoiteBattleNetSupport {
     private static final long MAX_INSTALLER = 100L * 1024L * 1024L;
 
     public static File installer(File containerRoot) throws IOException {
-        File drive = wineDrive(containerRoot);
-        File downloads = new File(drive, "CharoitePortal/BattleNet/Installer").getCanonicalFile();
-        if (!downloads.getPath().startsWith(drive.getCanonicalPath() + File.separator))
-            throw new IOException("Installer path escaped the active Wine drive");
+        File downloads = CharoiteEnvironments.storageFolder(
+                containerRoot, CharoiteEnvironments.BATTLE_NET, "Installers");
         return new File(downloads, FILENAME);
     }
 
@@ -53,8 +51,14 @@ public final class CharoiteBattleNetSupport {
     public static File downloadedInstaller(File root) {
         try {
             File file = installer(root);
-            return file.isFile() && file.length() >= MIN_INSTALLER && validPe(file)
-                    ? file : null;
+            if (file.isFile() && validPe(file)) return file;
+            // Previously downloaded setup files are not moved or deleted.
+            // Preserve legacy install/retry until the user downloads a new EXE.
+            File legacy = new File(wineDrive(root),
+                    "CharoitePortal/BattleNet/Installer/" + FILENAME).getCanonicalFile();
+            File drive = wineDrive(root);
+            return legacy.getPath().startsWith(drive.getPath() + File.separator) &&
+                    validPe(legacy) ? legacy : null;
         } catch (Exception ignored) {
             return null;
         }

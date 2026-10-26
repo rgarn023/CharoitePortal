@@ -67,9 +67,11 @@ class ShardInstallDiscoveryContract(unittest.TestCase):
         self.assertIn('public static synchronized int mergeInstalled(', LIBRARY)
 
     def test_shard_diagnosis_available_even_with_no_installed_icon(self):
-        self.assertIn('CHECK SHARD OF DREAMS', PORTAL)
-        self.assertIn('SHARD OF DREAMS INSTALLATION', PORTAL)
-        self.assertIn('CharoiteDiagnostics.shardInstallationScan(this)', PORTAL)
+        # The Shard-specific setup panel is retired. Core installation
+        # discovery and the full diagnostic report remain available.
+        self.assertNotIn('CHECK SHARD OF DREAMS', PORTAL)
+        self.assertNotIn('SHARD OF DREAMS INSTALLATION", 12, GOLD', PORTAL)
+        self.assertNotIn('CharoiteDiagnostics.shardInstallationScan(this)', PORTAL)
         self.assertIn('CharoiteDiagnostics.recordShardInstallationScan(this, shardReport);', PORTAL)
         self.assertIn('SHARD OF DREAMS INSTALLATION CHECK:', DIAGNOSTICS)
         self.assertIn('charoite_shard_install_scan', DIAGNOSTICS)

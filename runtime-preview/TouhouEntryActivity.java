@@ -1571,6 +1571,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         installerCard.addView(label("CURRENT INSTALLER", 12, GOLD, true));
         installerCard.addView(label(new File(path).getName(), 16, FOREGROUND, true));
         if (installerCandidates != null && installerCandidates.length() > 1) {
+            String importRoot = lastInstaller.optString("importRoot", "");
+            if (!importRoot.isEmpty()) {
+                String relative = new File(importRoot).toURI().relativize(
+                        new File(path).toURI()).getPath();
+                installerCard.addView(label("Selected file: " + relative,
+                        12, SECONDARY, false));
+            }
             installerCard.addView(label(selectionPending
                     ? "Multiple setup executables found. Choose the correct installer before running."
                     : "Installer selected. You can change it without re-importing the folder.",
@@ -1632,7 +1639,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Which installer should Charoite run?")
-                .setMessage("Multiple setup programs were found. Choose the original installer; other files stay in the imported folder.")
+                // List dialogs must not setMessage(): Android otherwise
+                // displays the text panel instead of its selectable list.
                 .setItems(labels, (dialog, which) -> {
                     try {
                         String selected = candidates.getString(which);

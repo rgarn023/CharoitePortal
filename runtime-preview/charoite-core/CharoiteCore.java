@@ -148,7 +148,8 @@ public final class CharoiteCore {
         String path = executable.trim().replace('\\', '/');
         int slash = path.lastIndexOf('/');
         String file = path.substring(slash + 1).toLowerCase(java.util.Locale.ROOT);
-        return file.equals("gn_enbu.exe") || file.equals("enbu_ap.exe");
+        return file.equals("gn_enbu.exe") || file.equals("enbu_ap.exe") ||
+                CharoiteShardOfDreamsSupport.isExpansionGame(file);
     }
 
     public static int tpdpGraphicsMode(AppCompatActivity host) {

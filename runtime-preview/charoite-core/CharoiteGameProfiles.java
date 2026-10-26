@@ -31,11 +31,13 @@ public final class CharoiteGameProfiles {
         public boolean acceptsInstalledExecutable(String filename) {
             String name = filename.toLowerCase(Locale.ROOT);
             return name.equals("gn_enbu.exe") || name.equals("enbu_ap.exe")
+                    || CharoiteShardOfDreamsSupport.isExpansionGame(name)
                     || name.matches("th(0[6-9]|1[0-9]|20)\\.exe");
         }
         public String displayName(String filename) {
             String name = new File(filename).getName().toLowerCase(Locale.ROOT);
-            if (name.equals("enbu_ap.exe")) return "Touhou Puppet Dance Performance: Shard of Dreams";
+            if (CharoiteShardOfDreamsSupport.isExpansionGame(name))
+                return "Touhou Puppet Dance Performance: Shard of Dreams";
             if (name.equals("gn_enbu.exe")) return "Touhou Puppet Dance Performance";
             return "Touhou game: " + new File(filename).getName();
         }

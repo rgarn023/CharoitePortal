@@ -17,6 +17,30 @@ import java.nio.charset.Charset;
 public final class CharoiteShardOfDreamsSupport {
     private CharoiteShardOfDreamsSupport() {}
 
+    // The installed Japanese Shard release uses its original Japanese EXE,
+    // rather than the historical enbu_ap.exe shorthand.
+    public static final String JAPANESE_EXECUTABLE = "幻想人形演舞-ユメノカケラ-.exe";
+
+    /** Exact Shard executable aliases, excluding updater and uninstaller. */
+    public static boolean isExpansionGame(String path) {
+        if (path == null) return false;
+        String name = new File(path).getName().toLowerCase(Locale.ROOT);
+        return name.equals("enbu_ap.exe") ||
+                name.equals(JAPANESE_EXECUTABLE.toLowerCase(Locale.ROOT));
+    }
+
+    /** Find the real installed binary, never invent or rename an executable. */
+    private static File installedExecutable(File directory) {
+        if (directory == null || !directory.isDirectory() ||
+                Files.isSymbolicLink(directory.toPath())) return null;
+        for (String filename : new String[]{"enbu_ap.exe", JAPANESE_EXECUTABLE}) {
+            File candidate = new File(directory, filename);
+            if (candidate.isFile() && !Files.isSymbolicLink(candidate.toPath()))
+                return candidate;
+        }
+        return null;
+    }
+
 
     // FocasLens keeps its installed-game destination in an AppData
     // install.ini. The AppData folder is metadata, not the game itself.
@@ -80,9 +104,8 @@ public final class CharoiteShardOfDreamsSupport {
             String value = registeredPath(new File(path));
             File target = verifiedDestination(drive, value);
             if (target == null) continue;
-            File executable = new File(target, "enbu_ap.exe");
-            if (!executable.isFile() || Files.isSymbolicLink(executable.toPath()))
-                continue;
+            File executable = installedExecutable(target);
+            if (executable == null) continue;
             try {
                 org.json.JSONObject entry = new org.json.JSONObject();
                 entry.put("name", "Touhou Puppet Dance Performance: Shard of Dreams");
@@ -139,8 +162,9 @@ public final class CharoiteShardOfDreamsSupport {
                 } else if (dest != null) {
                     report.append("\n  Registered folder exists: ")
                             .append(dest.isDirectory())
-                            .append("; enbu_ap.exe exists: ")
-                            .append(new File(dest, "enbu_ap.exe").isFile());
+                            .append("; playable Shard executable: ")
+                            .append(installedExecutable(dest) == null
+                                    ? "not found" : installedExecutable(dest).getName());
                     if (dest.isDirectory() && !dest.equals(dir))
                         report.append("\n  Registered folder contents: ")
                                 .append(contents(dest));
@@ -168,7 +192,7 @@ public final class CharoiteShardOfDreamsSupport {
                 if (item == null) continue;
                 String path = item.optString("path", "");
                 String name = new File(path).getName().toLowerCase(Locale.ROOT);
-                if (name.equals("enbu_ap.exe")) {
+                if (isExpansionGame(name)) {
                     shardFound = true;
                     shardPath = path;
                 }
@@ -178,7 +202,7 @@ public final class CharoiteShardOfDreamsSupport {
         if (shardFound) {
             return "Shard executable found: " + shardPath +
                     "\nCore can register this separate game in Library. " +
-                    "The notkey check applies only when launching enbu_ap.exe. " +
+                    "The notkey check applies when launching either recognized Shard executable. " +
                     (baseFound ? "Original TPDP also found." :
                     "Original TPDP executable not found in this C: scan.");
         }
@@ -186,15 +210,17 @@ public final class CharoiteShardOfDreamsSupport {
         // playable entry for a setup.exe or an incomplete install directory.
         java.util.List<String> candidates = shardFolders(drive);
         if (!candidates.isEmpty())
-            return "Shard installation folder(s) detected, but enbu_ap.exe " +
-                    "is missing: " + String.join("; ", candidates) +
+            return "Shard installation directories detected, but no recognized " +
+                    "Shard executable was found: " + String.join("; ", candidates) +
                     "\nThe AppData folder is only registration metadata, not a second installation." +
                     installationEvidence(drive, candidates) +
-                    "\nIf the registered destination does not contain enbu_ap.exe, " +
-                    "the installer has not produced a complete playable game there. " +
+                    "\nIf the registered destination contains neither " +
+                    "enbu_ap.exe nor " + JAPANESE_EXECUTABLE + ", " +
+                    "the installer has not produced a recognized game binary there. " +
                     "Check that all original setup media was imported and the " +
                     "installer reached Finish. No files were changed.";
-        return "Shard executable enbu_ap.exe was NOT found in this active " +
+        return "No recognized Shard executable (enbu_ap.exe or " +
+                JAPANESE_EXECUTABLE + ") was found in this active " +
                 "environment's Windows C:. " +
                 (baseFound ? "Original TPDP is present. " : "") +
                 "Check that the Shard installer completed and that it " +
@@ -219,12 +245,6 @@ public final class CharoiteShardOfDreamsSupport {
                     name.contains("enbu-ap")) output.add(child.getAbsolutePath());
             inspectCandidateDirectories(child, depth + 1, visited, output);
         }
-    }
-
-    public static boolean isExpansionGame(String path) {
-        if (path == null) return false;
-        String name = new File(path).getName().toLowerCase(Locale.ROOT);
-        return name.equals("enbu_ap.exe");
     }
 
     private static boolean samePrefix(File expansion, File original) {

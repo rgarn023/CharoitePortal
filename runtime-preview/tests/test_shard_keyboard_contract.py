@@ -45,6 +45,8 @@ class ShardContract(unittest.TestCase):
     def test_expansion_uses_verified_base_with_non_destructive_link(self):
         self.assertIn('CharoiteShardOfDreamsSupport.java', OVERLAY)
         self.assertIn('name.equals("enbu_ap.exe")', SHARD)
+        self.assertIn('name.equals(JAPANESE_EXECUTABLE.toLowerCase(Locale.ROOT))', SHARD)
+        self.assertIn('JAPANESE_EXECUTABLE = "幻想人形演舞-ユメノカケラ-.exe"', SHARD)
         self.assertIn('new File(baseDir, "gn_enbu.exe").isFile()', SHARD)
         self.assertIn('getName().equals(".wine")', SHARD)
         self.assertIn('Files.exists(existing.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)', SHARD)

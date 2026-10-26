@@ -181,7 +181,8 @@ public final class CharoiteGameImport {
         }
         if (touhou) {
             for (String priority : new String[]{
-                    "enbu_ap.exe", "gn_enbu.exe", "th20.exe", "th19.exe"}) {
+                    "enbu_ap.exe", CharoiteShardOfDreamsSupport.JAPANESE_EXECUTABLE,
+                    "gn_enbu.exe", "th20.exe", "th19.exe"}) {
                 for (String candidate : matches)
                     if (new File(candidate).getName().equalsIgnoreCase(priority))
                         return candidate;

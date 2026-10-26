@@ -58,7 +58,8 @@ public final class CharoiteGraphicsProfiles {
         String normalized = executable.trim().replace('\\', '/');
         String file = normalized.substring(normalized.lastIndexOf('/') + 1)
                 .toLowerCase(Locale.ROOT);
-        if ("gn_enbu.exe".equals(file) || "enbu_ap.exe".equals(file))
+        if ("gn_enbu.exe".equals(file) || "enbu_ap.exe".equals(file) ||
+                CharoiteShardOfDreamsSupport.isExpansionGame(file))
             return TPDP_D3D9;
         return null;  // Preserve all saved settings for unknown games.
     }

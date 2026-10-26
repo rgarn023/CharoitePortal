@@ -1395,7 +1395,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private String gameIconCharacter(String path) {
         String exe = new File(path).getName().toLowerCase(Locale.ROOT);
         if (exe.equals("gn_enbu.exe")) return "東";
-        if (exe.equals("enbu_ap.exe")) return "夢";
+        if (com.charoitegames.core.CharoiteShardOfDreamsSupport.isExpansionGame(exe))
+            return "夢";
         if (exe.matches("th\\d+\\.exe")) return "弾";
         return "✦";
     }

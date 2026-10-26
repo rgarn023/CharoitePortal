@@ -15,19 +15,23 @@ class PurpleHandheldInputContract(unittest.TestCase):
         self.assertIn('drawShell(canvas, bounds);', UI)
         self.assertIn('canvas.clipOutRect(', UI)
         self.assertIn('shell.setColor(0xFF191325);', UI)
-        self.assertIn('drawCircuitArtwork(canvas, w, h);', UI)
-        self.assertIn('new int[]{0x9B563485, 0x56311C59, 0xA247286F}', UI)
+        self.assertIn('CharoiteHardwareSkin.drawInterior(canvas, (Activity)getContext(), w, h);', UI)
+        self.assertIn('new int[]{0xA0664598, 0x66392165, 0xB04F327D}', UI)
         self.assertIn('Shader.TileMode.CLAMP', UI)
         self.assertIn('setClickable(false)', UI)
         self.assertNotIn('root.setBackgroundColor(Color.WHITE)', UI)
 
-    def test_hardware_art_matches_device_family_without_claiming_real_teardown(self):
-        for term in ('android.os.Build.MODEL', 'SM-S948',
-                     'S26 ULTRA', 'int cameraCount = ultra ? 4 : 3;',
-                     'if (ultra)', 'hardware', 'canvas.drawCircle(241, 522'):
-            self.assertIn(term, UI)
+    def test_real_model_photo_over_generic_hardware_illustration(self):
+        skin=(ROOT / 'charoite-core/CharoiteHardwareSkin.java').read_text()
+        self.assertIn('Build.MODEL', skin)
+        self.assertIn('Build.MANUFACTURER', skin)
+        self.assertIn('modelKey() + ".png"', skin)
+        self.assertIn('Intent.ACTION_OPEN_DOCUMENT', skin)
+        self.assertIn('drawBitmap(image, source', skin)
+        self.assertNotIn('drawCircuitArtwork', UI)
+        self.assertIn('CharoiteHardwareSkin.choosePicture(host)', UI)
+        self.assertIn('CharoiteHardwareSkin.onImageSelected(', OVERLAY)
         self.assertNotIn('inputStatus', UI)
-        self.assertNotIn('TextView', UI)
 
     def test_equal_sized_dpad_and_centered_cross(self):
         for clause in (
@@ -55,6 +59,8 @@ class PurpleHandheldInputContract(unittest.TestCase):
                       'public static final int X11_ONLY = 2;',
                       'public static boolean useWin32()',
                       'public static boolean useX11()',
+                      'public static boolean useScan()',
+                      'public static final int SCAN_ONLY = 3;',
                       'restoreX11Focus(xServer);'):
             self.assertIn(token, INPUT)
         self.assertIn('if (touhou8 && com.charoitegames.core', OVERLAY)
@@ -66,7 +72,7 @@ class PurpleHandheldInputContract(unittest.TestCase):
         self.assertIn('CharoiteLegacyKeyboard.recordX11(keyCode, pressed)', OVERLAY)
         self.assertIn('isCharoiteKeyboardReady()', OVERLAY)
         self.assertIn('keyboard.setVisibility(show ? View.VISIBLE : View.GONE);', UI)
-        self.assertIn('keyboard.setVisibility(show ? View.VISIBLE : View.GONE);', UI)
+        self.assertIn('CharoiteLegacyKeyboard.sendScan(', OVERLAY)
 
     def test_focus_targets_nested_actual_game_window(self):
         for clause in ('handheldGameClientId()', 'pending.add(wm.rootWindow)',

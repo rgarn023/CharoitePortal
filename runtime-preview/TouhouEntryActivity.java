@@ -120,6 +120,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetDownloadButton;
     private Button battleNetInstallButton;
     private Button battleNetOpenButton;
+    private Button battleNetCompatButton;
+    private Button battleNetDiagnoseButton;
     private TextView battleNetDownloadStatus;
     private Button scanButton;
     private Button compatButton;
@@ -379,6 +381,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetDownloadButton = null;
         battleNetInstallButton = null;
         battleNetOpenButton = null;
+        battleNetCompatButton = null;
+        battleNetDiagnoseButton = null;
         battleNetDownloadStatus = null;
         if (CharoiteEnvironments.isBattleNet(this)) {
             LinearLayout battleCard = card();
@@ -401,9 +405,21 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetOpenButton = outlinedButton("OPEN INSTALLED BATTLE.NET",
                     this::openBattleNet);
             battleCard.addView(battleNetOpenButton);
+            battleNetDiagnoseButton = outlinedButton("CHECK UPDATE AGENT DIAGNOSTICS",
+                    this::showBattleNetAgentDiagnostics);
+            battleCard.addView(battleNetDiagnoseButton);
+            battleNetCompatButton = outlinedButton("RETRY SETUP: COMPATIBILITY MODE",
+                    this::retryBattleNetCompatibility);
+            battleCard.addView(battleNetCompatButton);
+            battleCard.addView(label(
+                    "Update Agent error BLZBNTBTS0000005C can be a Windows process, DLL, " +
+                    "network or Wine compatibility failure. Check diagnostics first. " +
+                    "Compatibility Retry temporarily uses WineD3D/VirGL and disables Wine " +
+                    "ESYNC/FSYNC for one attempt. Neither option deletes Agent files or games.",
+                    12, SECONDARY, false));
             battleCard.addView(label(
                     "Blizzard account sign-in happens inside its Windows client, not Charoite. " +
-                    "If its automatic updater fails, download a fresh official installer and run it. " +
+                    "If its automatic updater fails, check diagnostics before trying the installer again. " +
                     "Diablo IV requires DirectX 12; this Android runtime does not yet have verified " +
                     "Diablo IV / VKD3D game compatibility. At least 90 GB of PC game storage is listed.",
                     12, SECONDARY, false));
@@ -614,6 +630,55 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     containerId, exe.getAbsolutePath(), false, false);
         } catch (Exception error) {
             setStatus("Cannot open Battle.net: " + error.getMessage());
+        }
+    }
+
+    /** Read only: inspect whether Blizzard actually downloaded Agent.exe
+     * and whether agent logs exist. No automatic repairs or data removal. */
+    private void showBattleNetAgentDiagnostics() {
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception e) { setStatus(e.getMessage()); return; }
+        String report = CharoiteBattleNetSupport.inspectAgent(root);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Battle.net Update Agent diagnostics")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    ClipboardManager clipboard = (ClipboardManager)
+                            getSystemService(Context.CLIPBOARD_SERVICE);
+                    clipboard.setPrimaryClip(ClipData.newPlainText(
+                            "Battle.net Update Agent diagnostic", report));
+                    setStatus("Agent diagnostic copied. No game files changed.");
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void retryBattleNetCompatibility() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.downloadedInstaller(battleNetRoot());
+            if (exe == null)
+                throw new IllegalStateException("Download the official Windows installer first");
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Retry Battle.net setup?")
+                    .setMessage("This experimental one-session fallback selects " +
+                            "WineD3D/VirGL instead of DXVK and disables Wine " +
+                            "ESYNC/FSYNC. It may help if the updater is failing in " +
+                            "the current runtime, but success is not guaranteed. " +
+                            "Existing Wine settings, games, saves and installer files remain intact.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Try compatibility launch", (dialog, which) -> {
+                        try {
+                            CharoiteGameSessions.launch(this,
+                                    XServerDisplayActivity.class,
+                                    containerId, exe.getAbsolutePath(), true, false, true);
+                        } catch (Exception e) {
+                            setStatus("Compatibility retry failed: " + e.getMessage());
+                        }
+                    }).show();
+        } catch (Exception error) {
+            setStatus("Cannot retry Battle.net: " + error.getMessage());
         }
     }
 
@@ -1083,6 +1148,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetInstallButton.setEnabled(!busy && ready && setup != null);
             if (battleNetOpenButton != null)
                 battleNetOpenButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetCompatButton != null)
+                battleNetCompatButton.setEnabled(!busy && ready && setup != null);
+            if (battleNetDiagnoseButton != null)
+                battleNetDiagnoseButton.setEnabled(!busy && ready);
             if (battleNetDownloadStatus != null)
                 battleNetDownloadStatus.setText(!ready ? "Preparing isolated Windows container…" :
                         (setup == null ? "Latest Windows installer not yet downloaded." :

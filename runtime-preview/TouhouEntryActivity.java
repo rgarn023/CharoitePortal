@@ -1684,7 +1684,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         try {
             String executable = CharoiteRenderingDiagnostics.prepare(this, containerId);
             CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
-                    containerId, executable, false);
+                    containerId, executable, false, false);
         } catch (Exception error) {
             setStatus("Windows text-rendering test could not start: " + error.getMessage());
         }
@@ -1699,7 +1699,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         try {
             String executable = CharoiteRenderingDiagnostics.prepareOwnerDraw(this, containerId);
             CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
-                    containerId, executable, false);
+                    containerId, executable, false, false);
         } catch (Exception error) {
             setStatus("Owner-draw rendering test could not start: " + error.getMessage());
         }

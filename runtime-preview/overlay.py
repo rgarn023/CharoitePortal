@@ -409,13 +409,21 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                         // DOWN/UP hold state. The inherited Android KeyEvent
                         // handler otherwise releases Shift on ANY key-up:
                         // that breaks Touhou 8 Focus + Shot combinations.
-                        // Touhou 8 uses legacy DirectInput: Win32 key state
-                        // may not update from X11 when fullscreen focus drifts.
-                        // Route only th08.exe via the upstream Wine winhandler;
-                        // TPDP and other games retain their normal X11 path.
-                        if (!com.charoitegames.core.CharoiteLegacyKeyboard.send(
-                                xServer, getIntent().getStringExtra("exec_path"),
-                                keyCode, pressed)) {
+                        String gameExe = getIntent().getStringExtra("exec_path");
+                        boolean touhou8 = com.charoitegames.core
+                                .CharoiteLegacyKeyboard.requiresWindowsKeyboard(gameExe);
+                        // Touhou 8 can poll either Win32/DirectInput or X11.
+                        // Default DUAL attempts both (held DOWN/UP pairs);
+                        // the More menu also lets the user isolate either
+                        // backend while testing their particular translation.
+                        // TPDP and all other games use the existing X11 path.
+                        if (touhou8 && com.charoitegames.core
+                                .CharoiteLegacyKeyboard.useWin32()) {
+                            com.charoitegames.core.CharoiteLegacyKeyboard.send(
+                                    xServer, gameExe, keyCode, pressed);
+                        }
+                        if (!touhou8 || com.charoitegames.core
+                                .CharoiteLegacyKeyboard.useX11()) {
                             com.winlator.xserver.XKeycode key =
                                     com.charoitegames.core.CharoiteGameControlProfiles
                                             .toXKeycode(keyCode);

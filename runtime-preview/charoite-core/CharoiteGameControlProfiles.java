@@ -37,7 +37,7 @@ public final class CharoiteGameControlProfiles {
     // Extra buttons duplicate these known inputs, not arbitrary V/Space.
     private static final int[] TOUHOU_SHMUP = {
         KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_CTRL_LEFT,
-        KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_ENTER,
+        KeyEvent.KEYCODE_Z, KeyEvent.KEYCODE_ENTER,
         KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_CTRL_LEFT,
         KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_LEFT,
         KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN,

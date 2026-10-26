@@ -424,6 +424,9 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                         }
                         if (!touhou8 || com.charoitegames.core
                                 .CharoiteLegacyKeyboard.useX11()) {
+                            if (touhou8 && pressed) com.charoitegames.core
+                                    .CharoiteLegacyKeyboard.prepareX11Focus(
+                                            xServer, gameExe);
                             com.winlator.xserver.XKeycode key =
                                     com.charoitegames.core.CharoiteGameControlProfiles
                                             .toXKeycode(keyCode);

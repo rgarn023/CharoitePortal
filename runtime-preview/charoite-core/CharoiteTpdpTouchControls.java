@@ -494,6 +494,8 @@ public final class CharoiteTpdpTouchControls {
             if (!show) releaseAll.run();
             for (Button button : main)
                 button.setVisibility(show ? View.VISIBLE : View.GONE);
+            dpadPlate.setVisibility(show ? View.VISIBLE : View.GONE);
+            facePlate.setVisibility(show ? View.VISIBLE : View.GONE);
             keyboard.setVisibility(show ? View.VISIBLE : View.GONE);
             if (inputStatus != null)
                 inputStatus.setVisibility(show ? View.VISIBLE : View.GONE);

@@ -183,7 +183,12 @@ public final class CharoiteGameImport {
             // This is only a provisional path. Portal MUST prompt the user
             // if there is more than one candidate, and MUST NOT launch any
             // folder-selected EXE until that choice is explicitly confirmed.
-            return installers.get(0);
+            // detectExe returns a RELATIVE path, because importSelected
+            // later resolves it with new File(target, executable). Passing an
+            // absolute candidate would incorrectly append a second copy of
+            // target on Android/Java Unix filesystems.
+            return root.toPath().relativize(
+                    new File(installers.get(0)).toPath()).toString();
         }
         if (touhou) {
             for (String priority : new String[]{

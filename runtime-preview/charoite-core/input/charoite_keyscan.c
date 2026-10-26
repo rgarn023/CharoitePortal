@@ -87,7 +87,8 @@ static void focusGame(HWND hwnd) {
 
 static unsigned char sendGameKey(HWND hwnd, unsigned char virtualKey,
                                  int pressed, int postWindowMessage) {
-    if (postWindowMessage && !hwnd) return 'N';
+    // Never inject into an unrelated foreground application.
+    if (!hwnd) return 'N';
     UINT scan = MapVirtualKeyW(virtualKey, MAPVK_VK_TO_VSC_EX);
     if (!scan) return '0';
     UINT scanLow = scan & 0xff;

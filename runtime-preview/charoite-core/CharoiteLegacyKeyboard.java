@@ -60,11 +60,18 @@ public final class CharoiteLegacyKeyboard {
         WinHandler handler = xServer.getWinHandler();
         if (vk < 0 || handler == null) return false;
         // The Android on-screen buttons are not X11 pointer presses.
-        // Explicitly bring the game forward on first interaction so Win32
-        // keyboard events target Touhou 8 rather than a stale Wine desktop.
-        // Sending via the same action queue preserves focus-before-key order.
-        if (pressed) handler.bringToFront("th08.exe");
-        handler.keyboardEvent((byte) vk, pressed ? 0 : 0x0002);
+        // The pinned XServer can have no focused game window after a Wine
+        // fullscreen transition; recover the actual Win32 foreground window.
+        // Do not refocus on every shot/move while focus is already valid.
+        if (pressed && (xServer.windowManager.getFocusedWindow() == null ||
+                xServer.windowManager.getFocusedWindow() ==
+                        xServer.windowManager.rootWindow))
+            handler.bringToFront("th08.exe");
+        // The arrow cluster uses extended keyboard scan codes on Windows.
+        // KEYEVENTF_EXTENDEDKEY=1 and KEYEVENTF_KEYUP=2.
+        int flags = (pressed ? 0 : 0x0002) |
+                (vk >= 0x25 && vk <= 0x28 ? 0x0001 : 0);
+        handler.keyboardEvent((byte) vk, flags);
         return true;
     }
 }

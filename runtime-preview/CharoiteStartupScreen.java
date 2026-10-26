@@ -52,8 +52,14 @@ public final class CharoiteStartupScreen {
         androidx.appcompat.app.AppCompatActivity portalHost =
                 activity instanceof androidx.appcompat.app.AppCompatActivity
                         ? (androidx.appcompat.app.AppCompatActivity) activity : null;
-        String theme = portalHost == null ? "cosmic"
-                : CharoiteEnvironments.activeTheme(portalHost);
+        // XServerDisplayActivity has a separate Activity.getPreferences()
+        // namespace. The Core launcher supplies the exact selected realm for
+        // this session. Fallbacks read the shared Portal registry, never the
+        // renderer Activity's private preference file.
+        String theme = activity.getIntent().getStringExtra("charoite_environment_theme");
+        if (theme == null || theme.isEmpty())
+            theme = portalHost == null ? "cosmic"
+                    : CharoiteEnvironments.activeTheme(portalHost);
         boolean sakura = "sakura".equals(theme) || "touhou".equals(theme);
         int highlight = sakura ? 0xffffb6d6 : 0xffcfb0ff;
         int secondary = 0xffd7cfe4;
@@ -98,8 +104,10 @@ public final class CharoiteStartupScreen {
         ruleParams.bottomMargin = dp(activity, 18);
         content.addView(rule, ruleParams);
 
-        String realm = portalHost == null ? "Gaming Environment"
-                : CharoiteEnvironments.activeName(portalHost);
+        String realm = activity.getIntent().getStringExtra("charoite_environment_name");
+        if (realm == null || realm.isEmpty())
+            realm = portalHost == null ? "Gaming Environment"
+                    : CharoiteEnvironments.activeName(portalHost);
         TextView environment = text(activity, realm, 19, Color.WHITE, true);
         environment.setMaxLines(2);
         content.addView(environment);

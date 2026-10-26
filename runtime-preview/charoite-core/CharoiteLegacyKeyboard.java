@@ -202,9 +202,15 @@ public final class CharoiteLegacyKeyboard {
                 int n;
                 while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
             }
-            if (!pending.renameTo(target)) {
-                if (!target.delete() || !pending.renameTo(target))
-                    throw new java.io.IOException("Cannot replace Wine scan helper");
+            // Replace only our own helper atomically; never delete container
+            // files, installed games, shortcuts, patches or saves.
+            try {
+                java.nio.file.Files.move(pending.toPath(), target.toPath(),
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                java.nio.file.Files.move(pending.toPath(), target.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
             if (target.length() < 5000)
                 throw new java.io.IOException("Invalid Wine scan helper");

@@ -5,6 +5,7 @@ import android.view.View;
 import java.lang.ref.WeakReference;
 import com.winlator.xserver.ScreenInfo;
 import com.winlator.renderer.FullscreenTransformation;
+import com.winlator.renderer.ViewTransformation;
 import com.winlator.xserver.Window;
 import com.winlator.xserver.XServer;
 import java.util.ArrayDeque;
@@ -94,8 +95,7 @@ public final class CharoiteWindowPolicy {
     private static boolean isHandheldGameClient(Window client, ScreenInfo screenInfo,
                                                  String executable, boolean desktopWindow) {
         if (!enlargeHandheldGame(executable, desktopWindow) || client == null ||
-                screenInfo == null || screenInfo.height <= screenInfo.width)
-            return false;
+                screenInfo == null) return false;
         int width = client.getWidth(), height = client.getHeight();
         boolean shard = CharoiteShardOfDreamsSupport.isExpansionGame(executable);
         if (!shard) {
@@ -271,9 +271,15 @@ public final class CharoiteWindowPolicy {
                                        String executable, boolean desktopWindow) {
         if (transform == null || screenInfo == null || client == null ||
                 !enlargeHandheldGame(executable, desktopWindow)) return;
-        if (screenInfo.height <= screenInfo.width) return;
         // Do not resize Wine's decorated parent or its other guest windows.
         if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow)) return;
+        // A game started in landscape already looks right. Record its game
+        // surface for an eventual physical turn to portrait, but DO NOT
+        // change its original upstream fullscreen transform.
+        if (screenInfo.height <= screenInfo.width) {
+            rememberClientScreen(transform, screenInfo, client, executable, desktopWindow);
+            return;
+        }
         // The full-width 720px enlargement clips the decorated TPDP window
         // on tall phones. Use a comfortable 86% of the available desktop
         // width (about 619x464 for TPDP's 480x360 image at 720px).
@@ -311,6 +317,60 @@ public final class CharoiteWindowPolicy {
         transform.y = (short)Math.min(
                 Math.max(0, screenInfo.height - transform.height), y);
         rememberClientScreen(transform, screenInfo, client, executable, desktopWindow);
+    }
+
+    /**
+     * Re-project the SAME live Wine desktop when the Android surface rotates.
+     * The guest's X11 / Direct3D9 resolution is never changed mid-session.
+     * On matching orientations, preserve the existing working viewport.
+     *
+     * On a mismatch, zoom the game quad into the available native display
+     * region with ONE scalar for X and Y; no stretching or letterbox
+     * distortion. The XServer still contains all windows; we only change
+     * the Android GL projection and matching pointer mapping.
+     */
+    public static void updateLiveViewport(ViewTransformation view,
+                                          ScreenInfo guest,
+                                          int physicalWidth, int physicalHeight,
+                                          String executable, boolean desktopWindow) {
+        if (view == null || guest == null || physicalWidth <= 0 || physicalHeight <= 0)
+            return;
+        view.update(physicalWidth, physicalHeight, guest.width, guest.height);
+        if (!enlargeHandheldGame(executable, desktopWindow)) return;
+        int[] game = lastHandheldScreen;
+        if (game == null || game.length < 6 || game[2] <= 0 || game[3] <= 0 ||
+                game[4] != guest.width || game[5] != guest.height) return;
+        boolean physicalPortrait = physicalHeight >= physicalWidth;
+        boolean guestPortrait = guest.height >= guest.width;
+        if (physicalPortrait == guestPortrait) return;
+
+        // Portrait: keep the game high above controls. Landscape: center
+        // the display between left/right gamepad controls.
+        final float maxW = physicalWidth * (physicalPortrait ? 0.86f : 0.72f);
+        final float maxH = physicalHeight * (physicalPortrait ? 0.46f : 0.77f);
+        final float scale = Math.min(maxW / game[2], maxH / game[3]);
+        if (!(scale > 0f) || Float.isInfinite(scale) || Float.isNaN(scale)) return;
+        final float shownW = game[2] * scale;
+        final float shownH = game[3] * scale;
+        final float gameLeft = (physicalWidth - shownW) * 0.5f;
+        final float gameTop = physicalHeight * (physicalPortrait ? 0.055f : 0.10f);
+        // Android GL viewport Y has a bottom origin; Window XForm uses
+        // top-down guest scene coordinates. Match both consistently.
+        final float sceneLeft = gameLeft - game[0] * scale;
+        final float sceneTop = gameTop - game[1] * scale;
+        final int projectedWidth = Math.max(1, Math.round(guest.width * scale));
+        final int projectedHeight = Math.max(1, Math.round(guest.height * scale));
+        view.aspect = scale;
+        view.viewWidth = projectedWidth;
+        view.viewHeight = projectedHeight;
+        view.viewOffsetX = Math.round(sceneLeft);
+        view.viewOffsetY = Math.round(physicalHeight - sceneTop - projectedHeight);
+        view.sceneScaleX = (guest.width * scale) / physicalWidth;
+        view.sceneScaleY = (guest.height * scale) / physicalHeight;
+        view.sceneOffsetX = -sceneLeft * guest.width / physicalWidth;
+        view.sceneOffsetY = -sceneTop * guest.height / physicalHeight;
+        View outline = outlineRef.get();
+        if (outline != null) outline.postInvalidate();
     }
 
     /**

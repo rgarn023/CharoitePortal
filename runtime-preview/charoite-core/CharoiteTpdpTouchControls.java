@@ -236,7 +236,12 @@ public final class CharoiteTpdpTouchControls {
             }
         }
         final boolean touhou8 = CharoiteLegacyKeyboard.requiresWindowsKeyboard(executable);
-        if (touhou8) CharoiteLegacyKeyboard.resetMode();
+        if (touhou8) {
+            CharoiteLegacyKeyboard.resetMode();
+            if (host instanceof XServerDisplayActivity)
+                CharoiteLegacyKeyboard.prepareScanBridge(host,
+                        ((XServerDisplayActivity)host).getXServer());
+        }
         final Map<Integer, Integer> held = new HashMap<>();
         // Short clicks from Android can be shorter than the next DirectInput
         // frame. Touhou 8 must see an actual held-down state for >= 100ms.
@@ -350,7 +355,7 @@ public final class CharoiteTpdpTouchControls {
         final Button screenshot = button(host, "P Shot", "P",
                 KeyEvent.KEYCODE_P, true, guarded);
         final Button backend = touhou8 ? button(host, "INPUT: DUAL",
-                "Select Touhou 8 keyboard backend: dual, Win32, or X11",
+                "Select Touhou 8 keyboard backend: dual, Win32, X11, or scan-code",
                 -1, true, guarded) : null;
         final Button diagnostics = touhou8 ? button(host, "INPUT INFO",
                 "Show Touhou 8 keyboard backend and focus status",

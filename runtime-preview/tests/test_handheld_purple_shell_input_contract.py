@@ -12,12 +12,22 @@ OVERLAY = (ROOT / "overlay.py").read_text()
 class PurpleHandheldInputContract(unittest.TestCase):
     def test_translucent_shell_covers_desktop_but_not_game(self):
         self.assertIn('private void drawShell(Canvas canvas, RectF screen)', UI)
-        self.assertIn('drawShell(canvas, bounds);', UI)
+        self.assertIn('drawShell(canvas, gamePixels);', UI)
         self.assertIn('canvas.clipOutRect(', UI)
-        self.assertIn('shell.setColor(0xA41D1533);', UI)
+        self.assertIn('shell.setColor(0xFF20122F);', UI)
         self.assertIn('CharoiteHardwareSkin.drawInterior(canvas, (Activity)getContext(), w, h);', UI)
         self.assertIn('new int[]{0x805F3D93, 0x503F2466, 0x894C2877}', UI)
         self.assertIn('drawControllerInternals(canvas, w, h);', UI)
+        self.assertIn('canvas.clipOutRect(gamePixels);', UI)
+        self.assertIn('matte.setColor(0xFF0C0917);', UI)
+        self.assertIn('canvas.clipRect(bounds);', UI)
+        self.assertIn('outline.setHardwareButtons(new Button[]{up, left, right, down}', UI)
+        for clause in (
+            'button.getLeft()', 'button.getTop()', 'button.getRight()',
+            'button.getBottom()', 'canvas.drawOval(switchOutline, board)',
+            'canvas.drawRoundRect(switchOutline, corner, corner, board)'
+        ):
+            self.assertIn(clause, UI)
         self.assertIn('Shader.TileMode.CLAMP', UI)
         self.assertIn('setClickable(false)', UI)
         self.assertNotIn('root.setBackgroundColor(Color.WHITE)', UI)

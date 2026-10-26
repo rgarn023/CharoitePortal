@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,13 +40,21 @@ public final class CharoiteGameImport {
         public final boolean installer;
         public final int fileCount;
         public final Selection selection;
+        public final String importDirectory;
+        /** Absolute paths to all possible installers, including nested setups. */
+        public final List<String> installerCandidates;
 
-        private Result(String path, String name, boolean installer, int files, Selection selection) {
+        private Result(String path, String name, boolean installer, int files,
+                       Selection selection, String importDirectory,
+                       List<String> candidates) {
             this.executablePath = path;
             this.executableName = name;
             this.installer = installer;
             this.fileCount = files;
             this.selection = selection;
+            this.importDirectory = importDirectory;
+            this.installerCandidates = Collections.unmodifiableList(
+                    new ArrayList<>(candidates));
         }
     }
 
@@ -62,7 +72,7 @@ public final class CharoiteGameImport {
     public static boolean isLikelyInstaller(String path) {
         if (path == null) return false;
         String filename = new File(path).getName().toLowerCase(Locale.ROOT);
-        return filename.equals("setup.exe") || filename.startsWith("setup_") ||
+        return filename.startsWith("setup") ||
                 filename.startsWith("install") || filename.contains("installer");
     }
 
@@ -97,8 +107,11 @@ public final class CharoiteGameImport {
             File exe = new File(target, executable);
             boolean installer = selection == Selection.STANDALONE_INSTALLER ||
                     selection == Selection.INSTALLER_FOLDER || isLikelyInstaller(executable);
+            List<String> candidates = selection == Selection.INSTALLER_FOLDER
+                    ? listInstallerCandidates(target)
+                    : Collections.emptyList();
             return new Result(exe.getAbsolutePath(), exe.getName(), installer,
-                    counter.files, selection);
+                    counter.files, selection, target.getAbsolutePath(), candidates);
         } catch (Exception failure) {
             // Only the new, dedicated import directory may be discarded.
             // Never touch the user's previously imported games or saved data.
@@ -160,24 +173,13 @@ public final class CharoiteGameImport {
         if (matches.isEmpty()) return null;
         if (selection == Selection.STANDALONE_INSTALLER) return matches.get(0);
         if (selection == Selection.INSTALLER_FOLDER) {
-            // Prioritize setup over playable binaries, while keeping all
-            // companion installation archives and directories alongside it.
-            for (String name : new String[]{"setup.exe", "install.exe", "installer.exe"}) {
-                String preferred = null;
-                for (String candidate : matches)
-                    if (new File(candidate).getName().equalsIgnoreCase(name) &&
-                            (preferred == null || candidate.length() < preferred.length()))
-                        preferred = candidate;
-                if (preferred != null) return preferred;
-            }
-            String preferred = null;
-            for (String candidate : matches)
-                if (isLikelyInstaller(candidate) &&
-                        (preferred == null || candidate.length() < preferred.length()))
-                    preferred = candidate;
-            if (preferred == null) throw new IllegalArgumentException(
+            List<String> installers = listInstallerCandidates(root);
+            if (installers.isEmpty()) throw new IllegalArgumentException(
                     "No setup.exe or installer found in selected folder");
-            return preferred;
+            // This is only a provisional path. Portal MUST prompt the user
+            // if there is more than one candidate, and MUST NOT launch any
+            // folder-selected EXE until that choice is explicitly confirmed.
+            return installers.get(0);
         }
         if (touhou) {
             for (String priority : new String[]{
@@ -197,6 +199,44 @@ public final class CharoiteGameImport {
         for (String candidate : matches)
             if (!isLikelyInstaller(candidate)) return candidate;
         return matches.get(0);
+    }
+
+    /** Enumerate plausible setup EXEs, not just the first discovered file.
+     * Full relative paths are preserved so nested disc installers with
+     * identical setup.exe filenames remain distinguishable.
+     */
+    private static List<String> listInstallerCandidates(File root) {
+        ArrayList<String> all = new ArrayList<>();
+        collectExecutables(root, root, all, 0);
+        ArrayList<String> installers = new ArrayList<>();
+        for (String relative : all) {
+            if (isLikelyInstaller(relative)) {
+                installers.add(new File(root, relative).getAbsolutePath());
+            }
+        }
+        // Stable ordering independent of Android SAF provider ordering.
+        installers.sort((a, b) -> {
+            String relativeA = root.toURI().relativize(new File(a).toURI()).getPath();
+            String relativeB = root.toURI().relativize(new File(b).toURI()).getPath();
+            int rankA = installerPriority(new File(a).getName());
+            int rankB = installerPriority(new File(b).getName());
+            if (rankA != rankB) return Integer.compare(rankA, rankB);
+            int depthA = relativeA.split("/").length;
+            int depthB = relativeB.split("/").length;
+            if (depthA != depthB) return Integer.compare(depthA, depthB);
+            return relativeA.compareToIgnoreCase(relativeB);
+        });
+        return installers;
+    }
+
+    private static int installerPriority(String filename) {
+        String name = filename.toLowerCase(Locale.ROOT);
+        int i = 0;
+        for (String preferred : new String[]{"setup.exe", "install.exe", "installer.exe"}) {
+            if (name.equals(preferred)) return i;
+            i++;
+        }
+        return name.startsWith("setup") ? 3 : name.startsWith("install") ? 4 : 5;
     }
 
     private static void collectExecutables(File root, File directory,

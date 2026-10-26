@@ -26,6 +26,16 @@ public final class CharoiteDiagnostics {
     private static final int MAX_AUDIO_LINES = 40;
     private static final int MAX_GRAPHICS_LINES = 75;
     private static volatile boolean tpdpGraphicsProbe;
+    // Shard-only GL compositor timing. GLRenderer is RENDERMODE_WHEN_DIRTY:
+    // this records actual Android draw callbacks, not simulated game FPS.
+    // Idle gaps >=250ms are excluded since static game screens need no draws.
+    private static volatile boolean shardFrameTimingEnabled;
+    private static volatile long shardLastDrawNanos;
+    private static volatile long shardIntervals;
+    private static volatile long shardGapsOver33Ms;
+    private static volatile long shardGapsOver50Ms;
+    private static volatile long shardGapsOver100Ms;
+    private static volatile long shardMaxActiveGapMs;
     public static final Callback<String> CALLBACK = CharoiteDiagnostics::recordLine;
 
     private CharoiteDiagnostics() {}
@@ -58,6 +68,14 @@ public final class CharoiteDiagnostics {
         synchronized (crashLines) { crashLines.clear(); }
         startedAtMillis = android.os.SystemClock.elapsedRealtime();
         tpdpGraphicsProbe = CharoiteCore.isTpdpGameExecutable(executable);
+        shardFrameTimingEnabled =
+                CharoiteShardOfDreamsSupport.isExpansionGame(executable);
+        shardLastDrawNanos = 0L;
+        shardIntervals = 0L;
+        shardGapsOver33Ms = 0L;
+        shardGapsOver50Ms = 0L;
+        shardGapsOver100Ms = 0L;
+        shardMaxActiveGapMs = 0L;
         prefs(context).edit()
             .putString("touhou_launch_status", "starting")
             .putString("charoite_last_guest_exit", "No launcher termination callback yet.")
@@ -221,6 +239,42 @@ public final class CharoiteDiagnostics {
                     "If setup includes separate media files, import the whole installer folder.");
     }
 
+    /**
+     * Sampling on GLRenderer's existing draw callback, no file I/O, no
+     * strings, no allocations, no synchronization, and no render requests.
+     * Exclude >=250ms idle intervals rather than mislabel paused scenes.
+     * Native DXVK FPS and Android display pacing can still differ.
+     */
+    public static void recordAndroidDraw() {
+        if (!shardFrameTimingEnabled) return;
+        long now = android.os.SystemClock.elapsedRealtimeNanos();
+        long previous = shardLastDrawNanos;
+        shardLastDrawNanos = now;
+        if (previous <= 0 || now <= previous) return;
+        long milliseconds = (now - previous) / 1000000L;
+        if (milliseconds >= 250L) return;
+        shardIntervals++;
+        if (milliseconds > 33L) shardGapsOver33Ms++;
+        if (milliseconds > 50L) shardGapsOver50Ms++;
+        if (milliseconds > 100L) shardGapsOver100Ms++;
+        if (milliseconds > shardMaxActiveGapMs)
+            shardMaxActiveGapMs = milliseconds;
+    }
+
+    public static String shardAndroidDrawReport() {
+        if (!shardFrameTimingEnabled)
+            return "No Shard frame-timing session recorded in this process.";
+        long intervals = shardIntervals;
+        if (intervals == 0)
+            return "No continuous Android compositor draw intervals recorded.";
+        return "GL compositor active intervals: " + intervals +
+                "\nOver 33ms: " + shardGapsOver33Ms +
+                "\nOver 50ms: " + shardGapsOver50Ms +
+                "\nOver 100ms: " + shardGapsOver100Ms +
+                "\nLongest active gap: " + shardMaxActiveGapMs + "ms" +
+                "\nExcluded idle intervals >=250ms; these are NOT guest-game FPS.";
+    }
+
     public static void recordShardWindowChange(int id, int oldWidth,
                                                int oldHeight, int width,
                                                int height, String reason) {
@@ -363,6 +417,8 @@ public final class CharoiteDiagnostics {
                 p.getString("charoite_last_mapped_windows", "No window events recorded.");
         report += "\n\nX11 DRAWABLE UPDATES:\n" +
                 p.getString("charoite_last_x11_updates", "Not recorded.");
+        report += "\n\nSHARD ANDROID FRAME PACING:\n" +
+                shardAndroidDrawReport();
         report += "\n\nSHARD HANDHELD WINDOW SIZE CHANGES:\n";
         synchronized (shardWindowChanges) {
             if (shardWindowChanges.isEmpty()) report += "No Shard X11 window dimensions captured.";

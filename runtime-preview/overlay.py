@@ -670,27 +670,16 @@ display.write_text(code, encoding="utf-8")
 gl_renderer = java_root / "com/winlator/renderer/GLRenderer.java"
 gl_renderer_code = gl_renderer.read_text(encoding="utf-8")
 
-# The pinned renderer hardcodes eglSwapInterval(0): unsynchronised
-# presentation. On the Galaxy's high-refresh OLED this can cause uneven
-# delivery of otherwise regular Shard frames. Request display vsync only
-# for portrait Shard sessions, leaving the verified TPDP base renderer and
-# DeX / other Windows sessions at their original interval 0.
-#
-# GLSurfaceView remains RENDERMODE_WHEN_DIRTY, so the guest still drives
-# frames through real X11 content updates. This is not a CPU busy loop
-# or a request to change the D3D9/DXVK/Turnip graphics backend.
-egl_interval_anchor = "        EGL14.eglSwapInterval(EGL14.eglGetCurrentDisplay(), 0);"
-assert gl_renderer_code.count(egl_interval_anchor) == 1, (
-    "Upstream EGL frame presentation setting changed"
+# Observe existing Android GL draws without changing the frame limiter or
+# making per-frame disk writes. The sample is Core-owned and Shard-only.
+android_draw_anchor = """    public void onDrawFrame(GL10 gl) {
+"""
+assert gl_renderer_code.count(android_draw_anchor) == 1, (
+    "Upstream GL onDrawFrame hook changed"
 )
-gl_renderer_code = gl_renderer_code.replace(egl_interval_anchor, """
-        boolean charoiteShardPhone =
-                com.charoitegames.core.CharoiteShardOfDreamsSupport.isExpansionGame(
-                    xServer.activity.getIntent().getStringExtra("exec_path")) &&
-                !xServer.activity.getIntent().getBooleanExtra(
-                    "touhou_desktop_window", false);
-        EGL14.eglSwapInterval(EGL14.eglGetCurrentDisplay(),
-                charoiteShardPhone ? 1 : 0);""")
+gl_renderer_code = gl_renderer_code.replace(android_draw_anchor,
+    android_draw_anchor + """        com.charoitegames.core.CharoiteDiagnostics.recordAndroidDraw();
+""")
 
 # Shard's game drawable can be a larger or widescreen window. The two
 # upstream filters (size and decoration) must BOTH be relaxed for Shard's

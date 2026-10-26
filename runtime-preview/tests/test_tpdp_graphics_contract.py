@@ -56,18 +56,22 @@ class TpdpAutoGraphicsContract(unittest.TestCase):
         self.assertNotIn('getIntExtra("charoite_tpdp_graphics_mode", 0)', OVERLAY)
         self.assertNotIn('dxwrapperConfig = "renderer=vulkan";', OVERLAY)
         self.assertIn('DXVK_LOG_LEVEL', PROFILE)
-        # The pinned Box64 guest launcher disables DynaCache by default.
-        # The profile must override it only for Shard, with bounded cache,
-        # leaving all base-TPDP Wine, DXVK and Turnip settings unchanged.
-        self.assertIn('if (shard) {', PROFILE)
-        self.assertIn('envVars.put("BOX64_DYNACACHE", "1");', PROFILE)
-        self.assertIn('envVars.put("BOX64_DYNACACHE_LIMIT", "256");', PROFILE)
+        # Device reports worse repeat-launch stutter after enabling vsync
+        # and DynaCache. Restore the pinned engine's established defaults.
+        self.assertNotIn('envVars.put("BOX64_DYNACACHE", "1");', PROFILE)
+        self.assertNotIn('envVars.put("BOX64_DYNACACHE_LIMIT", "256");', PROFILE)
+        self.assertNotIn('egl_interval_anchor =', OVERLAY)
+        self.assertNotIn('charoiteShardPhone ? 1 : 0', OVERLAY)
         self.assertNotIn('container.setEnvVars(', PROFILE)
-        # The EGL swap interval override must be Shard-on-phone only.
-        self.assertIn('egl_interval_anchor =', OVERLAY)
-        self.assertIn('charoiteShardPhone ? 1 : 0', OVERLAY)
-        self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(', OVERLAY)
-        self.assertIn('"touhou_desktop_window", false', OVERLAY)
+        # Report actual Android GL draw intervals, without additional
+        # frame submission, allocation or disk I/O from the hot path.
+        self.assertIn('android_draw_anchor =', OVERLAY)
+        self.assertIn('CharoiteDiagnostics.recordAndroidDraw();', OVERLAY)
+        self.assertIn('private static volatile boolean shardFrameTimingEnabled;', DIAGNOSTICS)
+        self.assertIn('if (!shardFrameTimingEnabled) return;', DIAGNOSTICS)
+        self.assertIn('if (milliseconds >= 250L) return;', DIAGNOSTICS)
+        self.assertIn('SHARD ANDROID FRAME PACING:', DIAGNOSTICS)
+        self.assertIn('shardAndroidDrawReport()', DIAGNOSTICS)
         self.assertIn('DXVK_LOG_PATH', PROFILE)
         self.assertIn('shard ? "-all" :', PROFILE)
         self.assertIn('shard ? "none" : "info"', PROFILE)

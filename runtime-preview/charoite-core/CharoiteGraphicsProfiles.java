@@ -107,21 +107,10 @@ public final class CharoiteGraphicsProfiles {
             CharoiteDiagnostics.setDxvkLogDirectory(context, dxvkLogs);
         }
         envVars.put("DXVK_LOG_LEVEL", shard ? "none" : "info");
-        if (shard) {
-            // The pinned Android GuestProgramLauncherComponent defaults
-            // BOX64_DYNACACHE=0 for EVERY game, unnecessarily discarding
-            // reusable dynarec translation. Allow Shard alone to reuse its
-            // compiled code on subsequent launches.
-            // This is a launch-scoped override, not a saved container change.
-            // Box64's cache lives in its private HOME cache (not Wine saves)
-            // and the 256 MiB limit bounds its storage usage.
-            envVars.put("BOX64_DYNACACHE", "1");
-            envVars.put("BOX64_DYNACACHE_LIMIT", "256");
-        }
         CharoiteDiagnostics.recordLine(
                 "Core auto-selected " + profile.id +
                 "; DXVK=1.10.3, graphics=Turnip, previous UI preference ignored" +
-                (shard ? "; reduced game logging; Box64 DynaCache=on (256 MiB limit)" : ""));
+                (shard ? "; reduced game logging; inherited Box64 cache setting" : ""));
         CharoiteDiagnostics.recordLine(
                 "Core automatic renderer: " + profile.title);
     }

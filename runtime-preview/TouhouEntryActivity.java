@@ -39,6 +39,7 @@ import androidx.documentfile.provider.DocumentFile;
 import com.charoitegames.core.CharoiteCore;
 import com.charoitegames.core.CharoiteGameImport;
 import com.charoitegames.core.CharoiteGameLibrary;
+import com.charoitegames.core.CharoiteGameIcons;
 import com.charoitegames.core.CharoiteGameRemoval;
 import com.charoitegames.core.CharoiteGameDiscovery;
 import com.charoitegames.core.CharoiteGameProfiles;
@@ -1335,13 +1336,27 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 tile.setContentDescription(name + (exists
                         ? ", tap to play, long press to move" : ", executable missing, long press to move"));
 
-                TextView gameIcon = label(gameIconCharacter(path), 29, Color.WHITE, true);
-                gameIcon.setGravity(Gravity.CENTER);
+                // Display the icon embedded in the installed Windows EXE.
+                // The original glyph stays visible until a genuine bitmap
+                // is extracted off the UI thread (or when none is available).
+                FrameLayout iconHolder = new FrameLayout(this);
                 GradientDrawable iconBack = new GradientDrawable(
                         GradientDrawable.Orientation.TL_BR, gameIconColors(path));
                 iconBack.setCornerRadius(dp(22));
-                gameIcon.setBackground(iconBack);
-                tile.addView(gameIcon, new LinearLayout.LayoutParams(dp(69), dp(69)));
+                iconHolder.setBackground(iconBack);
+                TextView gameIcon = label(gameIconCharacter(path), 29, Color.WHITE, true);
+                gameIcon.setGravity(Gravity.CENTER);
+                iconHolder.addView(gameIcon,
+                        new FrameLayout.LayoutParams(-1, -1));
+                ImageView officialGameIcon = new ImageView(this);
+                officialGameIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                officialGameIcon.setPadding(dp(3), dp(3), dp(3), dp(3));
+                officialGameIcon.setContentDescription(name + " official game icon");
+                iconHolder.addView(officialGameIcon,
+                        new FrameLayout.LayoutParams(-1, -1));
+                tile.addView(iconHolder, new LinearLayout.LayoutParams(dp(69), dp(69)));
+                if (exists) CharoiteGameIcons.bind(
+                        this, path, officialGameIcon, gameIcon);
 
                 TextView gameTitle = label(name, 12, FOREGROUND, true);
                 gameTitle.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);

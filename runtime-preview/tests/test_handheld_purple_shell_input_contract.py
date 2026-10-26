@@ -14,9 +14,10 @@ class PurpleHandheldInputContract(unittest.TestCase):
         self.assertIn('private void drawShell(Canvas canvas, RectF screen)', UI)
         self.assertIn('drawShell(canvas, bounds);', UI)
         self.assertIn('canvas.clipOutRect(', UI)
-        self.assertIn('shell.setColor(0xFF191325);', UI)
+        self.assertIn('shell.setColor(0xA41D1533);', UI)
         self.assertIn('CharoiteHardwareSkin.drawInterior(canvas, (Activity)getContext(), w, h);', UI)
-        self.assertIn('new int[]{0xA0664598, 0x66392165, 0xB04F327D}', UI)
+        self.assertIn('new int[]{0x805F3D93, 0x503F2466, 0x894C2877}', UI)
+        self.assertIn('drawControllerInternals(canvas, w, h);', UI)
         self.assertIn('Shader.TileMode.CLAMP', UI)
         self.assertIn('setClickable(false)', UI)
         self.assertNotIn('root.setBackgroundColor(Color.WHITE)', UI)
@@ -43,6 +44,13 @@ class PurpleHandheldInputContract(unittest.TestCase):
             self.assertIn(clause, UI)
         self.assertIn('position(dpadPlate, dpadX - dp(host, 3)', UI)
         self.assertIn('position(facePlate, diamondX - dp(host, 3)', UI)
+        for token in ('private static final class DpadButton extends Button',
+                      'canvas.rotate(quadrant * 90f)',
+                      'Path icon = new Path()',
+                      'arrow.setStrokeCap(Paint.Cap.ROUND)',
+                      'setText("")',
+                      'new DpadButton(host, direction)'):
+            self.assertIn(token, UI)
 
     def test_game_detection_excludes_setup_and_reuses_shmup_profile(self):
         self.assertIn('public static boolean isTouhou8Executable(String path)', PROFILE)

@@ -233,6 +233,7 @@ core_destination.write_bytes(core_source.read_bytes())
 for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
                "CharoiteGameProfiles.java", "CharoiteGameControlProfiles.java", "CharoiteGameSessions.java",
+               "CharoiteLegacyKeyboard.java",
                "CharoiteBattleNetSupport.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
                "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
@@ -408,12 +409,20 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                         // DOWN/UP hold state. The inherited Android KeyEvent
                         // handler otherwise releases Shift on ANY key-up:
                         // that breaks Touhou 8 Focus + Shot combinations.
-                        com.winlator.xserver.XKeycode key =
-                                com.charoitegames.core.CharoiteGameControlProfiles
-                                        .toXKeycode(keyCode);
-                        if (key != null) {
-                            if (pressed) xServer.injectKeyPress(key);
-                            else xServer.injectKeyRelease(key);
+                        // Touhou 8 uses legacy DirectInput: Win32 key state
+                        // may not update from X11 when fullscreen focus drifts.
+                        // Route only th08.exe via the upstream Wine winhandler;
+                        // TPDP and other games retain their normal X11 path.
+                        if (!com.charoitegames.core.CharoiteLegacyKeyboard.send(
+                                xServer, getIntent().getStringExtra("exec_path"),
+                                keyCode, pressed)) {
+                            com.winlator.xserver.XKeycode key =
+                                    com.charoitegames.core.CharoiteGameControlProfiles
+                                            .toXKeycode(keyCode);
+                            if (key != null) {
+                                if (pressed) xServer.injectKeyPress(key);
+                                else xServer.injectKeyRelease(key);
+                            }
                         }
                     }, this::confirmReturnToCharoitePortal,
                     com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(

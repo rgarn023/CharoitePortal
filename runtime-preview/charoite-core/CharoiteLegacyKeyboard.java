@@ -3,8 +3,10 @@ package com.charoitegames.core;
 import android.view.KeyEvent;
 import com.winlator.winhandler.WinHandler;
 import com.winlator.xserver.XServer;
+import com.winlator.xserver.XLock;
+import com.winlator.xserver.Window;
+import com.winlator.xserver.WindowManager;
 import java.io.File;
-import java.util.Locale;
 
 /**
  * Compatibility input for original Touhou 8 / th08.exe (2004).
@@ -15,16 +17,58 @@ import java.util.Locale;
  * use the upstream winhandler.exe Windows keyboard-event bridge, keeping
  * genuine key-down/key-up and simultaneous key holds.
  *
- * Scope is deliberately th08.exe ONLY. TPDP, modern games and installers
- * retain the existing X11 keyboard path. Never modifies Wine DLLs, game
- * settings, game files or saves.
+ * Scope is deliberately Touhou 8 executables ONLY. The user can switch
+ * between Dual, Win32 and X11 on the More controls if one backend does not
+ * reach their patched game. TPDP and other games retain their existing input.
+ * Never modifies Wine DLLs, game settings, game files or saves.
  */
 public final class CharoiteLegacyKeyboard {
+    public static final int DUAL = 0;
+    public static final int WIN32_ONLY = 1;
+    public static final int X11_ONLY = 2;
+    private static volatile int inputMode = DUAL;
+
     private CharoiteLegacyKeyboard() {}
 
     public static boolean requiresWindowsKeyboard(String executable) {
-        return executable != null &&
-                "th08.exe".equals(new File(executable).getName().toLowerCase(Locale.ROOT));
+        return CharoiteGameControlProfiles.isTouhou8Executable(executable);
+    }
+
+    public static void resetMode() { inputMode = DUAL; }
+    public static int nextMode() {
+        inputMode = (inputMode + 1) % 3;
+        return inputMode;
+    }
+    public static boolean useWin32() { return inputMode != X11_ONLY; }
+    public static boolean useX11() { return inputMode != WIN32_ONLY; }
+    public static String modeLabel() {
+        return inputMode == WIN32_ONLY ? "WIN32" :
+                inputMode == X11_ONLY ? "X11" : "DUAL";
+    }
+
+    /** X11 and Win32 can lose input focus independently after fullscreen.
+     * Recover only if XServer currently reports no focused app, and never
+     * steal focus from a valid dialog or another active window.
+     */
+    private static void restoreX11Focus(XServer xServer) {
+        try (XLock lock = xServer.lock(XServer.Lockable.WINDOW_MANAGER,
+                XServer.Lockable.INPUT_DEVICE)) {
+            WindowManager wm = xServer.windowManager;
+            Window focused = wm.getFocusedWindow();
+            if (focused != null && focused != wm.rootWindow) return;
+            Window candidate = null;
+            for (Window child : wm.rootWindow.getChildren()) {
+                if (!child.isRenderable() || child.isDesktopWindow()) continue;
+                String name = child.getClassName().toLowerCase(java.util.Locale.ROOT);
+                if (name.contains("th08")) {
+                    candidate = child;
+                    break;
+                }
+                if (candidate == null && child.isApplicationWindow()) candidate = child;
+            }
+            if (candidate != null)
+                wm.setFocus(candidate, WindowManager.FocusRevertTo.POINTER_ROOT);
+        }
     }
 
     /** Win32 virtual-key values; KEYEVENTF_KEYUP = 0x0002. */
@@ -59,16 +103,17 @@ public final class CharoiteLegacyKeyboard {
         int vk = virtualKey(androidKey);
         WinHandler handler = xServer.getWinHandler();
         if (vk < 0 || handler == null) return false;
-        // The Android on-screen buttons are not X11 pointer presses.
-        // The pinned XServer can have no focused game window after a Wine
-        // fullscreen transition; recover the actual Win32 foreground window.
-        // Do not refocus on every shot/move while focus is already valid.
-        if (pressed && (xServer.windowManager.getFocusedWindow() == null ||
-                xServer.windowManager.getFocusedWindow() ==
-                        xServer.windowManager.rootWindow))
-            handler.bringToFront("th08.exe");
-        // The arrow cluster uses extended keyboard scan codes on Windows.
-        // KEYEVENTF_EXTENDEDKEY=1 and KEYEVENTF_KEYUP=2.
+        if (pressed) {
+            boolean missingFocus = xServer.windowManager.getFocusedWindow() == null ||
+                    xServer.windowManager.getFocusedWindow() ==
+                            xServer.windowManager.rootWindow;
+            if (missingFocus) {
+                restoreX11Focus(xServer);
+                // The executable may be th08e.exe or a renamed translation.
+                handler.bringToFront(new File(executable).getName());
+            }
+        }
+        // Win32 KEYEVENTF_EXTENDEDKEY=1 (arrows), KEYEVENTF_KEYUP=2.
         int flags = (pressed ? 0 : 0x0002) |
                 (vk >= 0x25 && vk <= 0x28 ? 0x0001 : 0);
         handler.keyboardEvent((byte) vk, flags);

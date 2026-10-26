@@ -233,9 +233,14 @@ public final class CharoiteTpdpTouchControls {
 
         final Button more = button(host, "MORE", "Extra keyboard controls",
                 -1, true, guarded);
+        // Always reachable even while the Game Boy buttons are hidden.
+        // Uses Android's system IME, as the runtime's existing menu does.
+        final Button keyboard = button(host, "KEYBOARD", "Open system keyboard",
+                -1, true, guarded);
         final Button toggle = button(host, "HIDE KEYS", "Hide handheld controls",
                 -1, true, guarded);
         root.addView(more);
+        root.addView(keyboard);
         root.addView(toggle);
 
         // Recalculate the layout on rotation, DeX size changes or cutouts.
@@ -295,6 +300,8 @@ public final class CharoiteTpdpTouchControls {
 
             int topButtonH = dp(host, 32);
             position(more, margin, margin, dp(host, 68), topButtonH);
+            position(keyboard, (width - dp(host, 86)) / 2,
+                    margin, dp(host, 86), topButtonH);
             position(toggle, width - margin - dp(host, 93),
                     margin, dp(host, 93), topButtonH);
 
@@ -313,6 +320,10 @@ public final class CharoiteTpdpTouchControls {
         });
         root.post(relayout);
 
+        keyboard.setOnClickListener(v -> {
+            releaseAll.run();
+            CharoiteSoftKeyboard.show(host);
+        });
         more.setOnClickListener(v -> {
             boolean show = extras[0].getVisibility() != View.VISIBLE;
             if (!show) releaseAll.run();

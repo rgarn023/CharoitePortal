@@ -226,7 +226,8 @@ for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteGameLibrary.java", "CharoiteGameDiscovery.java",
                "CharoiteGameProfiles.java", "CharoiteGameSessions.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
-               "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java"):
+               "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
+               "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"

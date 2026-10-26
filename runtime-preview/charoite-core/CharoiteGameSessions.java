@@ -41,6 +41,15 @@ public final class CharoiteGameSessions {
                               int containerId, String executable, boolean installer) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
+        // Shard of Dreams uses the original TPDP installation. Some Wine
+        // versions resolve its base folder through a local notkey link.
+        // The Core check creates that single link only if absent and both
+        // installed directories are verified inside the same Wine C: drive.
+        // Never copy game assets, replace files, or touch saves.
+        String expansionStatus = CharoiteShardOfDreamsSupport.isExpansionGame(executable)
+                ? CharoiteShardOfDreamsSupport.checkAndRepair(host, executable)
+                : "No Shard of Dreams launch.";
+        CharoiteDiagnostics.recordExpansionStatus(host, expansionStatus);
         Intent play = new Intent(host, target);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", executable);

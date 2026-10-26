@@ -28,6 +28,12 @@ public final class CharoiteDiagnostics {
 
     private CharoiteDiagnostics() {}
 
+    /** Persistent, read-only account of the expansion prerequisite check. */
+    public static void recordExpansionStatus(Context context, String result) {
+        prefs(context).edit().putString("charoite_shard_status",
+                result == null ? "Not checked." : result).apply();
+    }
+
     public static void begin(Context context, String executable) {
         CharoiteRenderingDiagnostics.clearReportForAnotherLaunch(context, executable);
         synchronized (lines) { lines.clear(); }
@@ -322,6 +328,8 @@ public final class CharoiteDiagnostics {
             "\nGame: " + p.getString("touhou_launch_file", "(none)") +
             "\nStatus: " + p.getString("touhou_launch_status", "not attempted") +
             "\n\n" + p.getString("touhou_launch_error", "No error captured.");
+        report += "\n\nSHARD OF DREAMS COMPATIBILITY:\n" +
+                p.getString("charoite_shard_status", "Not checked.");
         report += "\n\nLAUNCH PACKAGE:\n" +
                 p.getString("charoite_last_launch_files", "Not inspected.");
         report += "\n\nMAPPED WINDOWS:\n" +

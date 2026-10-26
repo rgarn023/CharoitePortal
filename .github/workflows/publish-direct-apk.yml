@@ -1,0 +1,57 @@
+name: Publish direct Charoite Portal APK
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-direct-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download last verified signed Charoite build
+        uses: actions/download-artifact@v4
+        with:
+          name: Charoite-Portal-Android-APK
+          path: package
+          run-id: 40395961621
+          github-token: ${{ github.token }}
+
+      - name: Verify APK integrity and exact build digest
+        run: |
+          set -euo pipefail
+          APK=package/Charoite-Portal-Android.apk
+          test -f "$APK"
+          echo "d066fc21750fde6bf9a7a31be8ebf9b9dde00b99be65a1b1b2c2c825b3b69304  $APK" | sha256sum --check
+          python3 - <<'PY'
+          import zipfile
+          apk="package/Charoite-Portal-Android.apk"
+          with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
+              assert "AndroidManifest.xml" in z.namelist()
+              assert z.read("assets/input/charoite_keyscan.exe").startswith(b"MZ")
+          print("Verified direct-download APK bytes")
+          PY
+
+      - name: Publish a permanent direct APK download on GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG=charoite-portal-android-latest
+          APK=package/Charoite-Portal-Android.apk
+          if ! gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GH_REPO" --target f6612da4a47043b736cf912975739499df5616b1 \
+              --title "Charoite Portal Android - Direct APK Download" \
+              --notes "Verified Android APK from successful build 40395961621. For Touhou 8 input, use SCAN or WINDOW from MORE. Install over existing app to preserve data. Release asset is a single .apk file, not a ZIP." \
+              --latest
+          fi
+          gh release upload "$TAG" "$APK" --repo "$GH_REPO" --clobber
+          gh release view "$TAG" --repo "$GH_REPO" --json assets --jq '.assets[].name' | grep -Fx 'Charoite-Portal-Android.apk'
+          echo "Direct APK: https://github.com/$GH_REPO/releases/download/$TAG/Charoite-Portal-Android.apk"

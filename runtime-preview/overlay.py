@@ -348,6 +348,12 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
             AppUtils.hideSystemUI(this);
         }
         AppUtils.keepScreenOn(this);
+        // Only Library GAME launches enable the shared Core handheld shell.
+        // Installers and DeX preserve their window and pointer behavior.
+        com.charoitegames.core.CharoiteWindowPolicy.configureSession(
+                getIntent().getStringExtra("exec_path"),
+                getIntent().getBooleanExtra("charoite_handheld_game", false) &&
+                !getIntent().getBooleanExtra("touhou_desktop_window", false));
         // A soft keyboard should overlay the bottom handheld controls,
         // not resize or pan TPDP's compositor-scaled game surface.
         // Non-TPDP games and DeX retain their existing keyboard behavior.
@@ -358,8 +364,8 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
                     android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         }""")
 
-# Reuse the TPDP Charoite Core keyboard buttons, without loading a
-# duplicate Winlator controls profile or changing Wine container settings.
+# Reuse the Charoite Core handheld buttons for every game session, but
+# never for an installer or DeX window. Keep TPDP's proven keyboard mapping.
 tpdp_touch_source = overlay.parent / "charoite-core/CharoiteTpdpTouchControls.java"
 tpdp_touch_target = java_root / "com/charoitegames/core/CharoiteTpdpTouchControls.java"
 assert tpdp_touch_source.is_file() and not tpdp_touch_target.exists()
@@ -391,12 +397,9 @@ code = code.replace(tpdp_large_game_anchor, tpdp_large_game_anchor + """
 tpdp_touch_anchor = "        rootView.addView(inputControlsView);"
 assert code.count(tpdp_touch_anchor)==1, "Winlator input layer changed"
 code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
-        // TPDP's documented arrow + Z/X/C/S/A/D/Space bindings; keyboard
-        // input is sent to Wine through the existing XServer keyboard.
-        // Touch-only: DeX remains usable with real keyboard/mouse devices.
-        if (getIntent().hasExtra("exec_path") &&
-                com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
-                    getIntent().getStringExtra("exec_path")) &&
+        // All Library games get the same Core handheld layout and frame.
+        // Key mapping can differ; game graphics profiles are unaffected.
+        if (getIntent().getBooleanExtra("charoite_handheld_game", false) &&
                 !getIntent().getBooleanExtra("touhou_desktop_window", false)) {
             com.charoitegames.core.CharoiteTpdpTouchControls.attach(
                     this,rootView,(keyCode,pressed) -> {
@@ -405,9 +408,34 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                                 android.view.KeyEvent.ACTION_UP;
                         xServer.keyboard.onKeyEvent(new android.view.KeyEvent(
                                 tick,tick,action,keyCode,0));
-                    }, this::confirmReturnToCharoitePortal);
+                    }, this::confirmReturnToCharoitePortal,
+                    com.charoitegames.core.CharoiteCore.isTpdpGameExecutable(
+                            getIntent().getStringExtra("exec_path")));
         }
 """)
+
+# The upstream runtime drawer is navigation owned by Charoite Core.
+# Preserve engine utilities but avoid two conflicting touch-control editors.
+menu_brand_anchor = "        navigationView.setNavigationItemSelectedListener(this);"
+assert code.count(menu_brand_anchor) == 1, "Upstream runtime drawer changed"
+code = code.replace(menu_brand_anchor, menu_brand_anchor + """
+        menu.findItem(R.id.menu_item_exit).setTitle("Return to Charoite Portal");
+        if (getIntent().getBooleanExtra("charoite_handheld_game", false)) {
+            menu.findItem(R.id.menu_item_input_controls).setVisible(false);
+        }
+""")
+
+# A drawer Exit must use the same save-progress confirmation as PORTAL.
+drawer_exit_anchor = """            case R.id.menu_item_exit:
+                exit();
+                break;"""
+assert code.count(drawer_exit_anchor) == 1, "Upstream game drawer Exit changed"
+code = code.replace(drawer_exit_anchor, """            case R.id.menu_item_exit:
+                drawerLayout.closeDrawers();
+                if (getIntent().getBooleanExtra("charoite_handheld_game", false))
+                    confirmReturnToCharoitePortal();
+                else exit();
+                break;""")
 
 # Winlator's TouchpadView converts rapid consecutive finger taps into
 # rapid native mouse clicks. On Shard handheld these can toggle the
@@ -713,6 +741,37 @@ code = code.replace(tpdp_debug_anchor, """
         }
 """ + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")
+
+# The original renderer drawer has its own Winlator logo in a separate
+# header resource. Replace only its visible UI; attribution remains in
+# the bundled licenses and source.
+menu_header_path = root / "app/src/main/res/layout/main_menu_header.xml"
+menu_header_original = menu_header_path.read_text(encoding="utf-8")
+assert '@drawable/logo' in menu_header_original, "Upstream runtime header changed"
+menu_header_path.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="132dp"
+    android:orientation="vertical"
+    android:gravity="bottom|start"
+    android:padding="18dp"
+    android:background="#252B3A">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Charoite Core"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="25sp" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Windows game session"
+        android:layout_marginTop="4dp"
+        android:textColor="#C9D1E9"
+        android:textSize="14sp" />
+</LinearLayout>
+""", encoding="utf-8")
 
 # Keep the enlarged, aspect-preserving TPDP window in the upper display
 # area, rather than the upstream default screen center. The fullscreen

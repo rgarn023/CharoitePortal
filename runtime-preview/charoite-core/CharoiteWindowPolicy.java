@@ -17,6 +17,25 @@ public final class CharoiteWindowPolicy {
 
     /** The scaled TPDP client alone is the handheld display. */
     private static volatile int[] lastHandheldScreen;
+    // Game-session presentation is a Core feature, not a TPDP-specific one.
+    // Only explicit Library game launches can enable generic handheld mode.
+    // Existing TPDP/Shard heuristics remain unchanged.
+    private static volatile String generalHandheldExecutable;
+    private static volatile int generalGameClientId = -1;
+
+    public static void configureSession(String executable, boolean handheldGame) {
+        generalHandheldExecutable = handheldGame && executable != null &&
+                !CharoiteCore.isTpdpGameExecutable(executable)
+                ? executable.replace('\\', '/').toLowerCase(Locale.ROOT) : null;
+        generalGameClientId = -1;
+        setHandheldOutline(null);
+    }
+
+    private static boolean generalHandheldGame(String executable, boolean desktopWindow) {
+        return !desktopWindow && generalHandheldExecutable != null &&
+                executable != null && generalHandheldExecutable.equals(
+                        executable.replace('\\', '/').toLowerCase(Locale.ROOT));
+    }
     private static volatile WeakReference<View> outlineRef = new WeakReference<>(null);
     // Only Shard's portrait touch game screen uses this debounce. The base
     // TPDP session, DeX mouse, installers and controls keep native behavior.
@@ -97,6 +116,22 @@ public final class CharoiteWindowPolicy {
         if (!enlargeHandheldGame(executable, desktopWindow) || client == null ||
                 screenInfo == null) return false;
         int width = client.getWidth(), height = client.getHeight();
+        if (generalHandheldGame(executable, desktopWindow)) {
+            // Choose the actual undecorated game drawable, not a Wine
+            // decorated parent, installer, desktop, or tiny popup.
+            if (client.isDesktopWindow() || client.isDialogBox() ||
+                    client.getType() != Window.Type.NORMAL ||
+                    client.getChildCount() != 0 || !client.hasNoDecorations())
+                return false;
+            if (generalGameClientId != -1 && generalGameClientId != client.id)
+                return false;
+            if (width < 320 || height < 200 || width >= screenInfo.width ||
+                    height >= screenInfo.height ||
+                    (float)width / height < 0.65f ||
+                    (float)width / height > 2.8f) return false;
+            generalGameClientId = client.id;
+            return true;
+        }
         boolean shard = CharoiteShardOfDreamsSupport.isExpansionGame(executable);
         if (!shard) {
             // Preserve the verified TPDP base-game selection exactly.
@@ -257,7 +292,9 @@ public final class CharoiteWindowPolicy {
      */
     public static boolean enlargeHandheldGame(String executable,
                                               boolean desktopWindow) {
-        return !desktopWindow && CharoiteCore.isTpdpGameExecutable(executable);
+        return !desktopWindow &&
+                (CharoiteCore.isTpdpGameExecutable(executable) ||
+                 generalHandheldGame(executable, desktopWindow));
     }
 
     /**
@@ -273,6 +310,24 @@ public final class CharoiteWindowPolicy {
                 !enlargeHandheldGame(executable, desktopWindow)) return;
         // Do not resize Wine's decorated parent or its other guest windows.
         if (!isHandheldGameClient(client, screenInfo, executable, desktopWindow)) return;
+        if (generalHandheldGame(executable, desktopWindow)) {
+            // Use the same upper-screen bezel and touch-space as TPDP,
+            // while respecting each game's ORIGINAL pixel aspect ratio.
+            // Do not resize the Windows client or alter its graphics driver.
+            float maxWidth = screenInfo.width * 0.86f;
+            float maxHeight = screenInfo.height * 0.46f;
+            float scale = Math.min(maxWidth / Math.max(1, transform.width),
+                    maxHeight / Math.max(1, transform.height));
+            if (!(scale > 0f)) return;
+            transform.width = (short)Math.max(1, Math.round(transform.width * scale));
+            transform.height = (short)Math.max(1, Math.round(transform.height * scale));
+            transform.x = (short)((screenInfo.width - transform.width) / 2);
+            transform.y = (short)Math.max(0,
+                    Math.round(screenInfo.height * 0.055f +
+                    (screenInfo.height * 0.46f - transform.height) / 2f));
+            rememberClientScreen(transform, screenInfo, client, executable, desktopWindow);
+            return;
+        }
         // A game started in landscape already looks right. Record its game
         // surface for an eventual physical turn to portrait, but DO NOT
         // change its original upstream fullscreen transform.

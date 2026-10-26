@@ -76,6 +76,11 @@ class TpdpViewportContract(unittest.TestCase):
         # Regression from user diagnostics: a 968x747 Wine parent and a
         # 960x720 game drawable must not both get fullscreen transforms.
         self.assertIn('if (client.getChildCount() > 0) return false;', POLICY)
+        self.assertIn('width > screenInfo.width) return false;', POLICY)
+        # 968px Shard parent initially has no mapped child; it must not
+        # be selected against a 960px native Wine desktop.
+        self.assertLess(POLICY.index('width > screenInfo.width) return false;'),
+                        POLICY.index('boolean sameClient = activeShardClientId == client.id;'))
         self.assertLess(
             POLICY.index('if (client.getChildCount() > 0) return false;'),
             POLICY.index('boolean sameClient = activeShardClientId == client.id;'))

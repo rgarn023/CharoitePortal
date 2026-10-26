@@ -36,6 +36,11 @@ public final class CharoiteDiagnostics {
     private static volatile long shardGapsOver50Ms;
     private static volatile long shardGapsOver100Ms;
     private static volatile long shardMaxActiveGapMs;
+    private static volatile long shardRenderSamples;
+    private static volatile long shardDrawOver16Ms;
+    private static volatile long shardDrawOver33Ms;
+    private static volatile long shardLongestDrawMs;
+    private static final String PORTAL_EXIT_REQUESTED = "charoite_portal_exit_requested";
     public static final Callback<String> CALLBACK = CharoiteDiagnostics::recordLine;
 
     private CharoiteDiagnostics() {}
@@ -76,7 +81,12 @@ public final class CharoiteDiagnostics {
         shardGapsOver50Ms = 0L;
         shardGapsOver100Ms = 0L;
         shardMaxActiveGapMs = 0L;
+        shardRenderSamples = 0L;
+        shardDrawOver16Ms = 0L;
+        shardDrawOver33Ms = 0L;
+        shardLongestDrawMs = 0L;
         prefs(context).edit()
+            .putBoolean(PORTAL_EXIT_REQUESTED, false)
             .putString("touhou_launch_status", "starting")
             .putString("charoite_last_guest_exit", "No launcher termination callback yet.")
             .putString("charoite_dxvk_log_dir", "")
@@ -224,19 +234,40 @@ public final class CharoiteDiagnostics {
                 report.toString()).apply();
     }
 
+    /** Called only after the user's explicit confirmation in Portal. */
+    public static void requestPortalExit(Context context) {
+        prefs(context).edit()
+                .putBoolean(PORTAL_EXIT_REQUESTED, true)
+                .putString("touhou_launch_status", "closed via Portal")
+                .putString("touhou_launch_error", "")
+                .apply();
+    }
+
     public static void finishGuestProcess(Context context, int exitCode) {
         captureDxvkLogs(context);
         long elapsed = Math.max(0L,
                 android.os.SystemClock.elapsedRealtime() - startedAtMillis);
+        // Portal intentionally closes Wine/X11 and can cause launcher code
+        // 137. This is not a game crash, and must not overwrite diagnostics
+        // with "failed". Unexpected 137 without a user exit remains a failure.
+        boolean intentionalExit = prefs(context).getBoolean(PORTAL_EXIT_REQUESTED, false);
         prefs(context).edit().putString("charoite_last_guest_exit",
-                "Guest launcher returned " + exitCode + " after " +
+                (intentionalExit ? "Portal exit confirmed; " : "Guest launcher ") +
+                "returned " + exitCode + " after " +
                 elapsed / 1000L + " seconds (does not prove game process exit).").apply();
-        if (exitCode != 0) fail(context, "Wine/Box64 exited with status " +
-                exitCode + ". See game exception details.");
-        else if (!"game window appeared".equals(
-                prefs(context).getString("touhou_launch_status", "")))
+        if (intentionalExit) {
+            prefs(context).edit()
+                    .putString("touhou_launch_status", "closed via Portal")
+                    .putString("touhou_launch_error", "")
+                    .apply();
+        } else if (exitCode != 0) {
+            fail(context, "Wine/Box64 exited with status " +
+                    exitCode + ". See game exception details.");
+        } else if (!"game window appeared".equals(
+                prefs(context).getString("touhou_launch_status", ""))) {
             fail(context, "Windows program exited without a mapped game/installer window. " +
                     "If setup includes separate media files, import the whole installer folder.");
+        }
     }
 
     /**
@@ -261,6 +292,27 @@ public final class CharoiteDiagnostics {
             shardMaxActiveGapMs = milliseconds;
     }
 
+    /**
+     * Profile CPU time spent submitting one Android GL draw. The renderer
+     * itself may still be waiting on native GPU or guest frame production;
+     * these counters DO NOT represent GPU execution or movie FPS.
+     */
+    public static long beginAndroidDrawMeasure() {
+        return shardFrameTimingEnabled
+                ? android.os.SystemClock.elapsedRealtimeNanos() : 0L;
+    }
+
+    public static void endAndroidDrawMeasure(long startNanos) {
+        if (!shardFrameTimingEnabled || startNanos == 0L) return;
+        long elapsed = android.os.SystemClock.elapsedRealtimeNanos() - startNanos;
+        if (elapsed < 0L) return;
+        long ms = elapsed / 1000000L;
+        shardRenderSamples++;
+        if (ms > 16L) shardDrawOver16Ms++;
+        if (ms > 33L) shardDrawOver33Ms++;
+        if (ms > shardLongestDrawMs) shardLongestDrawMs = ms;
+    }
+
     public static String shardAndroidDrawReport() {
         if (!shardFrameTimingEnabled)
             return "No Shard frame-timing session recorded in this process.";
@@ -272,7 +324,11 @@ public final class CharoiteDiagnostics {
                 "\nOver 50ms: " + shardGapsOver50Ms +
                 "\nOver 100ms: " + shardGapsOver100Ms +
                 "\nLongest active gap: " + shardMaxActiveGapMs + "ms" +
-                "\nExcluded idle intervals >=250ms; these are NOT guest-game FPS.";
+                "\nGL draw CPU samples: " + shardRenderSamples +
+                "\nGL draws over 16ms: " + shardDrawOver16Ms +
+                "\nGL draws over 33ms: " + shardDrawOver33Ms +
+                "\nLongest GL draw CPU time: " + shardLongestDrawMs + "ms" +
+                "\nExcluded idle intervals >=250ms. Neither metric is native guest FPS.";
     }
 
     public static void recordShardWindowChange(int id, int oldWidth,

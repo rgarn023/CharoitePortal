@@ -111,6 +111,13 @@ public final class CharoiteWindowPolicy {
         // Do not treat a container with children as the game drawable.
         // Check BEFORE reusing a sticky window ID from an earlier frame.
         if (client.getChildCount() > 0) return false;
+        // Shard maps the Wine 968x747 parent before the 960x720 child.
+        // At that instant getChildCount() can still be 0, so the parent
+        // incorrectly becomes the active game. A never-before-tracked game
+        // drawable must fit within the current Wine desktop width.
+        // Once the correct X11 ID is known, later game resizes stay tracked.
+        if (activeShardClientId != client.id &&
+                width > screenInfo.width) return false;
         // An X11 window keeps the same id when Wine resizes it. This is the
         // crucial difference from the former min-460x335 heuristic, which
         // dropped fullscreen scaling as soon as Shard switched window mode.

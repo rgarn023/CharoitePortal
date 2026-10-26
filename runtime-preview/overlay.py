@@ -474,7 +474,10 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                 .setTitle("Return to Charoite Portal?")
                 .setMessage("The current Windows game will close. Save progress first; unsaved progress may be lost.")
                 .setNegativeButton("Keep Playing", null)
-                .setPositiveButton("Exit Game", (dialog, which) -> exit())
+                .setPositiveButton("Exit Game", (dialog, which) -> {
+                    com.charoitegames.core.CharoiteDiagnostics.requestPortalExit(this);
+                    exit();
+                })
                 .show();
     }
 
@@ -679,7 +682,25 @@ assert gl_renderer_code.count(android_draw_anchor) == 1, (
 )
 gl_renderer_code = gl_renderer_code.replace(android_draw_anchor,
     android_draw_anchor + """        com.charoitegames.core.CharoiteDiagnostics.recordAndroidDraw();
+        long charoiteDrawStarted = com.charoitegames.core.CharoiteDiagnostics.beginAndroidDrawMeasure();
 """)
+
+# Measure rendering CPU submission only, not GPU time, and without
+# changing the renderer's EGL swap interval or native frame scheduling.
+android_draw_end_anchor = """        else drawFrame();
+    }
+
+    protected void drawFrame() {"""
+assert gl_renderer_code.count(android_draw_end_anchor) == 1, (
+    "Upstream GL render completion hook changed"
+)
+gl_renderer_code = gl_renderer_code.replace(android_draw_end_anchor,
+    """        else drawFrame();
+        com.charoitegames.core.CharoiteDiagnostics.endAndroidDrawMeasure(
+                charoiteDrawStarted);
+    }
+
+    protected void drawFrame() {""")
 
 # Shard's game drawable can be a larger or widescreen window. The two
 # upstream filters (size and decoration) must BOTH be relaxed for Shard's

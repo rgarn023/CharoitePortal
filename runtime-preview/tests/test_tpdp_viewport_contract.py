@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY = (ROOT / "charoite-core/CharoiteWindowPolicy.java").read_text()
 OVERLAY = (ROOT / "overlay.py").read_text()
 PROFILE = (ROOT / "charoite-core/CharoiteGraphicsProfiles.java").read_text()
+CORE = (ROOT / "charoite-core/CharoiteCore.java").read_text()
+SESSIONS = (ROOT / "charoite-core/CharoiteGameSessions.java").read_text()
 CONTROLS = (ROOT / "charoite-core/CharoiteTpdpTouchControls.java").read_text()
 
 class TpdpViewportContract(unittest.TestCase):
@@ -90,6 +92,21 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('position(select, centerX + centerWidth + centerGap', CONTROLS)
         self.assertIn('position(start, centerX + 2 * (centerWidth + centerGap)', CONTROLS)
         self.assertIn('position(enter, centerX + 3 * (centerWidth + centerGap)', CONTROLS)
+
+    def test_shard_native_desktop_minimum_without_resetting_any_container(self):
+        # Shard requires at least a 960px-wide Windows desktop. Phone
+        # automatic mode is otherwise 720x1280; change only Shard's launch
+        # intent rather than persisting container settings or modifying game.
+        self.assertIn('public static String resolutionForExecutable(', CORE)
+        self.assertIn('CharoiteShardOfDreamsSupport.isExpansionGame(executable)', CORE)
+        self.assertIn('isDesktopWindow(host)) return chosen;', CORE)
+        self.assertIn('if (height <= width || width >= 960) return chosen;', CORE)
+        self.assertIn('if (height <= 1280) return "960x1280";', CORE)
+        self.assertIn('if (height <= 1600) return "960x1600";', CORE)
+        self.assertIn('return "960x1920";', CORE)
+        self.assertIn('CharoiteCore.resolutionForExecutable(host, executable)', SESSIONS)
+        self.assertIn('960x1280|960x1600|960x1920', OVERLAY)
+        self.assertNotIn('setScreenSize(', SESSIONS)
 
     def test_game_pixels_and_profiles_unchanged(self):
         self.assertIn('"version=1.10.3"', PROFILE)

@@ -466,7 +466,7 @@ assert code.count(old_guest_screen) == 1, "Upstream container screenInfo marker 
 code = code.replace(old_guest_screen, old_guest_screen + """
             if (getIntent().hasExtra("touhou_display_size")) {
                 String requested = getIntent().getStringExtra("touhou_display_size");
-                if (requested != null && requested.matches("800x600|1280x720|1600x900|1920x1080|600x800|720x1280|900x1600|1080x1920"))
+                if (requested != null && requested.matches("800x600|1280x720|1600x900|1920x1080|600x800|720x1280|900x1600|1080x1920|960x1280|960x1600|960x1920"))
                     screenInfo = resolveScreenInfo(requested);
             }""")
 

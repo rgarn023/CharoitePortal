@@ -54,7 +54,8 @@ public final class CharoiteGameSessions {
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", executable);
         play.putExtra("touhou_desktop_window", CharoiteCore.isDesktopWindow(host));
-        play.putExtra("touhou_display_size", CharoiteCore.chosenGameResolution(host));
+        play.putExtra("touhou_display_size",
+                CharoiteCore.resolutionForExecutable(host, executable));
         play.putExtra("touhou_pointer_capture", CharoiteCore.shouldCapturePointer(host));
         // Core auto-resolves every known game profile; users just press Play.
         play.putExtra("charoite_tpdp_graphics_mode",

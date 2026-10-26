@@ -267,6 +267,34 @@ public final class CharoiteCore {
         return adaptToOrientation(WINE_RESOLUTIONS[mode], portrait);
     }
 
+    /**
+     * Shard's original game manual requires at least a 960x720 Windows
+     * display. Ordinary portrait phone sessions use 720x1280, which can
+     * clip the game's native surface BEFORE Android compositor scaling.
+     * Enlarge ONLY Shard's launch-local virtual desktop, never the saved
+     * container, base TPDP graphics/viewport, other games, or DeX.
+     */
+    public static String resolutionForExecutable(AppCompatActivity host,
+                                                  String executable) {
+        String chosen = chosenGameResolution(host);
+        if (!CharoiteShardOfDreamsSupport.isExpansionGame(executable) ||
+                isDesktopWindow(host)) return chosen;
+        String[] parts = chosen.split("x");
+        if (parts.length != 2) return chosen;
+        try {
+            int width = Integer.parseInt(parts[0]);
+            int height = Integer.parseInt(parts[1]);
+            if (height <= width || width >= 960) return chosen;
+            // Valid game-specific Android/XServer modes are allowlisted in
+            // overlay.py; preserve the current portrait desktop height.
+            if (height <= 1280) return "960x1280";
+            if (height <= 1600) return "960x1600";
+            return "960x1920";
+        } catch (NumberFormatException ignored) {
+            return chosen;
+        }
+    }
+
     public static boolean isDesktopPointerCaptured(AppCompatActivity host) {
         return host.getPreferences(Context.MODE_PRIVATE)
                 .getBoolean(scopedKey(host, DESKTOP_CAPTURE_KEY), false);

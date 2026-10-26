@@ -23,8 +23,15 @@ public final class CharoiteEnvironments {
 
     private CharoiteEnvironments() {}
 
+    // Legacy Portal settings were originally written by TouhouEntryActivity
+    // using Activity.getPreferences(). That method keys storage by the ACTIVITY
+    // name, so calling it from XServerDisplayActivity creates a DIFFERENT
+    // environment registry and incorrectly falls back to Touhou Realm.
+    // Keep the exact original preference file for all activities; never
+    // migrate, reset, or recreate existing game/container settings.
+    private static final String PORTAL_PREFS = "TouhouEntryActivity";
     private static SharedPreferences prefs(AppCompatActivity host) {
-        return host.getPreferences(AppCompatActivity.MODE_PRIVATE);
+        return host.getSharedPreferences(PORTAL_PREFS, AppCompatActivity.MODE_PRIVATE);
     }
 
     private static JSONObject make(String id, String name, String template, int containerId)

@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -13,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import com.winlator.XServerDisplayActivity;
 import com.winlator.widget.XServerView;
 import com.winlator.renderer.ViewTransformation;
@@ -41,11 +44,23 @@ public final class CharoiteTpdpTouchControls {
     }
 
     private static GradientDrawable background(boolean secondary) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(secondary ? 0xD122293F : 0xD12B2247);
-        drawable.setStroke(dpStroke(), secondary ? 0xB099B6CC : 0xB0D7CEFA);
-        drawable.setCornerRadius(20);
+        // Smoked translucent purple plastic, not solid black/grey buttons.
+        GradientDrawable drawable = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR, secondary
+                ? new int[]{0xE3523777, 0xE1271A43}
+                : new int[]{0xE0553489, 0xE12A174B});
+        drawable.setStroke(dpStroke(), secondary ? 0xB6BFA9E9 : 0xB8D6B8FF);
+        drawable.setCornerRadius(18);
         return drawable;
+    }
+
+    private static GradientDrawable clusterPlate() {
+        GradientDrawable plate = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0x694F3677, 0x88402A62});
+        plate.setStroke(2, 0x8DAE98D4);
+        plate.setCornerRadius(28);
+        return plate;
     }
 
     private static int dpStroke() { return 2; }
@@ -104,7 +119,7 @@ public final class CharoiteTpdpTouchControls {
         return button;
     }
 
-    private static void position(Button button, int x, int y, int width, int height) {
+    private static void position(View button, int x, int y, int width, int height) {
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 width, height, Gravity.TOP | Gravity.LEFT);
         params.leftMargin = Math.max(0, x);
@@ -126,6 +141,7 @@ public final class CharoiteTpdpTouchControls {
         private final XServerView xServerView;
         private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint shell = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF bounds = new RectF();
 
         ScreenOutline(Activity host, XServerView server) {
@@ -133,21 +149,52 @@ public final class CharoiteTpdpTouchControls {
             xServerView = server;
             setClickable(false);
             setFocusable(false);
-            shadow.setColor(0xCC171B2D);
+            shadow.setColor(0xD01B102C);
             shadow.setStyle(Paint.Style.STROKE);
             shadow.setStrokeWidth(dp(host, 12));
-            rim.setColor(0xFFDADEEC);
+            rim.setColor(0xFFCBB4F2);
             rim.setStyle(Paint.Style.STROKE);
             rim.setStrokeWidth(dp(host, 3));
+        }
+
+        /** The opaque white rectangle is Wine's 4:3 desktop background.
+         * Draw Charoite's translucent shell OUTSIDE the game client only.
+         * Never recolor or obscure the real game pixels or its touch target.
+         */
+        private void drawShell(Canvas canvas, RectF screen) {
+            float w = getWidth(), h = getHeight();
+            if (w <= 0 || h <= 0) return;
+            shell.setShader(new LinearGradient(0, 0, w * .85f, h,
+                    new int[]{0xF0271643, 0xE84D3074, 0xF01A102E},
+                    null, Shader.TileMode.CLAMP));
+            if (screen == null) {
+                canvas.drawRect(0, 0, w, h, shell);
+            } else {
+                float top = Math.max(0, Math.min(h, screen.top));
+                float bottom = Math.max(top, Math.min(h, screen.bottom));
+                float left = Math.max(0, Math.min(w, screen.left));
+                float right = Math.max(left, Math.min(w, screen.right));
+                canvas.drawRect(0, 0, w, top, shell);
+                canvas.drawRect(0, bottom, w, h, shell);
+                canvas.drawRect(0, top, left, bottom, shell);
+                canvas.drawRect(right, top, w, bottom, shell);
+            }
+            shell.setShader(null);
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             int[] area = CharoiteWindowPolicy.handheldScreenBounds();
-            if (area == null || xServerView == null) return;
+            if (area == null || xServerView == null) {
+                drawShell(canvas, null);
+                return;
+            }
             ViewTransformation view = xServerView.getRenderer().viewTransformation;
-            if (view.aspect <= 0) return;
+            if (view.aspect <= 0) {
+                drawShell(canvas, null);
+                return;
+            }
             float left = xServerView.getLeft() + view.viewOffsetX + area[0] * view.aspect;
             // GL viewport Y uses a bottom origin; Canvas coordinates are
             // top-down. Convert using the complete projected guest scene so
@@ -162,6 +209,7 @@ public final class CharoiteTpdpTouchControls {
                     top - dp((Activity)getContext(), 3),
                     right + dp((Activity)getContext(), 3),
                     bottom + dp((Activity)getContext(), 3));
+            drawShell(canvas, bounds);
             canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
                     dp((Activity)getContext(), 5), shadow);
             canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),

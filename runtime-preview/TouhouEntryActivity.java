@@ -1064,13 +1064,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         if (installerFolderButton != null) installerFolderButton.setEnabled(!busy && ready);
         scanButton.setEnabled(!busy && ready);
         if (CharoiteEnvironments.isBattleNet(this)) {
-            File root = null;
+            File battleRoot = null;
             try {
                 Container current = new ContainerManager(this).getContainerById(containerId);
-                if (current != null) root = current.getRootDir();
+                if (current != null) battleRoot = current.getRootDir();
             } catch (Exception ignored) {}
-            File setup = root == null ? null : CharoiteBattleNetSupport.downloadedInstaller(root);
-            File launcher = root == null ? null : CharoiteBattleNetSupport.installedLauncher(root);
+            File setup = battleRoot == null ? null :
+                    CharoiteBattleNetSupport.downloadedInstaller(battleRoot);
+            File launcher = battleRoot == null ? null :
+                    CharoiteBattleNetSupport.installedLauncher(battleRoot);
             if (battleNetDownloadButton != null)
                 battleNetDownloadButton.setEnabled(!busy && ready);
             if (battleNetInstallButton != null)

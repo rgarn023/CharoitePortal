@@ -190,6 +190,15 @@ public final class CharoiteTpdpTouchControls {
         private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint shell = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF bounds = new RectF();
+        private final Paint matte = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private Button[] dpadHardware;
+        private Button[] faceHardware;
+
+        void setHardwareButtons(Button[] dpad, Button[] face) {
+            dpadHardware = dpad;
+            faceHardware = face;
+            invalidate();
+        }
 
         ScreenOutline(Activity host, XServerView server) {
             super(host);
@@ -206,54 +215,58 @@ public final class CharoiteTpdpTouchControls {
 
 
         /**
-         * An original handheld controller PCB/membrane illustration appears
-         * BEHIND translucent controls. It represents controller internals,
-         * not an unverified phone teardown.
+         * Controller contacts are placed at the exact Android button bounds,
+         * not fractions of the phone screen. They remain aligned when the
+         * handset rotates, DeX resizes, or Android changes screen density.
+         * This is the inside of an original handheld controller, not a
+         * claimed Samsung phone teardown.
          */
         private void drawControllerInternals(Canvas canvas, float w, float h) {
+            if (dpadHardware == null || faceHardware == null) return;
+            final float chipX = w * .50f;
+            final float chipY = h * .89f;
             Paint board = new Paint(Paint.ANTI_ALIAS_FLAG);
-            float buttonY = h * .91f;
-            float leftX = w * .18f, rightX = w * .79f;
-            float radius = Math.min(w * .085f, h * .046f);
-            // Visible rubber/contact membranes through purple acrylic.
-            board.setColor(0x554BC0A8);
             board.setStyle(Paint.Style.STROKE);
-            board.setStrokeWidth(Math.max(2f, w * .008f));
-            for (int i = 0; i < 4; i++) {
-                float angle = i * (float)(Math.PI / 2);
-                float r = radius * 1.75f;
-                canvas.drawCircle(leftX + (float)Math.cos(angle) * r,
-                        buttonY + (float)Math.sin(angle) * r, radius, board);
-                canvas.drawCircle(rightX + (float)Math.cos(angle) * r,
-                        buttonY + (float)Math.sin(angle) * r, radius, board);
+            board.setStrokeWidth(dp((Activity)getContext(), 1.2f));
+            board.setColor(0x855AABAC);
+
+            for (Button[] group : new Button[][]{dpadHardware, faceHardware}) {
+                boolean circular = group == faceHardware;
+                for (Button button : group) {
+                    if (button.getVisibility() != View.VISIBLE ||
+                            button.getWidth() <= 0 || button.getHeight() <= 0) continue;
+                    // Layout's button rectangle is the sole geometry source.
+                    float left = button.getLeft(), top = button.getTop();
+                    float right = button.getRight(), bottom = button.getBottom();
+                    float cx = (left + right) * .5f, cy = (top + bottom) * .5f;
+                    float inset = dp((Activity)getContext(), 1f);
+                    RectF switchOutline = new RectF(left + inset, top + inset,
+                            right - inset, bottom - inset);
+                    if (circular) {
+                        canvas.drawOval(switchOutline, board);
+                    } else {
+                        float corner = dp((Activity)getContext(), 7f);
+                        canvas.drawRoundRect(switchOutline, corner, corner, board);
+                    }
+                    Path trace = new Path();
+                    trace.moveTo(cx, cy);
+                    trace.lineTo(cx, chipY - dp((Activity)getContext(), 21f));
+                    trace.lineTo(chipX, chipY - dp((Activity)getContext(), 21f));
+                    canvas.drawPath(trace, board);
+                }
             }
+            // Central PCB controller under the clear-purple casing.
             board.setStyle(Paint.Style.FILL);
-            board.setColor(0x394CDCB0);
-            canvas.drawCircle(leftX, buttonY, radius * 1.32f, board);
-            canvas.drawCircle(rightX, buttonY, radius * 1.32f, board);
-            // Gold-coloured traces running to the central controller board.
-            board.setColor(0x5588CFB2);
+            board.setColor(0xBD263F50);
+            float halfW = dp((Activity)getContext(), 22);
+            float halfH = dp((Activity)getContext(), 16);
+            RectF chip = new RectF(chipX-halfW, chipY-halfH, chipX+halfW, chipY+halfH);
+            canvas.drawRoundRect(chip, dp((Activity)getContext(), 4),
+                    dp((Activity)getContext(), 4), board);
             board.setStyle(Paint.Style.STROKE);
-            board.setStrokeWidth(Math.max(1f, w * .004f));
-            Path traces = new Path();
-            traces.moveTo(leftX, buttonY - radius * 2);
-            traces.lineTo(w * .35f, h * .80f);
-            traces.lineTo(w * .50f, h * .80f);
-            traces.lineTo(rightX, buttonY - radius * 2);
-            traces.moveTo(leftX, buttonY + radius * 2);
-            traces.lineTo(w * .40f, h * .96f);
-            traces.lineTo(w * .60f, h * .96f);
-            traces.lineTo(rightX, buttonY + radius * 2);
-            canvas.drawPath(traces, board);
-            board.setStyle(Paint.Style.FILL);
-            board.setColor(0x704F758D);
-            RectF controller = new RectF(w * .43f, h * .79f, w * .57f, h * .87f);
-            canvas.drawRoundRect(controller, w * .01f, w * .01f, board);
-            board.setColor(0x9942B79D);
-            for (int i = 0; i < 4; i++) {
-                canvas.drawCircle(w * (.446f + .034f * i),
-                        h * .81f, Math.max(1.5f, w * .006f), board);
-            }
+            board.setColor(0xB55CBAB1);
+            canvas.drawRoundRect(chip, dp((Activity)getContext(), 4),
+                    dp((Activity)getContext(), 4), board);
         }
 
         /** Mask the white Wine desktop, then show phone-like circuitry under
@@ -267,8 +280,10 @@ public final class CharoiteTpdpTouchControls {
             if (screen != null) canvas.clipOutRect(
                     screen.left, screen.top, screen.right, screen.bottom);
             shell.setShader(null);
-            // Smoked translucent shell, not opaque dark-purple wallpaper.
-            shell.setColor(0xA41D1533);
+            // An opaque dark undercoat hides the white Wine desktop while
+            // translucent clear-purple layers reveal internal PCB contacts.
+            // Alpha-only tint over a white X11 desktop looked pastel/white.
+            shell.setColor(0xFF20122F);
             canvas.drawRect(0, 0, w, h, shell);
             drawControllerInternals(canvas, w, h);
             // A device-matched real interior photo is displayed only when
@@ -310,17 +325,27 @@ public final class CharoiteTpdpTouchControls {
                     area[1] * view.aspect;
             float right = left + area[2] * view.aspect;
             float bottom = top + area[3] * view.aspect;
-            // The game draws an FPS/HUD baseline within a few pixels of
-            // its bottom edge. Never mask or stroke over those pixels.
+            // The X11 client rectangle contains ONLY game pixels. The
+            // decorated parent exposes a white backing below the client.
+            // Mask all the parent/letterbox pixels, not the actual client.
+            RectF gamePixels = new RectF(left, top, right, bottom);
             bounds.set(left - dp((Activity)getContext(), 12),
                     top - dp((Activity)getContext(), 12),
                     right + dp((Activity)getContext(), 12),
                     bottom + dp((Activity)getContext(), 22));
-            drawShell(canvas, bounds);
-            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
-                    dp((Activity)getContext(), 5), shadow);
-            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 5),
-                    dp((Activity)getContext(), 5), rim);
+            drawShell(canvas, gamePixels);
+            canvas.save();
+            canvas.clipRect(bounds);
+            canvas.clipOutRect(gamePixels);
+            matte.setColor(0xFF0C0917);
+            matte.setStyle(Paint.Style.FILL);
+            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 6),
+                    dp((Activity)getContext(), 6), matte);
+            canvas.restore();
+            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 6),
+                    dp((Activity)getContext(), 6), shadow);
+            canvas.drawRoundRect(bounds, dp((Activity)getContext(), 6),
+                    dp((Activity)getContext(), 6), rim);
         }
     }
 
@@ -328,10 +353,11 @@ public final class CharoiteTpdpTouchControls {
     public static void attach(Activity host, FrameLayout root, KeySink sink,
                               Runnable returnToPortal, boolean tpdpMapping,
                               String executable) {
+        ScreenOutline outline = null;
         if (host instanceof XServerDisplayActivity) {
             XServerView display = ((XServerDisplayActivity)host).getXServerView();
             if (display != null) {
-                ScreenOutline outline = new ScreenOutline(host, display);
+                outline = new ScreenOutline(host, display);
                 root.addView(outline, new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
@@ -435,6 +461,11 @@ public final class CharoiteTpdpTouchControls {
                 mapped.applyAsInt(12), false, guarded);
         final Button bButton = button(host, "B", binding.apply(13),
                 mapped.applyAsInt(13), false, guarded);
+
+        if (outline != null) {
+            outline.setHardwareButtons(new Button[]{up, left, right, down},
+                    new Button[]{yButton, xButton, aButton, bButton});
+        }
 
         final Button[] main = {
                 esc, select, start, enter, leftShoulder, rightShoulder,

@@ -17,6 +17,7 @@ import java.util.UUID;
 public final class CharoiteEnvironments {
     public static final String TOUHOU = "touhou-realm";
     public static final String GENERAL = "general-gaming";
+    public static final String BATTLE_NET = "battle-net-gaming";
     private static final String KEY = "charoite_environments_v1";
     private static final String ACTIVE = "charoite_active_environment_v1";
 
@@ -50,18 +51,23 @@ public final class CharoiteEnvironments {
         try {
             if (p.contains(KEY)) {
                 JSONArray existing = new JSONArray(p.getString(KEY, "[]"));
-                boolean hasGeneral = false, hasTouhou = false;
+                boolean hasGeneral = false, hasTouhou = false, hasBattleNet = false;
                 for (int i = 0; i < existing.length(); i++) {
                     JSONObject entry = existing.optJSONObject(i);
                     if (entry == null) continue;
                     hasGeneral |= GENERAL.equals(entry.optString("id"));
                     hasTouhou |= TOUHOU.equals(entry.optString("id"));
+                    hasBattleNet |= BATTLE_NET.equals(entry.optString("id"));
                 }
-                if (hasGeneral && hasTouhou) return;
+                if (hasGeneral && hasTouhou && hasBattleNet) return;
                 if (!hasGeneral)
                     existing.put(make(GENERAL, "General Gaming", "general", 0));
                 if (!hasTouhou)
                     existing.put(make(TOUHOU, "Touhou Realm", "touhou", 0));
+                // Additive preset for upgrades: NEVER change active ID or
+                // attach this realm to an older Touhou/General Wine container.
+                if (!hasBattleNet)
+                    existing.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0));
                 if (!p.edit().putString(KEY, existing.toString()).commit())
                     throw new IllegalStateException("Cannot register built-in environments");
                 // ACTIVE intentionally remains UNCHANGED on updates.
@@ -76,6 +82,7 @@ public final class CharoiteEnvironments {
             entries.put(make(GENERAL, "General Gaming", "general", 0));
             entries.put(make(TOUHOU, "Touhou Realm", "touhou",
                     legacy == null ? 0 : legacy.id));
+            entries.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0));
             // Existing prefixes created before the environment registry
             // belong to Touhou; a truly fresh Portal opens in General Gaming.
             String initial = legacy == null ? GENERAL : TOUHOU;
@@ -110,6 +117,10 @@ public final class CharoiteEnvironments {
         return TOUHOU.equals(activeId(host));
     }
 
+    public static boolean isBattleNet(AppCompatActivity host) {
+        return BATTLE_NET.equals(activeId(host));
+    }
+
     public static synchronized JSONObject active(AppCompatActivity host) {
         String id = activeId(host);
         JSONArray entries = list(host);
@@ -136,7 +147,7 @@ public final class CharoiteEnvironments {
 
     public static synchronized JSONObject installPreset(AppCompatActivity host, String id)
             throws Exception {
-        if (!GENERAL.equals(id) && !TOUHOU.equals(id))
+        if (!GENERAL.equals(id) && !TOUHOU.equals(id) && !BATTLE_NET.equals(id))
             throw new IllegalArgumentException("Only verified built-in environment templates are supported");
         JSONArray entries = list(host);
         for (int i=0; i<entries.length(); i++) {
@@ -144,8 +155,11 @@ public final class CharoiteEnvironments {
             if (existing != null && id.equals(existing.optString("id")))
                 throw new IllegalArgumentException("Environment is already installed");
         }
-        JSONObject result = make(id, GENERAL.equals(id) ? "General Gaming" : "Touhou Realm",
-                GENERAL.equals(id) ? "general" : "touhou", 0);
+        JSONObject result = make(id,
+                GENERAL.equals(id) ? "General Gaming" :
+                        BATTLE_NET.equals(id) ? "Battle.net Gaming" : "Touhou Realm",
+                GENERAL.equals(id) ? "general" :
+                        BATTLE_NET.equals(id) ? "battlenet" : "touhou", 0);
         entries.put(result);
         if (!prefs(host).edit().putString(KEY, entries.toString()).commit())
             throw new IllegalStateException("Failed to save environment");

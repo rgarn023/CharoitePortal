@@ -46,6 +46,15 @@ public final class CharoiteGameSessions {
     public static void launch(AppCompatActivity host, Class<? extends Activity> target,
                               int containerId, String executable, boolean installer,
                               boolean gamePresentation) {
+        launch(host, target, containerId, executable, installer,
+                gamePresentation, false);
+    }
+
+    /** Opt-in Battle.net troubleshooting changes ONLY this launch, never the
+     * environment's saved renderer, registry, Wine prefix or installed data. */
+    public static void launch(AppCompatActivity host, Class<? extends Activity> target,
+                              int containerId, String executable, boolean installer,
+                              boolean gamePresentation, boolean agentCompatibility) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
         // Shard of Dreams uses the original TPDP installation. Some Wine
@@ -60,6 +69,10 @@ public final class CharoiteGameSessions {
         Intent play = new Intent(host, target);
         play.putExtra("container_id", containerId);
         play.putExtra("exec_path", executable);
+        // Only explicit Battle.net setup/launcher retry can request the
+        // reversible graphics/synchronization fallback.
+        play.putExtra("charoite_bnet_agent_compatibility",
+                agentCompatibility && CharoiteEnvironments.isBattleNet(host));
         // Snapshot the selected environment from the same Portal registry
         // used for selecting this Wine container. XServerDisplayActivity
         // must NEVER infer the realm from its own Activity.getPreferences().

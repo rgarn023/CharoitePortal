@@ -433,6 +433,8 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                             if (key != null) {
                                 if (pressed) xServer.injectKeyPress(key);
                                 else xServer.injectKeyRelease(key);
+                                if (touhou8) com.charoitegames.core
+                                        .CharoiteLegacyKeyboard.recordX11(keyCode, pressed);
                             }
                         }
                     }, this::confirmReturnToCharoitePortal,
@@ -441,6 +443,19 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                     getIntent().getStringExtra("exec_path"));
         }
 """)
+
+# WinHandler silently discards keyboardEvent() before its Wine-side INIT.
+# Expose the handshake so Charoite can distinguish missing input transport.
+handler_source = java_root / "com/winlator/winhandler/WinHandler.java"
+handler_code = handler_source.read_text(encoding="utf-8")
+handler_anchor = "    public void keyboardEvent(byte vkey, int flags) {"
+assert handler_code.count(handler_anchor) == 1, "Upstream WinHandler changed"
+handler_code = handler_code.replace(handler_anchor, """    public boolean isCharoiteKeyboardReady() {
+        return running && initReceived && socket != null;
+    }
+
+""" + handler_anchor)
+handler_source.write_text(handler_code, encoding="utf-8")
 
 # The upstream runtime drawer is navigation owned by Charoite Core.
 # Preserve engine utilities but avoid two conflicting touch-control editors.

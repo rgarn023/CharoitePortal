@@ -86,7 +86,8 @@ jobs:
             runtime-preview/charoite-core/japanese/touhou_font_helper64.exe
             runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
             runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
-          key: charoite-win32-tools-v3-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c') }}
+            runtime-preview/charoite-core/input/charoite_keyscan.exe
+          key: charoite-win32-tools-v4-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c', 'runtime-preview/charoite-core/input/charoite_keyscan.c') }}
 
       - name: Compile Japanese installer font helpers
         if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
@@ -146,6 +147,12 @@ jobs:
             -luser32 -lgdi32
           file runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
           test $(stat -c %s runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe) -gt 10000
+          # Keyboard scan-code helper is a small Windows executable.
+          "$CC32" -std=c11 -O2 -Wall -Wextra -mwindows \
+            runtime-preview/charoite-core/input/charoite_keyscan.c \
+            -o runtime-preview/charoite-core/input/charoite_keyscan.exe \
+            -lws2_32 -luser32
+          test $(stat -c %s runtime-preview/charoite-core/input/charoite_keyscan.exe) -gt 5000
 
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream
@@ -300,6 +307,16 @@ jobs:
               print("Bundled reusable read-only owner-draw comparison:", len(owner), "bytes")
           PY
 
+      - name: Verify scan-code keyboard bridge is packaged
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("upstream/app/build/outputs/apk/debug/app-debug.apk") as z:
+              exe=z.read("assets/input/charoite_keyscan.exe")
+              assert exe[:2] == b"MZ" and len(exe) > 5000
+              print("Windows scan-code helper packaged", len(exe))
+          PY
+
       - name: Archive LGPL source and derivative patch
         run: |
           mkdir -p upstream/app/src/main/assets/licenses
@@ -307,6 +324,7 @@ jobs:
           mkdir -p legal-bundle
           cp upstream/LICENSE legal-bundle/Winlator-LGPL-2.1.txt
           cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
+          cp runtime-preview/charoite-core/input/charoite_keyscan.c legal-bundle/charoite_keyscan.c
           cp runtime-preview/overlay.py legal-bundle/overlay.py
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
           cp runtime-preview/charoite-core/japanese/build_japanese_support.py legal-bundle/build_japanese_support.py

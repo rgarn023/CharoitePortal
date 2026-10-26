@@ -7,6 +7,8 @@ import com.winlator.container.ContainerManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.UUID;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Charoite Portal environment registry.
@@ -22,6 +24,43 @@ public final class CharoiteEnvironments {
     private static final String ACTIVE = "charoite_active_environment_v1";
 
     private CharoiteEnvironments() {}
+
+    /**
+     * Every environment has an independent Wine C: drive AND a stable,
+     * discoverable Charoite-owned folder within that drive:
+     * C:\\CharoitePortal\\Environments\\<environment-id>\\
+     *
+     * Stable IDs, rather than editable display names, keep existing paths
+     * valid when a user renames or reimports a profile. This intentionally
+     * does not move/delete older C:\\TouhouPocket games or shortcuts.
+     */
+    public static File storageFolder(File containerRoot, String environmentId,
+                                     String subfolder) throws IOException {
+        if (containerRoot == null || environmentId == null ||
+                !environmentId.matches("[a-z0-9][a-z0-9-]{0,80}"))
+            throw new IOException("Invalid environment storage identity");
+        if (subfolder != null && !subfolder.matches("[A-Za-z][A-Za-z0-9-]{0,39}"))
+            throw new IOException("Invalid environment storage folder");
+        File drive = new File(containerRoot, ".wine/drive_c").getCanonicalFile();
+        if (!drive.isDirectory())
+            throw new IOException("Windows C: drive is not prepared");
+        File base = new File(drive, "CharoitePortal/Environments/" + environmentId)
+                .getCanonicalFile();
+        if (!base.toPath().startsWith(drive.toPath()) || base.equals(drive))
+            throw new IOException("Environment path escaped its Windows C: drive");
+        File result = subfolder == null ? base : new File(base, subfolder).getCanonicalFile();
+        if (!result.toPath().startsWith(base.toPath()))
+            throw new IOException("Storage folder escaped the environment");
+        return result;
+    }
+
+    public static File ensureStorageFolder(File containerRoot, String environmentId,
+                                           String subfolder) throws IOException {
+        File folder = storageFolder(containerRoot, environmentId, subfolder);
+        if (!folder.isDirectory() && !folder.mkdirs())
+            throw new IOException("Cannot create environment folder in Windows C:");
+        return folder;
+    }
 
     // Legacy Portal settings were originally written by TouhouEntryActivity
     // using Activity.getPreferences(). That method keys storage by the ACTIVITY
@@ -231,6 +270,11 @@ public final class CharoiteEnvironments {
     public static synchronized void attachContainer(AppCompatActivity host, String id, int containerId)
             throws Exception {
         if (containerId <= 0) throw new IllegalArgumentException("Invalid container ID");
+        Container attached = new ContainerManager(host).getContainerById(containerId);
+        if (attached == null) throw new IllegalArgumentException("Selected Windows container missing");
+        // Create only Charoite's own empty directory. Never migrate/delete an
+        // existing game folder or make a new Wine prefix for a renamed realm.
+        ensureStorageFolder(attached.getRootDir(), id, null);
         JSONArray entries = list(host);
         boolean found = false;
         for (int i=0; i<entries.length(); i++) {

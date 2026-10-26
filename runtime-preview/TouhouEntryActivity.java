@@ -1185,7 +1185,6 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     // opening Library or reporting a successful installer.
                     CharoiteGameSessions.consumePendingInstallerScan(this);
                     scanAfterInstallerReturn = false;
-                    refreshLibrary();
                     String result = count > 0
                             ? "Found " + count + " installed game(s). Ready to play."
                             : shardFound
@@ -1197,6 +1196,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                                         ? "Installer closed; no new game executable found on C:."
                                         : "No new supported games found on C:.";
                     finishOperation(result);
+                    // Rebuild the UI after busy=false, so the Shard rescan
+                    // button isn't left disabled following installation.
+                    refreshLibrary();
                     if (count > 0 || shardFound) showSection(0);
                     else if (afterInstaller) showSection(1);
                 });
@@ -1243,8 +1245,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         if (CharoiteGameImport.shouldLaunchAfterImport(selection))
                             launchGame(imported.executablePath, true);
                     } else {
-                        refreshLibrary();
                         finishOperation("Game imported into Library. Tap its tile to play.");
+                        refreshLibrary();
                         showSection(0);
                     }
                 });

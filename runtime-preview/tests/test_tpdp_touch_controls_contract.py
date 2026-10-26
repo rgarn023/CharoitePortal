@@ -63,7 +63,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('position(start, centerX + 2 * (centerWidth + centerGap)', CONTROLS)
         self.assertIn('position(enter, centerX + 3 * (centerWidth + centerGap)', CONTROLS)
         self.assertIn('new Button[]{f11, screenshot};', CONTROLS)
-        self.assertIn('new Button[]{f11, screenshot, backend}', CONTROLS)
+        self.assertIn('new Button[]{f11, screenshot, backend, diagnostics}', CONTROLS)
         # A separate top-left Portal control never sends Esc to the game.
         self.assertIn('final Button portal = button(host, "PORTAL"', CONTROLS)
         self.assertIn('root.addView(portal);', CONTROLS)

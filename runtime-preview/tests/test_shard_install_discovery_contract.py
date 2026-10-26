@@ -45,7 +45,7 @@ class ShardInstallDiscoveryContract(unittest.TestCase):
             PORTAL.index('@Override protected void onSaveInstanceState')])
         self.assertIn('CharoiteGameSessions.hasPendingInstallerScan(this)', PORTAL)
         self.assertIn('scanAfterInstallerReturn', PORTAL)
-        self.assertIn('CharoiteGameLibrary.mergeInstalled', LIBRARY)
+        self.assertIn('public static synchronized int mergeInstalled(', LIBRARY)
 
     def test_shard_diagnosis_available_even_with_no_installed_icon(self):
         self.assertIn('CHECK SHARD OF DREAMS', PORTAL)

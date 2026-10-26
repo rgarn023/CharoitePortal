@@ -316,17 +316,23 @@ jobs:
           cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
           cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
 
-      - name: Publish runtime preview APK
+      - name: Publish Charoite Portal APK
+        run: |
+          cp upstream/app/build/outputs/apk/debug/app-debug.apk \
+            upstream/app/build/outputs/apk/debug/Charoite-Portal-Android.apk
+          test -s upstream/app/build/outputs/apk/debug/Charoite-Portal-Android.apk
+
+      - name: Upload Charoite Portal APK
         uses: actions/upload-artifact@v4
         with:
-          name: touhou-pocket-runtime-preview-apk
-          path: upstream/app/build/outputs/apk/debug/*.apk
+          name: Charoite-Portal-Android-APK
+          path: upstream/app/build/outputs/apk/debug/Charoite-Portal-Android.apk
           if-no-files-found: error
 
       - name: Publish source attribution
         uses: actions/upload-artifact@v4
         with:
-          name: touhou-pocket-runtime-legal
+          name: Charoite-Portal-Licenses
           path: legal-bundle/
           if-no-files-found: error
 
@@ -342,7 +348,7 @@ jobs:
       - name: Download verified build
         uses: actions/download-artifact@v4
         with:
-          name: touhou-pocket-runtime-preview-apk
+          name: Charoite-Portal-Android-APK
           path: release-package
 
       - name: Publish Charoite GDI charset diagnostic APK
@@ -353,8 +359,8 @@ jobs:
           set -euo pipefail
           TAG=charoite-portal-gdi-charset-v2
           PACKAGE=Charoite-Portal-GDI-Charset-Test-v2.apk
-          test -f release-package/app-debug.apk
-          cp release-package/app-debug.apk "release-package/$PACKAGE"
+          test -f release-package/Charoite-Portal-Android.apk
+          cp release-package/Charoite-Portal-Android.apk "release-package/$PACKAGE"
           python3 - <<'PY'
           import zipfile
           path="release-package/Charoite-Portal-GDI-Charset-Test-v2.apk"

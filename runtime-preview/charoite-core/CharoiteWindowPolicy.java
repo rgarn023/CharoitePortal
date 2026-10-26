@@ -65,6 +65,11 @@ public final class CharoiteWindowPolicy {
         return lastHandheldScreen;
     }
 
+    /** The compositor-selected X11 game client is our focus target. */
+    public static int handheldGameClientId() {
+        return generalGameClientId;
+    }
+
     /**
      * Filter the SECOND nearby Shard-only phone touchscreen tap at the
      * TouchpadView click producer, preventing Wine WM_LBUTTONDBLCLK from

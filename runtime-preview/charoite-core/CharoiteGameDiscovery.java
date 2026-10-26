@@ -45,6 +45,10 @@ public final class CharoiteGameDiscovery {
                 JSONObject entry = new JSONObject();
                 entry.put("name", profile.displayName(child.getName()));
                 entry.put("path", child.getAbsolutePath());
+                // Recognize supported keyboard profiles as games are found.
+                // Re-check at launch; never parse or modify arbitrary EXEs.
+                entry.put("controlProfile",
+                        CharoiteGameControlProfiles.idForExecutable(child.getAbsolutePath()));
                 entry.put("installer", false);
                 entry.put("files", 0);
                 found.add(entry);

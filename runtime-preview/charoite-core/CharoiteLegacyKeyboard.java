@@ -27,7 +27,8 @@ public final class CharoiteLegacyKeyboard {
     public static final int WIN32_ONLY = 1;
     public static final int X11_ONLY = 2;
     public static final int SCAN_ONLY = 3;
-    private static volatile int inputMode = DUAL;
+    public static final int WINDOW_ONLY = 4;
+    private static volatile int inputMode = SCAN_ONLY;
 
     private CharoiteLegacyKeyboard() {}
 
@@ -35,18 +36,27 @@ public final class CharoiteLegacyKeyboard {
         return CharoiteGameControlProfiles.isTouhou8Executable(executable);
     }
 
-    public static void resetMode() { inputMode = DUAL; }
+    public static void resetMode() {
+        // Prefer ONE verified native route over three competing key streams.
+        inputMode = SCAN_ONLY;
+        scanPrepared = false;
+        scanAcknowledged = false;
+        scanStatus = "Scan bridge not started";
+        windowStatus = "Window bridge not started";
+    }
     public static int nextMode() {
-        inputMode = (inputMode + 1) % 4;
+        inputMode = (inputMode + 1) % 5;
         return inputMode;
     }
     public static boolean useWin32() { return inputMode == DUAL || inputMode == WIN32_ONLY; }
     public static boolean useX11() { return inputMode == DUAL || inputMode == X11_ONLY; }
     public static boolean useScan() { return inputMode == DUAL || inputMode == SCAN_ONLY; }
+    public static boolean useWindow() { return inputMode == WINDOW_ONLY; }
     public static String modeLabel() {
         return inputMode == WIN32_ONLY ? "WIN32" :
                 inputMode == X11_ONLY ? "X11" :
-                inputMode == SCAN_ONLY ? "SCAN" : "DUAL";
+                inputMode == SCAN_ONLY ? "SCAN" :
+                inputMode == WINDOW_ONLY ? "WINDOW" : "DUAL";
     }
 
     private static volatile String focusStatus = "Focus not checked";
@@ -137,6 +147,7 @@ public final class CharoiteLegacyKeyboard {
                 "\nHelper: " + scanInstallPath +
                 "\nScan: " + scanStatus +
                 "\nScan acknowledged: " + scanAcknowledged +
+                "\nWindow input: " + windowStatus +
                 "\nKey injection does not guarantee the game received it.";
     }
 
@@ -152,6 +163,7 @@ public final class CharoiteLegacyKeyboard {
             java.util.concurrent.Executors.newSingleThreadExecutor();
     private static volatile String scanStatus = "Scan bridge not started";
     private static volatile boolean scanAcknowledged = false;
+    private static volatile String windowStatus = "Window bridge not started";
     private static volatile boolean scanPrepared = false;
     private static final int SCAN_PORT = 7949;
 
@@ -208,22 +220,30 @@ public final class CharoiteLegacyKeyboard {
         }
     }
 
-    /** Send a fixed protocol packet and await the *Windows process* ACK.
-     * All UDP traffic runs off the Android main thread, in key event order.
+    /** All UDP I/O is serialized off the UI thread. ACKs are returned by a
+     * running Wine executable, not by an Android-side queue.
      */
     public static void sendScan(int code, boolean pressed) {
+        sendGuestKey(code, pressed, 'S');
+    }
+
+    /** Guest-window-targeted WM_KEYDOWN / WM_KEYUP fallback for Touhou 8. */
+    public static void sendWindow(int code, boolean pressed) {
+        sendGuestKey(code, pressed, 'W');
+    }
+
+    private static void sendGuestKey(int code, boolean pressed, char route) {
         int vk = virtualKey(code);
         if (vk < 0) return;
         scanSender.execute(() -> {
-            byte[] packet = {(byte)'C',(byte)'K',(byte)'S',(byte)'1',
+            byte[] packet = {(byte)'C',(byte)'K',(byte)route,(byte)'1',
                              (byte)vk, (byte)(pressed ? 1 : 0)};
             try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
-                socket.setSoTimeout(180);
+                socket.setSoTimeout(220);
                 java.net.InetAddress loopback =
                         java.net.InetAddress.getByName("127.0.0.1");
                 java.net.DatagramPacket request = new java.net.DatagramPacket(
                         packet, packet.length, loopback, SCAN_PORT);
-                // The first press can race Wine's startup; retry only DOWN.
                 for (int attempt = 0; attempt < (pressed ? 3 : 1); attempt++) {
                     socket.send(request);
                     byte[] response = new byte[5];
@@ -234,21 +254,36 @@ public final class CharoiteLegacyKeyboard {
                         if (ack.getLength() == 5 && response[0] == 'C' &&
                                 response[1] == 'K' && response[2] == 'A' &&
                                 response[3] == '1') {
-                            scanAcknowledged = response[4] == '1';
-                            scanStatus = scanAcknowledged ?
-                                    "Wine SendInput scan-code ACK received" :
-                                    "Wine SendInput returned failure";
-                            android.util.Log.d("CharoiteInput", scanStatus);
+                            char status = (char)response[4];
+                            String message = status == '1' ?
+                                    "Wine SendInput accepted scan code" :
+                                    status == '2' ?
+                                    "Wine target HWND accepted WM_KEY event" :
+                                    status == 'N' ?
+                                    "Wine could not find Touhou 8 game window" :
+                                    "Wine-side key delivery failed";
+                            if (route == 'S') {
+                                scanAcknowledged = status == '1';
+                                scanStatus = message;
+                            } else windowStatus = message;
+                            android.util.Log.i("CharoiteInput",
+                                    (route == 'S' ? "SCAN: " : "WINDOW: ") + message);
                             return;
                         }
                     } catch (java.net.SocketTimeoutException timeout) {
-                        // Retry a key down while Wine initializes.
+                        // The guest program may start after the Android UI.
                     }
                 }
-                scanStatus = "No scan-code receiver ACK (check Wine launch)";
+                if (route == 'S') {
+                    scanAcknowledged = false;
+                    scanStatus = "No Wine scan receiver ACK (Wine helper not running)";
+                } else windowStatus = "No Wine window receiver ACK";
             } catch (Exception error) {
-                scanStatus = "Scan path error: " + error.getClass().getSimpleName();
-                android.util.Log.w("CharoiteInput", scanStatus, error);
+                String message = "Guest input socket: " +
+                        error.getClass().getSimpleName();
+                if (route == 'S') scanStatus = message;
+                else windowStatus = message;
+                android.util.Log.w("CharoiteInput", message, error);
             }
         });
     }

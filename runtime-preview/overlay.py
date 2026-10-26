@@ -337,7 +337,16 @@ code = code.replace(dex_ui_original, """        if (getIntent().getBooleanExtra(
             // preserving the existing Wine/XServer session and its game saves.
             AppUtils.hideSystemUI(this);
         }
-        AppUtils.keepScreenOn(this);""")
+        AppUtils.keepScreenOn(this);
+        // A soft keyboard should overlay the bottom handheld controls,
+        // not resize or pan TPDP's compositor-scaled game surface.
+        // Non-TPDP games and DeX retain their existing keyboard behavior.
+        if (com.charoitegames.core.CharoiteWindowPolicy.enlargeHandheldGame(
+                getIntent().getStringExtra("exec_path"),
+                getIntent().getBooleanExtra("touhou_desktop_window", false))) {
+            getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+        }""")
 
 # Reuse the TPDP Charoite Core keyboard buttons, without loading a
 # duplicate Winlator controls profile or changing Wine container settings.
@@ -387,6 +396,21 @@ code = code.replace(tpdp_touch_anchor, tpdp_touch_anchor + """
                     });
         }
 """)
+
+# TPDP/Shard handheld sessions must not inherit the upstream keyboard
+# cursor-tracking translation, which visibly pushes their Wine game image up.
+# Other Windows games and DeX retain the original cursor-following behavior.
+keyboard_pan_anchor = "        AppUtils.observeSoftKeyboardVisibility(drawerLayout, renderer::setScreenOffsetYRelativeToCursor);"
+assert code.count(keyboard_pan_anchor) == 1, "Upstream IME renderer offset hook changed"
+code = code.replace(keyboard_pan_anchor, """        if (com.charoitegames.core.CharoiteWindowPolicy.enlargeHandheldGame(
+                getIntent().getStringExtra("exec_path"),
+                getIntent().getBooleanExtra("touhou_desktop_window", false))) {
+            // Keep the upper handheld display stationary when the IME appears.
+            renderer.setScreenOffsetYRelativeToCursor(false);
+        } else {
+            AppUtils.observeSoftKeyboardVisibility(drawerLayout,
+                    renderer::setScreenOffsetYRelativeToCursor);
+        }""")
 
 # Keep Wine/XServer alive during device rotation. GLSurfaceView automatically
 # calls GLRenderer.onSurfaceChanged(new width, height); its viewTransformation

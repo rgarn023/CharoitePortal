@@ -22,7 +22,23 @@ class KeyboardContract(unittest.TestCase):
         self.assertIn('keyboard.setOnClickListener(', TOUCH)
         self.assertIn('CharoiteSoftKeyboard.show(host);', TOUCH)
         self.assertIn('releaseAll.run();', TOUCH)
-        self.assertIn('position(keyboard, (width - dp(host, 86)) / 2,', TOUCH)
+        # Keyboard belongs in the shoulder row, between L and R, never
+        # over the game at the top edge.
+        self.assertIn('position(keyboard, (width - keyboardW) / 2,', TOUCH)
+        self.assertIn('shoulderY, keyboardW, barHeight);', TOUCH)
+        self.assertIn('rightShoulderX - leftShoulderX - shoulderW - 2 * gap', TOUCH)
+        self.assertNotIn('position(keyboard, (width - dp(host, 86)) / 2,', TOUCH)
+
+    def test_ime_overlays_handheld_without_moving_windows_game(self):
+        # Both Android window panning and Winlator's own mouse-follow
+        # compositor translation have to be disabled for TPDP/Shard.
+        self.assertIn('SOFT_INPUT_ADJUST_NOTHING', OVERLAY)
+        self.assertIn('renderer.setScreenOffsetYRelativeToCursor(false);', OVERLAY)
+        self.assertIn('keyboard_pan_anchor', OVERLAY)
+        self.assertIn('CharoiteWindowPolicy.enlargeHandheldGame(', OVERLAY)
+        self.assertIn('AppUtils.observeSoftKeyboardVisibility(drawerLayout,', OVERLAY)
+        self.assertIn('renderer::setScreenOffsetYRelativeToCursor);', OVERLAY)
+        self.assertIn('getBooleanExtra("touhou_desktop_window", false)', OVERLAY)
         self.assertIn('keyboard.setOnClickListener(', TOUCH)
 
 class ShardContract(unittest.TestCase):

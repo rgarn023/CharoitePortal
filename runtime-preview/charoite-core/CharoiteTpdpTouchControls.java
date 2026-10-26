@@ -234,7 +234,7 @@ public final class CharoiteTpdpTouchControls {
         final Button more = button(host, "MORE", "Extra keyboard controls",
                 -1, true, guarded);
         // Always reachable even while the Game Boy buttons are hidden.
-        // Uses Android's system IME, as the runtime's existing menu does.
+        // Uses Android's system IME; visually positioned between L and R.
         final Button keyboard = button(host, "KEYBOARD", "Open system keyboard",
                 -1, true, guarded);
         final Button toggle = button(host, "HIDE KEYS", "Hide handheld controls",
@@ -278,11 +278,24 @@ public final class CharoiteTpdpTouchControls {
                             topControls + barHeight + dp(host, 8),
                             clusterY - barHeight - dp(host, 12)) :
                     topControls + dp(host, 36);
-            final int shoulderW = dp(host, portrait ? 88 : 65);
-            position(leftShoulder, margin + dp(host, 12),
+            final int shoulderInset = margin + dp(host, 12);
+            // Reserve space for the centered keyboard even in a narrower
+            // multi-window view. Keep the game image and D-pad positions fixed.
+            final int shoulderW = Math.min(dp(host, portrait ? 88 : 65),
+                    Math.max(dp(host, 36), (width - 2 * shoulderInset -
+                            dp(host, 60) - 2 * gap) / 2));
+            final int leftShoulderX = shoulderInset;
+            final int rightShoulderX = width - shoulderInset - shoulderW;
+            position(leftShoulder, leftShoulderX,
                     shoulderY, shoulderW, barHeight);
-            position(rightShoulder, width - margin - dp(host, 12) - shoulderW,
+            position(rightShoulder, rightShoulderX,
                     shoulderY, shoulderW, barHeight);
+            final int keyboardSpace = Math.max(0,
+                    rightShoulderX - leftShoulderX - shoulderW - 2 * gap);
+            final int keyboardW = Math.min(dp(host, 100), keyboardSpace);
+            keyboard.setText(keyboardW < dp(host, 78) ? "⌨" : "KEYBOARD");
+            position(keyboard, (width - keyboardW) / 2,
+                    shoulderY, keyboardW, barHeight);
 
             position(up, dpadX + size + gap, clusterY, size, size);
             position(left, dpadX, clusterY + size + gap, size, size);
@@ -300,8 +313,6 @@ public final class CharoiteTpdpTouchControls {
 
             int topButtonH = dp(host, 32);
             position(more, margin, margin, dp(host, 68), topButtonH);
-            position(keyboard, (width - dp(host, 86)) / 2,
-                    margin, dp(host, 86), topButtonH);
             position(toggle, width - margin - dp(host, 93),
                     margin, dp(host, 93), topButtonH);
 

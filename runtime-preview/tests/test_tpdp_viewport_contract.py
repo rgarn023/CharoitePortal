@@ -63,8 +63,12 @@ class TpdpViewportContract(unittest.TestCase):
         self.assertIn('screenInfo.height * 0.56f', POLICY)
         self.assertIn('screenInfo.height - transform.height', POLICY)
         self.assertIn('topControls', CONTROLS)
-        self.assertIn('position(select, centerX, topControls', CONTROLS)
-        self.assertIn('position(start, centerX + centerWidth + centerGap', CONTROLS)
+        # Esc/Select/Start/Enter now share one row beneath the game,
+        # without changing the game viewport or shoulder positions.
+        self.assertIn('position(esc, centerX, topControls', CONTROLS)
+        self.assertIn('position(select, centerX + centerWidth + centerGap', CONTROLS)
+        self.assertIn('position(start, centerX + 2 * (centerWidth + centerGap)', CONTROLS)
+        self.assertIn('position(enter, centerX + 3 * (centerWidth + centerGap)', CONTROLS)
 
     def test_game_pixels_and_profiles_unchanged(self):
         self.assertIn('"version=1.10.3"', PROFILE)

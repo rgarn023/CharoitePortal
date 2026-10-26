@@ -236,7 +236,7 @@ for module in ("CharoiteGameImport.java", "CharoiteJapaneseSupport.java",
                "CharoiteDiagnostics.java", "CharoiteRenderingDiagnostics.java",
                "CharoiteGraphicsProfiles.java", "CharoiteWindowPolicy.java",
                "CharoiteSoftKeyboard.java", "CharoiteShardOfDreamsSupport.java",
-               "CharoiteFileManagerActivity.java"):
+               "CharoiteFileManagerActivity.java", "CharoiteGameRemoval.java"):
     module_source = overlay.parent / "charoite-core" / module
     module_dest = java_root / "com/charoitegames/core" / module
     assert module_source.is_file(), f"Missing Core module: {module}"
@@ -441,6 +441,31 @@ touchpad_code = touchpad_code.replace(touchpad_function_anchor, """    private b
     }
 
 """ + touchpad_function_anchor)
+# Keep Android mouse/touch coordinates synchronized with the LIVE
+# projected Wine screen when a phone changes physical orientation.
+touchpad_viewport_anchor = """        viewTransformation.update(outerWidth, outerHeight, innerWidth, innerHeight);"""
+assert touchpad_code.count(touchpad_viewport_anchor) == 1, (
+    "Upstream TouchpadView viewport transform changed"
+)
+touchpad_code = touchpad_code.replace(touchpad_viewport_anchor,
+    """        com.charoitegames.core.CharoiteWindowPolicy.updateLiveViewport(
+                viewTransformation, xServer.screenInfo, outerWidth, outerHeight,
+                xServer.activity.getIntent().getStringExtra("exec_path"),
+                xServer.activity.getIntent().getBooleanExtra(
+                        "touhou_desktop_window", false));""")
+touchpad_rotation_anchor = """    public boolean onTouchEvent(MotionEvent event) {
+"""
+assert touchpad_code.count(touchpad_rotation_anchor) == 1, (
+    "Upstream TouchpadView input callback changed"
+)
+touchpad_code = touchpad_code.replace(touchpad_rotation_anchor,
+    touchpad_rotation_anchor + """        if (event.getActionMasked() == MotionEvent.ACTION_DOWN &&
+                getWidth() > 0 && getHeight() > 0) {
+            updateXform(getWidth(), getHeight(),
+                    xServer.screenInfo.width, xServer.screenInfo.height);
+        }
+""")
+
 touchpad_source.write_text(touchpad_code, encoding="utf-8")
 
 # TPDP/Shard handheld sessions must not inherit the upstream keyboard
@@ -681,6 +706,47 @@ display.write_text(code, encoding="utf-8")
 # transform handles touch/pointer hit testing as well as display scaling.
 gl_renderer = java_root / "com/winlator/renderer/GLRenderer.java"
 gl_renderer_code = gl_renderer.read_text(encoding="utf-8")
+
+# A running Wine guest keeps its launch-time desktop mode while the phone
+# rotates. Recalculate the Android projection when GLSurfaceView resizes
+# and whenever the game's mapped X11 client changes, using one scale value
+# for both axes. Game frame / graphics backend remain unchanged.
+surface_rotation_anchor = """        viewTransformation.update(width, height, xServer.screenInfo.width, xServer.screenInfo.height);
+        viewportNeedsUpdate = true;"""
+assert gl_renderer_code.count(surface_rotation_anchor) == 1, (
+    "Upstream onSurfaceChanged viewport update changed"
+)
+gl_renderer_code = gl_renderer_code.replace(surface_rotation_anchor,
+    surface_rotation_anchor + """
+        if (com.charoitegames.core.CharoiteWindowPolicy.enlargeHandheldGame(
+                xServer.activity.getIntent().getStringExtra("exec_path"),
+                xServer.activity.getIntent().getBooleanExtra(
+                        "touhou_desktop_window", false))) {
+            updateScene();
+        }""")
+scene_rotation_anchor = """            collectRenderableWindows(xServer.windowManager.rootWindow, xServer.windowManager.rootWindow.getX(), xServer.windowManager.rootWindow.getY());
+        }
+    }"""
+assert gl_renderer_code.count(scene_rotation_anchor) == 1, (
+    "Upstream GL scene rebuilding changed"
+)
+gl_renderer_code = gl_renderer_code.replace(scene_rotation_anchor,
+    """            collectRenderableWindows(xServer.windowManager.rootWindow, xServer.windowManager.rootWindow.getX(), xServer.windowManager.rootWindow.getY());
+        }
+        if (com.charoitegames.core.CharoiteWindowPolicy.enlargeHandheldGame(
+                xServer.activity.getIntent().getStringExtra("exec_path"),
+                xServer.activity.getIntent().getBooleanExtra(
+                        "touhou_desktop_window", false))) {
+            com.charoitegames.core.CharoiteWindowPolicy.updateLiveViewport(
+                    viewTransformation, xServer.screenInfo,
+                    surfaceWidth, surfaceHeight,
+                    xServer.activity.getIntent().getStringExtra("exec_path"),
+                    xServer.activity.getIntent().getBooleanExtra(
+                            "touhou_desktop_window", false));
+            viewportNeedsUpdate = true;
+        }
+    }""")
+
 
 # Observe existing Android GL draws without changing the frame limiter or
 # making per-frame disk writes. The sample is Core-owned and Shard-only.

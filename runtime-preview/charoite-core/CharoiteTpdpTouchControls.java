@@ -144,7 +144,13 @@ public final class CharoiteTpdpTouchControls {
             ViewTransformation view = xServerView.getRenderer().viewTransformation;
             if (view.aspect <= 0) return;
             float left = xServerView.getLeft() + view.viewOffsetX + area[0] * view.aspect;
-            float top = xServerView.getTop() + view.viewOffsetY + area[1] * view.aspect;
+            // GL viewport Y uses a bottom origin; Canvas coordinates are
+            // top-down. Convert using the complete projected guest scene so
+            // the bezel aligns after either phone rotation direction.
+            float projectedTop = xServerView.getHeight() -
+                    view.viewOffsetY - view.viewHeight;
+            float top = xServerView.getTop() + projectedTop +
+                    area[1] * view.aspect;
             float right = left + area[2] * view.aspect;
             float bottom = top + area[3] * view.aspect;
             bounds.set(left - dp((Activity)getContext(), 3),

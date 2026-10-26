@@ -1,3 +1,13 @@
+## First-launch environments
+
+A fresh installation opens in **General Gaming**, while **Touhou Realm** is
+available immediately from **System → Switch Environment**. Each environment
+has its own Wine container, installed games, Library, and compatibility
+preferences, all running through the same Charoite Core. Portal remembers the
+last selected environment across app restarts. Existing installations retain
+their active environment and original files when the built-in General Gaming
+entry is added during an APK update.
+
 # Charoite Portal for Android
 
 **Charoite Portal** is a Charoite Games Windows gaming environment manager running entirely inside Android / Samsung One UI, with **Charoite Core v0.9** and a pinned, appropriately attributed Winlator-derived Wine/Box64 runtime. It is **not** a custom Android OS, a Windows installation, or a proprietary Wine/Box64 replacement.

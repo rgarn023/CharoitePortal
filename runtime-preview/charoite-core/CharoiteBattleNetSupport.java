@@ -373,6 +373,63 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Status of the Charoite-owned in-session observer. This small local
+     * state record exists even if WinHandler never starts the guest probe.
+     * No Blizzard files, process logs or personal data are read or modified.
+     */
+    public static void noteLiveAgentMonitorState(File root, String state) {
+        if (!state.matches("ARMED|WAITING_FOR_WINE|WINE_BRIDGE_TIMEOUT|" +
+                "COMMAND_SENT|PREPARE_FAILED")) return;
+        try {
+            File drive = wineDrive(root);
+            File folder = new File(drive, "CharoitePortal/Diagnostics");
+            if (!folder.isDirectory() && !folder.mkdirs()) return;
+            File status = new File(folder, "charoite_bnet_monitor_state.txt");
+            String message = "monitor_android_state=" + state + "\n" +
+                    "monitor_android_state_epoch_ms=" +
+                    System.currentTimeMillis() + "\n";
+            Files.write(status.toPath(),
+                    message.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        } catch (IOException ignored) {
+            // Monitoring is diagnostic only; never block a Battle.net launch.
+        }
+    }
+
+    private static String describeLiveAgentMonitorState(File drive) {
+        File status = new File(drive,
+                "CharoitePortal/Diagnostics/charoite_bnet_monitor_state.txt");
+        if (!status.isFile() || status.length() > 256) {
+            return "Android monitor launcher state: never recorded. " +
+                    "The installed app may predate live monitoring, or " +
+                    "Battle.net has not been opened since this APK update.\n";
+        }
+        try {
+            String data = new String(Files.readAllBytes(status.toPath()),
+                    java.nio.charset.StandardCharsets.US_ASCII);
+            java.util.regex.Matcher code = java.util.regex.Pattern.compile(
+                    "monitor_android_state=(ARMED|WAITING_FOR_WINE|" +
+                    "WINE_BRIDGE_TIMEOUT|COMMAND_SENT|PREPARE_FAILED)")
+                    .matcher(data);
+            if (!code.find()) return "Android monitor launcher state: invalid.\n";
+            String state = code.group(1);
+            return "Android monitor launcher state: " + state + "\n" +
+                    "  Status timestamp: " +
+                    new java.util.Date(status.lastModified()) + "\n" +
+                    (state.equals("WINE_BRIDGE_TIMEOUT") ?
+                    "  Wine's keyboard/command bridge was not ready in " +
+                    "time; no process monitor could be started.\n" :
+                    state.equals("PREPARE_FAILED") ?
+                    "  Charoite could not prepare its own read-only probe.\n" :
+                    state.equals("COMMAND_SENT") ?
+                    "  Charoite requested the monitor process; Wine execution " +
+                    "is not confirmed until a report file exists.\n" :
+                    "  Waiting for the Wine-side command bridge.\n");
+        } catch (IOException error) {
+            return "Android monitor launcher state: unreadable.\n";
+        }
+    }
+
+    /**
      * Report data collected from the SAME Wine session as Battle.net.
      * This is distinct from the standalone network probe, which showed zero
      * processes simply because it was launched as a separate Wine activity.
@@ -383,13 +440,16 @@ public final class CharoiteBattleNetSupport {
             File drive = wineDrive(root);
             File report = new File(drive,
                     "CharoitePortal/Diagnostics/charoite_bnet_launch_monitor.txt");
+            String androidState = describeLiveAgentMonitorState(drive);
             if (!report.isFile() || report.length() > 8192)
-                return "BATTLE.NET LIVE AGENT MONITOR\nNo live-session record yet. " +
-                        "Open Battle.net, leave its window open briefly, " +
-                        "then return to Portal diagnostics.\n";
+                return "BATTLE.NET LIVE AGENT MONITOR\n" + androidState +
+                        "No Wine-side monitor samples received yet. Open the " +
+                        "installed Battle.net client, leave its window open " +
+                        "briefly, then return to this dedicated monitor view.\n";
             String data = new String(Files.readAllBytes(report.toPath()),
                     java.nio.charset.StandardCharsets.US_ASCII);
             StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\n");
+            out.append(androidState);
             out.append("Sample timestamp: ")
                     .append(new java.util.Date(report.lastModified())).append("\n");
             for (String line : data.split("\\r?\\n")) {

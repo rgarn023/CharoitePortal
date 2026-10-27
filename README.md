@@ -1,4 +1,4 @@
-## First-launch environments
+> **Continuing this project in a new chat?** Open [CURRENT_HANDOFF.md](docs/CURRENT_HANDOFF.md) for the latest GitHub branch, verified APK, unresolved issues, and the exact next steps. The older `docs/HANDOFF.md` is historical.\n\n## First-launch environments
 
 A fresh installation opens in **General Gaming**, while **Touhou Realm** is
 available immediately from **System → Switch Environment**. Each environment
@@ -53,7 +53,7 @@ Source structure:
 - `runtime-preview/charoite-core/CharoitePageTabs.java`: Shared connected page tab UI.
 - `runtime-preview/overlay.py`: Packages the app and Core into the pinned upstream Android source, sets the distinct `com.charoite` identity and retains license notices.
 
-No proprietary Touhou or Windows game executables, translations or expansions are bundled. Respect all applicable Wine/Winlator/Box64/graphics/font licenses. See [runtime attribution](runtime-preview/NOTICE.md), [Core documentation](runtime-preview/charoite-core/README.md), and [development handoff](docs/HANDOFF.md).
+No proprietary Touhou or Windows game executables, translations or expansions are bundled. Respect all applicable Wine/Winlator/Box64/graphics/font licenses. See [runtime attribution](runtime-preview/NOTICE.md), [Core documentation](runtime-preview/charoite-core/README.md), and [current, living ChatGPT handoff](docs/CURRENT_HANDOFF.md) ([older development history](docs/HANDOFF.md)).
 
 
 **Core v0.8 update:** Folder importing, executable selection and never-autolaunch rules now live in `runtime-preview/charoite-core/CharoiteGameImport.java`, shared by Touhou and other environments. Japanese codepage/fonts and the scoped Windows compatibility helpers now live exclusively in `runtime-preview/charoite-core/CharoiteJapaneseSupport.java` and `charoite-core/japanese/`. System offers per-realm **Japanese Text Support** (Touhou ON by default). Exported `.cenv` files can include an optional `japaneseText` value while remaining backward-compatible.

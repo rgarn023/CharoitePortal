@@ -68,6 +68,17 @@ public final class CharoiteGameSessions {
                               int containerId, String executable, boolean installer,
                               boolean gamePresentation, boolean agentCompatibility,
                               boolean disableBattleNetBrowserGpu) {
+        launch(host, target, containerId, executable, installer,
+                gamePresentation, agentCompatibility, disableBattleNetBrowserGpu, false);
+    }
+
+    /** Optional Chromium GPU-process isolation experiment. Unlike --disable-gpu,
+     * this keeps GPU support but asks CEF to run it in-process. It is scoped
+     * to a deliberate Battle.net launch and NEVER persisted in the Wine prefix. */
+    public static void launch(AppCompatActivity host, Class<? extends Activity> target,
+                              int containerId, String executable, boolean installer,
+                              boolean gamePresentation, boolean agentCompatibility,
+                              boolean disableBattleNetBrowserGpu, boolean inProcessBrowserGpu) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
         // Shard of Dreams uses the original TPDP installation. Some Wine
@@ -93,6 +104,10 @@ public final class CharoiteGameSessions {
         play.putExtra("charoite_bnet_disable_gpu",
                 disableBattleNetBrowserGpu && !installer &&
                 CharoiteEnvironments.isBattleNet(host) &&
+                installedBattleNetLauncher);
+        play.putExtra("charoite_bnet_in_process_gpu",
+                inProcessBrowserGpu && !disableBattleNetBrowserGpu &&
+                !installer && CharoiteEnvironments.isBattleNet(host) &&
                 installedBattleNetLauncher);
         // Collect Agent process status in the SAME Wine session as Battle.net,
         // never a separate diagnostic desktop. The observer only reads process

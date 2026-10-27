@@ -159,6 +159,77 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Apply Lutris' documented Battle.net browser hardware-acceleration
+     * setting to EXISTING config files, after explicit user confirmation.
+     * Make a one-time rollback copy first. Preserve all other JSON keys.
+     * Do not delete Blizzard caches, tokens, accounts, Agent or game data.
+     */
+    public static String applyBrowserSoftwareSetting(File root) throws Exception {
+        File drive = wineDrive(root);
+        File users = new File(drive, "users");
+        File[] profiles = users.listFiles();
+        if (profiles == null) throw new IOException("Wine user profiles unavailable");
+        int updated = 0, unchanged = 0, invalid = 0;
+        for (File profile : profiles) {
+            if (!profile.isDirectory() || java.nio.file.Files.isSymbolicLink(profile.toPath()))
+                continue;
+            for (String location : new String[]{
+                    "AppData/Roaming/Battle.net/Battle.net.config",
+                    "Application Data/Battle.net/Battle.net.config"}) {
+                File file = new File(profile, location);
+                if (!file.isFile() || java.nio.file.Files.isSymbolicLink(file.toPath()) ||
+                        file.length() > 256 * 1024) continue;
+                // Wine usually symlinks Application Data to AppData/Roaming:
+                // never follow a duplicate or backup path outside drive_c.
+                File canonical = file.getCanonicalFile();
+                if (!canonical.getPath().startsWith(drive.getPath() + File.separator))
+                    continue;
+                if (updated + unchanged > 0 && location.startsWith("Application Data/"))
+                    continue;
+                byte[] bytes = java.nio.file.Files.readAllBytes(canonical.toPath());
+                org.json.JSONObject config;
+                try { config = new org.json.JSONObject(
+                        new String(bytes, java.nio.charset.StandardCharsets.UTF_8)); }
+                catch (org.json.JSONException bad) { invalid++; continue; }
+                org.json.JSONObject client = config.optJSONObject("Client");
+                if (client == null) {
+                    client = new org.json.JSONObject();
+                    config.put("Client", client);
+                }
+                if ("false".equalsIgnoreCase(client.optString("HardwareAcceleration"))) {
+                    unchanged++;
+                    continue;
+                }
+                File backup = new File(canonical.getParentFile(),
+                        "Battle.net.config.charoite-backup-v1");
+                if (!backup.exists()) {
+                    java.nio.file.Files.copy(canonical.toPath(), backup.toPath());
+                }
+                client.put("HardwareAcceleration", "false");
+                File pending = new File(canonical.getParentFile(),
+                        "Battle.net.config.charoite-tmp");
+                java.nio.file.Files.write(pending.toPath(),
+                        config.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                try {
+                    java.nio.file.Files.move(pending.toPath(), canonical.toPath(),
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                    java.nio.file.Files.move(pending.toPath(), canonical.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                updated++;
+                break; // only a single profile's equivalent config
+            }
+        }
+        return "Battle.net browser acceleration setting: " + updated +
+                " configuration(s) updated, " + unchanged + " already disabled, " +
+                invalid + " unreadable JSON file(s) left unchanged. " +
+                "Backups are Battle.net.config.charoite-backup-v1. " +
+                "No Agent, games, cache, session data or Wine prefix was removed.";
+    }
+
+    /**
      * Read-only browser/CEF state summary, with no Blizzard session tokens,
      * usernames, saved passwords, log contents, or account files included.
      * A spinner can be due to CEF rendering, Wine compatibility or networking.

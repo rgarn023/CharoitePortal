@@ -24,11 +24,11 @@
 ## 2. Current verified GitHub/APK state (October 27, 2026)
 
 **Latest verified Android runtime APK (source code):**
-- **Code SHA:** `1ef29980e27045aad1b9f44862b050133cfe52de`
-- **GitHub Actions run 40571495554**, status **SUCCESS**: https://github.com/rgarn023/CharoitePortal/actions/runs/40571495554
-- **Artifact:** `Charoite-Portal-Android-APK`, ID **12766230073**, compressed archive 231,391,149 bytes; verified uploaded and not expired when checked.
-- Contract tests, native diagnostic helper compilation, APK signing and Android build succeeded. **Phone has NOT yet run this newer APK.** Latest user-provided monitor belongs to older successful APK from run `40568654996`. Documentation-only commits can advance HEAD without rebuilding this APK.
-- Stable Android application ID `com.charoite`; preserving all Wine prefixes, game installations and settings. The themed drawer still awaits on-device visual confirmation.
+- **Runtime code SHA:** `b31049a52c1d69e8bf35a87ecd9822968ab5ac1e`.
+- **GitHub Actions run 40584206916** — **SUCCESS**: https://github.com/rgarn023/CharoitePortal/actions/runs/40584206916
+- **APK artifact:** `Charoite-Portal-Android-APK`, artifact ID **12770927138**, compressed archive 231,394,966 bytes; uploaded, verified not expired.
+- Integrated Android compilation, native Win32 helper, signing and contract tests passed; **on-device confirmation of the new RpcSs startup experiment is still pending**. Documentation-only commits can advance `main` beyond the APK's code SHA without requiring a new APK.
+- **Android package ID `com.charoite` unchanged;** installed games, Blizzard Agent, Wine prefixes and saves are not touched by the new changes. The opt-in service start affects only the running Battle.net environment when explicitly requested.
 
 **Documentation housekeeping in this chat:** This canonical living handoff was added to the repository as a separate, easy-to-paste file; the root `README.md` now links here and retains a link to the historical handoff. These are documentation-only changes with `[skip ci]`; they do **not** require a new APK or replace the verified runtime build above. Always check `main` HEAD before development.
 
@@ -135,7 +135,7 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 5. On **handoff-only** edits, put `[skip ci]` in the commit message to avoid redundant APK compilation. If a documentation commit advances `main` beyond last successful runtime commit, state so explicitly rather than claiming CI built that doc commit.
 6. Provide user the canonical [current handoff](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md) whenever context becomes long, so they can copy the raw Markdown into a new conversation. The old `docs/HANDOFF.md` is useful only as historical provenance.
 
-**Current priority (October 27):** run the new *read-only SCM RpcSs query* using successful APK run `40571495554`, then share the resulting Battle.net Live Agent/CEF report. Prior run `40568654996` has user-verified process counts showing absent `rpcss.exe` process name but present `services.exe`; the actual RpcSs service status is still unknown.
+**Current priority (October 27):** user's on-device SCM probe from run `40571495554` confirmed RpcSs **STOPPED 16/16 samples**, with successful SCM/service queries; the Agent and Battle.net client continue running. Install APK from successful run **`40584206916`** without data clearing, and explicitly try **TRY BATTLE.NET (START WINE RPC SERVICE)** in Battle.net Gaming → Setup. After ~30 seconds, copy **VIEW BATTLE.NET LOGIN / CEF REPORT** with opt-in start results, and report whether sign-in appears or spinner persists. This is a single-session test, not a proven repair.
 
 ## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
 
@@ -218,6 +218,51 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 - Play developer registration currently **US$25 one time**. New *personal* developer accounts created after Nov 13 2023 generally need **12 continuously opted-in closed testers for 14 days** before applying for production access. https://support.google.com/googleplay/android-developer/answer/6112435/ and https://support.google.com/googleplay/android-developer/answer/14151465
 
 **Recommended future roadmap:** solve core Battle.net/game UX first, document real hardware/device matrix, audit LGPL/other licenses and IP, modernize runtime for API 36, build a production AAB and signing migration, complete privacy and Play review/closed testing, then choose pricing or ads. Do not claim store-ready now. Keep the existing downloadable APK development workflow separate from eventual Play distribution.
+
+## 12. October 27, 2026 — On-device RpcSs STOPPED confirmed; new opt-in start test successfully built
+
+**Actual Galaxy report (17:01 EDT; prior APK run 40571495554):**
+```
+monitor_same_session=1
+monitor_expected_samples=16
+monitor_samples_completed=16
+monitor_agent_present_samples=15
+monitor_client_present_samples=16
+monitor_max_client=5
+monitor_rpcss_present_samples=0
+monitor_services_present_samples=16
+monitor_rpc_scm_connect_success_samples=16
+monitor_rpc_service_running_samples=0
+monitor_rpc_service_stopped_samples=16
+monitor_rpc_service_query_failed_samples=0
+monitor_rpc_service_state_last=1
+monitor_rpc_scm_error_last=0
+monitor_rpc_open_error_last=0
+monitor_rpc_query_error_last=0
+monitor_process_enumeration_error_samples=0
+monitor_complete=1
+```
+`SERVICE_STOPPED=1` is a **genuine SCM status**, not merely a missing rpcss.exe filename. Meanwhile Battle.net and Agent are live, so the exact causal relation to endless spinner is still unknown. One browser config has `HardwareAcceleration=false`; six sampled client logs: 138 error-like entries, 44 GPU/compositor, 40 rendering, 9 GPU-process, 4 Agent/IPC, 6 network, 3 login/auth, 3 CEF, 0 device lost, 0 memory-protection, 0 matching RPC keywords. These are overlapping text category counts, not proven GPU crashes. User has **not** yet confirmed success/failure of prior `--in-process-gpu` experiment.
+
+**Evidence motivating targeted test:** Wine's own `rpcrt4/rpc_epmap.c` implements service activation through `OpenServiceW(..., SERVICE_START | SERVICE_QUERY_STATUS)` and `StartServiceW`. The on-device stopped status justifies testing explicit activation, but not a blanket system rewrite. Source: https://github.com/wine-mirror/wine/blob/master/dlls/rpcrt4/rpc_epmap.c
+
+**Implementation DIRECTLY in GitHub main, no user file uploads:**
+- `52888718377fb258fbf2bf2000918682aa488fff`, `b21473babd8a9759fafb8cde3a9d4162fcae7db5`: update bundled first-party Win32 `charoite_bnet_network_probe.c` with **optional `/monitor /try-rpcss-start`**. On explicit flag only, query current RpcSs status, call `StartServiceW` only when it was `SERVICE_STOPPED`, poll bounded time, and log `monitor_rpc_start_before_state`, `monitor_rpc_start_attempted`, `monitor_rpc_start_win32_error`, `monitor_rpc_start_after_state`, SCM/open/query errors, etc. **Ordinary `/monitor` remains read-only**. Never change service startup mode, registry, installed Blizzard files, game files or any save. Note the helper is dispatched via `WinHandler.exec` **after Wine's display bridge is ready**; it is not a pre-executable startup hook. Initial behavior may already have failed before repair triggers; report actual results.
+- `06b5a4cbfc9f30405c058e7b2b65824add338447`: `CharoiteGameSessions.launch` gains a boolean `tryStartBattleNetRpc` overload and sanitized `charoite_bnet_try_start_rpc` Intent extra, restricted to **installed `Battle.net Launcher.exe` / `Battle.net.exe`** inside **Battle.net Gaming**, never installers/Touhou/other environments. All existing overloads retain default false.
+- `d8503d179835db53f4ec09804e42ea378760ffa3`: `runtime-preview/overlay.py` selects `/monitor /try-rpcss-start` only when scoped Intent flag is true; otherwise sends original `/monitor`.
+- `9bebc0e5aced23ae718c62696e65cb29f66a38ab`: Battle.net Setup adds **TRY BATTLE.NET (START WINE RPC SERVICE)** with explicit dialog **Try once**/**Cancel**. It launches the installed client in a normal Windows session with Safe Browser `--disable-gpu` and requests the one-session opt-in helper start. User should fully close any earlier Battle.net sessions first. Clearly warns no guarantee or permanent service change.
+- `54a54404bf6be4f7138801c1a987b3c675ac2b04`: live monitor reports whether opt-in was attempted, and before/after SCM service state and any start error, alongside client/Agent status. Note `RUNNING=4`, `STOPPED=1`.
+- `232829bdd6622b63e5bd68088d488c543ce42a42` creates new opt-in scope/safety contract tests; `b31049a52c1d69e8bf35a87ecd9822968ab5ac1e` updates the old **read-only** monitoring test to allow mutation only behind explicit opt-in. Intermediate CI runs failed stale assertions, final suite and full APK compilation succeeded.
+- **Verified latest APK:** Actions https://github.com/rgarn023/CharoitePortal/actions/runs/40584206916 **SUCCESS**, runtime SHA `b31049a52c1d69e8bf35a87ecd9822968ab5ac1e`, artifact `Charoite-Portal-Android-APK` ID **12770927138**. This handoff-only update uses `[skip ci]` and advances main HEAD after this code/build.
+
+**NEXT STEP for new chat:** Ask user to install update over existing `com.charoite` (do **not** uninstall/clear storage), ensure old Battle.net Windows session is closed, open Battle.net Gaming → Setup → **TRY BATTLE.NET (START WINE RPC SERVICE)**, confirm, observe UI; after 30 seconds return and copy **VIEW BATTLE.NET LOGIN / CEF REPORT**, especially:
+`monitor_rpc_opt_in_start_requested`,
+`monitor_rpc_start_before_state`,
+`monitor_rpc_start_attempted`,
+`monitor_rpc_start_win32_error`,
+`monitor_rpc_start_after_state`,
+`monitor_rpc_service_running_samples`,
+`monitor_rpc_service_stopped_samples`, GPU categories; user should say whether spinner or login appears. If service reaches running but spinner persists, focus CEF GPU/Agent IPC; if fails, investigate exact Win32 error/service binary. Don't claim Diablo III/IV support or Battle.net login fixed until on-device verified.
 
 ---
 **End of current Charoite Portal handoff.**

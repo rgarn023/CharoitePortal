@@ -80,6 +80,78 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Bounded, privacy-preserving summary of the newest Agent log files.
+     * Never display raw lines, URLs, usernames, paths, credentials or tokens.
+     * Categories represent log text only, NOT proof of a live Agent process.
+     */
+    private static String inspectRecentAgentErrors(File programData) {
+        java.util.ArrayList<File> candidates = new java.util.ArrayList<>();
+        File[] versions = programData.listFiles();
+        if (versions != null) for (File version : versions) {
+            if (java.nio.file.Files.isSymbolicLink(version.toPath()) ||
+                    !version.isDirectory() ||
+                    !version.getName().matches("Agent\\.[0-9]+")) continue;
+            File[] logs = new File(version, "Logs").listFiles();
+            if (logs == null) continue;
+            for (File log : logs) if (log.isFile() &&
+                    !java.nio.file.Files.isSymbolicLink(log.toPath()) &&
+                    (log.getName().endsWith(".log") || log.getName().endsWith(".txt")))
+                candidates.add(log);
+        }
+        candidates.sort((x, y) -> Long.compare(y.lastModified(), x.lastModified()));
+        int sample = Math.min(4, candidates.size());
+        int network = 0, tls = 0, dll = 0, agent = 0, cef = 0, errors = 0;
+        java.util.TreeSet<String> blizzardCodes = new java.util.TreeSet<>();
+        for (int i=0; i<sample; i++) {
+            File file = candidates.get(i);
+            try (java.io.RandomAccessFile input =
+                    new java.io.RandomAccessFile(file, "r")) {
+                long begin = Math.max(0, input.length() - 32 * 1024);
+                input.seek(begin);
+                byte[] raw = new byte[(int)(input.length() - begin)];
+                input.readFully(raw);
+                String data = new String(raw,
+                        java.nio.charset.StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+                for (String line : data.split("\\r?\\n")) {
+                    boolean failed = line.contains("error") ||
+                            line.contains("fail") || line.contains("exception") ||
+                            line.contains("unable") || line.contains("crash");
+                    if (!failed) continue;
+                    errors++;
+                    if (line.contains("network") || line.contains("connect") ||
+                            line.contains("timeout") || line.contains("http") ||
+                            line.contains("curl")) network++;
+                    if (line.contains("tls") || line.contains("ssl") ||
+                            line.contains("certificate")) tls++;
+                    if (line.contains("dll") || line.contains("module") ||
+                            line.contains("loadlibrary")) dll++;
+                    if (line.contains("agent") || line.contains("updater") ||
+                            line.contains("service")) agent++;
+                    if (line.contains("cef") || line.contains("browser") ||
+                            line.contains("tassadar") || line.contains("chromium")) cef++;
+                    java.util.regex.Matcher code = java.util.regex.Pattern.compile(
+                            "blz[a-z0-9]{8,22}").matcher(line);
+                    while (code.find() && blizzardCodes.size() < 5)
+                        blizzardCodes.add(code.group().toUpperCase(Locale.ROOT));
+                }
+            } catch (IOException ignored) {}
+        }
+        StringBuilder summary = new StringBuilder();
+        summary.append("Recent Agent logs examined: ").append(sample).append("\n");
+        summary.append("Error-like log entries: ").append(errors).append("\n");
+        summary.append("  Network/timeout references: ").append(network).append("\n");
+        summary.append("  TLS/certificate references: ").append(tls).append("\n");
+        summary.append("  DLL/module references: ").append(dll).append("\n");
+        summary.append("  Agent/updater references: ").append(agent).append("\n");
+        summary.append("  CEF/browser references: ").append(cef).append("\n");
+        if (!blizzardCodes.isEmpty())
+            summary.append("Blizzard error codes: ")
+                    .append(blizzardCodes).append("\n");
+        summary.append("Log-only indicators; actual Agent process status not verified.\n");
+        return summary.toString();
+    }
+
+    /**
      * Run the installed Battle.net.exe client directly when the Blizzard
      * bootstrap launcher stays at the loading emblem. Lutris documents this
      * fallback; it must not launch the setup program or replace the install.
@@ -144,6 +216,7 @@ public final class CharoiteBattleNetSupport {
             }
         }
         report.append("Agent.exe copies detected: ").append(agents).append("\n");
+        report.append(inspectRecentAgentErrors(programData));
         report.append("Agent log files: ").append(logs)
                 .append(" (error-named: ").append(errors).append(")\n");
         if (newestLog > 0) report.append("Newest log modified: ")

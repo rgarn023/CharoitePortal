@@ -510,6 +510,26 @@ public final class CharoiteBattleNetSupport {
                         .append("state and error values before inferring why.\n");
             } else out.append("No Service Control Manager query recorded by this APK. ")
                     .append("Update Charoite and relaunch Battle.net to verify RpcSs.\n");
+            int rpcStartRequested = monitorNumber(fields, "monitor_rpc_opt_in_start_requested");
+            int rpcStartAttempted = monitorNumber(fields, "monitor_rpc_start_attempted");
+            if (rpcStartRequested == 1 && rpcStartAttempted >= 0) {
+                int startError = monitorNumber(fields, "monitor_rpc_start_win32_error");
+                int startAfter = monitorNumber(fields, "monitor_rpc_start_after_state");
+                if (startAfter == 4)
+                    out.append("OPT-IN RpcSs START: Wine reports RUNNING after the " +
+                            "attempt. Test whether Battle.net reached login; " +
+                            "this is not proof the application IPC succeeds.\n");
+                else if (rpcStartAttempted == 0)
+                    out.append("OPT-IN RpcSs START: no start call was made; " +
+                            "check the initial service state and SCM access error fields.\n");
+                else
+                    out.append("OPT-IN RpcSs START: service did not reach " +
+                            "RUNNING during the bounded attempt. Windows " +
+                            "start error: ").append(startError).append(
+                            "; see start/query/status fields above.\n");
+            } else if (rpcStartRequested == 1)
+                out.append("RpcSs start experiment requested but no attempt " +
+                        "result recorded; this monitor may be incomplete.\n");
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
             return out.toString();

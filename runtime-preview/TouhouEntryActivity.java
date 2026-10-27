@@ -122,6 +122,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetOpenButton;
     private Button battleNetOriginalButton;
     private Button battleNetDirectButton;
+    private Button battleNetLaunchCompatButton;
     private Button battleNetBrowserSettingsButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
@@ -386,6 +387,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetOpenButton = null;
         battleNetOriginalButton = null;
         battleNetDirectButton = null;
+        battleNetLaunchCompatButton = null;
         battleNetBrowserSettingsButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
@@ -417,6 +419,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetDirectButton = outlinedButton("OPEN BATTLE.NET.EXE (DIRECT)",
                     this::openBattleNetDirect);
             battleCard.addView(battleNetDirectButton);
+            battleNetLaunchCompatButton = outlinedButton(
+                    "OPEN BATTLE.NET (COMPATIBILITY GRAPHICS)", this::openBattleNetCompatibility);
+            battleCard.addView(battleNetLaunchCompatButton);
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
             battleCard.addView(battleNetBrowserSettingsButton);
@@ -684,6 +689,24 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     false, true);
         } catch (Exception error) {
             setStatus("Cannot open Battle.net client: " + error.getMessage());
+        }
+    }
+
+    /**
+     * A launcher-side compatibility attempt, not an installer retry.
+     * Switches to WineD3D/VirGL, avoids ESYNC/FSYNC and requests the CEF
+     * software renderer only for this one Battle.net launch.
+     */
+    private void openBattleNetCompatibility() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.installedLauncher(battleNetRoot());
+            if (exe == null)
+                throw new IllegalStateException("No installed Battle.net launcher");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false, true, true);
+        } catch (Exception error) {
+            setStatus("Cannot open compatibility launcher: " + error.getMessage());
         }
     }
 
@@ -1242,6 +1265,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetOriginalButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetBrowserSettingsButton != null)
                 battleNetBrowserSettingsButton.setEnabled(!busy && ready);
+            if (battleNetLaunchCompatButton != null)
+                battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetDirectButton != null) {
                 File direct = null;
                 if (ready) {

@@ -466,6 +466,13 @@ public final class CharoiteBattleNetSupport {
                         "If the Agent appeared in no samples while the launcher did, " +
                         "focus on Agent startup and IPC instead of general HTTPS.\n");
             } else out.append("Monitor incomplete (launcher closed or session interrupted).\n");
+            if (data.contains("monitor_rpcss_present_samples=")) {
+                out.append("Wine RPC service process presence is now monitored. " +
+                        "Missing rpcss.exe/services.exe while Battle.net is running " +
+                        "can guide an IPC investigation, but presence does not " +
+                        "prove their RPC endpoints are responsive.\n");
+            } else out.append("This sample predates Wine RPC service monitoring; " +
+                    "launch Battle.net again for the new counts.\n");
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
             return out.toString();

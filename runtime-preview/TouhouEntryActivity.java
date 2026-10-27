@@ -123,6 +123,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetOriginalButton;
     private Button battleNetDirectButton;
     private Button battleNetLaunchCompatButton;
+    private Button battleNetGpuProcessButton;
     private Button battleNetWineProbeButton;
     private Button battleNetLiveMonitorButton;
     private Button battleNetBrowserSettingsButton;
@@ -392,6 +393,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetOriginalButton = null;
         battleNetDirectButton = null;
         battleNetLaunchCompatButton = null;
+        battleNetGpuProcessButton = null;
         battleNetWineProbeButton = null;
         battleNetLiveMonitorButton = null;
         battleNetBrowserSettingsButton = null;
@@ -430,6 +432,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetLaunchCompatButton = outlinedButton(
                     "OPEN BATTLE.NET (COMPATIBILITY GRAPHICS)", this::openBattleNetCompatibility);
             battleCard.addView(battleNetLaunchCompatButton);
+            battleNetGpuProcessButton = outlinedButton(
+                    "TRY BATTLE.NET (CEF GPU PROCESS TEST)", this::openBattleNetGpuProcess);
+            battleCard.addView(battleNetGpuProcessButton);
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
             battleCard.addView(battleNetBrowserSettingsButton);
@@ -439,6 +444,11 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetBrowserCacheButton = outlinedButton(
                     "BACK UP + RESET BATTLE.NET BROWSER CACHE", this::confirmBattleNetBrowserCacheReset);
             battleCard.addView(battleNetBrowserCacheButton);
+            battleCard.addView(label("CEF GPU Process Test uses --in-process-gpu for " +
+                    "one launch instead of disabling the browser GPU. This is an " +
+                    "experimental CEF startup option, not an established fix. " +
+                    "It changes no saved settings or installed files.",
+                    12, SECONDARY, false));
             battleCard.addView(label("Agent and Battle.net processes already run, " +
                     "so focus on why the Chromium login interface is stuck. " +
                     "The optional cache reset moves only launcher browser cache " +
@@ -754,6 +764,23 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
     }
 
+    /** Alternative single-launch Chromium GPU-process diagnostic. */
+    private void openBattleNetGpuProcess() {
+        if (busy) return;
+        try {
+            File root = battleNetRoot();
+            File exe = CharoiteBattleNetSupport.installedDirectClient(root);
+            if (exe == null) exe = CharoiteBattleNetSupport.installedLauncher(root);
+            if (exe == null)
+                throw new IllegalStateException("No installed Battle.net client or launcher");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false,
+                    false, false, true);
+        } catch (Exception error) {
+            setStatus("Cannot test Battle.net CEF GPU process: " + error.getMessage());
+        }
+    }
+
     /** Explicitly requested browser preference change; creates rollback copy. */
     private void applyBattleNetBrowserFix() {
         if (busy) return;
@@ -794,7 +821,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         final File root;
         try { root = battleNetRoot(); }
         catch (Exception error) { setStatus(error.getMessage()); return; }
-        String report = CharoiteBattleNetSupport.inspectBrowserPreferences(root) +
+        String report = CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectBrowserPreferences(root) +
                 "\n\n" + CharoiteBattleNetSupport.inspectBrowserLogCategories(root);
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Battle.net login / CEF diagnostics")
@@ -1418,6 +1446,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetCefReportButton.setEnabled(!busy && ready);
             if (battleNetLaunchCompatButton != null)
                 battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetGpuProcessButton != null)
+                battleNetGpuProcessButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetWineProbeButton != null)
                 battleNetWineProbeButton.setEnabled(!busy && ready);
             if (battleNetLiveMonitorButton != null)

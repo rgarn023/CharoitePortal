@@ -20,6 +20,8 @@ typedef struct {
     int agents;
     int clients;
     int launchers;
+    int rpcss;
+    int services;
     DWORD error;
 } ProcessCounts;
 
@@ -38,6 +40,8 @@ static ProcessCounts get_process_counts(void) {
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) counts.clients++;
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe"))
                 counts.launchers++;
+            else if (!_wcsicmp(proc.szExeFile, L"rpcss.exe")) counts.rpcss++;
+            else if (!_wcsicmp(proc.szExeFile, L"services.exe")) counts.services++;
         } while (Process32NextW(snapshot, &proc));
         CloseHandle(snapshot);
     }
@@ -64,6 +68,7 @@ static void process_status(FILE *report) {
 static void monitor_battlenet(FILE *report) {
     int seenAgent=0, seenClient=0, seenLauncher=0;
     int maxAgent=0, maxClient=0, maxLauncher=0, everEnumError=0;
+    int seenRpcss=0, seenServices=0, maxRpcss=0, maxServices=0;
     fprintf(report,"monitor_same_session=1\n");
     fprintf(report,"monitor_sample_interval_ms=1800\n");
     fprintf(report,"monitor_expected_samples=16\n");
@@ -73,13 +78,19 @@ static void monitor_battlenet(FILE *report) {
         if (c.agents > maxAgent) maxAgent = c.agents;
         if (c.clients > maxClient) maxClient = c.clients;
         if (c.launchers > maxLauncher) maxLauncher = c.launchers;
+        if (c.rpcss > maxRpcss) maxRpcss = c.rpcss;
+        if (c.services > maxServices) maxServices = c.services;
         if (c.agents) seenAgent++;
         if (c.clients) seenClient++;
         if (c.launchers) seenLauncher++;
+        if (c.rpcss) seenRpcss++;
+        if (c.services) seenServices++;
         if (c.error) everEnumError++;
         fprintf(report,"monitor_sample_%02d_agent=%d\n",i,c.agents);
         fprintf(report,"monitor_sample_%02d_client=%d\n",i,c.clients);
         fprintf(report,"monitor_sample_%02d_launcher=%d\n",i,c.launchers);
+        fprintf(report,"monitor_sample_%02d_rpcss=%d\n",i,c.rpcss);
+        fprintf(report,"monitor_sample_%02d_services=%d\n",i,c.services);
         fprintf(report,"monitor_samples_completed=%d\n",i+1);
         fflush(report);
         if(i<15) Sleep(1800);
@@ -90,6 +101,10 @@ static void monitor_battlenet(FILE *report) {
     fprintf(report,"monitor_max_agent=%d\n",maxAgent);
     fprintf(report,"monitor_max_client=%d\n",maxClient);
     fprintf(report,"monitor_max_launcher=%d\n",maxLauncher);
+    fprintf(report,"monitor_rpcss_present_samples=%d\n",seenRpcss);
+    fprintf(report,"monitor_services_present_samples=%d\n",seenServices);
+    fprintf(report,"monitor_max_rpcss=%d\n",maxRpcss);
+    fprintf(report,"monitor_max_services=%d\n",maxServices);
     fprintf(report,"monitor_process_enumeration_error_samples=%d\n",everEnumError);
     fprintf(report,"monitor_complete=1\n");
     fflush(report);
@@ -164,7 +179,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
     if (monitor) {
-        fprintf(report,"Charoite in-session Battle.net process monitor v2\n");
+        fprintf(report,"Charoite in-session Battle.net process monitor v3\n");
         monitor_battlenet(report);
         fclose(report);
         return 0;

@@ -80,6 +80,25 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Run the installed Battle.net.exe client directly when the Blizzard
+     * bootstrap launcher stays at the loading emblem. Lutris documents this
+     * fallback; it must not launch the setup program or replace the install.
+     */
+    public static File installedDirectClient(File root) {
+        try {
+            File drive = wineDrive(root);
+            for (String folder : new String[]{
+                    "Program Files (x86)/Battle.net", "Program Files/Battle.net"}) {
+                File exe = new File(drive, folder + "/Battle.net.exe").getCanonicalFile();
+                if (exe.getPath().startsWith(drive.getPath() + File.separator) &&
+                        exe.isFile() && !java.nio.file.Files.isSymbolicLink(exe.toPath()))
+                    return exe;
+            }
+        } catch (IOException ignored) {}
+        return null;
+    }
+
+    /**
      * Agent diagnostic is deliberately READ-ONLY. The same Blizzard error
      * can mean an Agent process failed, DLLs are unavailable, or the updater
      * cannot communicate; never delete ProgramData or a Wine prefix merely

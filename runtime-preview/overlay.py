@@ -699,7 +699,8 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                         this, container.getRootDir());
                 winHandler.exec(
                         "C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe",
-                        getIntent().getBooleanExtra("charoite_bnet_try_start_rpc", false)
+                        getIntent().getBooleanExtra("charoite_bnet_try_start_rpc", false) &&
+                        !getIntent().getBooleanExtra("charoite_bnet_rpc_preflight", false)
                                 ? "/monitor /try-rpcss-start" : "/monitor");
                 com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
                         container.getRootDir(), "COMMAND_SENT");
@@ -763,6 +764,41 @@ assert code.count(old_mouse) == 1, "Upstream mouse-capture marker changed"
 code = code.replace(old_mouse,
     '        capturePointerOnExternalMouse = getIntent().getBooleanExtra("touhou_pointer_capture", ' +
     'preferences.getBoolean("capture_pointer_on_external_mouse", true));')
+# Before-client RPC initialization: unlike the later post-window monitor,
+# this command is the FIRST Win32 application Wine explorer launches. After
+# successful preflight it forwards the existing WinHandler arguments via
+# CreateProcessW, preserving the normal Battle.net client/Agent code path.
+bnet_prelaunch_anchor = '            String guestExecutable = "wine explorer /desktop="+desktopName+","+xServer.screenInfo+" "+getWineStartCommand();'
+assert code.count(bnet_prelaunch_anchor) == 1, "Upstream Windows guest launch anchor changed"
+code = code.replace(bnet_prelaunch_anchor, """            String charoiteNormalWinHandler = getWineStartCommand();
+            String guestExecutable = "wine explorer /desktop="+desktopName+","+xServer.screenInfo+" "+charoiteNormalWinHandler;
+            if (getIntent().getBooleanExtra("charoite_bnet_rpc_preflight", false) &&
+                    "battle-net-gaming".equals(getIntent().getStringExtra("charoite_environment_id")) &&
+                    getIntent().hasExtra("exec_path")) {
+                // The service startup and rollback happen BEFORE Wine launches
+                // the installed client; CEF no longer has to initialize first.
+                final String winHandlerPrefix = "C:\\\\windows\\\\winhandler.exe ";
+                if (charoiteNormalWinHandler.startsWith(winHandlerPrefix)) {
+                    try {
+                        com.charoitegames.core.CharoiteBattleNetSupport.prepareGuestNetworkProbe(
+                                this, container.getRootDir());
+                        guestExecutable = "wine explorer /desktop="+desktopName+","+xServer.screenInfo+
+                                " C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe /preflight-launch "+
+                                charoiteNormalWinHandler.substring(winHandlerPrefix.length());
+                        com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                                container.getRootDir(), "RPC_PREFLIGHT_ARMED");
+                    } catch (java.io.IOException error) {
+                        com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                                container.getRootDir(), "RPC_PREFLIGHT_PREPARE_FAILED");
+                        // Avoid crashing the user session on a probe copy error.
+                    }
+                } else {
+                    com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                            container.getRootDir(), "RPC_PREFLIGHT_PREFIX_MISMATCH");
+                }
+            }
+""")
+
 # Battle.net CEF launcher: Blizzard recommends --disable-gpu when its
 # embedded browser is blank/spinning. Append arguments only to the installed
 # client under the selected Battle.net environment (never setup.exe, TPDP or

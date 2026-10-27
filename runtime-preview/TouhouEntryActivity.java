@@ -124,6 +124,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetDirectButton;
     private Button battleNetLaunchCompatButton;
     private Button battleNetGpuProcessButton;
+    private Button battleNetRpcStartupButton;
     private Button battleNetWineProbeButton;
     private Button battleNetLiveMonitorButton;
     private Button battleNetBrowserSettingsButton;
@@ -394,6 +395,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetDirectButton = null;
         battleNetLaunchCompatButton = null;
         battleNetGpuProcessButton = null;
+        battleNetRpcStartupButton = null;
         battleNetWineProbeButton = null;
         battleNetLiveMonitorButton = null;
         battleNetBrowserSettingsButton = null;
@@ -435,6 +437,17 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetGpuProcessButton = outlinedButton(
                     "TRY BATTLE.NET (CEF GPU PROCESS TEST)", this::openBattleNetGpuProcess);
             battleCard.addView(battleNetGpuProcessButton);
+            battleNetRpcStartupButton = outlinedButton(
+                    "TRY BATTLE.NET (START WINE RPC SERVICE)",
+                    this::confirmBattleNetRpcStartup);
+            battleCard.addView(battleNetRpcStartupButton);
+            battleCard.addView(label(
+                    "The live monitor confirmed Wine RpcSs is STOPPED. This optional " +
+                    "one-session test requests RpcSs startup through Wine's service " +
+                    "manager while Battle.net is running and records the result. " +
+                    "It does not change permanent service settings, delete files, " +
+                    "or install a new Wine version. Close Battle.net before trying.",
+                    12, SECONDARY, false));
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
             battleCard.addView(battleNetBrowserSettingsButton);
@@ -779,6 +792,42 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         } catch (Exception error) {
             setStatus("Cannot test Battle.net CEF GPU process: " + error.getMessage());
         }
+    }
+
+    /** Consent before a Battle.net-only Wine service start attempt.
+     * The Win32 probe runs inside this same Wine session; it is NOT a registry
+     * change and never starts services for the Touhou/General environments.
+     */
+    private void confirmBattleNetRpcStartup() {
+        if (busy) return;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Test Wine RpcSs service startup?")
+                .setMessage("The last monitor found Wine's RpcSs service STOPPED " +
+                        "throughout the Battle.net session. This experiment " +
+                        "opens the installed Battle.net client and requests " +
+                        "one RpcSs start using Wine's Service Control Manager " +
+                        "after its display session is ready. It may not fix " +
+                        "login, and the service can stop again after exit. " +
+                        "Please close any other Battle.net session first. " +
+                        "No game data, service startup type, Agent installation " +
+                        "or Wine prefix settings will be modified.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Try once", (dialog, which) -> {
+                    try {
+                        File root = battleNetRoot();
+                        File exe = CharoiteBattleNetSupport.installedDirectClient(root);
+                        if (exe == null)
+                            exe = CharoiteBattleNetSupport.installedLauncher(root);
+                        if (exe == null)
+                            throw new IllegalStateException(
+                                    "Battle.net client or launcher not installed");
+                        CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                                containerId, exe.getAbsolutePath(), false, false,
+                                false, true, false, true);
+                    } catch (Exception error) {
+                        setStatus("RpcSs launch test failed: " + error.getMessage());
+                    }
+                }).show();
     }
 
     /** Explicitly requested browser preference change; creates rollback copy. */
@@ -1448,6 +1497,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetGpuProcessButton != null)
                 battleNetGpuProcessButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetRpcStartupButton != null)
+                battleNetRpcStartupButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetWineProbeButton != null)
                 battleNetWineProbeButton.setEnabled(!busy && ready);
             if (battleNetLiveMonitorButton != null)

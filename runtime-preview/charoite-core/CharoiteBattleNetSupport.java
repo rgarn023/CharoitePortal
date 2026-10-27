@@ -435,6 +435,11 @@ public final class CharoiteBattleNetSupport {
      * processes simply because it was launched as a separate Wine activity.
      * Accept fixed, local numeric fields only; never copy raw process lists.
      */
+    private static int monitorNumber(java.util.Map<String, String> fields, String key) {
+        try { return Integer.parseInt(fields.get(key)); }
+        catch (RuntimeException ignored) { return -1; }
+    }
+
     public static String inspectInSessionAgentMonitor(File root) {
         try {
             File drive = wineDrive(root);
@@ -452,27 +457,59 @@ public final class CharoiteBattleNetSupport {
             out.append(androidState);
             out.append("Sample timestamp: ")
                     .append(new java.util.Date(report.lastModified())).append("\n");
+            // Keep the most recent incremental sample count rather than
+            // repeating 1 through 16 in a report meant for quick diagnosis.
+            java.util.LinkedHashMap<String, String> fields =
+                    new java.util.LinkedHashMap<>();
             for (String line : data.split("\\r?\\n")) {
                 if (!line.matches("monitor_[a-z_0-9]{3,55}=[0-9]{1,12}"))
                     continue;
                 if (line.startsWith("monitor_sample_")) continue;
-                out.append("  ").append(line).append("\n");
+                int separator = line.indexOf('=');
+                fields.put(line.substring(0, separator),
+                        line.substring(separator + 1));
             }
+            for (java.util.Map.Entry<String, String> field : fields.entrySet())
+                out.append("  ").append(field.getKey()).append("=")
+                        .append(field.getValue()).append("\n");
             long age = System.currentTimeMillis() - report.lastModified();
             if (age > 60 * 60 * 1000L)
                 out.append("This monitor record is older than one hour.\n");
-            if (data.contains("monitor_complete=1")) {
-                out.append("Monitoring completed during one active Wine session. " +
-                        "If the Agent appeared in no samples while the launcher did, " +
-                        "focus on Agent startup and IPC instead of general HTTPS.\n");
-            } else out.append("Monitor incomplete (launcher closed or session interrupted).\n");
-            if (data.contains("monitor_rpcss_present_samples=")) {
-                out.append("Wine RPC service process presence is now monitored. " +
-                        "Missing rpcss.exe/services.exe while Battle.net is running " +
-                        "can guide an IPC investigation, but presence does not " +
-                        "prove their RPC endpoints are responsive.\n");
-            } else out.append("This sample predates Wine RPC service monitoring; " +
-                    "launch Battle.net again for the new counts.\n");
+            if ("1".equals(fields.get("monitor_complete")))
+                out.append("Monitoring completed in the active Wine session.\n");
+            else out.append("Monitor incomplete (launcher closed or session interrupted).\n");
+            int agentSeen = monitorNumber(fields, "monitor_agent_present_samples");
+            int clientSeen = monitorNumber(fields, "monitor_client_present_samples");
+            int rpcProcesses = monitorNumber(fields, "monitor_rpcss_present_samples");
+            int serviceProcesses = monitorNumber(fields, "monitor_services_present_samples");
+            if (agentSeen >= 0 && clientSeen >= 0)
+                out.append("Agent was seen in ").append(agentSeen)
+                        .append(" samples; Battle.net in ").append(clientSeen)
+                        .append(". Process existence does not prove IPC or login works.\n");
+            if (rpcProcesses >= 0 && serviceProcesses >= 0)
+                out.append("RpcSs process name appeared in ").append(rpcProcesses)
+                        .append(" samples; services.exe in ").append(serviceProcesses)
+                        .append(". Names alone do not prove service status.\n");
+            int running = monitorNumber(fields, "monitor_rpc_service_running_samples");
+            int stopped = monitorNumber(fields, "monitor_rpc_service_stopped_samples");
+            int queryFailed = monitorNumber(fields, "monitor_rpc_service_query_failed_samples");
+            if (running >= 0) {
+                if (running > 0)
+                    out.append("The Wine Service Control Manager reported RpcSs RUNNING in ")
+                            .append(running).append(" samples. An absent rpcss.exe name ")
+                            .append("does not override this service-level result.\n");
+                else if (stopped > 0)
+                    out.append("RpcSs was reported STOPPED in ").append(stopped)
+                            .append(" samples. Investigate service startup before ")
+                            .append("changing browser flags or reinstalling Battle.net.\n");
+                else if (queryFailed > 0)
+                    out.append("Wine could not reliably query RpcSs service status; ")
+                            .append("inspect the reported SCM/OpenService/QueryService ")
+                            .append("Win32 error codes before any repair.\n");
+                else out.append("RpcSs was not confirmed running; examine service ")
+                        .append("state and error values before inferring why.\n");
+            } else out.append("No Service Control Manager query recorded by this APK. ")
+                    .append("Update Charoite and relaunch Battle.net to verify RpcSs.\n");
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
             return out.toString();

@@ -79,6 +79,18 @@ public final class CharoiteGameSessions {
                               int containerId, String executable, boolean installer,
                               boolean gamePresentation, boolean agentCompatibility,
                               boolean disableBattleNetBrowserGpu, boolean inProcessBrowserGpu) {
+        launch(host, target, containerId, executable, installer,
+                gamePresentation, agentCompatibility, disableBattleNetBrowserGpu,
+                inProcessBrowserGpu, false);
+    }
+
+    /** Only explicitly chosen Battle.net troubleshooting may start RpcSs
+     * in the CURRENT Wine session. No saved environment defaults change. */
+    public static void launch(AppCompatActivity host, Class<? extends Activity> target,
+                              int containerId, String executable, boolean installer,
+                              boolean gamePresentation, boolean agentCompatibility,
+                              boolean disableBattleNetBrowserGpu, boolean inProcessBrowserGpu,
+                              boolean tryStartBattleNetRpc) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
         // Shard of Dreams uses the original TPDP installation. Some Wine
@@ -108,6 +120,12 @@ public final class CharoiteGameSessions {
         play.putExtra("charoite_bnet_in_process_gpu",
                 inProcessBrowserGpu && !disableBattleNetBrowserGpu &&
                 !installer && CharoiteEnvironments.isBattleNet(host) &&
+                installedBattleNetLauncher);
+        // In-session service start is opt-in and never touches installers,
+        // games, other realms, or any persistent Wine startup configuration.
+        play.putExtra("charoite_bnet_try_start_rpc",
+                tryStartBattleNetRpc && !installer &&
+                CharoiteEnvironments.isBattleNet(host) &&
                 installedBattleNetLauncher);
         // Collect Agent process status in the SAME Wine session as Battle.net,
         // never a separate diagnostic desktop. The observer only reads process

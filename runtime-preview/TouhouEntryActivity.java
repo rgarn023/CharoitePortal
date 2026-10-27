@@ -124,6 +124,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetDirectButton;
     private Button battleNetLaunchCompatButton;
     private Button battleNetWineProbeButton;
+    private Button battleNetLiveMonitorButton;
     private Button battleNetBrowserSettingsButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
@@ -390,6 +391,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetDirectButton = null;
         battleNetLaunchCompatButton = null;
         battleNetWineProbeButton = null;
+        battleNetLiveMonitorButton = null;
         battleNetBrowserSettingsButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
@@ -433,6 +435,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     "Original starts with no browser override. Direct bypasses " +
                     "Battle.net Launcher.exe and opens Battle.net.exe when installed. " +
                     "All three leave installed games, Agent data, accounts, and the Wine prefix untouched.",
+                    12, SECONDARY, false));
+            battleNetLiveMonitorButton = outlinedButton("VIEW LIVE AGENT MONITOR",
+                    this::showBattleNetLiveMonitor);
+            battleCard.addView(battleNetLiveMonitorButton);
+            battleCard.addView(label("Live Agent Monitor runs automatically when you " +
+                    "launch the installed Battle.net client. Open Battle.net, leave " +
+                    "the spinner displayed briefly, return to Portal, then tap " +
+                    "VIEW LIVE AGENT MONITOR here. If Wine never started the " +
+                    "monitor, this view reports that explicitly.",
                     12, SECONDARY, false));
             battleNetDiagnoseButton = outlinedButton("CHECK LAUNCHER + AGENT DIAGNOSTICS",
                     this::showBattleNetAgentDiagnostics);
@@ -772,16 +783,38 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
     }
 
+    /** Always keep the live Agent report on its own screen instead of at
+     * the bottom of a long launcher+network AlertDialog scroll area.
+     */
+    private void showBattleNetLiveMonitor() {
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception error) { setStatus(error.getMessage()); return; }
+        String report = CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Battle.net Live Agent Monitor")
+                .setMessage(report)
+                .setPositiveButton("Copy monitor", (dialog, which) -> {
+                    ClipboardManager clipboard = (ClipboardManager)
+                            getSystemService(Context.CLIPBOARD_SERVICE);
+                    clipboard.setPrimaryClip(ClipData.newPlainText(
+                            "Charoite Battle.net live Agent monitor", report));
+                    setStatus("Live Agent monitor copied; no Blizzard files changed.");
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
     /** Read only: inspect whether Blizzard actually downloaded Agent.exe
      * and whether agent logs exist. No automatic repairs or data removal. */
     private void showBattleNetAgentDiagnostics() {
         final File root;
         try { root = battleNetRoot(); }
         catch (Exception e) { setStatus(e.getMessage()); return; }
-        String report = CharoiteBattleNetSupport.inspectLauncherStartup(root) + "\n\n" +
-                CharoiteBattleNetSupport.inspectAgent(root) + "\n\n" +
-                CharoiteBattleNetSupport.inspectGuestNetworkProbe(root) + "\n\n" +
-                CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root);
+        String report = CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectLauncherStartup(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectAgent(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectGuestNetworkProbe(root);
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Battle.net launcher and Agent diagnostics")
                 .setMessage(report)
@@ -1298,6 +1331,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetWineProbeButton != null)
                 battleNetWineProbeButton.setEnabled(!busy && ready);
+            if (battleNetLiveMonitorButton != null)
+                battleNetLiveMonitorButton.setEnabled(!busy && ready);
             if (battleNetDirectButton != null) {
                 File direct = null;
                 if (ready) {

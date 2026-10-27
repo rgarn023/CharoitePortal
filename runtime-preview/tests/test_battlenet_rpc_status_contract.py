@@ -24,10 +24,21 @@ class BattleNetRpcServiceContract(unittest.TestCase):
                       'monitor_same_session=1', 'Sleep(1800)',
                       'monitor_complete=1'):
             self.assertIn(token, NATIVE)
+        # Normal monitoring still only queries Wine services.
+        normal_monitor = NATIVE.split('static void monitor_battlenet(',1)[1].split(
+            'static void test_endpoint(',1)[0]
+        normal_query = NATIVE.split('static RpcServiceStatus inspect_rpc_service(',1)[1].split(
+            'static void try_start_rpc_service(',1)[0]
         for forbidden in ('StartServiceW(', 'ControlService(', 'DeleteService(',
                           'ChangeServiceConfig', 'RegSetValue', 'DeleteFileW(',
                           'TerminateProcess('):
-            self.assertNotIn(forbidden, NATIVE)
+            self.assertNotIn(forbidden, normal_monitor)
+            self.assertNotIn(forbidden, normal_query)
+        # A separate explicit opt-in path is the only allowed service start.
+        repair = NATIVE.split('static void try_start_rpc_service(',1)[1].split(
+            'static void monitor_battlenet(',1)[0]
+        self.assertIn('StartServiceW(service,0,NULL)', repair)
+        self.assertIn('if (allowRpcStart) try_start_rpc_service(report);',NATIVE)
         self.assertIn('-lwinhttp -lws2_32 -luser32 -ladvapi32', WORKFLOW)
 
     def test_bounded_report_identifies_service_state_not_process_guess(self):

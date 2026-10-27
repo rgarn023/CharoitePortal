@@ -23,12 +23,12 @@
 
 ## 2. Current verified GitHub/APK state (October 27, 2026)
 
-**Most recent successful APK before this handoff-documentation update:**
-- **Runtime/code commit:** `8fa0194d93b8c28c6f3b82bd0b52cf162511b2ec`
-- **Actions run:** **40564585687** — conclusion **success**; https://github.com/rgarn023/CharoitePortal/actions/runs/40564585687
-- **APK artifact:** `Charoite-Portal-Android-APK` — artifact ID **12762049549**; reported compressed archive ~231 MB; present/not expired when last checked.
-- **Tests:** 116 contract/regression tests passed; successful Android APK build, signing verification and upload in that run.
-- **Phone validation:** The updated themed runtime drawer **has not yet been visually tested on the Galaxy**. The new CEF/login and cache tools are also awaiting the user's on-device report.
+**Latest verified Android runtime APK (source code):**
+- **Code SHA:** `1ef29980e27045aad1b9f44862b050133cfe52de`
+- **GitHub Actions run 40571495554**, status **SUCCESS**: https://github.com/rgarn023/CharoitePortal/actions/runs/40571495554
+- **Artifact:** `Charoite-Portal-Android-APK`, ID **12766230073**, compressed archive 231,391,149 bytes; verified uploaded and not expired when checked.
+- Contract tests, native diagnostic helper compilation, APK signing and Android build succeeded. **Phone has NOT yet run this newer APK.** Latest user-provided monitor belongs to older successful APK from run `40568654996`. Documentation-only commits can advance HEAD without rebuilding this APK.
+- Stable Android application ID `com.charoite`; preserving all Wine prefixes, game installations and settings. The themed drawer still awaits on-device visual confirmation.
 
 **Documentation housekeeping in this chat:** This canonical living handoff was added to the repository as a separate, easy-to-paste file; the root `README.md` now links here and retains a link to the historical handoff. These are documentation-only changes with `[skip ci]`; they do **not** require a new APK or replace the verified runtime build above. Always check `main` HEAD before development.
 
@@ -135,7 +135,7 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 5. On **handoff-only** edits, put `[skip ci]` in the commit message to avoid redundant APK compilation. If a documentation commit advances `main` beyond last successful runtime commit, state so explicitly rather than claiming CI built that doc commit.
 6. Provide user the canonical [current handoff](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md) whenever context becomes long, so they can copy the raw Markdown into a new conversation. The old `docs/HANDOFF.md` is useful only as historical provenance.
 
-**Current priority (October 27):** test the Battle.net CEF GPU Process option using successful APK run `40568654996`, and share **VIEW BATTLE.NET LOGIN / CEF REPORT** including rpcss/services process counters. The session drawer redesign remains built but is still pending phone visual confirmation.
+**Current priority (October 27):** run the new *read-only SCM RpcSs query* using successful APK run `40571495554`, then share the resulting Battle.net Live Agent/CEF report. Prior run `40568654996` has user-verified process counts showing absent `rpcss.exe` process name but present `services.exe`; the actual RpcSs service status is still unknown.
 
 ## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
 
@@ -184,6 +184,40 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 **Immediate, precise next action:** Update existing `com.charoite` installation without uninstall/clear-data, from run `40568654996`. Under **Battle.net Gaming → Setup**, choose **TRY BATTLE.NET (CEF GPU PROCESS TEST)**. Observe whether the spinner remains or sign-in appears. Keep client visible ~30 seconds; return to Portal and click **VIEW BATTLE.NET LOGIN / CEF REPORT** → **Copy report**. Share entire sanitized report with ChatGPT (new rpcss/services counts plus CEF and saved GPU settings). For meaningful comparison, close the client before trying **OPEN BATTLE.NET (DIRECT SAFE BROWSER)** separately. Do not auto-apply cache reset or modify Agent without explicit consent.
 
 **Diagnosis boundaries:** If `rpcss` or `services` is repeatedly missing, investigate Wine service startup/IPC. If both present and spinner persists, investigate CEF subprocess/rendering and Agent IPC with more targeted bounded probes. A July 2026 Proton ARM64 installer report described an RPC retry loop, but this is a different symptom and does **not** prove root cause here. The `--in-process-gpu` option is a hypothesis-driven experiment, not a proven repair. Do not claim Battle.net or Diablo III/IV working without device validation. Preserve Touhou controls, Japanese support, environment C: drives and all installed games/saves.
+
+## 10. October 27, 2026 — User's actual Battle.net report + successful RpcSs service-state diagnostic APK
+
+**User provided actual phone diagnostic** for the prior `40568654996` APK:
+- `monitor_same_session=1`, `monitor_complete=1`, completed **16/16** samples; no enumeration errors.
+- Battle.net client in **16/16** samples, Blizzard Agent **15/16**, Wine `services.exe` **16/16**, but Wine process named `rpcss.exe` in **0/16**. Agent/client alive does not prove login or IPC; absence of process name does not prove RpcSs service is stopped.
+- Browser settings file count 1, hardware acceleration OFF; 6 log files, 125 error-like lines; GPU/compositor 39, rendering 24, CEF/browser 2, Agent/IPC 3, network 5, crash/exception 1, login/auth 2. These are overlapping keyword counts, not confirmed root-cause events.
+- Do **not** assume `--in-process-gpu` solved the spinner: user has **not said** whether it changed the visible symptom.
+
+**New focused improvements in GitHub, all non-destructive:**
+- `868afadde5b6f3f92595c376ca3f97029b7449d7` Win32 guest helper queries `RpcSs` via SCM APIs `OpenSCManagerW(SC_MANAGER_CONNECT)`, `OpenServiceW(SERVICE_QUERY_STATUS)`, `QueryServiceStatusEx`; records sanitized numeric running, stopped, failed counts and Win32 error codes across same 16-sample Wine monitor. Does **NOT** start, stop, reconfigure services or change files/registry.
+- `5fe0a149cf9b6f924ba6153168f225539951b810` adds Advapi32 linker dependency for this helper.
+- `7cb98028590027b329cedc5d0df33fc9c7947ed0` upgrades monitor interpretation, removes repetitive intermediate sample-count lines, correctly describes observed Agent/client, and reports actual SCM service status rather than inferring it from process names. Older report remains recognizable.
+- `6c0cdae24ea94e6a214f125f1fa03dc542a0f971` adds coarse error categories specifically for GPU-process issues, device loss, memory protection, and RPC/service-manager, without displaying raw logs/account identifiers.
+- `6d7d6be0e19dbe030da461b83272f0362ae783ed` added safe service/CEF regression tests. Intermediate run `40571366268` failed a stale assertion in older tests, fixed by `1ef29980e27045aad1b9f44862b050133cfe52de`. New code/build **SUCCESS**: run `40571495554`, artifact `Charoite-Portal-Android-APK` ID `12766230073`.
+
+**Exact next device step:** update installed `com.charoite` APK from https://github.com/rgarn023/CharoitePortal/actions/runs/40571495554 **without uninstalling or clearing data**. Launch Battle.net in Battle.net Gaming realm, keep running ~30 seconds; return to Portal, copy **VIEW BATTLE.NET LOGIN / CEF REPORT** (or VIEW LIVE AGENT MONITOR) and provide counts `monitor_rpc_service_running_samples`, `monitor_rpc_service_stopped_samples`, `monitor_rpc_service_query_failed_samples`, `monitor_rpc_scm_error_last`, `monitor_rpc_open_error_last`, `monitor_rpc_query_error_last` plus refined CEF GPU categories and whether browser spinner persists. Running/absent service conclusions must come from SCM query, not name inference. No runtime fix has yet been validated on Galaxy.
+
+## 11. October 27, 2026 — Possible future Google Play commercial release / ads
+
+**User asked:** once fully working, can Charoite Portal be monetized as a paid Google Play app or free with advertising? **Answer: potentially yes, but only after compliance and distribution work; neither approval nor profitability is assured.** Do not implement ad SDK or paid features until user decides the model.
+
+**Licenses:** pinned `brunodev85/winlator-app` base has LGPL-2.1 source; commercial distribution is permitted if obligations are satisfied (source availability, notices, modified portions/relinking where required). Audit **all components** (Wine, Box64, Mesa, DXVK, VKD3D, fonts, art, any proprietary DLL dependencies) individually. Current project bundles upstream notice/license + source archive in Actions, but that alone is **not a legal compliance certification**. Do not imply a proprietary exclusive right over upstream code. Avoid shipping unlicensed Blizzard/Touhou/Diablo executables, assets, logos or misleading trademark/official-association claims; let users provide games they own.
+
+**Key verified blockers in current source (do not confuse old `app/` Kotlin variant with actual Wine runtime build):**
+- Actual runtime built from pinned upstream `app/build.gradle` has **`targetSdkVersion 28`** and `compileSdk 35` (overlay only changes `applicationId` and signing, not target). As of **Aug 31, 2026 Google Play new Android apps/updates require target API 36** (possibly eligible extension through Nov 1); migrating a Wine/Box64 app from target 28 to 36 needs deep Android storage, native exec, 16KB pages, system and foreground-service behavior audits. This is a substantial release engineering project.
+- GitHub workflow currently builds signed **`assembleDebug` APK**, not Google Play-ready **signed Android App Bundle (AAB)**. Must add separate Play production flavor/process, increment versionCode, secure production signing/Play App Signing, and test update/migration from existing debug signature without loss of `com.charoite` private Wine data.
+- Bundle compressed artifact approximately **231 MB**. Google currently lists **500MB base module** Play size cap, with >200MB mobile-data notice; verify true per-device AAB compressed size in Play Console and optimize if needed. See https://support.google.com/googleplay/android-developer/answer/9859372
+- Google's device/network-abuse policy forbids app self-updates outside Play and limits downloading Android executable code from elsewhere, with a **VM/interpreter exception**. Charoite downloads Windows `.exe` inside Wine: must evaluate actual architecture and policy (and third-party network terms) rather than assume exception or approval. https://support.google.com/googleplay/android-developer/answer/16559646
+- Google Play IP policy forbids infringement and confusing trademarks: https://support.google.com/googleplay/android-developer/answer/9888072
+- Monetization options include paid Play listing or free with tasteful Portal-only banner/native ads and optional paid ad-removal via compliant Play Billing. **Do not put ads over gameplay, installers, login, controller overlays or sessions.** Respect Play ads policy, clearly disclose ads, provide privacy policy/Data Safety/consent as applicable. https://support.google.com/googleplay/android-developer/answer/9857753 and https://support.google.com/googleplay/android-developer/answer/10787469
+- Play developer registration currently **US$25 one time**. New *personal* developer accounts created after Nov 13 2023 generally need **12 continuously opted-in closed testers for 14 days** before applying for production access. https://support.google.com/googleplay/android-developer/answer/6112435/ and https://support.google.com/googleplay/android-developer/answer/14151465
+
+**Recommended future roadmap:** solve core Battle.net/game UX first, document real hardware/device matrix, audit LGPL/other licenses and IP, modernize runtime for API 36, build a production AAB and signing migration, complete privacy and Play review/closed testing, then choose pricing or ads. Do not claim store-ready now. Keep the existing downloadable APK development workflow separate from eventual Play distribution.
 
 ---
 **End of current Charoite Portal handoff.**

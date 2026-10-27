@@ -414,13 +414,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetInstallButton = outlinedButton("RUN DOWNLOADED WINDOWS INSTALLER",
                     this::installBattleNet);
             battleCard.addView(battleNetInstallButton);
-            battleNetOpenButton = outlinedButton("OPEN BATTLE.NET (SAFE BROWSER)",
+            battleNetOpenButton = outlinedButton("OPEN BATTLE.NET (DIRECT SAFE BROWSER)",
                     this::openBattleNet);
             battleCard.addView(battleNetOpenButton);
             battleNetOriginalButton = outlinedButton("OPEN BATTLE.NET (ORIGINAL)",
                     this::openBattleNetOriginal);
             battleCard.addView(battleNetOriginalButton);
-            battleNetDirectButton = outlinedButton("OPEN BATTLE.NET.EXE (DIRECT)",
+            battleNetDirectButton = outlinedButton("OPEN BATTLE.NET.EXE (DIRECT, SAFE GPU)",
                     this::openBattleNetDirect);
             battleCard.addView(battleNetDirectButton);
             battleNetLaunchCompatButton = outlinedButton(
@@ -429,12 +429,13 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
             battleCard.addView(battleNetBrowserSettingsButton);
-            battleCard.addView(label("If Battle.net spins indefinitely or the first " +
-                    "installer crashed, try Safe Browser first. It uses Blizzard's " +
-                    "--disable-gpu argument for the embedded launcher browser only. " +
-                    "Original starts with no browser override. Direct bypasses " +
-                    "Battle.net Launcher.exe and opens Battle.net.exe when installed. " +
-                    "All three leave installed games, Agent data, accounts, and the Wine prefix untouched.",
+            battleCard.addView(label("Safe Browser launches Battle.net.exe directly " +
+                    "when it exists, bypassing the bootstrap window. It also passes " +
+                    "--disable-gpu and the Wine CEF workarounds. ORIGINAL launches " +
+                    "Battle.net Launcher.exe without overrides. Use the diagnostics " +
+                    "to verify saved browser hardware-acceleration settings; " +
+                    "a command-line GPU flag alone does not change those settings. " +
+                    "Installed games, Agent data, accounts and the Wine prefix are preserved.",
                     12, SECONDARY, false));
             battleNetLiveMonitorButton = outlinedButton("VIEW LIVE AGENT MONITOR",
                     this::showBattleNetLiveMonitor);
@@ -669,11 +670,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void openBattleNet() {
         if (busy) return;
         try {
-            File exe = CharoiteBattleNetSupport.installedLauncher(battleNetRoot());
+            File root = battleNetRoot();
+            // Battle.net client processes were found alive even while its
+            // bootstrap splash remained spinning. Run the installed client
+            // directly by default; ORIGINAL retains the normal bootstrap.
+            File exe = CharoiteBattleNetSupport.installedDirectClient(root);
+            if (exe == null) exe = CharoiteBattleNetSupport.installedLauncher(root);
             if (exe == null)
-                throw new IllegalStateException("No Battle.net launcher found in the standard Wine Program Files location");
-            // Launcher requires pointer, keyboard and Windows login fields;
-            // not the gamepad overlay. Game controls remain Core-owned.
+                throw new IllegalStateException("No installed Battle.net launcher/client");
+            // Windows login needs pointer and keyboard, not gamepad controls.
             CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
                     containerId, exe.getAbsolutePath(), false, false,
                     false, true);
@@ -721,7 +726,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private void openBattleNetCompatibility() {
         if (busy) return;
         try {
-            File exe = CharoiteBattleNetSupport.installedLauncher(battleNetRoot());
+            File root = battleNetRoot();
+            File exe = CharoiteBattleNetSupport.installedDirectClient(root);
+            if (exe == null) exe = CharoiteBattleNetSupport.installedLauncher(root);
             if (exe == null)
                 throw new IllegalStateException("No installed Battle.net launcher");
             CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
@@ -812,6 +819,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         try { root = battleNetRoot(); }
         catch (Exception e) { setStatus(e.getMessage()); return; }
         String report = CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectBrowserPreferences(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectBrowserLogCategories(root) +
                 "\n\n" + CharoiteBattleNetSupport.inspectLauncherStartup(root) +
                 "\n\n" + CharoiteBattleNetSupport.inspectAgent(root) +
                 "\n\n" + CharoiteBattleNetSupport.inspectGuestNetworkProbe(root);

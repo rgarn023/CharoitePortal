@@ -74,6 +74,28 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertNotIn('root.delete()', CORE)
 
 
+    def test_live_monitor_uses_same_wine_session_as_battlenet(self):
+        native = (BASE/"charoite-core/diagnostics/charoite_bnet_network_probe.c").read_text()
+        overlay = (BASE/"overlay.py").read_text()
+        sessions = (BASE/"charoite-core/CharoiteGameSessions.java").read_text()
+        for token in (
+            'monitor_same_session=1', 'monitor_samples_completed=%d',
+            'monitor_agent_present_samples=%d', 'monitor_max_agent=%d',
+            'charoite_bnet_launch_monitor.txt', 'Sleep(1800)',
+            'GetCommandLineW()', 'monitor_complete=1'
+        ):
+            self.assertIn(token, native)
+        for token in (
+            'charoite_bnet_monitor', 'startCharoiteBattleNetMonitor()',
+            'isCharoiteKeyboardReady()', '"/monitor"',
+            'CharoiteBattleNetSupport.prepareGuestNetworkProbe('
+        ):
+            self.assertIn(token, overlay)
+        self.assertIn('play.putExtra("charoite_bnet_monitor"', sessions)
+        self.assertIn('!installer && CharoiteEnvironments.isBattleNet(host)', sessions)
+        self.assertIn('inspectInSessionAgentMonitor(File root)', CORE)
+        self.assertIn('CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root)', UI)
+
     def test_windows_guest_probe_is_opt_in_and_report_is_bounded(self):
         from pathlib import Path
         native=(BASE/"charoite-core/diagnostics/charoite_bnet_network_probe.c").read_text()

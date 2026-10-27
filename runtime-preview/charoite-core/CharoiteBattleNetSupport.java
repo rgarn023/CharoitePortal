@@ -678,7 +678,7 @@ public final class CharoiteBattleNetSupport {
     public static String inspectBrowserClientLogs(File root) {
         final File drive;
         try { drive = wineDrive(root); }
-        catch (Exception e) { return "BATTLE.NET UI LOG CHECK unavailable.\\n"; }
+        catch (Exception e) { return "BATTLE.NET UI LOG CHECK unavailable.\n"; }
         java.util.ArrayList<File> files = new java.util.ArrayList<>();
         File[] profiles = new File(drive, "users").listFiles();
         if (profiles != null) for (File profile : profiles) {
@@ -706,7 +706,7 @@ public final class CharoiteBattleNetSupport {
                 String data = new String(bytes,
                         java.nio.charset.StandardCharsets.UTF_8)
                         .toLowerCase(Locale.ROOT);
-                for (String line : data.split("\\r?\\n")) {
+                for (String line : data.split("\\r?\n")) {
                     if (line.length()>4096) continue;
                     boolean relevant = line.contains("error") ||
                             line.contains("fail") || line.contains("exception") ||
@@ -731,17 +731,41 @@ public final class CharoiteBattleNetSupport {
                 }
             } catch (IOException ignored) {}
         }
-        StringBuilder result=new StringBuilder("BATTLE.NET UI / LOGIN LOG CHECK\\n");
-        result.append("Recent client logs examined: ").append(samples).append("\\n");
+        StringBuilder result=new StringBuilder("BATTLE.NET UI / LOGIN LOG CHECK\n");
+        result.append("Recent client logs examined: ").append(samples).append("\n");
         if (samples > 0) result.append("Latest client log timestamp: ")
-                .append(new java.util.Date(files.get(0).lastModified())).append("\\n");
-        result.append("Error-like entries: ").append(errors).append("\\n");
-        result.append("  Login/Tassadar references: ").append(login).append("\\n");
-        result.append("  CEF/browser/GPU references: ").append(cef).append("\\n");
-        result.append("  Agent/IPC references: ").append(agent).append("\\n");
-        result.append("  Network/TLS references: ").append(network).append("\\n");
+                .append(new java.util.Date(files.get(0).lastModified())).append("\n");
+        result.append("Error-like entries: ").append(errors).append("\n");
+        result.append("  Login/Tassadar references: ").append(login).append("\n");
+        result.append("  CEF/browser/GPU references: ").append(cef).append("\n");
+        result.append("  Agent/IPC references: ").append(agent).append("\n");
+        result.append("  Network/TLS references: ").append(network).append("\n");
+        int enabled=0, disabled=0, missing=0;
+        if (profiles != null) for (File profile : profiles) {
+            if (!profile.isDirectory() || Files.isSymbolicLink(profile.toPath())) continue;
+            File config = new File(profile,"AppData/Roaming/Battle.net/Battle.net.config");
+            if (!config.isFile() || Files.isSymbolicLink(config.toPath()) ||
+                    config.length() > 256*1024) {missing++;continue;}
+            try {
+                org.json.JSONObject json = new org.json.JSONObject(
+                        new String(Files.readAllBytes(config.toPath()),
+                                java.nio.charset.StandardCharsets.UTF_8));
+                org.json.JSONObject client=json.optJSONObject("Client");
+                String value=client == null ? "" :
+                        client.optString("HardwareAcceleration","").toLowerCase(Locale.ROOT);
+                if ("false".equals(value)) disabled++;
+                else if ("true".equals(value)) enabled++;
+                else missing++;
+            } catch(Exception ignored) {missing++;}
+        }
+        result.append("Browser hardware acceleration disabled in configs: ")
+                .append(disabled).append("\n");
+        result.append("Browser hardware acceleration enabled in configs: ")
+                .append(enabled).append("\n");
+        result.append("Browser acceleration config missing/unreadable: ")
+                .append(missing).append("\n");
         result.append("Counts are not diagnoses; zero means no matches in the sampled " +
-                "log tails. No client logs or personal data were modified.\\n");
+                "log tails. No client logs or personal data were modified.\n");
         return result.toString();
     }
 

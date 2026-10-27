@@ -55,13 +55,35 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertIn('play.putExtra("charoite_bnet_disable_gpu"', SESSIONS)
         self.assertIn('disableBattleNetBrowserGpu && !installer &&', SESSIONS)
         self.assertIn('installedBattleNetLauncher', SESSIONS)
-        self.assertIn('OPEN BATTLE.NET (SAFE BROWSER)', UI)
+        self.assertIn('OPEN BATTLE.NET (DIRECT SAFE BROWSER)', UI)
         self.assertIn('OPEN BATTLE.NET (ORIGINAL)', UI)
         self.assertIn('this::openBattleNetOriginal', UI)
         self.assertIn('false, false,\n                    false, true)', UI)
         self.assertIn('CharoiteBattleNetSupport.inspectLauncherStartup(root)', UI)
         self.assertIn('public static String inspectLauncherStartup(File root)', CORE)
         self.assertIn('No game files, logs or Agent state have been changed.', CORE)
+
+    def test_spinning_launcher_prefers_direct_client_with_cef_evidence(self):
+        self.assertIn('public static String inspectBrowserPreferences(File root)',CORE)
+        self.assertIn('public static String inspectBrowserLogCategories(File root)',CORE)
+        self.assertIn('"HardwareAcceleration"',CORE)
+        self.assertIn('Browser hardware acceleration OFF:',CORE)
+        self.assertIn('Browser hardware acceleration ON:',CORE)
+        self.assertIn('Browser/CEF references:',CORE)
+        self.assertIn('Agent/IPC references:',CORE)
+        self.assertIn('No preferences were changed during inspection.',CORE)
+        self.assertIn('No installed Battle.net launcher/client',UI)
+        self.assertIn('CharoiteBattleNetSupport.inspectBrowserPreferences(root)',UI)
+        self.assertIn('CharoiteBattleNetSupport.inspectBrowserLogCategories(root)',UI)
+        start=UI.index('private void openBattleNet()')
+        end=UI.index('private void openBattleNetOriginal()',start)
+        launch=UI[start:end]
+        self.assertLess(
+            launch.index('CharoiteBattleNetSupport.installedDirectClient(root)'),
+            launch.index('CharoiteBattleNetSupport.installedLauncher(root)'))
+        self.assertIn('false, true)',launch)
+        self.assertIn('OPEN BATTLE.NET (ORIGINAL)', UI)
+        self.assertNotIn('.delete(',launch)
 
     def test_blizzard_browser_args_applied_only_to_launcher(self):
         overlay = (BASE/"overlay.py").read_text()
@@ -146,7 +168,7 @@ class BattleNetEnvironmentContract(unittest.TestCase):
                       "WINEDLLOVERRIDES"):
             self.assertIn(token, overlay)
         self.assertIn("installedDirectClient(File root)", CORE)
-        self.assertIn("OPEN BATTLE.NET.EXE (DIRECT)", UI)
+        self.assertIn("OPEN BATTLE.NET.EXE (DIRECT, SAFE GPU)", UI)
         self.assertIn("APPLY BROWSER ACCELERATION FIX (BACKUP)", UI)
         self.assertIn("Battle.net.config.charoite-backup-v1", CORE)
         self.assertIn('client.put("HardwareAcceleration", "false")', CORE)

@@ -664,9 +664,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         final File root;
         try { root = battleNetRoot(); }
         catch (Exception e) { setStatus(e.getMessage()); return; }
-        String report = CharoiteBattleNetSupport.inspectAgent(root);
+        String report = CharoiteBattleNetSupport.inspectLauncherStartup(root) + "\n\n" +
+                CharoiteBattleNetSupport.inspectAgent(root);
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Battle.net Update Agent diagnostics")
+                .setTitle("Battle.net launcher and Agent diagnostics")
                 .setMessage(report)
                 .setPositiveButton("Copy report", (dialog, which) -> {
                     ClipboardManager clipboard = (ClipboardManager)

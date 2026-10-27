@@ -107,48 +107,61 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('main_menu_header.xml', OVERLAY)
         self.assertIn('android:text="Charoite Core"', OVERLAY)
 
-    def test_landscape_actions_respect_real_game_screen_gutters(self):
-        # The old landscape branch positioned controls at height * .53,
-        # over the actual game. The new branch uses compositor bounds and
-        # places Esc/Select in the left gutter, Start/Enter in the right.
+    def test_landscape_panels_have_stable_minimum_width(self):
+        # Previous source trusted projectedGameBounds for panel edges; on
+        # Galaxy S26 landscape the projection was wrong and leftSideW=0,
+        # producing 1px buttons and overlapping the game on the right.
+        # Geometry now uses physical width and reserves center 51%.
         for clause in (
-            'private static int[] projectedGameBounds(Activity host)',
-            'CharoiteWindowPolicy.handheldScreenBounds()',
-            'final int gameLeft = game != null ?',
-            'final int gameRight = game != null ?',
-            'final int leftSideW = Math.max(0, gameLeft - margin * 2);',
-            'final int rightSideW = Math.max(0, width - rightX - margin);',
+            'final int sidePanelExtent = Math.round(width * .245f);',
+            'final int leftX = margin;',
+            'final int leftSideW = Math.max(dp(host, 48),',
+            'final int rightX = width - sidePanelExtent + margin;',
+            'final int rightSideW = Math.max(dp(host, 48),',
+            'final int leftPairW = (leftSideW - gap) / 2;',
+            'final int rightPairW = (rightSideW - gap) / 2;',
             'position(esc, leftX, navY, leftPairW, landBarH)',
             'position(select, leftX + leftPairW + gap, navY,',
             'position(start, rightX, navY, rightPairW, landBarH)',
             'position(enter, rightX + rightPairW + gap, navY,',
             'position(leftShoulder, leftX + (leftSideW - shoulderW) / 2,',
             'position(rightShoulder, rightX +',
-            'position(keyboard, (width - keyboardW) / 2,',
-            'final int keyboardY = clamp(gameBottom + dp(host, 32),',
             'position(f11, leftX, menuY, leftPairW, landBarH)',
+            'position(screenshot, leftX + leftPairW + gap, menuY,',
             'position(interior, rightX +',
+            'final int keyboardY = height - margin - landBarH;',
+            'position(keyboard, (width - keyboardW) / 2,',
             'if (portrait) {',
         ):
             self.assertIn(clause, CONTROLS)
+        # The old zero-width fallback and wrong game-bottom anchor must
+        # never reappear in the landscape placement branch.
+        landscape = CONTROLS.split('final int sidePanelExtent =', 1)[1]
+        self.assertNotIn('Math.max(1, leftSideW)', landscape)
+        self.assertNotIn('rightX - gameLeft', landscape)
+        self.assertNotIn('keyboardY = clamp(gameBottom', landscape)
         self.assertIn('root.post(relayout)', CONTROLS)
 
-    def test_landscape_game_gutter_geometry(self):
-        # Numerical regression using the illustrated 1536x709 landscape
-        # screen: game x=414..1120, bottom=610, D-pad starts near y=430.
-        width, height, left, right, bottom = 1536, 709, 414, 1120, 610
-        margin, gap, scale_gap, header_h, bar_h = 18, 10, 20, 60, 48
-        left_side_w = (left-scale_gap) - margin*2
-        right_x = max(width//2, right+scale_gap+margin)
-        right_side_w = width - right_x - margin
-        assert left_side_w > 2*90
-        assert right_side_w > 2*90
-        assert margin + left_side_w < left
-        assert right_x > right
-        keyboard_y = min(height-bar_h-margin,
-                         max(margin+header_h+gap, bottom+gap))
-        assert keyboard_y >= bottom
-        assert keyboard_y + bar_h <= height-margin
+    def test_landscape_panel_geometry_in_landscape_and_dex(self):
+        for width, height, density in ((1536, 709, 2.0),
+                                       (1920, 1080, 1.5),
+                                       (1000, 600, 1.6)):
+            margin, gap = round(9 * density), round(5 * density)
+            extent = round(width * .245)
+            side_width = max(round(48*density), extent-2*margin)
+            right_x = width - extent + margin
+            left_edge_of_game = round(width * .27)
+            right_edge_of_game = round(width * .73)
+            left_end = margin + side_width
+            assert left_end < left_edge_of_game, (width, left_end)
+            assert right_x > right_edge_of_game, (width, right_x)
+            pair = (side_width - gap) // 2
+            assert pair >= round(40 * density), (width, pair)
+            bar_height = max(round(28*density), min(round(33*density),
+                                                   round(height*.087)))
+            keyboard_y = height-margin-bar_height
+            assert keyboard_y > height*.77, (width, keyboard_y)
+            assert keyboard_y + bar_height <= height-margin
 
     def test_runtime_not_mutated_by_overlay(self):
         for token in ("container.saveData(","setKeysyms(","deleteRecursively",

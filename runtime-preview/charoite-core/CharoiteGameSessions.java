@@ -94,6 +94,12 @@ public final class CharoiteGameSessions {
                 disableBattleNetBrowserGpu && !installer &&
                 CharoiteEnvironments.isBattleNet(host) &&
                 installedBattleNetLauncher);
+        // Collect Agent process status in the SAME Wine session as Battle.net,
+        // never a separate diagnostic desktop. The observer only reads process
+        // names and writes bounded numeric counts to Charoite's own folder.
+        play.putExtra("charoite_bnet_monitor",
+                !installer && CharoiteEnvironments.isBattleNet(host) &&
+                installedBattleNetLauncher);
         // Snapshot the selected environment from the same Portal registry
         // used for selecting this Wine container. XServerDisplayActivity
         // must NEVER infer the realm from its own Activity.getPreferences().

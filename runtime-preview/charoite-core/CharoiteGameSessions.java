@@ -55,6 +55,19 @@ public final class CharoiteGameSessions {
     public static void launch(AppCompatActivity host, Class<? extends Activity> target,
                               int containerId, String executable, boolean installer,
                               boolean gamePresentation, boolean agentCompatibility) {
+        launch(host, target, containerId, executable, installer,
+                gamePresentation, agentCompatibility, false);
+    }
+
+    /**
+     * Blizzard officially documents --disable-gpu for a stuck browser UI.
+     * Apply it only to a verified installed Battle.net launcher in the
+     * Battle.net environment; never to setup.exe or another Windows program.
+     */
+    public static void launch(AppCompatActivity host, Class<? extends Activity> target,
+                              int containerId, String executable, boolean installer,
+                              boolean gamePresentation, boolean agentCompatibility,
+                              boolean disableBattleNetBrowserGpu) {
         if (containerId <= 0 || executable == null || !new File(executable).isFile())
             throw new IllegalArgumentException("Windows executable is missing");
         // Shard of Dreams uses the original TPDP installation. Some Wine
@@ -73,6 +86,14 @@ public final class CharoiteGameSessions {
         // reversible graphics/synchronization fallback.
         play.putExtra("charoite_bnet_agent_compatibility",
                 agentCompatibility && CharoiteEnvironments.isBattleNet(host));
+        String executableName = new File(executable).getName();
+        boolean installedBattleNetLauncher =
+                executableName.equalsIgnoreCase("Battle.net Launcher.exe") ||
+                executableName.equalsIgnoreCase("Battle.net.exe");
+        play.putExtra("charoite_bnet_disable_gpu",
+                disableBattleNetBrowserGpu && !installer &&
+                CharoiteEnvironments.isBattleNet(host) &&
+                installedBattleNetLauncher);
         // Snapshot the selected environment from the same Portal registry
         // used for selecting this Wine container. XServerDisplayActivity
         // must NEVER infer the realm from its own Activity.getPreferences().

@@ -633,6 +633,9 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                 !getIntent().getBooleanExtra("charoite_bnet_monitor", false))
             return;
         charoiteBnetMonitorStarted = true;
+        if (container != null)
+            com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                    container.getRootDir(), "ARMED");
         final android.os.Handler ui = new android.os.Handler(
                 android.os.Looper.getMainLooper());
         final int[] attempts = {0};
@@ -641,9 +644,17 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
             if (isFinishing() || isDestroyed()) return;
             attempts[0]++;
             if (winHandler == null || !winHandler.isCharoiteKeyboardReady()) {
+                if (container != null && attempts[0] == 1)
+                    com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                            container.getRootDir(), "WAITING_FOR_WINE");
                 if (attempts[0] < 12) ui.postDelayed(invoke[0], 1000);
-                else android.util.Log.w("CharoiteBattleNet",
-                        "Wine bridge never became ready for launch monitor");
+                else {
+                    if (container != null)
+                        com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                                container.getRootDir(), "WINE_BRIDGE_TIMEOUT");
+                    android.util.Log.w("CharoiteBattleNet",
+                            "Wine bridge never became ready for launch monitor");
+                }
                 return;
             }
             try {
@@ -653,9 +664,14 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                 winHandler.exec(
                         "C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe",
                         "/monitor");
+                com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                        container.getRootDir(), "COMMAND_SENT");
                 android.util.Log.i("CharoiteBattleNet",
                         "In-session Agent monitor launched; 16 bounded samples");
             } catch (Exception error) {
+                if (container != null)
+                    com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
+                            container.getRootDir(), "PREPARE_FAILED");
                 android.util.Log.w("CharoiteBattleNet",
                         "In-session monitor cannot start", error);
             }

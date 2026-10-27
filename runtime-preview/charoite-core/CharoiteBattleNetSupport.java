@@ -669,6 +669,124 @@ public final class CharoiteBattleNetSupport {
                 "copy of raw Blizzard logs.\n";
     }
 
+
+    /**
+     * Classify the newest Battle.net UI logs. Do not reveal raw lines, URLs,
+     * usernames, tokens, login details, or file paths. This is read-only.
+     * Agent process presence does not prove CEF loaded the login page.
+     */
+    public static String inspectBrowserClientLogs(File root) {
+        final File drive;
+        try { drive = wineDrive(root); }
+        catch (Exception e) { return "BATTLE.NET UI LOG CHECK unavailable.\\n"; }
+        java.util.ArrayList<File> files = new java.util.ArrayList<>();
+        File[] profiles = new File(drive, "users").listFiles();
+        if (profiles != null) for (File profile : profiles) {
+            if (!profile.isDirectory() ||
+                    java.nio.file.Files.isSymbolicLink(profile.toPath())) continue;
+            File logFolder = new File(profile, "AppData/Local/Battle.net/Logs");
+            File[] logs = logFolder.listFiles();
+            if (logs == null) continue;
+            for (File log : logs)
+                if (log.isFile() && !java.nio.file.Files.isSymbolicLink(log.toPath())
+                        && (log.getName().endsWith(".log") ||
+                            log.getName().endsWith(".txt")))
+                    files.add(log);
+        }
+        files.sort((a,b) -> Long.compare(b.lastModified(), a.lastModified()));
+        int samples = Math.min(6,files.size());
+        int login=0, cef=0, agent=0, network=0, errors=0;
+        for (int i=0;i<samples;i++) {
+            try (java.io.RandomAccessFile in =
+                    new java.io.RandomAccessFile(files.get(i),"r")) {
+                long pos = Math.max(0,in.length() - 48*1024);
+                in.seek(pos);
+                byte[] bytes = new byte[(int)(in.length()-pos)];
+                in.readFully(bytes);
+                String data = new String(bytes,
+                        java.nio.charset.StandardCharsets.UTF_8)
+                        .toLowerCase(Locale.ROOT);
+                for (String line : data.split("\\r?\\n")) {
+                    if (line.length()>4096) continue;
+                    boolean relevant = line.contains("error") ||
+                            line.contains("fail") || line.contains("exception") ||
+                            line.contains("unable") || line.contains("empty") ||
+                            line.contains("crash") || line.contains("timeout");
+                    if (!relevant) continue;
+                    errors++;
+                    if (line.contains("tassadar") || line.contains("bnlogin") ||
+                            line.contains("login url") || line.contains("loginurl"))
+                        login++;
+                    if (line.contains("cef") || line.contains("chromium") ||
+                            line.contains("gpu process") || line.contains("browser"))
+                        cef++;
+                    if (line.contains("agent") || line.contains("ipc") ||
+                            line.contains("localhost") || line.contains("127.0.0.1") ||
+                            line.contains("1120"))
+                        agent++;
+                    if (line.contains("http") || line.contains("connection") ||
+                            line.contains("network") || line.contains("timeout") ||
+                            line.contains("certificate"))
+                        network++;
+                }
+            } catch (IOException ignored) {}
+        }
+        StringBuilder result=new StringBuilder("BATTLE.NET UI / LOGIN LOG CHECK\\n");
+        result.append("Recent client logs examined: ").append(samples).append("\\n");
+        if (samples > 0) result.append("Latest client log timestamp: ")
+                .append(new java.util.Date(files.get(0).lastModified())).append("\\n");
+        result.append("Error-like entries: ").append(errors).append("\\n");
+        result.append("  Login/Tassadar references: ").append(login).append("\\n");
+        result.append("  CEF/browser/GPU references: ").append(cef).append("\\n");
+        result.append("  Agent/IPC references: ").append(agent).append("\\n");
+        result.append("  Network/TLS references: ").append(network).append("\\n");
+        result.append("Counts are not diagnoses; zero means no matches in the sampled " +
+                "log tails. No client logs or personal data were modified.\\n");
+        return result.toString();
+    }
+
+    /**
+     * Local-app browser cache repair: an OPT-IN reversible rename, not deletion.
+     * Never move ProgramData/Battle.net, Agent, settings, CachedData.db, or games.
+     * The user must close Blizzard before pressing the confirmation button.
+     */
+    public static String backupAndResetBrowserCache(File root) throws IOException {
+        File drive=wineDrive(root);
+        File[] profiles=new File(drive,"users").listFiles();
+        if (profiles==null) return "No Wine users available; no changes made.";
+        int moved=0,missing=0,skipped=0;
+        String suffix=".charoite-backup-"+System.currentTimeMillis();
+        for (File profile:profiles) {
+            if (!profile.isDirectory() ||
+                    Files.isSymbolicLink(profile.toPath())) continue;
+            File parent=new File(profile,"AppData/Local/Battle.net").getCanonicalFile();
+            if (!parent.getPath().startsWith(drive.getPath()+File.separator))
+                continue;
+            for (String cacheName:new String[]{"Cache","BrowserCaches","GPUCache","Code Cache"}) {
+                File original=new File(parent,cacheName);
+                if (!original.exists()) { missing++; continue; }
+                if (!original.isDirectory() ||
+                        Files.isSymbolicLink(original.toPath())) { skipped++; continue; }
+                File backup=new File(parent,cacheName+suffix);
+                if (backup.exists()) { skipped++; continue; }
+                // Rename on the SAME C: filesystem; never overwrite or delete.
+                try {
+                    Files.move(original.toPath(),backup.toPath(),
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (java.nio.file.AtomicMoveNotSupportedException ex) {
+                    Files.move(original.toPath(),backup.toPath());
+                }
+                moved++;
+            }
+        }
+        return "Battle.net browser caches backed up (not deleted): "+moved+
+                " folder(s) moved; "+missing+" missing; "+skipped+
+                " skipped for safety. Original folders remain as " +
+                "Cache/BrowserCaches/GPUCache/Code Cache.charoite-backup-<timestamp>. " +
+                "Other Blizzard settings, Agent, games and saves were untouched. " +
+                "Battle.net may recreate caches at next startup.";
+    }
+
     private static boolean trustedWindowsDownload(URL target) {
         if (target == null || !"https".equalsIgnoreCase(target.getProtocol()) ||
                 target.getPort() != -1 && target.getPort() != 443)

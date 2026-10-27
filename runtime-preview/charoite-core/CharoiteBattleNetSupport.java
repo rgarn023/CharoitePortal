@@ -468,6 +468,12 @@ public final class CharoiteBattleNetSupport {
             long age = System.currentTimeMillis() - report.lastModified();
             if (age > 60*60*1000L)
                 output.append("This preflight result is older than one hour.\n");
+            if ("1".equals(fields.get("preflight_rpc_ready")))
+                output.append("RpcSs startup and rollback completed before " +
+                        "the client launch attempt.\n");
+            else
+                output.append("RpcSs preflight was not verified ready; " +
+                        "check the numeric startup and rollback results.\n");
             if ("1".equals(fields.get("preflight_launch_ready")))
                 output.append("RpcSs became ready BEFORE the Windows client " +
                         "was launched. This does not prove CEF login works.\n");

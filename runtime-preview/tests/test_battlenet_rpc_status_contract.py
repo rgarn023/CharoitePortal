@@ -35,7 +35,7 @@ class BattleNetRpcServiceContract(unittest.TestCase):
             self.assertNotIn(forbidden, normal_monitor)
             self.assertNotIn(forbidden, normal_query)
         # A separate explicit opt-in path is the only allowed service start.
-        repair = NATIVE.split('static void try_start_rpc_service(',1)[1].split(
+        repair = NATIVE.split('static int try_start_rpc_service(',1)[1].split(
             'static void monitor_battlenet(',1)[0]
         self.assertIn('StartServiceW(service,0,NULL)', repair)
         self.assertIn('if (allowRpcStart) try_start_rpc_service(report);',NATIVE)

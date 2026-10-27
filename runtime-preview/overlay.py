@@ -651,7 +651,7 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                 com.charoitegames.core.CharoiteBattleNetSupport.prepareGuestNetworkProbe(
                         this, container.getRootDir());
                 winHandler.exec(
-                        "C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe",
+                        "C:\\CharoitePortal\\Diagnostics\\charoite_bnet_network_probe.exe",
                         "/monitor");
                 android.util.Log.i("CharoiteBattleNet",
                         "In-session Agent monitor launched; 16 bounded samples");

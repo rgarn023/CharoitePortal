@@ -96,6 +96,78 @@ static RpcServiceStatus inspect_rpc_service(void) {
     return result;
 }
 
+
+/* Explicit, one-session Battle.net-only troubleshooting.
+ * The launcher UI must opt in and transmit /try-rpcss-start. Never changes
+ * the SCM startup type, Wine registry, user files, or any game executable.
+ * Do not invoke on the ordinary read-only /monitor path.
+ */
+static void try_start_rpc_service(FILE *report) {
+    RpcServiceStatus before=inspect_rpc_service();
+    DWORD startError=0, openError=0, queryError=0, afterState=before.state;
+    DWORD attempt=0, alreadyRunning=0;
+    if (!before.scm_error && !before.open_error && !before.query_error &&
+            before.state == SERVICE_STOPPED) {
+        SC_HANDLE scm=OpenSCManagerW(NULL,NULL,SC_MANAGER_CONNECT);
+        if (!scm) openError=GetLastError();
+        else {
+            SC_HANDLE service=OpenServiceW(scm,L"RpcSs",
+                    SERVICE_START | SERVICE_QUERY_STATUS);
+            if (!service) openError=GetLastError();
+            else {
+                attempt=1;
+                if (!StartServiceW(service,0,NULL)) {
+                    startError=GetLastError();
+                    if (startError==ERROR_SERVICE_ALREADY_RUNNING) {
+                        alreadyRunning=1;
+                        startError=0;
+                    }
+                }
+                CloseServiceHandle(service);
+            }
+            CloseServiceHandle(scm);
+        }
+    } else if (before.state==SERVICE_RUNNING) alreadyRunning=1;
+    /* Only poll for a bounded period if startup was attempted. The normal
+     * probe never waits on or mutates any service. */
+    if (attempt && !startError) {
+        for (int i=0;i<40;i++) {
+            RpcServiceStatus current=inspect_rpc_service();
+            if (current.scm_error || current.open_error || current.query_error) {
+                queryError=current.scm_error ? current.scm_error :
+                        current.open_error ? current.open_error : current.query_error;
+                break;
+            }
+            afterState=current.state;
+            if (afterState==SERVICE_RUNNING || afterState==SERVICE_STOPPED && i>6)
+                break;
+            Sleep(200);
+        }
+    }
+    if (!attempt) {
+        RpcServiceStatus after=inspect_rpc_service();
+        if (!after.scm_error && !after.open_error && !after.query_error)
+            afterState=after.state;
+    }
+    fprintf(report,"monitor_rpc_opt_in_start_requested=1\\n");
+    fprintf(report,"monitor_rpc_start_before_state=%lu\\n",
+            (unsigned long)before.state);
+    fprintf(report,"monitor_rpc_start_attempted=%lu\\n",(unsigned long)attempt);
+    fprintf(report,"monitor_rpc_start_already_running=%lu\\n",
+            (unsigned long)alreadyRunning);
+    fprintf(report,"monitor_rpc_start_scm_error=%lu\\n",
+            (unsigned long)before.scm_error);
+    fprintf(report,"monitor_rpc_start_open_error=%lu\\n",
+            (unsigned long)(before.open_error ? before.open_error : openError));
+    fprintf(report,"monitor_rpc_start_win32_error=%lu\\n",
+            (unsigned long)startError);
+    fprintf(report,"monitor_rpc_start_query_error=%lu\\n",
+            (unsigned long)(before.query_error ? before.query_error : queryError));
+    fprintf(report,"monitor_rpc_start_after_state=%lu\\n",
+            (unsigned long)afterState);
+    fflush(report);
+}
+
 /*
  * This mode MUST run inside the same Wine session as the Battle.net launcher.
  * Independent Portal diagnostics start a separate Wine desktop, so their
@@ -104,7 +176,7 @@ static RpcServiceStatus inspect_rpc_service(void) {
  * Report fixed numeric samples only. Each file is Charoite-owned and small;
  * flush immediately so a crashed Wine session leaves actionable data.
  */
-static void monitor_battlenet(FILE *report) {
+static void monitor_battlenet(FILE *report, int allowRpcStart) {
     int seenAgent=0, seenClient=0, seenLauncher=0;
     int maxAgent=0, maxClient=0, maxLauncher=0, everEnumError=0;
     int seenRpcss=0, seenServices=0, maxRpcss=0, maxServices=0;
@@ -112,6 +184,8 @@ static void monitor_battlenet(FILE *report) {
     RpcServiceStatus lastRpc;
     ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
+    fprintf(report,"monitor_rpc_opt_in_start_requested=%d\n",allowRpcStart ? 1:0);
+    if (allowRpcStart) try_start_rpc_service(report);
     fprintf(report,"monitor_sample_interval_ms=1800\n");
     fprintf(report,"monitor_expected_samples=16\n");
     fflush(report);
@@ -229,14 +303,15 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     if (!slash) return 3;
     const wchar_t *cmd=GetCommandLineW();
     int monitor = cmd && wcsstr(cmd,L"/monitor") != NULL;
+    int tryRpcStart = monitor && cmd && wcsstr(cmd,L"/try-rpcss-start") != NULL;
     wcscpy(slash+1, monitor ?
             L"charoite_bnet_launch_monitor.txt" :
             L"charoite_bnet_network_report.txt");
     FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
     if (monitor) {
-        fprintf(report,"Charoite in-session Battle.net process monitor v4\n");
-        monitor_battlenet(report);
+        fprintf(report,"Charoite in-session Battle.net process monitor v5\n");
+        monitor_battlenet(report,tryRpcStart);
         fclose(report);
         return 0;
     }

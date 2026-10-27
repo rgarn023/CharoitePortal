@@ -1,4 +1,6 @@
-> **Continuing this project in a new chat?** Open [CURRENT_HANDOFF.md](docs/CURRENT_HANDOFF.md) for the latest GitHub branch, verified APK, unresolved issues, and the exact next steps. The older `docs/HANDOFF.md` is historical.\n\n## First-launch environments
+> **Continuing this project in a new chat?** Open [CURRENT_HANDOFF.md](docs/CURRENT_HANDOFF.md) for the latest GitHub branch, verified APK, unresolved issues, and the exact next steps. The older `docs/HANDOFF.md` is historical.
+
+## First-launch environments
 
 A fresh installation opens in **General Gaming**, while **Touhou Realm** is
 available immediately from **System → Switch Environment**. Each environment

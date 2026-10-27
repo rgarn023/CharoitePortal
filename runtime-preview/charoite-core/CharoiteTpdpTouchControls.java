@@ -710,7 +710,7 @@ public final class CharoiteTpdpTouchControls {
                         Math.max(dp(host, 44), rightX - gameLeft - 2 * gap));
                 final int gameBottom = game != null ?
                         game[1] + game[3] : height - landBarH - margin * 2;
-                final int keyboardY = clamp(gameBottom + dp(host, 10),
+                final int keyboardY = clamp(gameBottom + dp(host, 32),
                         menuY + landBarH + gap,
                         height - landBarH - margin);
                 keyboard.setText(keyboardW < dp(host, 78) ? "⌨" : "KEYBOARD");
@@ -735,6 +735,11 @@ public final class CharoiteTpdpTouchControls {
             if (r - l != oldR - oldL || b - t != oldB - oldT) relayout.run();
         });
         root.post(relayout);
+        // X11 windows can map AFTER Android lays out the overlay. Refresh
+        // the gutter geometry once the game drawable and frame have appeared.
+        // These are one-off reflows, not a perpetual polling loop.
+        root.postDelayed(relayout, 550);
+        root.postDelayed(relayout, 1800);
 
         // Return remains available even while handheld keys are hidden.
         portal.setOnClickListener(v -> {

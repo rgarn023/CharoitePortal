@@ -10,7 +10,7 @@ WORKFLOW = (BASE.parent / ".github/workflows/runtime-preview.yml").read_text()
 class BattleNetRpcServiceContract(unittest.TestCase):
     def test_scm_query_is_read_only_and_same_session(self):
         for token in ('OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT)',
-                      'OpenServiceW(scm, L"RpcSs", SERVICE_QUERY_STATUS)',
+                      'OpenServiceW(scm, L"RpcSs",',
                       'QueryServiceStatusEx(', 'SC_STATUS_PROCESS_INFO',
                       'SERVICE_RUNNING', 'SERVICE_STOPPED',
                       'monitor_rpc_service_running_samples=%d',
@@ -28,7 +28,7 @@ class BattleNetRpcServiceContract(unittest.TestCase):
         normal_monitor = NATIVE.split('static void monitor_battlenet(',1)[1].split(
             'static void test_endpoint(',1)[0]
         normal_query = NATIVE.split('static RpcServiceStatus inspect_rpc_service(',1)[1].split(
-            'static void try_start_rpc_service(',1)[0]
+            '/*\n * Opt-in, temporary Battle.net RpcSs startup experiment.',1)[0]
         for forbidden in ('StartServiceW(', 'ControlService(', 'DeleteService(',
                           'ChangeServiceConfig', 'RegSetValue', 'DeleteFileW(',
                           'TerminateProcess('):
@@ -47,6 +47,8 @@ class BattleNetRpcServiceContract(unittest.TestCase):
         self.assertIn('monitor_rpc_service_running_samples', SUPPORT)
         self.assertIn('monitor_rpc_service_stopped_samples', SUPPORT)
         self.assertIn('monitor_rpc_service_query_failed_samples', SUPPORT)
+        self.assertIn('monitor_rpc_config_disabled_samples=%d', NATIVE)
+        self.assertIn('query_rpc_config(service,&result.start_type,&result.config_error)', NATIVE)
         self.assertIn('reported RpcSs RUNNING', SUPPORT)
         self.assertIn('RpcSs was reported STOPPED', SUPPORT)
         self.assertIn('an absent rpcss.exe name', SUPPORT.lower().replace("the wine service control manager ", ""))

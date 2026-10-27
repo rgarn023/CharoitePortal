@@ -123,6 +123,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetOriginalButton;
     private Button battleNetDirectButton;
     private Button battleNetLaunchCompatButton;
+    private Button battleNetWineProbeButton;
     private Button battleNetBrowserSettingsButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
@@ -388,6 +389,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetOriginalButton = null;
         battleNetDirectButton = null;
         battleNetLaunchCompatButton = null;
+        battleNetWineProbeButton = null;
         battleNetBrowserSettingsButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
@@ -435,6 +437,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetDiagnoseButton = outlinedButton("CHECK LAUNCHER + AGENT DIAGNOSTICS",
                     this::showBattleNetAgentDiagnostics);
             battleCard.addView(battleNetDiagnoseButton);
+            battleNetWineProbeButton = outlinedButton(
+                    "TEST WINE DNS / HTTPS / AGENT", this::runBattleNetWineNetworkProbe);
+            battleCard.addView(battleNetWineProbeButton);
+            battleCard.addView(label("This optional test runs entirely inside the " +
+                    "Battle.net Wine environment. It checks Windows DNS, HTTPS " +
+                    "and whether Agent.exe is running; it never signs into Blizzard. " +
+                    "Return to Setup and open diagnostics for the result.",
+                    12, SECONDARY, false));
             battleNetCompatButton = outlinedButton("RETRY SETUP: COMPATIBILITY MODE",
                     this::retryBattleNetCompatibility);
             battleCard.addView(battleNetCompatButton);
@@ -745,6 +755,23 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 }).show();
     }
 
+    private void runBattleNetWineNetworkProbe() {
+        if (busy) return;
+        try {
+            File probe = CharoiteBattleNetSupport.prepareGuestNetworkProbe(
+                    this, battleNetRoot());
+            // The normal Win32 runtime starts our stand-alone probe and
+            // exits when the program terminates. No installer scan, no reset,
+            // no game shortcuts or Blizzard account files touched.
+            setStatus("Launching Battle.net network probe inside Wine. " +
+                    "Return here and open Launcher + Agent Diagnostics for its report.");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, probe.getAbsolutePath(), false, false);
+        } catch (Exception error) {
+            setStatus("Wine probe cannot start: " + error.getClass().getSimpleName());
+        }
+    }
+
     /** Read only: inspect whether Blizzard actually downloaded Agent.exe
      * and whether agent logs exist. No automatic repairs or data removal. */
     private void showBattleNetAgentDiagnostics() {
@@ -752,7 +779,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         try { root = battleNetRoot(); }
         catch (Exception e) { setStatus(e.getMessage()); return; }
         String report = CharoiteBattleNetSupport.inspectLauncherStartup(root) + "\n\n" +
-                CharoiteBattleNetSupport.inspectAgent(root);
+                CharoiteBattleNetSupport.inspectAgent(root) + "\n\n" +
+                CharoiteBattleNetSupport.inspectGuestNetworkProbe(root);
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Battle.net launcher and Agent diagnostics")
                 .setMessage(report)
@@ -1267,6 +1295,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetBrowserSettingsButton.setEnabled(!busy && ready);
             if (battleNetLaunchCompatButton != null)
                 battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetWineProbeButton != null)
+                battleNetWineProbeButton.setEnabled(!busy && ready);
             if (battleNetDirectButton != null) {
                 File direct = null;
                 if (ready) {

@@ -205,7 +205,7 @@ static int rpc_recover_pending(SC_HANDLE service, const wchar_t *path,
     return 1;
 }
 
-static void try_start_rpc_service(FILE *report) {
+static int try_start_rpc_service(FILE *report) {
     RpcServiceStatus before=inspect_rpc_service();
     DWORD startError=0, openError=0, queryError=0, afterState=before.state;
     DWORD attempt=0, alreadyRunning=0, enableAttempt=0, enableError=0;
@@ -341,6 +341,13 @@ static void try_start_rpc_service(FILE *report) {
             (unsigned long)pendingRecovery);
     fprintf(report,"monitor_rpc_recovery_error=%lu\n",(unsigned long)recoveryError);
     fflush(report);
+    // The next Windows program may launch only after RPC is RUNNING and the
+    // original service configuration has been verified/rolled back.
+    return afterState == SERVICE_RUNNING &&
+            typeAfter == before.start_type &&
+            (restoreConfirmed || (before.state == SERVICE_RUNNING && !pendingRecovery)) &&
+            !startError && !enableError && !restoreError && !recoveryError &&
+            !queryError;
 }
 
 /*
@@ -480,6 +487,68 @@ done:
     fprintf(report,"%s_http_status=%lu\n",label,(unsigned long)code);
 }
 
+/* Pre-client gate, invoked by Wine explorer as the FIRST Windows program.
+ * Starts RpcSs and restores original Disabled startup mode before spawning
+ * the original winhandler.exe and Battle.net client. No shell or batch file:
+ * original arguments are forwarded unchanged to CreateProcessW.
+ * The client is NOT started when the service fails or rollback is unverified.
+ */
+static int prelaunch_battlenet(FILE *report, const wchar_t *args) {
+    fprintf(report,"preflight_attempted=1\n");
+    fprintf(report,"preflight_before_client=1\n");
+    fflush(report);
+    int rpcReady=try_start_rpc_service(report);
+    fprintf(report,"preflight_rpc_ready=%d\n",rpcReady);
+    fprintf(report,"preflight_client_spawn_attempted=%d\n",rpcReady);
+    fflush(report);
+    if (!rpcReady) {
+        fprintf(report,"preflight_client_spawn_error=%u\n",0u);
+        fprintf(report,"preflight_launch_ready=0\n");
+        fflush(report);
+        return 51;
+    }
+    static const wchar_t executable[]=L"C:\\windows\\winhandler.exe";
+    static const wchar_t prefix[]=L"\"C:\\windows\\winhandler.exe\" ";
+    size_t tail=wcslen(args);
+    size_t length=wcslen(prefix)+tail+1;
+    if (!tail || length>8192) {
+        fprintf(report,"preflight_client_spawn_error=%u\n",
+                (unsigned)ERROR_INVALID_PARAMETER);
+        fprintf(report,"preflight_launch_ready=0\n");
+        fflush(report);
+        return 52;
+    }
+    wchar_t *command=(wchar_t*)malloc(length*sizeof(wchar_t));
+    if (!command) {
+        fprintf(report,"preflight_client_spawn_error=%u\n",
+                (unsigned)ERROR_NOT_ENOUGH_MEMORY);
+        fprintf(report,"preflight_launch_ready=0\n");
+        fflush(report);
+        return 53;
+    }
+    wcscpy(command,prefix);
+    wcscat(command,args);
+    STARTUPINFOW startup;
+    PROCESS_INFORMATION process;
+    ZeroMemory(&startup,sizeof(startup));
+    ZeroMemory(&process,sizeof(process));
+    startup.cb=sizeof(startup);
+    BOOL started=CreateProcessW(executable,command,NULL,NULL,FALSE,
+            0,NULL,NULL,&startup,&process);
+    DWORD error=started ? 0 : GetLastError();
+    free(command);
+    fprintf(report,"preflight_client_spawn_error=%lu\n",(unsigned long)error);
+    fprintf(report,"preflight_launch_ready=%d\n",started ? 1:0);
+    fflush(report);
+    if (!started) return 54;
+    // Keep the parent Wine session alive while the original WinHandler runs.
+    // Never log the command line or any Blizzard account information.
+    CloseHandle(process.hThread);
+    WaitForSingleObject(process.hProcess,INFINITE);
+    CloseHandle(process.hProcess);
+    return 0;
+}
+
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     (void)instance; (void)previous; (void)args; (void)show;
     wchar_t path[MAX_PATH];
@@ -488,15 +557,23 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     wchar_t *slash=wcsrchr(path,L'\\');
     if (!slash) return 3;
     const wchar_t *cmd=GetCommandLineW();
-    int monitor = cmd && wcsstr(cmd,L"/monitor") != NULL;
+    const wchar_t *prelaunch=cmd ? wcsstr(cmd,L"/preflight-launch ") : NULL;
+    int monitor = !prelaunch && cmd && wcsstr(cmd,L"/monitor") != NULL;
     int tryRpcStart = monitor && cmd && wcsstr(cmd,L"/try-rpcss-start") != NULL;
-    wcscpy(slash+1, monitor ?
-            L"charoite_bnet_launch_monitor.txt" :
+    wcscpy(slash+1, prelaunch ? L"charoite_bnet_rpc_preflight.txt" :
+            monitor ? L"charoite_bnet_launch_monitor.txt" :
             L"charoite_bnet_network_report.txt");
     FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
+    if (prelaunch) {
+        fprintf(report,"Charoite Battle.net before-client RpcSs preflight v1\n");
+        int status=prelaunch_battlenet(report,
+                prelaunch+wcslen(L"/preflight-launch "));
+        fclose(report);
+        return status;
+    }
     if (monitor) {
-        fprintf(report,"Charoite in-session Battle.net process monitor v5\n");
+        fprintf(report,"Charoite in-session Battle.net process monitor v6\n");
         monitor_battlenet(report,tryRpcStart);
         fclose(report);
         return 0;

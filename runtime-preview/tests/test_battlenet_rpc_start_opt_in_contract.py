@@ -68,7 +68,7 @@ class BattleNetRpcOptInContract(unittest.TestCase):
         self.assertIn('STARTUP CONFIGURATION RESTORED:',REPORT)
         self.assertIn('RESTORATION NOT CONFIRMED:',REPORT)
         self.assertIn('temporarily switches',PORTAL)
-        self.assertIn('restore its prior Disabled setting',PORTAL)
+        self.assertIn('restores its prior Disabled setting',PORTAL)
         self.assertIn('The Wine Service Control Manager reported RpcSs RUNNING',REPORT)
         self.assertIn('CharoiteTpdpTouchControls.attach(',OVERLAY)
         self.assertIn('CharoiteLegacyKeyboard.sendScan(',OVERLAY)

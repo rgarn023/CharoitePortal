@@ -74,6 +74,18 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertNotIn('root.delete()', CORE)
 
 
+    def test_new_battlenet_recovery_paths(self):
+        overlay = (BASE/"overlay.py").read_text()
+        for token in ("locationapi=d", "WINE_SIMULATE_WRITECOPY",
+                      "WINEDLLOVERRIDES"):
+            self.assertIn(token, overlay)
+        self.assertIn("installedDirectClient(File root)", CORE)
+        self.assertIn("OPEN BATTLE.NET.EXE (DIRECT)", UI)
+        self.assertIn("APPLY BROWSER ACCELERATION FIX (BACKUP)", UI)
+        self.assertIn("Battle.net.config.charoite-backup-v1", CORE)
+        self.assertIn('client.put("HardwareAcceleration", "false")', CORE)
+        self.assertIn("inspectRecentAgentErrors(programData)", CORE)
+
     def test_no_false_diablo_four_dx12_guarantee(self):
         self.assertIn('Diablo IV requires DirectX 12', UI)
         self.assertIn('does not yet have verified', UI)

@@ -643,25 +643,32 @@ public final class CharoiteTpdpTouchControls {
                 position(extras[i], extraX + i * (extraW + gap),
                         extraY, extraW, dp(host, 34));
             } else {
-                // In landscape the upper *center* is the game surface.
-                // Never place action keys, More buttons or keyboard on it.
-                // On a phone/DeX resize, derive side columns from the live
-                // compositor game quad; use centered fallback at startup.
-                int[] game = projectedGameBounds(host);
-                final int screenGap = dp(host, 12);
-                final int gameLeft = game != null ?
-                        game[0] - screenGap : Math.round(width * .27f);
-                final int gameRight = game != null ?
-                        game[0] + game[2] + screenGap : Math.round(width * .73f);
+                /*
+                 * LANDSCAPE / DEX: always reserve two real, usable control
+                 * panels outside the middle 51% of the Android window.
+                 * projectedGameBounds() is an X11-compositor approximation
+                 * and on some phones reports x~=0 even though the visible
+                 * game is centered. Feeding that into Math.max(1, ...) caused
+                 * 1px Esc/Select/F11 buttons and right controls over the game.
+                 *
+                 * Use physical screen fractions for the side panels instead.
+                 * The central region stays clear for the whole game + bezel.
+                 * This also ensures a consistent layout before X11 maps.
+                 */
+                final int sidePanelExtent = Math.round(width * .245f);
                 final int leftX = margin;
-                final int leftSideW = Math.max(0, gameLeft - margin * 2);
-                final int rightX = Math.max(width / 2, gameRight + margin);
-                final int rightSideW = Math.max(0, width - rightX - margin);
-                final int leftPairW = Math.max(1, (leftSideW - gap) / 2);
-                final int rightPairW = Math.max(1, (rightSideW - gap) / 2);
-                final int landBarH = dp(host, 29);
+                final int leftSideW = Math.max(dp(host, 48),
+                        sidePanelExtent - margin * 2);
+                final int rightX = width - sidePanelExtent + margin;
+                final int rightSideW = Math.max(dp(host, 48),
+                        width - rightX - margin);
+                final int leftPairW = (leftSideW - gap) / 2;
+                final int rightPairW = (rightSideW - gap) / 2;
+                // Keep touch areas physically large, not 1px; the panel
+                // fraction provides adequate room on Galaxy/DeX landscapes.
+                final int landBarH = Math.max(dp(host, 28),
+                        Math.min(dp(host, 33), Math.round(height * .087f)));
                 final int topButtonH = dp(host, 32);
-                // Portal/More/Hide are the only buttons on the top header.
                 final int portalW = dp(host, 88);
                 position(portal, margin, margin, portalW, topButtonH);
                 position(more, margin + portalW + gap, margin,
@@ -669,8 +676,9 @@ public final class CharoiteTpdpTouchControls {
                 position(toggle, width - margin - dp(host, 93),
                         margin, dp(host, 93), topButtonH);
 
-                // More expands into the LEFT/RIGHT gutters (not the game).
-                final int menuY = margin + topButtonH + dp(host, 7);
+                // Two clear menu rows above the gamepad clusters:
+                // left F11/P Shot and wide input route; right INFO/INTERIOR.
+                final int menuY = margin + topButtonH + gap;
                 position(f11, leftX, menuY, leftPairW, landBarH);
                 position(screenshot, leftX + leftPairW + gap, menuY,
                         leftPairW, landBarH);
@@ -683,9 +691,9 @@ public final class CharoiteTpdpTouchControls {
                         menuY, diagnostics != null ? rightPairW : rightSideW,
                         landBarH);
 
-                // Split Esc/Select and Start/Enter across both side gutters.
-                // Nothing in these rows crosses the game rectangle.
-                final int navY = menuY + 2 * (landBarH + gap) + gap;
+                // ALL navigation keys are outside the game, even if the
+                // fullscreen X11 transform has not yet settled.
+                final int navY = menuY + (landBarH + gap) * 2 + gap;
                 position(esc, leftX, navY, leftPairW, landBarH);
                 position(select, leftX + leftPairW + gap, navY,
                         leftPairW, landBarH);
@@ -693,32 +701,27 @@ public final class CharoiteTpdpTouchControls {
                 position(enter, rightX + rightPairW + gap, navY,
                         rightPairW, landBarH);
 
-                final int shoulderY = navY + landBarH + dp(host, 14);
-                final int shoulderW = Math.min(dp(host, 88),
-                        Math.max(1, leftSideW));
-                final int rightShoulderW = Math.min(dp(host, 88),
-                        Math.max(1, rightSideW));
+                final int shoulderY = navY + landBarH + dp(host, 12);
+                final int shoulderW = Math.min(dp(host, 88), leftSideW);
+                final int rightShoulderW = Math.min(dp(host, 88), rightSideW);
                 position(leftShoulder, leftX + (leftSideW - shoulderW) / 2,
                         shoulderY, shoulderW, landBarH);
                 position(rightShoulder, rightX +
                         (rightSideW - rightShoulderW) / 2,
                         shoulderY, rightShoulderW, landBarH);
 
-                // Keep the keyboard BELOW the game's visible bottom edge,
-                // between the D-pad and the ABXY cluster.
-                final int keyboardW = Math.min(dp(host, 104),
-                        Math.max(dp(host, 44), rightX - gameLeft - 2 * gap));
-                final int gameBottom = game != null ?
-                        game[1] + game[3] : height - landBarH - margin * 2;
-                final int keyboardY = clamp(gameBottom + dp(host, 32),
-                        menuY + landBarH + gap,
-                        height - landBarH - margin);
+                // A stable bottom CENTER control: compositor's gameBottom
+                // was occasionally reported near 0 in landscape, placing
+                // Keyboard directly over Touhou 8's title screen.
+                final int keyboardW = Math.min(dp(host, 106),
+                        Math.round(width * .16f));
+                final int keyboardY = height - margin - landBarH;
                 keyboard.setText(keyboardW < dp(host, 78) ? "⌨" : "KEYBOARD");
                 position(keyboard, (width - keyboardW) / 2,
                         keyboardY, keyboardW, landBarH);
 
-                // Retain symmetric, equal-size gameplay clusters in their
-                // bottom corners; moving them onto the game would break play.
+                // The gameplay controls remain equal-sized and symmetric
+                // in the two bottom corners, clear of the center screen.
                 position(up, dpadCenterX, dpadCenterY - size - gap, size, size);
                 position(left, dpadCenterX - size - gap, dpadCenterY, size, size);
                 position(right, dpadCenterX + size + gap, dpadCenterY, size, size);

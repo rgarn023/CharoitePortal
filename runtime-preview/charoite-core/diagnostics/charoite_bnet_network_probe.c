@@ -34,10 +34,10 @@ static void process_status(FILE *report) {
         } while (Process32NextW(snapshot, &proc));
         CloseHandle(snapshot);
     }
-    fwprintf(report,L"guest_process_enumeration_error=%lu\n", (unsigned long)error);
-    fwprintf(report,L"guest_agent_process_count=%d\n", agents);
-    fwprintf(report,L"guest_battlenet_client_process_count=%d\n", clients);
-    fwprintf(report,L"guest_battlenet_launcher_process_count=%d\n", launchers);
+    fprintf(report,"guest_process_enumeration_error=%lu\n", (unsigned long)error);
+    fprintf(report,"guest_agent_process_count=%d\n", agents);
+    fprintf(report,"guest_battlenet_client_process_count=%d\n", clients);
+    fprintf(report,"guest_battlenet_launcher_process_count=%d\n", launchers);
 }
 
 static void test_endpoint(FILE *report, const wchar_t *host, const char *label) {
@@ -102,11 +102,11 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     wchar_t *slash=wcsrchr(path,L'\\');
     if (!slash) return 3;
     wcscpy(slash+1,L"charoite_bnet_network_report.txt");
-    FILE *report=_wfopen(path,L"w, ccs=UTF-8");
+    FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
-    fwprintf(report,L"Charoite Battle.net Wine guest diagnostic v1\n");
-    fwprintf(report,L"phase_7_means_http_response_received=1\n");
-    fwprintf(report,L"not_a_test_of_blizzard_login_or_authentication=1\n");
+    fprintf(report,"Charoite Battle.net Wine guest diagnostic v1\n");
+    fprintf(report,"phase_7_means_http_response_received=1\n");
+    fprintf(report,"not_a_test_of_blizzard_login_or_authentication=1\n");
     process_status(report);
     test_endpoint(report,L"us.battle.net","battle_net");
     test_endpoint(report,L"downloader.battle.net","downloader");

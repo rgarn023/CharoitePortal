@@ -139,6 +139,55 @@ public final class CharoiteBattleNetSupport {
         return report.toString();
     }
 
+    /**
+     * Read-only browser/CEF state summary, with no Blizzard session tokens,
+     * usernames, saved passwords, log contents, or account files included.
+     * A spinner can be due to CEF rendering, Wine compatibility or networking.
+     * We deliberately do NOT delete the Battle.net cache or reset Agent.
+     */
+    public static String inspectLauncherStartup(File root) {
+        File drive;
+        try { drive = wineDrive(root); }
+        catch (Exception error) { return "Battle.net startup: " + error.getMessage(); }
+        StringBuilder out = new StringBuilder("BATTLE.NET BROWSER STARTUP\n");
+        File launcher = installedLauncher(root);
+        out.append("Installed launcher: ")
+                .append(launcher == null ? "not found" : launcher.getName()).append("\n");
+        out.append("Blizzard safe-browser --disable-gpu option: available\n");
+        out.append("Existing prefix/Agent are not modified by Safe Browser.\n");
+        out.append("Local browser and Agent directory presence (not contents):\n");
+        for (String relative : new String[]{
+                "ProgramData/Battle.net",
+                "ProgramData/Blizzard Entertainment",
+                "Program Files (x86)/Battle.net",
+                "Program Files/Battle.net"}) {
+            File folder = new File(drive, relative);
+            out.append("  ").append(relative).append(": ")
+                    .append(folder.isDirectory() ? "present" : "absent").append("\n");
+        }
+        File users = new File(drive, "users");
+        File[] profiles = users.listFiles();
+        int userProfiles = 0, appDataDirs = 0, crashFolders = 0;
+        if (profiles != null) for (File profile : profiles) {
+            if (!profile.isDirectory() ||
+                    java.nio.file.Files.isSymbolicLink(profile.toPath()))
+                continue;
+            userProfiles++;
+            if (new File(profile, "AppData/Roaming/Battle.net").isDirectory())
+                appDataDirs++;
+            if (new File(profile,
+                    "AppData/Local/Blizzard Entertainment").isDirectory())
+                crashFolders++;
+        }
+        out.append("Wine user profile folders: ").append(userProfiles).append("\n");
+        out.append("Roaming Battle.net data folders: ").append(appDataDirs).append("\n");
+        out.append("Local Blizzard data folders: ").append(crashFolders).append("\n");
+        out.append("A spinning icon is not proof of a broken installation. " +
+                "Hardware-accelerated CEF, Wine runner version and Blizzard network " +
+                "access can each cause it. This report does not read or delete data.");
+        return out.toString();
+    }
+
     private static boolean trustedWindowsDownload(URL target) {
         if (target == null || !"https".equalsIgnoreCase(target.getProtocol()) ||
                 target.getPort() != -1 && target.getPort() != 443)

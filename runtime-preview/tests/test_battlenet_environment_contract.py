@@ -74,6 +74,27 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertNotIn('root.delete()', CORE)
 
 
+    def test_windows_guest_probe_is_opt_in_and_report_is_bounded(self):
+        from pathlib import Path
+        native=(BASE/"charoite-core/diagnostics/charoite_bnet_network_probe.c").read_text()
+        workflow=(BASE.parent/".github/workflows/runtime-preview.yml").read_text()
+        overlay=(BASE/"overlay.py").read_text()
+        for token in ("WinHttpOpen(", "WinHttpSendRequest(", "WinHttpReceiveResponse(",
+                      "GetAddrInfoW(", "Process32FirstW(", "Agent.exe",
+                      "phase_7_means_http_response_received"):
+            self.assertIn(token, native)
+        for token in ("charoite_bnet_network_probe.c",
+                      "charoite_bnet_network_probe.exe", "-lwinhttp"):
+            self.assertIn(token, workflow)
+        self.assertIn('assets/diagnostics/charoite_bnet_network_probe.exe', overlay)
+        self.assertIn('TEST WINE DNS / HTTPS / AGENT', UI)
+        self.assertIn('this::runBattleNetWineNetworkProbe', UI)
+        self.assertIn('public static File prepareGuestNetworkProbe(', CORE)
+        self.assertIn('public static String inspectGuestNetworkProbe(', CORE)
+        self.assertIn('line.matches("[a-z_0-9]{3,60}=[0-9]{1,12}")', CORE)
+        self.assertIn('CharoiteBattleNetSupport.inspectGuestNetworkProbe(root)', UI)
+        self.assertNotIn('Blizzard account token', native)
+
     def test_new_battlenet_recovery_paths(self):
         overlay = (BASE/"overlay.py").read_text()
         for token in ("locationapi=d", "WINE_SIMULATE_WRITECOPY",

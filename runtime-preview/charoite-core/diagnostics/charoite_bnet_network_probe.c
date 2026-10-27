@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <tlhelp32.h>
+#include <winsvc.h>
 #include <stdio.h>
 #include <wchar.h>
 
@@ -57,6 +58,44 @@ static void process_status(FILE *report) {
     fprintf(report,"guest_battlenet_launcher_process_count=%d\n", counts.launchers);
 }
 
+
+/* Query the Wine service manager without starting, stopping, or changing a
+ * service. The process name alone cannot establish whether RpcSs is running.
+ * All results are fixed numeric Win32 status/error codes, not account data.
+ */
+typedef struct {
+    DWORD scm_error;
+    DWORD open_error;
+    DWORD query_error;
+    DWORD state;
+} RpcServiceStatus;
+
+static RpcServiceStatus inspect_rpc_service(void) {
+    RpcServiceStatus result;
+    ZeroMemory(&result, sizeof(result));
+    SC_HANDLE scm = OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT);
+    if (!scm) {
+        result.scm_error = GetLastError();
+        return result;
+    }
+    SC_HANDLE service = OpenServiceW(scm, L"RpcSs", SERVICE_QUERY_STATUS);
+    if (!service) {
+        result.open_error = GetLastError();
+        CloseServiceHandle(scm);
+        return result;
+    }
+    SERVICE_STATUS_PROCESS status;
+    DWORD required = 0;
+    ZeroMemory(&status, sizeof(status));
+    if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO,
+            (LPBYTE)&status, sizeof(status), &required))
+        result.query_error = GetLastError();
+    else result.state = status.dwCurrentState;
+    CloseServiceHandle(service);
+    CloseServiceHandle(scm);
+    return result;
+}
+
 /*
  * This mode MUST run inside the same Wine session as the Battle.net launcher.
  * Independent Portal diagnostics start a separate Wine desktop, so their
@@ -69,12 +108,21 @@ static void monitor_battlenet(FILE *report) {
     int seenAgent=0, seenClient=0, seenLauncher=0;
     int maxAgent=0, maxClient=0, maxLauncher=0, everEnumError=0;
     int seenRpcss=0, seenServices=0, maxRpcss=0, maxServices=0;
+    int scmOk=0, rpcRunning=0, rpcStopped=0, rpcUnqueryable=0;
+    RpcServiceStatus lastRpc;
+    ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
     fprintf(report,"monitor_sample_interval_ms=1800\n");
     fprintf(report,"monitor_expected_samples=16\n");
     fflush(report);
     for (int i=0; i<16; i++) {
         ProcessCounts c=get_process_counts();
+        RpcServiceStatus rpc=inspect_rpc_service();
+        lastRpc=rpc;
+        if (!rpc.scm_error) scmOk++;
+        if (rpc.state==SERVICE_RUNNING) rpcRunning++;
+        if (rpc.state==SERVICE_STOPPED) rpcStopped++;
+        if (rpc.scm_error || rpc.open_error || rpc.query_error) rpcUnqueryable++;
         if (c.agents > maxAgent) maxAgent = c.agents;
         if (c.clients > maxClient) maxClient = c.clients;
         if (c.launchers > maxLauncher) maxLauncher = c.launchers;
@@ -105,6 +153,14 @@ static void monitor_battlenet(FILE *report) {
     fprintf(report,"monitor_services_present_samples=%d\n",seenServices);
     fprintf(report,"monitor_max_rpcss=%d\n",maxRpcss);
     fprintf(report,"monitor_max_services=%d\n",maxServices);
+    fprintf(report,"monitor_rpc_scm_connect_success_samples=%d\n",scmOk);
+    fprintf(report,"monitor_rpc_service_running_samples=%d\n",rpcRunning);
+    fprintf(report,"monitor_rpc_service_stopped_samples=%d\n",rpcStopped);
+    fprintf(report,"monitor_rpc_service_query_failed_samples=%d\n",rpcUnqueryable);
+    fprintf(report,"monitor_rpc_service_state_last=%lu\n",(unsigned long)lastRpc.state);
+    fprintf(report,"monitor_rpc_scm_error_last=%lu\n",(unsigned long)lastRpc.scm_error);
+    fprintf(report,"monitor_rpc_open_error_last=%lu\n",(unsigned long)lastRpc.open_error);
+    fprintf(report,"monitor_rpc_query_error_last=%lu\n",(unsigned long)lastRpc.query_error);
     fprintf(report,"monitor_process_enumeration_error_samples=%d\n",everEnumError);
     fprintf(report,"monitor_complete=1\n");
     fflush(report);
@@ -179,7 +235,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
     if (monitor) {
-        fprintf(report,"Charoite in-session Battle.net process monitor v3\n");
+        fprintf(report,"Charoite in-session Battle.net process monitor v4\n");
         monitor_battlenet(report);
         fclose(report);
         return 0;

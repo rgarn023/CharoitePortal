@@ -120,6 +120,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetDownloadButton;
     private Button battleNetInstallButton;
     private Button battleNetOpenButton;
+    private Button battleNetOriginalButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
     private TextView battleNetDownloadStatus;
@@ -381,6 +382,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetDownloadButton = null;
         battleNetInstallButton = null;
         battleNetOpenButton = null;
+        battleNetOriginalButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
         battleNetDownloadStatus = null;
@@ -402,10 +404,19 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetInstallButton = outlinedButton("RUN DOWNLOADED WINDOWS INSTALLER",
                     this::installBattleNet);
             battleCard.addView(battleNetInstallButton);
-            battleNetOpenButton = outlinedButton("OPEN INSTALLED BATTLE.NET",
+            battleNetOpenButton = outlinedButton("OPEN BATTLE.NET (SAFE BROWSER)",
                     this::openBattleNet);
             battleCard.addView(battleNetOpenButton);
-            battleNetDiagnoseButton = outlinedButton("CHECK UPDATE AGENT DIAGNOSTICS",
+            battleNetOriginalButton = outlinedButton("OPEN BATTLE.NET (ORIGINAL)",
+                    this::openBattleNetOriginal);
+            battleCard.addView(battleNetOriginalButton);
+            battleCard.addView(label("If Battle.net spins indefinitely or the first " +
+                    "installer crashed, try Safe Browser first. It uses Blizzard's " +
+                    "--disable-gpu argument for the embedded launcher browser only. " +
+                    "Original starts with no browser override. Both leave installed " +
+                    "games, Agent data, accounts, and the Wine prefix untouched.",
+                    12, SECONDARY, false));
+            battleNetDiagnoseButton = outlinedButton("CHECK LAUNCHER + AGENT DIAGNOSTICS",
                     this::showBattleNetAgentDiagnostics);
             battleCard.addView(battleNetDiagnoseButton);
             battleNetCompatButton = outlinedButton("RETRY SETUP: COMPATIBILITY MODE",
@@ -627,9 +638,23 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             // Launcher requires pointer, keyboard and Windows login fields;
             // not the gamepad overlay. Game controls remain Core-owned.
             CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
-                    containerId, exe.getAbsolutePath(), false, false);
+                    containerId, exe.getAbsolutePath(), false, false,
+                    false, true);
         } catch (Exception error) {
             setStatus("Cannot open Battle.net: " + error.getMessage());
+        }
+    }
+
+    private void openBattleNetOriginal() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.installedLauncher(battleNetRoot());
+            if (exe == null)
+                throw new IllegalStateException("Battle.net launcher not installed");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false);
+        } catch (Exception error) {
+            setStatus("Cannot open original Battle.net: " + error.getMessage());
         }
     }
 
@@ -1148,6 +1173,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetInstallButton.setEnabled(!busy && ready && setup != null);
             if (battleNetOpenButton != null)
                 battleNetOpenButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetOriginalButton != null)
+                battleNetOriginalButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetCompatButton != null)
                 battleNetCompatButton.setEnabled(!busy && ready && setup != null);
             if (battleNetDiagnoseButton != null)

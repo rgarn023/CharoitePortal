@@ -119,6 +119,24 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertIn('monitor_android_state=', CORE)
         self.assertIn('No Wine-side monitor samples received yet.', CORE)
 
+    def test_battlenet_browser_login_recovery_is_opt_in_and_preserves_games(self):
+        self.assertIn('VIEW BATTLE.NET LOGIN / CEF REPORT', UI)
+        self.assertIn('BACK UP + RESET BATTLE.NET BROWSER CACHE', UI)
+        self.assertIn('this::showBattleNetCefReport', UI)
+        self.assertIn('this::confirmBattleNetBrowserCacheReset', UI)
+        self.assertIn('inspectBrowserPreferences(root)', UI)
+        self.assertIn('inspectBrowserLogCategories(root)', UI)
+        self.assertIn('public static String backupAndResetBrowserCache(File root)', CORE)
+        self.assertIn('new String[]{"Cache","BrowserCaches","GPUCache","Code Cache"}', CORE)
+        self.assertIn('.charoite-backup-', CORE)
+        self.assertIn('Files.move(original.toPath(),backup.toPath()', CORE)
+        self.assertIn('.setPositiveButton("Back up and reset"', UI)
+        repair=CORE.split('public static String backupAndResetBrowserCache(File root)',1)[1].split('private static boolean trustedWindowsDownload',1)[0]
+        self.assertNotIn('Files.delete(', repair)
+        self.assertNotIn('ProgramData/Battle.net/Agent', repair)
+        self.assertNotIn('CachedData.db', repair)
+        self.assertNotIn('System.load(', repair)
+
     def test_live_monitor_uses_same_wine_session_as_battlenet(self):
         native = (BASE/"charoite-core/diagnostics/charoite_bnet_network_probe.c").read_text()
         overlay = (BASE/"overlay.py").read_text()

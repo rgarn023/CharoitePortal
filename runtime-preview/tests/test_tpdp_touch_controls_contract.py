@@ -107,6 +107,49 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('main_menu_header.xml', OVERLAY)
         self.assertIn('android:text="Charoite Core"', OVERLAY)
 
+    def test_landscape_actions_respect_real_game_screen_gutters(self):
+        # The old landscape branch positioned controls at height * .53,
+        # over the actual game. The new branch uses compositor bounds and
+        # places Esc/Select in the left gutter, Start/Enter in the right.
+        for clause in (
+            'private static int[] projectedGameBounds(Activity host)',
+            'CharoiteWindowPolicy.handheldScreenBounds()',
+            'final int gameLeft = game != null ?',
+            'final int gameRight = game != null ?',
+            'final int leftSideW = Math.max(0, gameLeft - margin * 2);',
+            'final int rightSideW = Math.max(0, width - rightX - margin);',
+            'position(esc, leftX, navY, leftPairW, landBarH)',
+            'position(select, leftX + leftPairW + gap, navY,',
+            'position(start, rightX, navY, rightPairW, landBarH)',
+            'position(enter, rightX + rightPairW + gap, navY,',
+            'position(leftShoulder, leftX + (leftSideW - shoulderW) / 2,',
+            'position(rightShoulder, rightX +',
+            'position(keyboard, (width - keyboardW) / 2,',
+            'final int keyboardY = clamp(gameBottom + dp(host, 10),',
+            'position(f11, leftX, menuY, leftPairW, landBarH)',
+            'position(interior, rightX +',
+            'if (portrait) {',
+        ):
+            self.assertIn(clause, CONTROLS)
+        self.assertIn('root.post(relayout)', CONTROLS)
+
+    def test_landscape_game_gutter_geometry(self):
+        # Numerical regression using the illustrated 1536x709 landscape
+        # screen: game x=414..1120, bottom=610, D-pad starts near y=430.
+        width, height, left, right, bottom = 1536, 709, 414, 1120, 610
+        margin, gap, scale_gap, header_h, bar_h = 18, 10, 20, 60, 48
+        left_side_w = (left-scale_gap) - margin*2
+        right_x = max(width//2, right+scale_gap+margin)
+        right_side_w = width - right_x - margin
+        assert left_side_w > 2*90
+        assert right_side_w > 2*90
+        assert margin + left_side_w < left
+        assert right_x > right
+        keyboard_y = min(height-bar_h-margin,
+                         max(margin+header_h+gap, bottom+gap))
+        assert keyboard_y >= bottom
+        assert keyboard_y + bar_h <= height-margin
+
     def test_runtime_not_mutated_by_overlay(self):
         for token in ("container.saveData(","setKeysyms(","deleteRecursively",
                       "FileOutputStream"):

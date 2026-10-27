@@ -510,6 +510,13 @@ public final class CharoiteBattleNetSupport {
                         .append("state and error values before inferring why.\n");
             } else out.append("No Service Control Manager query recorded by this APK. ")
                     .append("Update Charoite and relaunch Battle.net to verify RpcSs.\n");
+            int rpcConfiguredDisabled = monitorNumber(fields, "monitor_rpc_config_disabled_samples");
+            int rpcStartType = monitorNumber(fields, "monitor_rpc_config_start_type_last");
+            if (rpcConfiguredDisabled >= 0)
+                out.append("Wine RpcSs service startup type was DISABLED in ")
+                        .append(rpcConfiguredDisabled).append(" samples. ")
+                        .append("Last startup type code: ").append(rpcStartType)
+                        .append(" (4=Disabled, 3=Manual, 2=Automatic).\n");
             int rpcStartRequested = monitorNumber(fields, "monitor_rpc_opt_in_start_requested");
             int rpcStartAttempted = monitorNumber(fields, "monitor_rpc_start_attempted");
             if (rpcStartRequested == 1 && rpcStartAttempted >= 0) {
@@ -530,6 +537,30 @@ public final class CharoiteBattleNetSupport {
             } else if (rpcStartRequested == 1)
                 out.append("RpcSs start experiment requested but no attempt " +
                         "result recorded; this monitor may be incomplete.\n");
+            if (rpcStartRequested == 1) {
+                int temporary = monitorNumber(fields, "monitor_rpc_temporary_enable_attempted");
+                int enableErr = monitorNumber(fields, "monitor_rpc_temporary_enable_error");
+                int restoreOk = monitorNumber(fields, "monitor_rpc_restore_confirmed");
+                int restoreErr = monitorNumber(fields, "monitor_rpc_restore_error");
+                int recoveryErr = monitorNumber(fields, "monitor_rpc_recovery_error");
+                if (temporary == 1)
+                    out.append("TEMPORARY STARTUP TEST: attempted Manual mode before " +
+                            "starting the service; enable Win32 error=").append(enableErr)
+                            .append(".\n");
+                if (restoreOk == 1 && restoreErr == 0 && recoveryErr == 0)
+                    out.append("STARTUP CONFIGURATION RESTORED: verified original " +
+                            "Disabled type after testing. This does not mean " +
+                            "that Battle.net login succeeded.\n");
+                else if (temporary == 1 || recoveryErr > 0)
+                    out.append("RESTORATION NOT CONFIRMED: restore error=")
+                            .append(restoreErr).append(", recovery error=")
+                            .append(recoveryErr).append(". Avoid repeating " +
+                            "the test until recovery status is checked; an " +
+                            "opt-in retry can reconcile a pending marker.\n");
+                if (monitorNumber(fields,"monitor_rpc_start_win32_error")==1058)
+                    out.append("Win32 1058 means the service is disabled or " +
+                            "its associated enabled-device requirement is missing.\n");
+            }
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
             return out.toString();

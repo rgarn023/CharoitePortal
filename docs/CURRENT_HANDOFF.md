@@ -30,6 +30,8 @@
 - **Tests:** 116 contract/regression tests passed; successful Android APK build, signing verification and upload in that run.
 - **Phone validation:** The updated themed runtime drawer **has not yet been visually tested on the Galaxy**. The new CEF/login and cache tools are also awaiting the user's on-device report.
 
+**Documentation housekeeping in this chat:** This canonical living handoff was added to the repository as a separate, easy-to-paste file; the root `README.md` now links here and retains a link to the historical handoff. These are documentation-only changes with `[skip ci]`; they do **not** require a new APK or replace the verified runtime build above. Always check `main` HEAD before development.
+
 **Important:** Any new handoff-only commit may make `main` HEAD newer than the code SHA above without changing the APK. When resuming, inspect the current latest `main` SHA, commit differences, and Actions. If newer code exists, do not label the old build as the current code build.
 
 **Earlier successful Battle.net diagnostic APK:** Actions run `40552092537`, code SHA `876222c7cc068bc0219cc71b703a75f5f40ea72d`, APK artifact ID `12756101469`. The newer run `40564585687` includes those fixes plus the drawer redesign.

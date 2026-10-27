@@ -37,7 +37,7 @@ class BattleNetRpcOptInContract(unittest.TestCase):
         self.assertIn('wcsstr(cmd,L"/try-rpcss-start")',NATIVE)
         self.assertIn('monitor_battlenet(report,tryRpcStart);',NATIVE)
         self.assertIn('if (allowRpcStart) try_start_rpc_service(report);',NATIVE)
-        self.assertIn('before.state == SERVICE_STOPPED',NATIVE)
+        self.assertIn('before.state==SERVICE_STOPPED',NATIVE)
         self.assertIn('StartServiceW(service,0,NULL)',NATIVE)
         self.assertIn('SERVICE_START |',NATIVE)
         self.assertIn('SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG |',NATIVE)

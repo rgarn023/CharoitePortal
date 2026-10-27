@@ -622,6 +622,47 @@ rotation_java = """    @Override
 
 """
 tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator provides XServer events.
+    private boolean charoiteBnetMonitorStarted = false;
+
+    /** Monitor the ACTUAL Battle.net Wine session, unlike the standalone
+     * diagnostic activity which necessarily has a separate process lifetime.
+     * Never touch Blizzard files; the observer is a Charoite-owned Win32 EXE.
+     */
+    private void startCharoiteBattleNetMonitor() {
+        if (charoiteBnetMonitorStarted ||
+                !getIntent().getBooleanExtra("charoite_bnet_monitor", false))
+            return;
+        charoiteBnetMonitorStarted = true;
+        final android.os.Handler ui = new android.os.Handler(
+                android.os.Looper.getMainLooper());
+        final int[] attempts = {0};
+        final Runnable[] invoke = new Runnable[1];
+        invoke[0] = () -> {
+            if (isFinishing() || isDestroyed()) return;
+            attempts[0]++;
+            if (winHandler == null || !winHandler.isCharoiteKeyboardReady()) {
+                if (attempts[0] < 12) ui.postDelayed(invoke[0], 1000);
+                else android.util.Log.w("CharoiteBattleNet",
+                        "Wine bridge never became ready for launch monitor");
+                return;
+            }
+            try {
+                if (container == null) throw new java.io.IOException("No container");
+                com.charoitegames.core.CharoiteBattleNetSupport.prepareGuestNetworkProbe(
+                        this, container.getRootDir());
+                winHandler.exec(
+                        "C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe",
+                        "/monitor");
+                android.util.Log.i("CharoiteBattleNet",
+                        "In-session Agent monitor launched; 16 bounded samples");
+            } catch (Exception error) {
+                android.util.Log.w("CharoiteBattleNet",
+                        "In-session monitor cannot start", error);
+            }
+        };
+        ui.post(invoke[0]);
+    }
+
     private void confirmReturnToCharoitePortal() {
         if (isFinishing() || isDestroyed()) return;
         new androidx.appcompat.app.AlertDialog.Builder(this)
@@ -797,6 +838,8 @@ old_cursor = "                    xServerView.getRenderer().setCursorVisible(tru
 assert code.count(old_cursor) == 1, "Window-open marker changed"
 code = code.replace(old_cursor, """                    touhouWindowOpened[0] = true;
                     if (getIntent().hasExtra("exec_path")) com.charoitegames.core.CharoiteDiagnostics.windowOpened(XServerDisplayActivity.this);
+                    if (getIntent().getBooleanExtra("charoite_bnet_monitor", false))
+                        startCharoiteBattleNetMonitor();
 """ + old_cursor)
 old_exit = """        if (intent.hasExtra("exec_path")) {
             AppUtils.RestartApplicationOptions options = new AppUtils.RestartApplicationOptions();

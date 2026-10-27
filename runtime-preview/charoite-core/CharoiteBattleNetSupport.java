@@ -454,27 +454,27 @@ public final class CharoiteBattleNetSupport {
             String raw = new String(Files.readAllBytes(report.toPath()),
                     java.nio.charset.StandardCharsets.US_ASCII);
             StringBuilder output = new StringBuilder(
-                    "BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT\\n");
+                    "BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT\n");
             output.append("Result timestamp: ").append(
-                    new java.util.Date(report.lastModified())).append("\\n");
+                    new java.util.Date(report.lastModified())).append("\n");
             java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
-            for (String line : raw.split("\\\\r?\\\\n")) {
+            for (String line : raw.split("\\r?\\n")) {
                 if (!line.matches("(monitor_rpc_[a-z_0-9]{3,55}|preflight_[a-z_0-9]{3,55})=[0-9]{1,12}"))
                     continue;
                 int equals = line.indexOf('=');
                 fields.put(line.substring(0,equals),line.substring(equals+1));
-                output.append("  ").append(line).append("\\n");
+                output.append("  ").append(line).append("\n");
             }
             long age = System.currentTimeMillis() - report.lastModified();
             if (age > 60*60*1000L)
-                output.append("This preflight result is older than one hour.\\n");
+                output.append("This preflight result is older than one hour.\n");
             if ("1".equals(fields.get("preflight_launch_ready")))
                 output.append("RpcSs became ready BEFORE the Windows client " +
-                        "was launched. This does not prove CEF login works.\\n");
+                        "was launched. This does not prove CEF login works.\n");
             else if ("0".equals(fields.get("preflight_launch_ready")))
                 output.append("The preflight did NOT launch Battle.net; " +
-                        "review RPC startup, rollback and spawn errors.\\n");
-            else output.append("Preflight incomplete; client launch not confirmed.\\n");
+                        "review RPC startup, rollback and spawn errors.\n");
+            else output.append("Preflight incomplete; client launch not confirmed.\n");
             return output.toString();
         } catch (Exception error) {
             return "BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT unavailable: " +
@@ -605,7 +605,7 @@ public final class CharoiteBattleNetSupport {
             }
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
-            return out.toString() + "\\n" + inspectGuestRpcPreflight(root);
+            return out.toString() + "\n" + inspectGuestRpcPreflight(root);
         } catch (Exception error) {
             return "BATTLE.NET LIVE AGENT MONITOR unavailable: " +
                     error.getClass().getSimpleName();

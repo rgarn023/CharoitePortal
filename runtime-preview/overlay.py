@@ -310,6 +310,17 @@ scan_asset = root / "app/src/main/assets/input/charoite_keyscan.exe"
 scan_asset.parent.mkdir(parents=True, exist_ok=True)
 scan_asset.write_bytes(scan_binary.read_bytes())
 
+# Battle.net-only guest-side DNS/HTTPS and running-Agent diagnosis.
+# The executable is opt-in and writes only numeric status codes; never logs
+# Blizzard login tokens, requests, account information or file contents.
+bnet_probe = overlay.parent / "charoite-core/diagnostics/charoite_bnet_network_probe.exe"
+assert bnet_probe.is_file() and bnet_probe.stat().st_size > 5000, (
+    "Compile Wine Battle.net network probe before applying overlay"
+)
+bnet_asset = root / "app/src/main/assets/diagnostics/charoite_bnet_network_probe.exe"
+bnet_asset.parent.mkdir(parents=True, exist_ok=True)
+bnet_asset.write_bytes(bnet_probe.read_bytes())
+
 # General, read-only Windows GDI rendering diagnostic. This is an ordinary
 # test program, not an injected Wine DLL or visual text overlay.
 gdi_binary = overlay.parent / "charoite-core/rendering/charoite_gdi_probe32.exe"

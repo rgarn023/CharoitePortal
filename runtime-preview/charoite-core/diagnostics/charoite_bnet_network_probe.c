@@ -15,7 +15,9 @@
 #include <tlhelp32.h>
 #include <winsvc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
+#include <io.h>
 
 typedef struct {
     int agents;
@@ -68,7 +70,26 @@ typedef struct {
     DWORD open_error;
     DWORD query_error;
     DWORD state;
+    DWORD config_error;
+    DWORD start_type;
 } RpcServiceStatus;
+
+static int query_rpc_config(SC_HANDLE service, DWORD *startType, DWORD *error) {
+    DWORD needed=0;
+    QueryServiceConfigW(service,NULL,0,&needed);
+    if (!needed || needed>8192) {
+        *error=GetLastError();
+        if (!*error) *error=ERROR_INSUFFICIENT_BUFFER;
+        return 0;
+    }
+    QUERY_SERVICE_CONFIGW *config=(QUERY_SERVICE_CONFIGW*)malloc(needed);
+    if (!config) { *error=ERROR_NOT_ENOUGH_MEMORY; return 0; }
+    int ok=QueryServiceConfigW(service,config,needed,&needed);
+    if (ok) *startType=config->dwStartType;
+    else *error=GetLastError();
+    free(config);
+    return ok;
+}
 
 static RpcServiceStatus inspect_rpc_service(void) {
     RpcServiceStatus result;
@@ -78,7 +99,8 @@ static RpcServiceStatus inspect_rpc_service(void) {
         result.scm_error = GetLastError();
         return result;
     }
-    SC_HANDLE service = OpenServiceW(scm, L"RpcSs", SERVICE_QUERY_STATUS);
+    SC_HANDLE service = OpenServiceW(scm, L"RpcSs",
+            SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG);
     if (!service) {
         result.open_error = GetLastError();
         CloseServiceHandle(scm);
@@ -91,6 +113,7 @@ static RpcServiceStatus inspect_rpc_service(void) {
             (LPBYTE)&status, sizeof(status), &required))
         result.query_error = GetLastError();
     else result.state = status.dwCurrentState;
+    query_rpc_config(service,&result.start_type,&result.config_error);
     CloseServiceHandle(service);
     CloseServiceHandle(scm);
     return result;
@@ -181,6 +204,7 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     int maxAgent=0, maxClient=0, maxLauncher=0, everEnumError=0;
     int seenRpcss=0, seenServices=0, maxRpcss=0, maxServices=0;
     int scmOk=0, rpcRunning=0, rpcStopped=0, rpcUnqueryable=0;
+    int rpcDisabled=0, rpcManual=0, rpcConfigFailed=0;
     RpcServiceStatus lastRpc;
     ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
@@ -197,6 +221,9 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
         if (rpc.state==SERVICE_RUNNING) rpcRunning++;
         if (rpc.state==SERVICE_STOPPED) rpcStopped++;
         if (rpc.scm_error || rpc.open_error || rpc.query_error) rpcUnqueryable++;
+        if (!rpc.config_error && rpc.start_type==SERVICE_DISABLED) rpcDisabled++;
+        if (!rpc.config_error && rpc.start_type==SERVICE_DEMAND_START) rpcManual++;
+        if (rpc.config_error) rpcConfigFailed++;
         if (c.agents > maxAgent) maxAgent = c.agents;
         if (c.clients > maxClient) maxClient = c.clients;
         if (c.launchers > maxLauncher) maxLauncher = c.launchers;
@@ -232,6 +259,13 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     fprintf(report,"monitor_rpc_service_stopped_samples=%d\n",rpcStopped);
     fprintf(report,"monitor_rpc_service_query_failed_samples=%d\n",rpcUnqueryable);
     fprintf(report,"monitor_rpc_service_state_last=%lu\n",(unsigned long)lastRpc.state);
+    fprintf(report,"monitor_rpc_config_disabled_samples=%d\n",rpcDisabled);
+    fprintf(report,"monitor_rpc_config_manual_samples=%d\n",rpcManual);
+    fprintf(report,"monitor_rpc_config_query_failed_samples=%d\n",rpcConfigFailed);
+    fprintf(report,"monitor_rpc_config_start_type_last=%lu\n",
+            (unsigned long)lastRpc.start_type);
+    fprintf(report,"monitor_rpc_config_win32_error_last=%lu\n",
+            (unsigned long)lastRpc.config_error);
     fprintf(report,"monitor_rpc_scm_error_last=%lu\n",(unsigned long)lastRpc.scm_error);
     fprintf(report,"monitor_rpc_open_error_last=%lu\n",(unsigned long)lastRpc.open_error);
     fprintf(report,"monitor_rpc_query_error_last=%lu\n",(unsigned long)lastRpc.query_error);

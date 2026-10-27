@@ -27,7 +27,7 @@
 - **Runtime code SHA:** `aa29752deebe5708c6d823384107e701f450c0a2`.
 - **GitHub Actions run `40586875588`** — **SUCCESS**: https://github.com/rgarn023/CharoitePortal/actions/runs/40586875588
 - **APK artifact:** `Charoite-Portal-Android-APK`, artifact ID **12772202008**, ZIP archive **231,423,080 bytes**, verified not expired.
-- Native Win32 helper, 126 existing+new regression tests (confirm count from CI before repeating), Android APK and signing checks passed. **The latest temporary RpcSs startup repair has NOT yet been tested on the Galaxy.** Documentation-only commits can advance `main` beyond the APK's runtime SHA without changing code.
+- Native Win32 helper, **126 regression tests passed** (verified in final GitHub Actions logs), Android APK and signing checks passed. **The latest temporary RpcSs startup repair has NOT yet been tested on the Galaxy.** Documentation-only commits can advance `main` beyond the APK's runtime SHA without changing code.
 - Android package ID `com.charoite` stays unchanged. No Touhou/General environment code changes. The only service configuration change is gated behind explicit user confirmation inside **Battle.net Gaming**, with in-session rollback to original Disabled startup type and a recovery marker for interrupted attempts. It is experimental; restoration MUST be verified in on-device report, not merely assumed.
 
 **Documentation housekeeping in this chat:** This canonical living handoff was added to the repository as a separate, easy-to-paste file; the root `README.md` now links here and retains a link to the historical handoff. These are documentation-only changes with `[skip ci]`; they do **not** require a new APK or replace the verified runtime build above. Always check `main` HEAD before development.

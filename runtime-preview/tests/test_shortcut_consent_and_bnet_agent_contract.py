@@ -51,7 +51,7 @@ class ShortcutConsentContract(unittest.TestCase):
         self.assertIn('Agent log files:',report)
         self.assertNotIn('.delete()',report)
         self.assertNotIn('Files.move(',report)
-        self.assertIn('CHECK UPDATE AGENT DIAGNOSTICS',UI)
+        self.assertIn('CHECK LAUNCHER + AGENT DIAGNOSTICS',UI)
         self.assertIn('RETRY SETUP: COMPATIBILITY MODE',UI)
         self.assertIn('true, false, true)',UI)
         self.assertIn('charoite_bnet_agent_compatibility',SESS)

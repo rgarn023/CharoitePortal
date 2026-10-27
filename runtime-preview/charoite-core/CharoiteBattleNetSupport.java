@@ -668,6 +668,7 @@ public final class CharoiteBattleNetSupport {
         logs.sort((x,y)->Long.compare(y.lastModified(),x.lastModified()));
         int sampled=0, errors=0, cef=0, rendering=0, ipc=0, network=0;
         int crash=0, gpu=0, login=0;
+        int gpuProcess=0, deviceLost=0, memoryProtect=0, rpcService=0;
         for(int i=0;i<Math.min(logs.size(),6);i++) {
             File file=logs.get(i);
             try(java.io.RandomAccessFile input=new java.io.RandomAccessFile(file,"r")) {
@@ -696,6 +697,19 @@ public final class CharoiteBattleNetSupport {
                             line.contains("access violation")) crash++;
                     if(line.contains("gpu") || line.contains("compositor")) gpu++;
                     if(line.contains("login") || line.contains("auth")) login++;
+                    // Count specific hints only; never expose sensitive log
+                    // text, account identifiers, URLs or filenames.
+                    if(line.contains("gpu process") || line.contains("gpu-process") ||
+                            line.contains("gpu_process")) gpuProcess++;
+                    if(line.contains("device lost") ||
+                            line.contains("device removed") ||
+                            line.contains("vk_error_device_lost") ||
+                            line.contains("dxgi_error_device_removed")) deviceLost++;
+                    if(line.contains("page_writecopy") ||
+                            line.contains("page_readwrite") ||
+                            line.contains("virtualprotect")) memoryProtect++;
+                    if(line.contains("rpcss") || line.contains("rpc_s_server_unavailable") ||
+                            line.contains("failed to open service manager")) rpcService++;
                 }
             } catch(IOException ignored) {}
         }
@@ -705,6 +719,10 @@ public final class CharoiteBattleNetSupport {
                 "  Browser/CEF references: " + cef + "\n" +
                 "  Rendering references: " + rendering + "\n" +
                 "  GPU/compositor references: " + gpu + "\n" +
+                "  GPU-process references: " + gpuProcess + "\n" +
+                "  Device-lost/removed references: " + deviceLost + "\n" +
+                "  Memory-protection references: " + memoryProtect + "\n" +
+                "  RPC/service-manager references: " + rpcService + "\n" +
                 "  Agent/IPC references: " + ipc + "\n" +
                 "  Network references: " + network + "\n" +
                 "  Crash/exception references: " + crash + "\n" +

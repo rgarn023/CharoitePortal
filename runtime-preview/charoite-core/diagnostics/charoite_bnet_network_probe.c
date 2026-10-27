@@ -1,7 +1,8 @@
 /*
  * Charoite Core / Battle.net: read-only Wine guest network+process probe.
  * Never uses Blizzard credentials or session cookies and does not read
- * Blizzard files. The output contains only boolean/status/error codes.
+ * Blizzard files. Ordinary monitoring is read-only; only the separate
+ * confirmed /try-rpcss-start mode temporarily modifies RpcSs startup type.
  *
  * Standalone 32-bit Win32 executable, bundled by Charoite Portal and launched
  * on the user's request in the selected Battle.net Wine container.
@@ -120,74 +121,224 @@ static RpcServiceStatus inspect_rpc_service(void) {
 }
 
 
-/* Explicit, one-session Battle.net-only troubleshooting.
- * The launcher UI must opt in and transmit /try-rpcss-start. Never changes
- * the SCM startup type, Wine registry, user files, or any game executable.
- * Do not invoke on the ordinary read-only /monitor path.
+/*
+ * Opt-in, temporary Battle.net RpcSs startup experiment.
+ * Microsoft ERROR_SERVICE_DISABLED (1058) means StartService alone cannot
+ * start the service. We change SERVICE_DISABLED -> SERVICE_DEMAND_START only
+ * with explicit Portal confirmation, then restore SERVICE_DISABLED after the
+ * bounded start attempt, including after a failure.
+ *
+ * A small, fixed-format Charoite-only recovery marker is fsynced BEFORE
+ * changing the Wine SCM setting. If interrupted, the next explicit repair
+ * attempt restores the original disabled configuration before any retry.
+ * The normal /monitor path never changes SCM values.
  */
+#define RPC_MARKER_CONTENT "CHAROITE_RPCSS_START_DISABLED=4\n"
+
+static int rpc_recovery_path(wchar_t *path, DWORD cap) {
+    DWORD length=GetModuleFileNameW(NULL,path,cap);
+    if (!length || length>=cap) return 0;
+    wchar_t *slash=wcsrchr(path,L'\\');
+    if (!slash) return 0;
+    const wchar_t *name=L"charoite_rpcss_recovery.txt";
+    if ((size_t)(slash-path)+1+wcslen(name)>=cap) return 0;
+    wcscpy(slash+1,name);
+    return 1;
+}
+
+static int rpc_write_marker(const wchar_t *path) {
+    FILE *file=_wfopen(path,L"wb");
+    if (!file) return 0;
+    const char *marker=RPC_MARKER_CONTENT;
+    size_t size=strlen(marker);
+    int ok=fwrite(marker,1,size,file)==size;
+    if (ok) ok=fflush(file)==0;
+    if (ok) ok=_commit(_fileno(file))==0;
+    if (fclose(file)!=0) ok=0;
+    return ok;
+}
+
+/* Returns 1 if no pending recovery or the saved disabled state was
+ * restored. Any other marker contents or service state require investigation:
+ * never overwrite a third party's SCM change. */
+static int rpc_recover_pending(SC_HANDLE service, const wchar_t *path,
+                               DWORD *error, DWORD *wasPending) {
+    FILE *file=_wfopen(path,L"rb");
+    if (!file) {
+        if (GetLastError()!=ERROR_FILE_NOT_FOUND &&
+                GetFileAttributesW(path)!=INVALID_FILE_ATTRIBUTES) {
+            *error=ERROR_ACCESS_DENIED;
+            return 0;
+        }
+        return 1;
+    }
+    *wasPending=1;
+    char buffer[64];
+    size_t size=fread(buffer,1,sizeof(buffer),file);
+    int extra=fgetc(file);
+    fclose(file);
+    const char *expected=RPC_MARKER_CONTENT;
+    if (size!=strlen(expected) || memcmp(buffer,expected,size)!=0 || extra!=EOF) {
+        *error=ERROR_INVALID_DATA;
+        return 0;
+    }
+    DWORD startType=0;
+    if (!query_rpc_config(service,&startType,error)) return 0;
+    if (startType==SERVICE_DEMAND_START) {
+        if (!ChangeServiceConfigW(service,SERVICE_NO_CHANGE,
+                SERVICE_DISABLED,SERVICE_NO_CHANGE,NULL,NULL,NULL,
+                NULL,NULL,NULL,NULL)) {
+            *error=GetLastError();
+            return 0;
+        }
+        if (!query_rpc_config(service,&startType,error)) return 0;
+    }
+    if (startType!=SERVICE_DISABLED) {
+        *error=ERROR_INVALID_DATA;
+        return 0;
+    }
+    if (_wremove(path)!=0) {
+        *error=ERROR_ACCESS_DENIED;
+        return 0;
+    }
+    return 1;
+}
+
 static void try_start_rpc_service(FILE *report) {
     RpcServiceStatus before=inspect_rpc_service();
     DWORD startError=0, openError=0, queryError=0, afterState=before.state;
-    DWORD attempt=0, alreadyRunning=0;
+    DWORD attempt=0, alreadyRunning=0, enableAttempt=0, enableError=0;
+    DWORD restoreAttempt=0, restoreError=0, restoreConfirmed=0;
+    DWORD pendingRecovery=0, recoveryError=0, recoveryPathReady=0;
+    DWORD typeAfter=before.start_type, recovered=0;
+    wchar_t path[MAX_PATH];
+    SC_HANDLE scm=NULL,service=NULL;
+
+    if (before.state==SERVICE_RUNNING) alreadyRunning=1;
+    recoveryPathReady=rpc_recovery_path(path,MAX_PATH);
+
     if (!before.scm_error && !before.open_error && !before.query_error &&
-            before.state == SERVICE_STOPPED) {
-        SC_HANDLE scm=OpenSCManagerW(NULL,NULL,SC_MANAGER_CONNECT);
+            !before.config_error && before.state==SERVICE_STOPPED) {
+        scm=OpenSCManagerW(NULL,NULL,SC_MANAGER_CONNECT);
         if (!scm) openError=GetLastError();
         else {
-            SC_HANDLE service=OpenServiceW(scm,L"RpcSs",
-                    SERVICE_START | SERVICE_QUERY_STATUS);
+            service=OpenServiceW(scm,L"RpcSs",SERVICE_START |
+                    SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG |
+                    SERVICE_CHANGE_CONFIG);
             if (!service) openError=GetLastError();
+            else if (!recoveryPathReady) recoveryError=ERROR_INVALID_NAME;
             else {
-                attempt=1;
-                if (!StartServiceW(service,0,NULL)) {
-                    startError=GetLastError();
-                    if (startError==ERROR_SERVICE_ALREADY_RUNNING) {
-                        alreadyRunning=1;
-                        startError=0;
+                /* Interrupted previous attempt: finish rollback BEFORE
+                 * permitting another potentially mutating service start. */
+                recovered=rpc_recover_pending(service,path,
+                        &recoveryError,&pendingRecovery);
+                if (recovered && query_rpc_config(service,&typeAfter,&queryError)) {
+                    if (typeAfter==SERVICE_DISABLED) {
+                        if (!rpc_write_marker(path)) {
+                            recoveryError=ERROR_WRITE_FAULT;
+                        } else {
+                            enableAttempt=1;
+                            if (!ChangeServiceConfigW(service,SERVICE_NO_CHANGE,
+                                    SERVICE_DEMAND_START,SERVICE_NO_CHANGE,
+                                    NULL,NULL,NULL,NULL,NULL,NULL,NULL)) {
+                                enableError=GetLastError();
+                            } else {
+                                DWORD typeEnabled=0;
+                                if (!query_rpc_config(service,&typeEnabled,&queryError) ||
+                                        typeEnabled!=SERVICE_DEMAND_START) {
+                                    if (!queryError) queryError=ERROR_INVALID_DATA;
+                                } else {
+                                    attempt=1;
+                                    if (!StartServiceW(service,0,NULL)) {
+                                        startError=GetLastError();
+                                        if (startError==ERROR_SERVICE_ALREADY_RUNNING) {
+                                            alreadyRunning=1;
+                                            startError=0;
+                                        }
+                                    }
+                                    if (!startError) {
+                                        for (int i=0;i<40;i++) {
+                                            RpcServiceStatus current=inspect_rpc_service();
+                                            if (current.scm_error || current.open_error ||
+                                                    current.query_error) {
+                                                queryError=current.scm_error ? current.scm_error :
+                                                        current.open_error ? current.open_error :
+                                                        current.query_error;
+                                                break;
+                                            }
+                                            afterState=current.state;
+                                            if (afterState==SERVICE_RUNNING ||
+                                                    (afterState==SERVICE_STOPPED && i>6))
+                                                break;
+                                            Sleep(200);
+                                        }
+                                    }
+                                }
+                            }
+                            /* Undo the temporary Manual start setting even
+                             * when Win32 startup or status probing failed. */
+                            restoreAttempt=1;
+                            if (!ChangeServiceConfigW(service,SERVICE_NO_CHANGE,
+                                    SERVICE_DISABLED,SERVICE_NO_CHANGE,
+                                    NULL,NULL,NULL,NULL,NULL,NULL,NULL)) {
+                                restoreError=GetLastError();
+                            } else {
+                                DWORD checkedType=0;
+                                if (!query_rpc_config(service,&checkedType,&restoreError) ||
+                                        checkedType!=SERVICE_DISABLED) {
+                                    if (!restoreError) restoreError=ERROR_INVALID_DATA;
+                                } else {
+                                    restoreConfirmed=1;
+                                    typeAfter=checkedType;
+                                    if (_wremove(path)!=0) {
+                                        /* Still keep a marker if cleanup fails:
+                                         * next opt-in can reconcile safely. */
+                                        recoveryError=ERROR_ACCESS_DENIED;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (typeAfter==SERVICE_DEMAND_START) {
+                        /* Another party may have changed configuration.
+                         * Do not overwrite unknown/manual state. */
+                        recoveryError=ERROR_INVALID_DATA;
                     }
                 }
-                CloseServiceHandle(service);
             }
-            CloseServiceHandle(scm);
-        }
-    } else if (before.state==SERVICE_RUNNING) alreadyRunning=1;
-    /* Only poll for a bounded period if startup was attempted. The normal
-     * probe never waits on or mutates any service. */
-    if (attempt && !startError) {
-        for (int i=0;i<40;i++) {
-            RpcServiceStatus current=inspect_rpc_service();
-            if (current.scm_error || current.open_error || current.query_error) {
-                queryError=current.scm_error ? current.scm_error :
-                        current.open_error ? current.open_error : current.query_error;
-                break;
-            }
-            afterState=current.state;
-            if (afterState==SERVICE_RUNNING || afterState==SERVICE_STOPPED && i>6)
-                break;
-            Sleep(200);
         }
     }
-    if (!attempt) {
-        RpcServiceStatus after=inspect_rpc_service();
-        if (!after.scm_error && !after.open_error && !after.query_error)
-            afterState=after.state;
-    }
+    /* If original type wasn't disabled, never silently change it. */
+    if (service) CloseServiceHandle(service);
+    if (scm) CloseServiceHandle(scm);
+    RpcServiceStatus after=inspect_rpc_service();
+    if (!after.scm_error && !after.open_error && !after.query_error)
+        afterState=after.state;
+    if (!after.config_error) typeAfter=after.start_type;
+
     fprintf(report,"monitor_rpc_opt_in_start_requested=1\n");
-    fprintf(report,"monitor_rpc_start_before_state=%lu\n",
-            (unsigned long)before.state);
+    fprintf(report,"monitor_rpc_start_before_state=%lu\n",(unsigned long)before.state);
+    fprintf(report,"monitor_rpc_start_before_type=%lu\n",(unsigned long)before.start_type);
+    fprintf(report,"monitor_rpc_start_config_query_error=%lu\n",
+            (unsigned long)before.config_error);
     fprintf(report,"monitor_rpc_start_attempted=%lu\n",(unsigned long)attempt);
-    fprintf(report,"monitor_rpc_start_already_running=%lu\n",
-            (unsigned long)alreadyRunning);
-    fprintf(report,"monitor_rpc_start_scm_error=%lu\n",
-            (unsigned long)before.scm_error);
+    fprintf(report,"monitor_rpc_start_already_running=%lu\n",(unsigned long)alreadyRunning);
+    fprintf(report,"monitor_rpc_start_scm_error=%lu\n",(unsigned long)before.scm_error);
     fprintf(report,"monitor_rpc_start_open_error=%lu\n",
             (unsigned long)(before.open_error ? before.open_error : openError));
-    fprintf(report,"monitor_rpc_start_win32_error=%lu\n",
-            (unsigned long)startError);
+    fprintf(report,"monitor_rpc_start_win32_error=%lu\n",(unsigned long)startError);
     fprintf(report,"monitor_rpc_start_query_error=%lu\n",
             (unsigned long)(before.query_error ? before.query_error : queryError));
-    fprintf(report,"monitor_rpc_start_after_state=%lu\n",
-            (unsigned long)afterState);
+    fprintf(report,"monitor_rpc_start_after_state=%lu\n",(unsigned long)afterState);
+    fprintf(report,"monitor_rpc_temporary_enable_attempted=%lu\n",
+            (unsigned long)enableAttempt);
+    fprintf(report,"monitor_rpc_temporary_enable_error=%lu\n",(unsigned long)enableError);
+    fprintf(report,"monitor_rpc_restore_attempted=%lu\n",(unsigned long)restoreAttempt);
+    fprintf(report,"monitor_rpc_restore_error=%lu\n",(unsigned long)restoreError);
+    fprintf(report,"monitor_rpc_restore_confirmed=%lu\n",(unsigned long)restoreConfirmed);
+    fprintf(report,"monitor_rpc_start_type_after=%lu\n",(unsigned long)typeAfter);
+    fprintf(report,"monitor_rpc_recovery_marker_pending=%lu\n",
+            (unsigned long)pendingRecovery);
+    fprintf(report,"monitor_rpc_recovery_error=%lu\n",(unsigned long)recoveryError);
     fflush(report);
 }
 

@@ -658,6 +658,24 @@ assert code.count(old_mouse) == 1, "Upstream mouse-capture marker changed"
 code = code.replace(old_mouse,
     '        capturePointerOnExternalMouse = getIntent().getBooleanExtra("touhou_pointer_capture", ' +
     'preferences.getBoolean("capture_pointer_on_external_mouse", true));')
+# Battle.net CEF launcher: Blizzard recommends --disable-gpu when its
+# embedded browser is blank/spinning. Append arguments only to the installed
+# client under the selected Battle.net environment (never setup.exe, TPDP or
+# other users' Windows programs). The launcher and prefix remain unmodified.
+bnet_cmd_anchor = r'            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \\""+filename+"\\""+execArgs;'
+assert code.count(bnet_cmd_anchor) == 1, "Upstream Wine launch argument hook changed"
+code = code.replace(bnet_cmd_anchor, bnet_cmd_anchor + """
+            if (getIntent().getBooleanExtra("charoite_bnet_disable_gpu", false) &&
+                    "battle-net-gaming".equals(
+                        getIntent().getStringExtra("charoite_environment_id")) &&
+                    (filename.equalsIgnoreCase("Battle.net Launcher.exe") ||
+                     filename.equalsIgnoreCase("Battle.net.exe"))) {
+                // Blizzard's documented workaround for CEF hardware GPU faults.
+                // Applies to exactly this launch; no registry/cache deletion.
+                cmdArgs += " --disable-gpu";
+            }
+""")
+
 # TPDP base game can run at 60 FPS with audio but present a black DirectX 9
 # window under some WineD3D backends. Use a per-launch DXVK/Turnip selection:
 # the original container and every other game keep their saved settings.

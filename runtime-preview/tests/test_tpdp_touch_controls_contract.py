@@ -125,7 +125,7 @@ class TpdpTouchContract(unittest.TestCase):
             'position(leftShoulder, leftX + (leftSideW - shoulderW) / 2,',
             'position(rightShoulder, rightX +',
             'position(keyboard, (width - keyboardW) / 2,',
-            'final int keyboardY = clamp(gameBottom + dp(host, 10),',
+            'final int keyboardY = clamp(gameBottom + dp(host, 32),',
             'position(f11, leftX, menuY, leftPairW, landBarH)',
             'position(interior, rightX +',
             'if (portrait) {',

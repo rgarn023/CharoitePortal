@@ -17,10 +17,10 @@ class BattleNetCefRpcContract(unittest.TestCase):
                       'monitor_max_services=%d', 'monitor_complete=1',
                       'monitor_same_session=1'):
             self.assertIn(token, NATIVE)
-        self.assertIn('monitor_rpcss_present_samples=', SUPPORT)
-        self.assertIn('can guide an IPC investigation', SUPPORT)
-        self.assertIn('presence does not ', SUPPORT)
-        self.assertIn('This sample predates Wine RPC service monitoring;', SUPPORT)
+        self.assertIn('monitorNumber(fields, "monitor_rpcss_present_samples")', SUPPORT)
+        self.assertIn('Process existence does not prove IPC or login works.', SUPPORT)
+        self.assertIn('Names alone do not prove service status.', SUPPORT)
+        self.assertIn('No Service Control Manager query recorded', SUPPORT)
         self.assertIn('CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root)', PORTAL)
         self.assertIn('VIEW LIVE AGENT MONITOR', PORTAL)
 

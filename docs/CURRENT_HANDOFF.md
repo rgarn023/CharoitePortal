@@ -135,7 +135,7 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 5. On **handoff-only** edits, put `[skip ci]` in the commit message to avoid redundant APK compilation. If a documentation commit advances `main` beyond last successful runtime commit, state so explicitly rather than claiming CI built that doc commit.
 6. Provide user the canonical [current handoff](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md) whenever context becomes long, so they can copy the raw Markdown into a new conversation. The old `docs/HANDOFF.md` is useful only as historical provenance.
 
-**Next user-facing action as of this snapshot:** test the new themed session drawer using APK from run `40564585687`, then share its visual behavior. When ready to resume Battle.net spinner diagnosis, share **VIEW BATTLE.NET LOGIN / CEF REPORT**. Do not start speculative changes before receiving device evidence unless the user requests another task.
+**Current priority (October 27):** test the Battle.net CEF GPU Process option using successful APK run `40568654996`, and share **VIEW BATTLE.NET LOGIN / CEF REPORT** including rpcss/services process counters. The session drawer redesign remains built but is still pending phone visual confirmation.
 
 ## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
 
@@ -167,6 +167,23 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 6. Add contract/CI tests, GitHub Actions signed APK verification, and Galaxy on-device results for each stage. Preserve all existing setups.
 
 **Immediate next action:** user supplies the new `VIEW BATTLE.NET LOGIN / CEF REPORT` from the latest APK, or explicitly requests implementing the Windows version profile first. Work directly in GitHub with tests and APK build, update this handoff again. `main` was `703d37ddb872725a0d0db080d09c5729afa23ec1` when starting this documentation update; this *documentation-only* commit will advance HEAD but should not trigger another APK build.
+
+## 9. October 27, 2026 — Battle.net CEF/RPC work, successful build
+
+**Request:** Get the Battle.net launcher past endless spinner before testing Diablo III/IV. Android-native Diablo Immortal performance alone does not prove Windows x86/DX graphics compatibility. Diablo III is a more tractable first test (D3D9/11); Diablo IV needs DirectX 12 and considerably more compatibility work.
+
+**Changes committed to `main`:**
+- `bf2640957434d2d32474c59f66045e570ec0b9c2`: Extend Charoite's existing 16-sample, same-session Wine guest process monitor to count **rpcss.exe** and **services.exe** presence. New report fields `monitor_rpcss_present_samples`, `monitor_services_present_samples`, `monitor_max_rpcss`, `monitor_max_services`. Service process presence is NOT proof RPC works.
+- `0585e91eaa0053f8c31f0d9dfaf0d20dfbc81d76`: Extend `CharoiteBattleNetSupport.inspectInSessionAgentMonitor()` report explanations with new Wine service counts and backward-compatible old-report notice.
+- `90097b8b48e4bffc00bb688724f0b407297ba88f`, `7687b6019c0feaceb9444a1a883fd019e3785e1e`: Add optional **`--in-process-gpu`** command-line experiment, explicitly scoped to `Battle.net.exe` or `Battle.net Launcher.exe` in Battle.net environment. It is mutually exclusive with `--disable-gpu`, per launch only, with no persistent Wine, game or Agent modifications.
+- `97747f9f642fa56a8a5fbbfa9e9b94e0fb5f31fc`: Battle.net Setup adds **TRY BATTLE.NET (CEF GPU PROCESS TEST)**. Dedicated **VIEW BATTLE.NET LOGIN / CEF REPORT** now includes same-session Wine process monitor, saved browser preferences, and classified client logs in one copyable report. Original/Safe Browser/compatibility/cache-backup routes remain.
+- `9616d090ac3930687fc732003177e394c840aae3`: Added regression test `test_battlenet_cef_rpc_contract.py`; regular tests and Android build succeeded.
+
+**Verified GitHub Actions APK:** https://github.com/rgarn023/CharoitePortal/actions/runs/40568654996 — conclusion **SUCCESS**, code SHA **`9616d090ac3930687fc732003177e394c840aae3`**. Artifact **`Charoite-Portal-Android-APK`**, ID **12764561868**, ~231 MB compressed, present and not expired at last check. Compilation, signing and artifact publishing passed. **Still untested on Galaxy.** Documentation-only handoff commit after this advances main HEAD, NOT the APK source code.
+
+**Immediate, precise next action:** Update existing `com.charoite` installation without uninstall/clear-data, from run `40568654996`. Under **Battle.net Gaming → Setup**, choose **TRY BATTLE.NET (CEF GPU PROCESS TEST)**. Observe whether the spinner remains or sign-in appears. Keep client visible ~30 seconds; return to Portal and click **VIEW BATTLE.NET LOGIN / CEF REPORT** → **Copy report**. Share entire sanitized report with ChatGPT (new rpcss/services counts plus CEF and saved GPU settings). For meaningful comparison, close the client before trying **OPEN BATTLE.NET (DIRECT SAFE BROWSER)** separately. Do not auto-apply cache reset or modify Agent without explicit consent.
+
+**Diagnosis boundaries:** If `rpcss` or `services` is repeatedly missing, investigate Wine service startup/IPC. If both present and spinner persists, investigate CEF subprocess/rendering and Agent IPC with more targeted bounded probes. A July 2026 Proton ARM64 installer report described an RPC retry loop, but this is a different symptom and does **not** prove root cause here. The `--in-process-gpu` option is a hypothesis-driven experiment, not a proven repair. Do not claim Battle.net or Diablo III/IV working without device validation. Preserve Touhou controls, Japanese support, environment C: drives and all installed games/saves.
 
 ---
 **End of current Charoite Portal handoff.**

@@ -137,5 +137,36 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 
 **Next user-facing action as of this snapshot:** test the new themed session drawer using APK from run `40564585687`, then share its visual behavior. When ready to resume Battle.net spinner diagnosis, share **VIEW BATTLE.NET LOGIN / CEF REPORT**. Do not start speculative changes before receiving device evidence unless the user requests another task.
 
+## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
+
+**User question:** "What's next for battle.net? Can we make the environment suitable for windows 11 applications and games? Would that require modifications to wine?"
+
+**Answer and scope:** Yes, Charoite Core can aim for modern Windows 10/11 *application compatibility*, but it will not run an actual copy of Windows 11. A Windows 11 OS-version profile alone does not implement missing Win32 APIs, DirectX 12, DRM, anti-cheat/kernel drivers or GPU features. **No runtime implementation was requested explicitly or committed in this discussion; this section records verified research and proposed engineering stages only.**
+
+**Verified source inspection (GitHub live `main` and pinned upstream):**
+- Pinned Winlator-derived source: `brunodev85/winlator-app` at SHA `8077f374ef2d54127b088de9e8cd7b4af14d9c8b`. Its `WineInfo.MAIN_WINE_VERSION` is **Wine 10.10 custom**; `DefaultVersion.BOX64 = "0.4.4"`; `DXVK = 2.4.1` (plus legacy 1.10.3); `VKD3D = 2.14.1` is **defined**, not verified as successfully running DirectX 12 on the device. Turnip, Vortek, VirGL and Zink are among included graphics choices.
+- The upstream Wine **10.10** source `programs/winecfg/appdefaults.c` already contains `win11` with Windows 11 reported version/build (10.0, 22000), plus `win10` default. Thus **do not patch or fork Wine just to claim a Windows 11 version selection**. Confirm the actual bundled custom build recognizes `win11` at runtime before promising a UI toggle. Official Wine 11.0 was released Jan. 13, 2026 and contains substantial WoW64 and other compatibility improvements, but is **not bundled** by this pinned baseline.
+- Pinned upstream `DXWrappers` defines `VKD3D`, but `parseIdentifier()` only accepts `WINED3D` or `DXVK`; thus a modern DX12 stack/actual VKD3D selection **cannot be assumed** from the constant. Prove that compatible D3D12 DLL/DXGI and Vulkan 1.3/features are installed/configured and working rather than presenting a misleading label.
+- Official Blizzard Diablo IV Windows minimum is **Windows 10 1909+**, **DirectX 12**, SSD and 90 GB space, 8 GB RAM minimum; setting Windows 11 is **not required** for its published base OS requirement. Charoite Android/Box64/GPU compatibility and game sign-in/anti-tamper remain **unverified**.
+- Wine version/profile changes can alter Wine prefix state. **Do not automatically upgrade the existing Battle.net or Touhou Wine containers** to Wine 11, change package ID or replace DXVK/VKD3D. Test separately with explicit backups and rollback.
+
+**Public research references to recheck on next iteration:**
+- Official Wine 11.0 news: https://www.winehq.org/news/2026011301
+- Wine 10.10 Windows version choices: https://github.com/wine-mirror/wine/blob/wine-10.10/programs/winecfg/appdefaults.c
+- Bundled upstream Wine version: https://github.com/brunodev85/winlator-app/blob/8077f374ef2d54127b088de9e8cd7b4af14d9c8b/app/src/main/java/com/winlator/core/WineInfo.java
+- Upstream graphics wrapper configuration: https://github.com/brunodev85/winlator-app/blob/8077f374ef2d54127b088de9e8cd7b4af14d9c8b/app/src/main/java/com/winlator/container/DXWrappers.java
+- DX12 translator requirements (VKD3D-Proton): https://github.com/HansKristian-Work/vkd3d-proton
+- Blizzard Diablo IV original requirements: https://news.blizzard.com/en-us/article/23938756/make-sanctuary-yoursplay-your-way-in-diablo-iv
+
+**Prioritized implementation plan, NOT yet implemented:**
+1. **Battle.net first, no destructive change:** On current successful APK run `VIEW BATTLE.NET LOGIN / CEF REPORT`, observe login UI/cache/CEF/renderer/IPC category counts; optionally compare SAFE BROWSER launch and explicitly confirmed cache backup after closing client. Then use targeted, bounded same-Wine-session probes to test CEF subprocess status, IPC and errors, without credentials. Do not assume lack of Agent; monitor showed Agent 15/16 samples.
+2. **Guest compatibility audit/probe:** From same prefix determine actual Wine version; OS version via `winecfg`/system calls; DXVK/DXGI/D3D12 DLL status; GPU Vulkan version/features; CEF subprocess creation. Expose only sanitized details in Setup Diagnostics.
+3. **Isolated modern Windows version profile:** Add per-environment (optionally per-app) **Windows 10 / Windows 11** version reporting, default current working state and don't change Touhou behavior. Validate `win11` actually works on bundled Wine. Make preference explicit and reversible; avoid unconditional mass prefix edits. This affects version reporting, NOT underlying Windows feature set.
+4. **Modern runtime option, if evidence requires it:** Investigate Wine 11.x/compatible stable guest build as optional separate runner in a test environment (or copy/backup prefix), with Android/Box64 and user-space compatibility, import/switch and rollback. Do not hot-swap live game prefixes or silently migrate.
+5. **DirectX 12 readiness stage:** Test/select bundled VKD3D-Proton and DXVK DXGI alongside Turnip Vulkan feature/extension requirements and 64-bit guest. Only label a modern game DX12-compatible after a real D3D12 smoke test (then actual game). No guarantee Diablo IV will run; its launcher and DRM/anti-tamper need independent checks.
+6. Add contract/CI tests, GitHub Actions signed APK verification, and Galaxy on-device results for each stage. Preserve all existing setups.
+
+**Immediate next action:** user supplies the new `VIEW BATTLE.NET LOGIN / CEF REPORT` from the latest APK, or explicitly requests implementing the Windows version profile first. Work directly in GitHub with tests and APK build, update this handoff again. `main` was `703d37ddb872725a0d0db080d09c5729afa23ec1` when starting this documentation update; this *documentation-only* commit will advance HEAD but should not trigger another APK build.
+
 ---
 **End of current Charoite Portal handoff.**

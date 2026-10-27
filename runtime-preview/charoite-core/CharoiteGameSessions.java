@@ -127,6 +127,12 @@ public final class CharoiteGameSessions {
                 tryStartBattleNetRpc && !installer &&
                 CharoiteEnvironments.isBattleNet(host) &&
                 installedBattleNetLauncher);
+        // Pre-client Wine guest probe: only the user's explicitly confirmed
+        // Battle.net RpcSs launch experiment uses this safe startup gate.
+        play.putExtra("charoite_bnet_rpc_preflight",
+                tryStartBattleNetRpc && !installer &&
+                CharoiteEnvironments.isBattleNet(host) &&
+                installedBattleNetLauncher);
         // Collect Agent process status in the SAME Wine session as Battle.net,
         // never a separate diagnostic desktop. The observer only reads process
         // names and writes bounded numeric counts to Charoite's own folder.

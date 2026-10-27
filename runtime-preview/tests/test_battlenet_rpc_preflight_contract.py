@@ -52,6 +52,9 @@ class BattleNetPreClientRpcContract(unittest.TestCase):
     def test_preflight_readout_is_numeric_only(self):
         self.assertIn('public static String inspectGuestRpcPreflight(File root)',SUPPORT)
         self.assertIn('inspectGuestRpcPreflight(root)',SUPPORT)
+        # The early exit is important: preflight may abort BEFORE there is any
+        # renderable window, so the ordinary live monitor file won't exist.
+        self.assertIn('briefly, then return to this dedicated monitor view.\\n\\n" +',SUPPORT)
         self.assertIn('preflight_rpc_ready',SUPPORT)
         self.assertIn('preflight_launch_ready',SUPPORT)
         self.assertIn('BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT',SUPPORT)

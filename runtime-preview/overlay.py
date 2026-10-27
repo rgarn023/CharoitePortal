@@ -699,7 +699,8 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
                         this, container.getRootDir());
                 winHandler.exec(
                         "C:\\\\CharoitePortal\\\\Diagnostics\\\\charoite_bnet_network_probe.exe",
-                        "/monitor");
+                        getIntent().getBooleanExtra("charoite_bnet_try_start_rpc", false)
+                                ? "/monitor /try-rpcss-start" : "/monitor");
                 com.charoitegames.core.CharoiteBattleNetSupport.noteLiveAgentMonitorState(
                         container.getRootDir(), "COMMAND_SENT");
                 android.util.Log.i("CharoiteBattleNet",

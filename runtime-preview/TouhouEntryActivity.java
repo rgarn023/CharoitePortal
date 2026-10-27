@@ -780,7 +780,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         catch (Exception e) { setStatus(e.getMessage()); return; }
         String report = CharoiteBattleNetSupport.inspectLauncherStartup(root) + "\n\n" +
                 CharoiteBattleNetSupport.inspectAgent(root) + "\n\n" +
-                CharoiteBattleNetSupport.inspectGuestNetworkProbe(root);
+                CharoiteBattleNetSupport.inspectGuestNetworkProbe(root) + "\n\n" +
+                CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root);
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Battle.net launcher and Agent diagnostics")
                 .setMessage(report)

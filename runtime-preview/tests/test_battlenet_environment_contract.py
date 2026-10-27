@@ -51,6 +51,28 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertIn('containerId, exe.getAbsolutePath(), false, false)', UI)
         self.assertIn('CharoiteGameSessions.launch(', UI)
         self.assertIn('play.putExtra("charoite_handheld_game", !installer && gamePresentation &&', SESSIONS)
+        self.assertIn('boolean disableBattleNetBrowserGpu', SESSIONS)
+        self.assertIn('play.putExtra("charoite_bnet_disable_gpu"', SESSIONS)
+        self.assertIn('disableBattleNetBrowserGpu && !installer &&', SESSIONS)
+        self.assertIn('installedBattleNetLauncher', SESSIONS)
+        self.assertIn('OPEN BATTLE.NET (SAFE BROWSER)', UI)
+        self.assertIn('OPEN BATTLE.NET (ORIGINAL)', UI)
+        self.assertIn('this::openBattleNetOriginal', UI)
+        self.assertIn('false, false,\n                    false, true)', UI)
+        self.assertIn('CharoiteBattleNetSupport.inspectLauncherStartup(root)', UI)
+        self.assertIn('public static String inspectLauncherStartup(File root)', CORE)
+        self.assertIn('No game files, logs or Agent state have been changed.', CORE)
+
+    def test_blizzard_browser_args_applied_only_to_launcher(self):
+        overlay = (BASE/"overlay.py").read_text()
+        self.assertIn('bnet_cmd_anchor =', overlay)
+        self.assertIn('charoite_bnet_disable_gpu', overlay)
+        self.assertIn('battle-net-gaming', overlay)
+        self.assertIn('filename.equalsIgnoreCase("Battle.net Launcher.exe")', overlay)
+        self.assertIn('cmdArgs += " --disable-gpu";', overlay)
+        self.assertIn('assert code.count(bnet_cmd_anchor) == 1', overlay)
+        self.assertNotIn('root.delete()', CORE)
+
 
     def test_no_false_diablo_four_dx12_guarantee(self):
         self.assertIn('Diablo IV requires DirectX 12', UI)

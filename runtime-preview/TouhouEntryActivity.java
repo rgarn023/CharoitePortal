@@ -121,6 +121,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetInstallButton;
     private Button battleNetOpenButton;
     private Button battleNetOriginalButton;
+    private Button battleNetDirectButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
     private TextView battleNetDownloadStatus;
@@ -383,6 +384,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetInstallButton = null;
         battleNetOpenButton = null;
         battleNetOriginalButton = null;
+        battleNetDirectButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
         battleNetDownloadStatus = null;
@@ -410,11 +412,15 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetOriginalButton = outlinedButton("OPEN BATTLE.NET (ORIGINAL)",
                     this::openBattleNetOriginal);
             battleCard.addView(battleNetOriginalButton);
+            battleNetDirectButton = outlinedButton("OPEN BATTLE.NET.EXE (DIRECT)",
+                    this::openBattleNetDirect);
+            battleCard.addView(battleNetDirectButton);
             battleCard.addView(label("If Battle.net spins indefinitely or the first " +
                     "installer crashed, try Safe Browser first. It uses Blizzard's " +
                     "--disable-gpu argument for the embedded launcher browser only. " +
-                    "Original starts with no browser override. Both leave installed " +
-                    "games, Agent data, accounts, and the Wine prefix untouched.",
+                    "Original starts with no browser override. Direct bypasses " +
+                    "Battle.net Launcher.exe and opens Battle.net.exe when installed. " +
+                    "All three leave installed games, Agent data, accounts, and the Wine prefix untouched.",
                     12, SECONDARY, false));
             battleNetDiagnoseButton = outlinedButton("CHECK LAUNCHER + AGENT DIAGNOSTICS",
                     this::showBattleNetAgentDiagnostics);
@@ -655,6 +661,24 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     containerId, exe.getAbsolutePath(), false, false);
         } catch (Exception error) {
             setStatus("Cannot open original Battle.net: " + error.getMessage());
+        }
+    }
+
+    /** Launch installed Blizzard client directly to bypass stuck bootstrapper. */
+    private void openBattleNetDirect() {
+        if (busy) return;
+        try {
+            File exe = CharoiteBattleNetSupport.installedDirectClient(battleNetRoot());
+            if (exe == null) {
+                setStatus("Battle.net.exe is not installed; launcher-only install detected. " +
+                        "Use Safe Browser or check Agent diagnostics.");
+                return;
+            }
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false,
+                    false, true);
+        } catch (Exception error) {
+            setStatus("Cannot open Battle.net client: " + error.getMessage());
         }
     }
 
@@ -1176,6 +1200,14 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetOpenButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetOriginalButton != null)
                 battleNetOriginalButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetDirectButton != null) {
+                File direct = null;
+                if (ready) {
+                    try { direct = CharoiteBattleNetSupport.installedDirectClient(battleNetRoot()); }
+                    catch (Exception ignored) {}
+                }
+                battleNetDirectButton.setEnabled(!busy && ready && direct != null);
+            }
             if (battleNetCompatButton != null)
                 battleNetCompatButton.setEnabled(!busy && ready && setup != null);
             if (battleNetDiagnoseButton != null)

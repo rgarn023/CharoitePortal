@@ -662,7 +662,7 @@ code = code.replace(old_mouse,
 # embedded browser is blank/spinning. Append arguments only to the installed
 # client under the selected Battle.net environment (never setup.exe, TPDP or
 # other users' Windows programs). The launcher and prefix remain unmodified.
-bnet_cmd_anchor = r'            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \\""+filename+"\\""+execArgs;'
+bnet_cmd_anchor = r'            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \""+filename+"\""+execArgs;'
 assert code.count(bnet_cmd_anchor) == 1, "Upstream Wine launch argument hook changed"
 code = code.replace(bnet_cmd_anchor, bnet_cmd_anchor + """
             if (getIntent().getBooleanExtra("charoite_bnet_disable_gpu", false) &&

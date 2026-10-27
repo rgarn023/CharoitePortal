@@ -87,7 +87,8 @@ jobs:
             runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
             runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
             runtime-preview/charoite-core/input/charoite_keyscan.exe
-          key: charoite-win32-tools-v4-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c', 'runtime-preview/charoite-core/input/charoite_keyscan.c') }}
+            runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe
+          key: charoite-win32-tools-v5-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c', 'runtime-preview/charoite-core/input/charoite_keyscan.c', 'runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c') }}
 
       - name: Compile Japanese installer font helpers
         if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
@@ -153,6 +154,13 @@ jobs:
             -o runtime-preview/charoite-core/input/charoite_keyscan.exe \
             -lws2_32 -luser32
           test $(stat -c %s runtime-preview/charoite-core/input/charoite_keyscan.exe) -gt 5000
+          # Standalone Win32-only, read-only Battle.net DNS/HTTPS/Agent probe.
+          "$CC32" -std=c11 -O2 -Wall -Wextra -mwindows \
+            runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c \
+            -o runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe \
+            -lwinhttp -lws2_32 -luser32
+          file runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe
+          test $(stat -c %s runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe) -gt 5000
 
       - name: Apply Touhou runtime preview overlay
         run: python3 runtime-preview/overlay.py upstream

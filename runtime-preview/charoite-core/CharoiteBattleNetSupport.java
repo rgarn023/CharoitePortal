@@ -373,6 +373,49 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Report data collected from the SAME Wine session as Battle.net.
+     * This is distinct from the standalone network probe, which showed zero
+     * processes simply because it was launched as a separate Wine activity.
+     * Accept fixed, local numeric fields only; never copy raw process lists.
+     */
+    public static String inspectInSessionAgentMonitor(File root) {
+        try {
+            File drive = wineDrive(root);
+            File report = new File(drive,
+                    "CharoitePortal/Diagnostics/charoite_bnet_launch_monitor.txt");
+            if (!report.isFile() || report.length() > 8192)
+                return "BATTLE.NET LIVE AGENT MONITOR\\nNo live-session record yet. " +
+                        "Open Battle.net, leave its window open briefly, " +
+                        "then return to Portal diagnostics.\\n";
+            String data = new String(Files.readAllBytes(report.toPath()),
+                    java.nio.charset.StandardCharsets.US_ASCII);
+            StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\\n");
+            out.append("Sample timestamp: ")
+                    .append(new java.util.Date(report.lastModified())).append("\\n");
+            for (String line : data.split("\\\\r?\\\\n")) {
+                if (!line.matches("monitor_[a-z_0-9]{3,55}=[0-9]{1,12}"))
+                    continue;
+                if (line.startsWith("monitor_sample_")) continue;
+                out.append("  ").append(line).append("\\n");
+            }
+            long age = System.currentTimeMillis() - report.lastModified();
+            if (age > 60 * 60 * 1000L)
+                out.append("This monitor record is older than one hour.\\n");
+            if (data.contains("monitor_complete=1")) {
+                out.append("Monitoring completed during one active Wine session. " +
+                        "If the Agent appeared in no samples while the launcher did, " +
+                        "focus on Agent startup and IPC instead of general HTTPS.\\n");
+            } else out.append("Monitor incomplete (launcher closed or session interrupted).\\n");
+            out.append("These counts cannot establish why a process exits or " +
+                    "whether Blizzard login completed.\\n");
+            return out.toString();
+        } catch (Exception error) {
+            return "BATTLE.NET LIVE AGENT MONITOR unavailable: " +
+                    error.getClass().getSimpleName();
+        }
+    }
+
+    /**
      * Read-only browser/CEF state summary, with no Blizzard session tokens,
      * usernames, saved passwords, log contents, or account files included.
      * A spinner can be due to CEF rendering, Wine compatibility or networking.

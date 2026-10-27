@@ -74,6 +74,29 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertNotIn('root.delete()', CORE)
 
 
+    def test_live_agent_monitor_has_own_visible_setup_button(self):
+        overlay = (BASE/"overlay.py").read_text()
+        self.assertIn('VIEW LIVE AGENT MONITOR', UI)
+        self.assertIn('this::showBattleNetLiveMonitor', UI)
+        self.assertIn('private void showBattleNetLiveMonitor()', UI)
+        self.assertIn('battleNetLiveMonitorButton.setEnabled(!busy && ready);', UI)
+        self.assertIn('String report = CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root);', UI)
+        # User sees live state first, not below lengthy browser/Agent reports.
+        begin = UI.index('private void showBattleNetAgentDiagnostics()')
+        end = UI.index('private void retryBattleNetCompatibility()', begin)
+        diagnostics = UI[begin:end]
+        self.assertLess(
+            diagnostics.index('CharoiteBattleNetSupport.inspectInSessionAgentMonitor(root)'),
+            diagnostics.index('CharoiteBattleNetSupport.inspectLauncherStartup(root)'))
+        self.assertIn('public static void noteLiveAgentMonitorState(File root, String state)', CORE)
+        self.assertIn('charoite_bnet_monitor_state.txt', CORE)
+        for value in ('ARMED', 'WAITING_FOR_WINE', 'WINE_BRIDGE_TIMEOUT',
+                      'COMMAND_SENT', 'PREPARE_FAILED'):
+            self.assertIn(value, CORE)
+            self.assertIn(value, overlay)
+        self.assertIn('monitor_android_state=', CORE)
+        self.assertIn('No Wine-side monitor samples received yet.', CORE)
+
     def test_live_monitor_uses_same_wine_session_as_battlenet(self):
         native = (BASE/"charoite-core/diagnostics/charoite_bnet_network_probe.c").read_text()
         overlay = (BASE/"overlay.py").read_text()

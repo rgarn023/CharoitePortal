@@ -16,28 +16,83 @@
 #include <stdio.h>
 #include <wchar.h>
 
-static void process_status(FILE *report) {
+typedef struct {
+    int agents;
+    int clients;
+    int launchers;
+    DWORD error;
+} ProcessCounts;
+
+static ProcessCounts get_process_counts(void) {
+    ProcessCounts counts;
+    ZeroMemory(&counts, sizeof(counts));
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    int agents=0, clients=0, launchers=0;
-    DWORD error=0;
     if (snapshot == INVALID_HANDLE_VALUE) {
-        error = GetLastError();
+        counts.error = GetLastError();
     } else {
         PROCESSENTRY32W proc;
         ZeroMemory(&proc, sizeof(proc));
         proc.dwSize = sizeof(proc);
         if (Process32FirstW(snapshot, &proc)) do {
-            if (!_wcsicmp(proc.szExeFile, L"Agent.exe")) agents++;
-            else if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) clients++;
+            if (!_wcsicmp(proc.szExeFile, L"Agent.exe")) counts.agents++;
+            else if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) counts.clients++;
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe"))
-                launchers++;
+                counts.launchers++;
         } while (Process32NextW(snapshot, &proc));
         CloseHandle(snapshot);
     }
-    fprintf(report,"guest_process_enumeration_error=%lu\n", (unsigned long)error);
-    fprintf(report,"guest_agent_process_count=%d\n", agents);
-    fprintf(report,"guest_battlenet_client_process_count=%d\n", clients);
-    fprintf(report,"guest_battlenet_launcher_process_count=%d\n", launchers);
+    return counts;
+}
+
+static void process_status(FILE *report) {
+    ProcessCounts counts = get_process_counts();
+    fprintf(report,"guest_process_enumeration_error=%lu\n",
+            (unsigned long)counts.error);
+    fprintf(report,"guest_agent_process_count=%d\n", counts.agents);
+    fprintf(report,"guest_battlenet_client_process_count=%d\n", counts.clients);
+    fprintf(report,"guest_battlenet_launcher_process_count=%d\n", counts.launchers);
+}
+
+/*
+ * This mode MUST run inside the same Wine session as the Battle.net launcher.
+ * Independent Portal diagnostics start a separate Wine desktop, so their
+ * zero-process snapshot cannot be used to infer the launcher's Agent status.
+ *
+ * Report fixed numeric samples only. Each file is Charoite-owned and small;
+ * flush immediately so a crashed Wine session leaves actionable data.
+ */
+static void monitor_battlenet(FILE *report) {
+    int seenAgent=0, seenClient=0, seenLauncher=0;
+    int maxAgent=0, maxClient=0, maxLauncher=0, everEnumError=0;
+    fprintf(report,"monitor_same_session=1\n");
+    fprintf(report,"monitor_sample_interval_ms=1800\n");
+    fprintf(report,"monitor_expected_samples=16\n");
+    fflush(report);
+    for (int i=0; i<16; i++) {
+        ProcessCounts c=get_process_counts();
+        if (c.agents > maxAgent) maxAgent = c.agents;
+        if (c.clients > maxClient) maxClient = c.clients;
+        if (c.launchers > maxLauncher) maxLauncher = c.launchers;
+        if (c.agents) seenAgent++;
+        if (c.clients) seenClient++;
+        if (c.launchers) seenLauncher++;
+        if (c.error) everEnumError++;
+        fprintf(report,"monitor_sample_%02d_agent=%d\n",i,c.agents);
+        fprintf(report,"monitor_sample_%02d_client=%d\n",i,c.clients);
+        fprintf(report,"monitor_sample_%02d_launcher=%d\n",i,c.launchers);
+        fprintf(report,"monitor_samples_completed=%d\n",i+1);
+        fflush(report);
+        if(i<15) Sleep(1800);
+    }
+    fprintf(report,"monitor_agent_present_samples=%d\n",seenAgent);
+    fprintf(report,"monitor_client_present_samples=%d\n",seenClient);
+    fprintf(report,"monitor_launcher_present_samples=%d\n",seenLauncher);
+    fprintf(report,"monitor_max_agent=%d\n",maxAgent);
+    fprintf(report,"monitor_max_client=%d\n",maxClient);
+    fprintf(report,"monitor_max_launcher=%d\n",maxLauncher);
+    fprintf(report,"monitor_process_enumeration_error_samples=%d\n",everEnumError);
+    fprintf(report,"monitor_complete=1\n");
+    fflush(report);
 }
 
 static void test_endpoint(FILE *report, const wchar_t *host, const char *label) {
@@ -101,10 +156,20 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE previous,LPSTR args,int show) {
     if (!length || length>=MAX_PATH) return 2;
     wchar_t *slash=wcsrchr(path,L'\\');
     if (!slash) return 3;
-    wcscpy(slash+1,L"charoite_bnet_network_report.txt");
+    const wchar_t *cmd=GetCommandLineW();
+    int monitor = cmd && wcsstr(cmd,L"/monitor") != NULL;
+    wcscpy(slash+1, monitor ?
+            L"charoite_bnet_launch_monitor.txt" :
+            L"charoite_bnet_network_report.txt");
     FILE *report=_wfopen(path,L"w");
     if (!report) return 4;
-    fprintf(report,"Charoite Battle.net Wine guest diagnostic v1\n");
+    if (monitor) {
+        fprintf(report,"Charoite in-session Battle.net process monitor v2\n");
+        monitor_battlenet(report);
+        fclose(report);
+        return 0;
+    }
+    fprintf(report,"Charoite Battle.net Wine guest diagnostic v2\n");
     fprintf(report,"phase_7_means_http_response_received=1\n");
     fprintf(report,"not_a_test_of_blizzard_login_or_authentication=1\n");
     process_status(report);

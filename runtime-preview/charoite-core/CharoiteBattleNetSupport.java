@@ -304,6 +304,75 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * User-initiated Wine guest network probe. Installs only a Charoite-owned
+     * executable in this container's C: diagnostics directory. No Blizzard
+     * files or Wine registry settings are touched.
+     */
+    public static File prepareGuestNetworkProbe(android.content.Context context,
+                                                 File root) throws IOException {
+        File drive = wineDrive(root);
+        File folder = new File(drive, "CharoitePortal/Diagnostics");
+        if (!folder.isDirectory() && !folder.mkdirs())
+            throw new IOException("Cannot create Core diagnostics directory");
+        File probe = new File(folder, "charoite_bnet_network_probe.exe");
+        File pending = new File(folder, "charoite_bnet_network_probe.tmp");
+        try (InputStream input = context.getAssets().open(
+                    "diagnostics/charoite_bnet_network_probe.exe");
+             FileOutputStream out = new FileOutputStream(pending)) {
+            byte[] buffer = new byte[8192];
+            int n;
+            while ((n = input.read(buffer)) != -1) out.write(buffer, 0, n);
+        }
+        if (pending.length() < 5000) {
+            pending.delete();
+            throw new IOException("Incomplete Wine network diagnostic");
+        }
+        try {
+            Files.move(pending.toPath(), probe.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+            Files.move(pending.toPath(), probe.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING);
+        }
+        return probe;
+    }
+
+    /**
+     * Trust only the fixed ASCII numeric status fields emitted by OUR probe.
+     * Do not display raw Wine process lists, URLs, IPs or arbitrary log data.
+     * The report records observed guest conditions, not login success.
+     */
+    public static String inspectGuestNetworkProbe(File root) {
+        try {
+            File drive = wineDrive(root);
+            File report = new File(drive,
+                    "CharoitePortal/Diagnostics/charoite_bnet_network_report.txt");
+            if (!report.isFile() || report.length() > 4096)
+                return "WINE GUEST PROBE: No valid result yet. Run the probe " +
+                        "inside this Battle.net environment, return to Portal, then recheck.";
+            String raw = new String(Files.readAllBytes(report.toPath()),
+                    java.nio.charset.StandardCharsets.US_ASCII);
+            StringBuilder result = new StringBuilder("WINE GUEST NETWORK + AGENT TEST\n");
+            result.append("Report timestamp: ")
+                    .append(new java.util.Date(report.lastModified())).append("\n");
+            for (String line : raw.split("\\r?\\n")) {
+                if (line.matches("[a-z_0-9]{3,60}=[0-9]{1,12}"))
+                    result.append("  ").append(line).append("\n");
+            }
+            result.append("HTTP phase 7 means the guest received an HTTP response. " +
+                    "Even 403/404 proves HTTPS connectivity; it does not prove " +
+                    "Blizzard authentication or Agent IPC. Agent process count " +
+                    "reflects only the instant the guest probe ran. " +
+                    "Win32 errors identify Wine networking failures.");
+            return result.toString();
+        } catch (Exception error) {
+            return "WINE GUEST PROBE unavailable: " +
+                    error.getClass().getSimpleName();
+        }
+    }
+
+    /**
      * Read-only browser/CEF state summary, with no Blizzard session tokens,
      * usernames, saved passwords, log contents, or account files included.
      * A spinner can be due to CEF rendering, Wine compatibility or networking.

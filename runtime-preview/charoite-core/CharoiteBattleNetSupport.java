@@ -524,6 +524,151 @@ public final class CharoiteBattleNetSupport {
         return out.toString();
     }
 
+    /**
+     * Browser preferences are not the same thing as a command-line GPU flag:
+     * Battle.net.exe may be re-launched by its bootstrapper and not inherit
+     * all Chrome switches. Inspect effective persisted settings read-only.
+     * Never print profile names, configuration contents, auth tokens or IDs.
+     */
+    public static String inspectBrowserPreferences(File root) {
+        final File drive;
+        try { drive = wineDrive(root); }
+        catch (IOException error) { return "BROWSER SETTINGS: Wine drive unavailable.\n"; }
+        int files=0, disabled=0, enabled=0, missing=0, invalid=0;
+        int streamingOff=0, streamingOn=0;
+        File users = new File(drive, "users");
+        File[] profiles = users.listFiles();
+        java.util.HashSet<String> visited = new java.util.HashSet<>();
+        if (profiles != null) for (File profile : profiles) {
+            if (files >= 8) break;
+            if (!profile.isDirectory() || Files.isSymbolicLink(profile.toPath())) continue;
+            for (String location : new String[]{
+                    "AppData/Roaming/Battle.net/Battle.net.config",
+                    "Application Data/Battle.net/Battle.net.config"}) {
+                File candidate = new File(profile, location);
+                if (!candidate.isFile() || candidate.length() > 262144 ||
+                        Files.isSymbolicLink(candidate.toPath())) continue;
+                try {
+                    File cfg=candidate.getCanonicalFile();
+                    if (!cfg.getPath().startsWith(drive.getPath()+File.separator) ||
+                            !visited.add(cfg.getPath())) continue;
+                    files++;
+                    org.json.JSONObject json=new org.json.JSONObject(
+                            new String(Files.readAllBytes(cfg.toPath()),
+                                    java.nio.charset.StandardCharsets.UTF_8));
+                    org.json.JSONObject client=json.optJSONObject("Client");
+                    if (client == null || !client.has("HardwareAcceleration")) missing++;
+                    else {
+                        String value=client.optString("HardwareAcceleration","").toLowerCase(Locale.ROOT);
+                        if ("false".equals(value)) disabled++;
+                        else if ("true".equals(value)) enabled++;
+                        else invalid++;
+                    }
+                    if (client != null) {
+                        org.json.JSONObject streaming=client.optJSONObject("Streaming");
+                        if (streaming != null && streaming.has("StreamingEnabled")) {
+                            if ("false".equalsIgnoreCase(
+                                    streaming.optString("StreamingEnabled"))) streamingOff++;
+                            else if ("true".equalsIgnoreCase(
+                                    streaming.optString("StreamingEnabled"))) streamingOn++;
+                        }
+                    }
+                } catch (Exception unreadable) { invalid++; }
+                if (files>=8) break;
+            }
+        }
+        return "BATTLE.NET PERSISTED BROWSER SETTINGS\n" +
+                "  Configuration files examined: " + files + "\n" +
+                "  Browser hardware acceleration OFF: " + disabled + "\n" +
+                "  Browser hardware acceleration ON: " + enabled + "\n" +
+                "  Browser hardware acceleration unspecified: " + missing + "\n" +
+                "  Invalid/unreadable setting files: " + invalid + "\n" +
+                "  Streaming disabled: " + streamingOff + "\n" +
+                "  Streaming enabled: " + streamingOn + "\n" +
+                "Command-line --disable-gpu is separate from this saved browser " +
+                "setting. No preferences were changed during inspection.\n";
+    }
+
+    /**
+     * Bound inspection to Blizzard's local client logs and report only error
+     * CATEGORIES, never raw lines, URLs, sessions, usernames or log paths.
+     * The absence of a category is not proof that CEF rendering is healthy.
+     */
+    public static String inspectBrowserLogCategories(File root) {
+        final File drive;
+        try { drive = wineDrive(root); }
+        catch (IOException error) { return "BATTLE.NET CLIENT LOGS: Wine drive unavailable.\n"; }
+        java.util.ArrayList<File> logs=new java.util.ArrayList<>();
+        File users=new File(drive,"users");
+        File[] profiles=users.listFiles();
+        if (profiles!=null) for (File profile:profiles) {
+            if(!profile.isDirectory() || Files.isSymbolicLink(profile.toPath())) continue;
+            for(String relative:new String[]{
+                    "AppData/Local/Battle.net/Logs",
+                    "AppData/Roaming/Battle.net/Logs",
+                    "AppData/Local/Blizzard Entertainment/Battle.net/Logs"}) {
+                File dir=new File(profile,relative);
+                if(!dir.isDirectory() || Files.isSymbolicLink(dir.toPath())) continue;
+                File[] entries=dir.listFiles();
+                if(entries==null) continue;
+                for(File entry:entries) {
+                    if(logs.size()>=100) break;
+                    if(!entry.isFile() || Files.isSymbolicLink(entry.toPath()) ||
+                            entry.length()==0) continue;
+                    String name=entry.getName().toLowerCase(Locale.ROOT);
+                    if(name.endsWith(".log") || name.endsWith(".txt"))
+                        logs.add(entry);
+                }
+            }
+        }
+        logs.sort((x,y)->Long.compare(y.lastModified(),x.lastModified()));
+        int sampled=0, errors=0, cef=0, rendering=0, ipc=0, network=0;
+        int crash=0, gpu=0, login=0;
+        for(int i=0;i<Math.min(logs.size(),6);i++) {
+            File file=logs.get(i);
+            try(java.io.RandomAccessFile input=new java.io.RandomAccessFile(file,"r")) {
+                long begin=Math.max(0,input.length()-32768);
+                input.seek(begin);
+                byte[] bytes=new byte[(int)(input.length()-begin)];
+                input.readFully(bytes);
+                String sample=new String(bytes,
+                        java.nio.charset.StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+                sampled++;
+                for(String line:sample.split("\\r?\\n")) {
+                    if(!(line.contains("error") || line.contains("fail") ||
+                            line.contains("exception") || line.contains("crash") ||
+                            line.contains("fatal") || line.contains("assert")))
+                        continue;
+                    errors++;
+                    if(line.contains("cef") || line.contains("chromium") ||
+                            line.contains("tassadar") || line.contains("browser")) cef++;
+                    if(line.contains("render") || line.contains("d3d") ||
+                            line.contains("opengl") || line.contains("vulkan")) rendering++;
+                    if(line.contains("ipc") || line.contains("pipe") ||
+                            line.contains("socket") || line.contains("agent")) ipc++;
+                    if(line.contains("timeout") || line.contains("dns") ||
+                            line.contains("connect") || line.contains("network")) network++;
+                    if(line.contains("crash") || line.contains("exception") ||
+                            line.contains("access violation")) crash++;
+                    if(line.contains("gpu") || line.contains("compositor")) gpu++;
+                    if(line.contains("login") || line.contains("auth")) login++;
+                }
+            } catch(IOException ignored) {}
+        }
+        return "BATTLE.NET CLIENT ERROR CATEGORIES\n" +
+                "  Recent client log files sampled: " + sampled + "\n" +
+                "  Error-like entries: " + errors + "\n" +
+                "  Browser/CEF references: " + cef + "\n" +
+                "  Rendering references: " + rendering + "\n" +
+                "  GPU/compositor references: " + gpu + "\n" +
+                "  Agent/IPC references: " + ipc + "\n" +
+                "  Network references: " + network + "\n" +
+                "  Crash/exception references: " + crash + "\n" +
+                "  Login/authentication references: " + login + "\n" +
+                "This is a read-only categorization, not a diagnosis or a " +
+                "copy of raw Blizzard logs.\n";
+    }
+
     private static boolean trustedWindowsDownload(URL target) {
         if (target == null || !"https".equalsIgnoreCase(target.getProtocol()) ||
                 target.getPort() != -1 && target.getPort() != 443)

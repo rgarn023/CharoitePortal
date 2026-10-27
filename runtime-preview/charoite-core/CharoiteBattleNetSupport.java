@@ -170,6 +170,7 @@ public final class CharoiteBattleNetSupport {
         File[] profiles = users.listFiles();
         if (profiles == null) throw new IOException("Wine user profiles unavailable");
         int updated = 0, unchanged = 0, invalid = 0;
+        java.util.HashSet<String> visited = new java.util.HashSet<>();
         for (File profile : profiles) {
             if (!profile.isDirectory() || java.nio.file.Files.isSymbolicLink(profile.toPath()))
                 continue;
@@ -184,7 +185,7 @@ public final class CharoiteBattleNetSupport {
                 File canonical = file.getCanonicalFile();
                 if (!canonical.getPath().startsWith(drive.getPath() + File.separator))
                     continue;
-                if (updated + unchanged > 0 && location.startsWith("Application Data/"))
+                if (!visited.add(canonical.getPath()))
                     continue;
                 byte[] bytes = java.nio.file.Files.readAllBytes(canonical.toPath());
                 org.json.JSONObject config;

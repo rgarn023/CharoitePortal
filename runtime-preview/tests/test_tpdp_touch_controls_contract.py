@@ -73,8 +73,8 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertIn('Runnable returnToPortal, boolean tpdpMapping,', CONTROLS)
         self.assertIn('this::confirmReturnToCharoitePortal', OVERLAY)
         self.assertIn('private void confirmReturnToCharoitePortal()', OVERLAY)
-        self.assertIn('.setNegativeButton("Keep Playing", null)', OVERLAY)
-        self.assertIn('.setPositiveButton("Exit Game", (dialog, which) -> {', OVERLAY)
+        self.assertIn('.setNegativeButton("Stay Here", null)', OVERLAY)
+        self.assertIn('.setPositiveButton("Return to Portal", (dialog, which) -> {', OVERLAY)
         self.assertIn('CharoiteDiagnostics.requestPortalExit(this);', OVERLAY)
         self.assertIn('exit();', OVERLAY)
         self.assertIn('ProcessHelper.removeDebugCallback(', OVERLAY)
@@ -105,7 +105,7 @@ class TpdpTouchContract(unittest.TestCase):
         self.assertNotIn('xServer.keyboard.onKeyEvent(new android.view.KeyEvent(', OVERLAY)
         self.assertIn('CharoiteWindowPolicy.configureSession(', OVERLAY)
         self.assertIn('main_menu_header.xml', OVERLAY)
-        self.assertIn('android:text="Charoite Core"', OVERLAY)
+        self.assertIn('android:text="CHAROITE CORE"', OVERLAY)
 
     def test_landscape_panels_have_stable_minimum_width(self):
         # Previous source trusted projectedGameBounds for panel edges; on

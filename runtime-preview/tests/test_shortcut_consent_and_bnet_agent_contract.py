@@ -46,7 +46,7 @@ class ShortcutConsentContract(unittest.TestCase):
 
     def test_battlenet_agent_safe_diagnostics_and_retry(self):
         self.assertIn('public static String inspectAgent(File root)',BATTLE)
-        report=BATTLE.split('public static String inspectAgent(File root)',1)[1].split('private static boolean trustedWindowsDownload',1)[0]
+        report=BATTLE.split('public static String inspectAgent(File root)',1)[1].split('public static String applyBrowserSoftwareSetting',1)[0]
         self.assertIn('Agent.exe copies detected:',report)
         self.assertIn('Agent log files:',report)
         self.assertNotIn('.delete()',report)

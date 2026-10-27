@@ -126,6 +126,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetWineProbeButton;
     private Button battleNetLiveMonitorButton;
     private Button battleNetBrowserSettingsButton;
+    private Button battleNetBrowserCacheButton;
+    private Button battleNetCefReportButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
     private TextView battleNetDownloadStatus;
@@ -393,6 +395,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetWineProbeButton = null;
         battleNetLiveMonitorButton = null;
         battleNetBrowserSettingsButton = null;
+        battleNetBrowserCacheButton = null;
+        battleNetCefReportButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
         battleNetDownloadStatus = null;
@@ -429,6 +433,18 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
             battleCard.addView(battleNetBrowserSettingsButton);
+            battleNetCefReportButton = outlinedButton("VIEW BATTLE.NET LOGIN / CEF REPORT",
+                    this::showBattleNetCefReport);
+            battleCard.addView(battleNetCefReportButton);
+            battleNetBrowserCacheButton = outlinedButton(
+                    "BACK UP + RESET BATTLE.NET BROWSER CACHE", this::confirmBattleNetBrowserCacheReset);
+            battleCard.addView(battleNetBrowserCacheButton);
+            battleCard.addView(label("Agent and Battle.net processes already run, " +
+                    "so focus on why the Chromium login interface is stuck. " +
+                    "The optional cache reset moves only launcher browser cache " +
+                    "folders to timestamped backups. The Agent, installed games " +
+                    "and saved settings are not deleted.",
+                    12, SECONDARY, false));
             battleCard.addView(label("Safe Browser launches Battle.net.exe directly " +
                     "when it exists, bypassing the bootstrap window. It also passes " +
                     "--disable-gpu and the Wine CEF workarounds. ORIGINAL launches " +
@@ -768,6 +784,66 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                             busy = false;
                             updateButtons();
                             setStatus(result);
+                        });
+                    });
+                }).show();
+    }
+
+    /** Read-only browser config and error-category report, isolated from Agent. */
+    private void showBattleNetCefReport() {
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception error) { setStatus(error.getMessage()); return; }
+        String report = CharoiteBattleNetSupport.inspectBrowserPreferences(root) +
+                "\n\n" + CharoiteBattleNetSupport.inspectBrowserLogCategories(root);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Battle.net login / CEF diagnostics")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    ClipboardManager clipboard = (ClipboardManager)
+                            getSystemService(Context.CLIPBOARD_SERVICE);
+                    clipboard.setPrimaryClip(ClipData.newPlainText(
+                            "Battle.net CEF diagnostic summary", report));
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    /** Consent required: rename cache directories without removing files. */
+    private void confirmBattleNetBrowserCacheReset() {
+        if (busy) return;
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception error) { setStatus(error.getMessage()); return; }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Back up Battle.net browser caches?")
+                .setMessage("Close Battle.net completely first. Charoite will " +
+                        "rename ONLY the browser cache folders in this Wine " +
+                        "environment to timestamped backups. No cache data " +
+                        "will be deleted, and Agent files, installed games, " +
+                        "login settings and all other environments stay unchanged. " +
+                        "The cache can be rebuilt when Battle.net restarts.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Back up and reset", (dialog, which) -> {
+                    busy = true;
+                    updateButtons();
+                    worker.execute(() -> {
+                        String result;
+                        try {
+                            result = CharoiteBattleNetSupport.backupAndResetBrowserCache(root);
+                        } catch (Exception error) {
+                            result = "Cache reset not completed: " +
+                                    error.getClass().getSimpleName() +
+                                    ". No cache backups or games were deleted.";
+                        }
+                        final String message = result;
+                        runOnUiThread(() -> {
+                            busy = false;
+                            updateButtons();
+                            new androidx.appcompat.app.AlertDialog.Builder(this)
+                                    .setTitle("Battle.net browser cache result")
+                                    .setMessage(message)
+                                    .setPositiveButton("Close", null).show();
                         });
                     });
                 }).show();
@@ -1336,6 +1412,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetOriginalButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetBrowserSettingsButton != null)
                 battleNetBrowserSettingsButton.setEnabled(!busy && ready);
+            if (battleNetBrowserCacheButton != null)
+                battleNetBrowserCacheButton.setEnabled(!busy && ready);
+            if (battleNetCefReportButton != null)
+                battleNetCefReportButton.setEnabled(!busy && ready);
             if (battleNetLaunchCompatButton != null)
                 battleNetLaunchCompatButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetWineProbeButton != null)

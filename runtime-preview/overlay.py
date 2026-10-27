@@ -493,14 +493,52 @@ code = code.replace(activity_result_anchor, activity_result_anchor + """
                 this, requestCode, resultCode, data)) return;
 """)
 
-# The upstream runtime drawer is navigation owned by Charoite Core.
-# Preserve engine utilities but avoid two conflicting touch-control editors.
+# Charoite session drawer: only essential actions, themed from the realm
+# already snapshotted into each launch Intent. Do not read another Activity's
+# preferences or replace the upstream session/input/window implementations.
 menu_brand_anchor = "        navigationView.setNavigationItemSelectedListener(this);"
 assert code.count(menu_brand_anchor) == 1, "Upstream runtime drawer changed"
 code = code.replace(menu_brand_anchor, menu_brand_anchor + """
+        // A handheld already has a popup keyboard. DeX has its physical
+        // keyboard. Phone installers/login windows still need a keyboard.
+        boolean charoitePhoneKeyboard =
+                !getIntent().getBooleanExtra("charoite_handheld_game", false) &&
+                !getIntent().getBooleanExtra("touhou_desktop_window", false);
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem entry = menu.getItem(i);
+            entry.setVisible(entry.getItemId() == R.id.menu_item_exit ||
+                    (charoitePhoneKeyboard &&
+                     entry.getItemId() == R.id.menu_item_keyboard));
+        }
         menu.findItem(R.id.menu_item_exit).setTitle("Return to Charoite Portal");
-        if (getIntent().getBooleanExtra("charoite_handheld_game", false)) {
-            menu.findItem(R.id.menu_item_input_controls).setVisible(false);
+        String charoiteTheme = getIntent().getStringExtra("charoite_environment_theme");
+        String charoiteName = getIntent().getStringExtra("charoite_environment_name");
+        boolean charoiteSakura = "touhou".equals(charoiteTheme) ||
+                "sakura".equals(charoiteTheme);
+        navigationView.setBackgroundColor(charoiteSakura ? 0xff251B2B : 0xff1D1730);
+        navigationView.setItemTextColor(android.content.res.ColorStateList.valueOf(
+                0xffF8F2FF));
+        navigationView.setItemIconTintList(android.content.res.ColorStateList.valueOf(
+                charoiteSakura ? 0xffF3B7DC : 0xffCAB4FF));
+        android.graphics.drawable.GradientDrawable charoiteMenuPlate =
+                new android.graphics.drawable.GradientDrawable(
+                        android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                        charoiteSakura ? new int[]{0xff54304E, 0xff39223F} :
+                                new int[]{0xff453067, 0xff2F214B});
+        charoiteMenuPlate.setCornerRadius(
+                14f * getResources().getDisplayMetrics().density);
+        navigationView.setItemBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x55E7C7FF),
+                charoiteMenuPlate, null));
+        android.view.View charoiteHeader = navigationView.getHeaderView(0);
+        if (charoiteHeader != null) {
+            charoiteHeader.setBackground(
+                    com.charoitegames.core.CharoiteThemes.realmBanner(charoiteTheme));
+            android.widget.TextView charoiteEnvironmentLabel =
+                    charoiteHeader.findViewById(R.id.charoite_session_environment);
+            if (charoiteEnvironmentLabel != null)
+                charoiteEnvironmentLabel.setText(charoiteName == null ||
+                        charoiteName.trim().isEmpty() ? "Windows Gaming" : charoiteName);
         }
 """)
 
@@ -511,9 +549,7 @@ drawer_exit_anchor = """            case R.id.menu_item_exit:
 assert code.count(drawer_exit_anchor) == 1, "Upstream game drawer Exit changed"
 code = code.replace(drawer_exit_anchor, """            case R.id.menu_item_exit:
                 drawerLayout.closeDrawers();
-                if (getIntent().getBooleanExtra("charoite_handheld_game", false))
-                    confirmReturnToCharoitePortal();
-                else exit();
+                confirmReturnToCharoitePortal();
                 break;""")
 
 # Winlator's TouchpadView converts rapid consecutive finger taps into
@@ -683,9 +719,9 @@ tpdp_window_layout = """    // Charoite Core owns the window policy; Winlator pr
         if (isFinishing() || isDestroyed()) return;
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Return to Charoite Portal?")
-                .setMessage("The current Windows game will close. Save progress first; unsaved progress may be lost.")
-                .setNegativeButton("Keep Playing", null)
-                .setPositiveButton("Exit Game", (dialog, which) -> {
+                .setMessage("The Windows session will close. Save game progress or finish any installation first; unsaved work may be lost.")
+                .setNegativeButton("Stay Here", null)
+                .setPositiveButton("Return to Portal", (dialog, which) -> {
                     com.charoitegames.core.CharoiteDiagnostics.requestPortalExit(this);
                     exit();
                 })
@@ -934,34 +970,38 @@ code = code.replace(tpdp_debug_anchor, """
 """ + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")
 
-# The original renderer drawer has its own Winlator logo in a separate
-# header resource. Replace only its visible UI; attribution remains in
-# the bundled licenses and source.
+# The upstream renderer drawer had a Winlator header. Replace the visible
+# header layout with accessible Charoite labels. Runtime Java sets the realm
+# art from the same template as the Portal banner and writes the launch name.
 menu_header_path = root / "app/src/main/res/layout/main_menu_header.xml"
 menu_header_original = menu_header_path.read_text(encoding="utf-8")
 assert '@drawable/logo' in menu_header_original, "Upstream runtime header changed"
 menu_header_path.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="132dp"
+    android:layout_height="154dp"
     android:orientation="vertical"
     android:gravity="bottom|start"
-    android:padding="18dp"
-    android:background="#252B3A">
+    android:padding="20dp"
+    android:background="#302149">
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Charoite Core"
-        android:textColor="#FFFFFF"
+        android:text="CHAROITE CORE"
+        android:textColor="#FFF5FF"
         android:textStyle="bold"
-        android:textSize="25sp" />
+        android:letterSpacing="0.07"
+        android:textSize="19sp" />
     <TextView
+        android:id="@+id/charoite_session_environment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Windows game session"
-        android:layout_marginTop="4dp"
-        android:textColor="#C9D1E9"
-        android:textSize="14sp" />
+        android:text="Windows Gaming"
+        android:layout_marginTop="8dp"
+        android:textColor="#F3E1FF"
+        android:textSize="16sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
 </LinearLayout>
 """, encoding="utf-8")
 

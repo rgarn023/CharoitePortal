@@ -149,21 +149,21 @@ static void try_start_rpc_service(FILE *report) {
         if (!after.scm_error && !after.open_error && !after.query_error)
             afterState=after.state;
     }
-    fprintf(report,"monitor_rpc_opt_in_start_requested=1\\n");
-    fprintf(report,"monitor_rpc_start_before_state=%lu\\n",
+    fprintf(report,"monitor_rpc_opt_in_start_requested=1\n");
+    fprintf(report,"monitor_rpc_start_before_state=%lu\n",
             (unsigned long)before.state);
-    fprintf(report,"monitor_rpc_start_attempted=%lu\\n",(unsigned long)attempt);
-    fprintf(report,"monitor_rpc_start_already_running=%lu\\n",
+    fprintf(report,"monitor_rpc_start_attempted=%lu\n",(unsigned long)attempt);
+    fprintf(report,"monitor_rpc_start_already_running=%lu\n",
             (unsigned long)alreadyRunning);
-    fprintf(report,"monitor_rpc_start_scm_error=%lu\\n",
+    fprintf(report,"monitor_rpc_start_scm_error=%lu\n",
             (unsigned long)before.scm_error);
-    fprintf(report,"monitor_rpc_start_open_error=%lu\\n",
+    fprintf(report,"monitor_rpc_start_open_error=%lu\n",
             (unsigned long)(before.open_error ? before.open_error : openError));
-    fprintf(report,"monitor_rpc_start_win32_error=%lu\\n",
+    fprintf(report,"monitor_rpc_start_win32_error=%lu\n",
             (unsigned long)startError);
-    fprintf(report,"monitor_rpc_start_query_error=%lu\\n",
+    fprintf(report,"monitor_rpc_start_query_error=%lu\n",
             (unsigned long)(before.query_error ? before.query_error : queryError));
-    fprintf(report,"monitor_rpc_start_after_state=%lu\\n",
+    fprintf(report,"monitor_rpc_start_after_state=%lu\n",
             (unsigned long)afterState);
     fflush(report);
 }

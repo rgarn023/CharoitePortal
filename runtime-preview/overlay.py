@@ -778,6 +778,15 @@ code = code.replace(bnet_cmd_anchor, bnet_cmd_anchor + """
                 // Applies to exactly this launch; no registry/cache deletion.
                 cmdArgs += " --disable-gpu";
             }
+            if (getIntent().getBooleanExtra("charoite_bnet_in_process_gpu", false) &&
+                    "battle-net-gaming".equals(
+                        getIntent().getStringExtra("charoite_environment_id")) &&
+                    (filename.equalsIgnoreCase("Battle.net Launcher.exe") ||
+                     filename.equalsIgnoreCase("Battle.net.exe"))) {
+                // Alternative Chromium CEF GPU-process isolation trial.
+                // Mutually exclusive with --disable-gpu; never persisted.
+                cmdArgs += " --in-process-gpu";
+            }
 """)
 
 # TPDP base game can run at 60 FPS with audio but present a black DirectX 9

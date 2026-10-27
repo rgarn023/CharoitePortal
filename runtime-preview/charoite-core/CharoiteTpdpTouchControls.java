@@ -179,6 +179,29 @@ public final class CharoiteTpdpTouchControls {
     }
 
     /**
+     * Current physical game rectangle in the overlay coordinate space.
+     * Landscape controls use its LEFT and RIGHT safe zones, rather than a
+     * fixed percent which could cover the game after DeX or rotation.
+     */
+    private static int[] projectedGameBounds(Activity host) {
+        if (!(host instanceof XServerDisplayActivity)) return null;
+        XServerView display = ((XServerDisplayActivity)host).getXServerView();
+        int[] game = CharoiteWindowPolicy.handheldScreenBounds();
+        if (display == null || game == null || game.length < 4) return null;
+        ViewTransformation view = display.getRenderer().viewTransformation;
+        if (view == null || view.aspect <= 0f) return null;
+        int x = Math.round(display.getLeft() + view.viewOffsetX +
+                game[0] * view.aspect);
+        float projectedTop = display.getHeight() -
+                view.viewOffsetY - view.viewHeight;
+        int y = Math.round(display.getTop() + projectedTop +
+                game[1] * view.aspect);
+        return new int[]{x, y, Math.round(game[2] * view.aspect),
+                Math.round(game[3] * view.aspect)};
+    }
+
+
+    /**
      * A single bezel around the actual compositor-scaled TPDP client.
      * Unlike Wine's title/border, these coordinates share the renderer's
      * viewport and therefore cannot drift away from the game surface.
@@ -547,6 +570,7 @@ public final class CharoiteTpdpTouchControls {
             position(facePlate, diamondX - dp(host, 3),
                     clusterY - dp(host, 3),
                     clusterWidth + dp(host, 6), clusterHeight + dp(host, 6));
+            if (portrait) {
             final int topControls = portrait ?
                     Math.min((int)(height * .55f), clusterY - dp(host, 110)) :
                     Math.max(dp(host, 44), (int)(height * .53f));
@@ -618,6 +642,94 @@ public final class CharoiteTpdpTouchControls {
             for (int i = 0; i < extras.length; i++)
                 position(extras[i], extraX + i * (extraW + gap),
                         extraY, extraW, dp(host, 34));
+            } else {
+                // In landscape the upper *center* is the game surface.
+                // Never place action keys, More buttons or keyboard on it.
+                // On a phone/DeX resize, derive side columns from the live
+                // compositor game quad; use centered fallback at startup.
+                int[] game = projectedGameBounds(host);
+                final int screenGap = dp(host, 12);
+                final int gameLeft = game != null ?
+                        game[0] - screenGap : Math.round(width * .27f);
+                final int gameRight = game != null ?
+                        game[0] + game[2] + screenGap : Math.round(width * .73f);
+                final int leftX = margin;
+                final int leftSideW = Math.max(0, gameLeft - margin * 2);
+                final int rightX = Math.max(width / 2, gameRight + margin);
+                final int rightSideW = Math.max(0, width - rightX - margin);
+                final int leftPairW = Math.max(1, (leftSideW - gap) / 2);
+                final int rightPairW = Math.max(1, (rightSideW - gap) / 2);
+                final int landBarH = dp(host, 29);
+                final int topButtonH = dp(host, 32);
+                // Portal/More/Hide are the only buttons on the top header.
+                final int portalW = dp(host, 88);
+                position(portal, margin, margin, portalW, topButtonH);
+                position(more, margin + portalW + gap, margin,
+                        dp(host, 68), topButtonH);
+                position(toggle, width - margin - dp(host, 93),
+                        margin, dp(host, 93), topButtonH);
+
+                // More expands into the LEFT/RIGHT gutters (not the game).
+                final int menuY = margin + topButtonH + dp(host, 7);
+                position(f11, leftX, menuY, leftPairW, landBarH);
+                position(screenshot, leftX + leftPairW + gap, menuY,
+                        leftPairW, landBarH);
+                if (backend != null) position(backend, leftX,
+                        menuY + landBarH + gap, leftSideW, landBarH);
+                if (diagnostics != null) position(diagnostics, rightX,
+                        menuY, rightPairW, landBarH);
+                position(interior, rightX +
+                        (diagnostics != null ? rightPairW + gap : 0),
+                        menuY, diagnostics != null ? rightPairW : rightSideW,
+                        landBarH);
+
+                // Split Esc/Select and Start/Enter across both side gutters.
+                // Nothing in these rows crosses the game rectangle.
+                final int navY = menuY + 2 * (landBarH + gap) + gap;
+                position(esc, leftX, navY, leftPairW, landBarH);
+                position(select, leftX + leftPairW + gap, navY,
+                        leftPairW, landBarH);
+                position(start, rightX, navY, rightPairW, landBarH);
+                position(enter, rightX + rightPairW + gap, navY,
+                        rightPairW, landBarH);
+
+                final int shoulderY = navY + landBarH + dp(host, 14);
+                final int shoulderW = Math.min(dp(host, 88),
+                        Math.max(1, leftSideW));
+                final int rightShoulderW = Math.min(dp(host, 88),
+                        Math.max(1, rightSideW));
+                position(leftShoulder, leftX + (leftSideW - shoulderW) / 2,
+                        shoulderY, shoulderW, landBarH);
+                position(rightShoulder, rightX +
+                        (rightSideW - rightShoulderW) / 2,
+                        shoulderY, rightShoulderW, landBarH);
+
+                // Keep the keyboard BELOW the game's visible bottom edge,
+                // between the D-pad and the ABXY cluster.
+                final int keyboardW = Math.min(dp(host, 104),
+                        Math.max(dp(host, 44), rightX - gameLeft - 2 * gap));
+                final int gameBottom = game != null ?
+                        game[1] + game[3] : height - landBarH - margin * 2;
+                final int keyboardY = clamp(gameBottom + dp(host, 10),
+                        menuY + landBarH + gap,
+                        height - landBarH - margin);
+                keyboard.setText(keyboardW < dp(host, 78) ? "⌨" : "KEYBOARD");
+                position(keyboard, (width - keyboardW) / 2,
+                        keyboardY, keyboardW, landBarH);
+
+                // Retain symmetric, equal-size gameplay clusters in their
+                // bottom corners; moving them onto the game would break play.
+                position(up, dpadCenterX, dpadCenterY - size - gap, size, size);
+                position(left, dpadCenterX - size - gap, dpadCenterY, size, size);
+                position(right, dpadCenterX + size + gap, dpadCenterY, size, size);
+                position(down, dpadCenterX, dpadCenterY + size + gap, size, size);
+                position(yButton, diamondX + size + gap, clusterY, size, size);
+                position(xButton, diamondX, clusterY + size + gap, size, size);
+                position(aButton, diamondX + (size + gap) * 2,
+                        clusterY + size + gap, size, size);
+                position(bButton, diamondX + size + gap,
+                        clusterY + (size + gap) * 2, size, size);
+            }
         };
         root.addOnLayoutChangeListener((v, l, t, r, b, oldL, oldT, oldR, oldB) -> {
             if (r - l != oldR - oldL || b - t != oldB - oldT) relayout.run();

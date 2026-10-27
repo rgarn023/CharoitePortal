@@ -820,6 +820,23 @@ code = code.replace(old_callback, """        guestProgramLauncherComponent.setTe
 tpdp_debug_anchor = "        guestProgramLauncherComponent.setEnvVars(envVars);"
 assert code.count(tpdp_debug_anchor) == 1, "Winlator guest environment marker changed"
 code = code.replace(tpdp_debug_anchor, """
+        // The installed Battle.net client uses Chromium Embedded Framework.
+        // Wine CEF builds sometimes require disabling locationapi; append
+        // only this DLL rule to existing overrides, without replacing them.
+        // One launch only; no registry, Wine prefix or game changes.
+        if (getIntent().getBooleanExtra("charoite_bnet_disable_gpu", false) &&
+                "battle-net-gaming".equals(
+                    getIntent().getStringExtra("charoite_environment_id"))) {
+            String overrides = envVars.get("WINEDLLOVERRIDES");
+            if (!java.util.regex.Pattern.compile(
+                    "(^|;)locationapi=", java.util.regex.Pattern.CASE_INSENSITIVE)
+                    .matcher(overrides).find()) {
+                envVars.put("WINEDLLOVERRIDES", overrides.isEmpty() ?
+                        "locationapi=d" : overrides + ";locationapi=d");
+            }
+            // Hint for CEF PAGE_WRITECOPY mismatches; harmless if unsupported.
+            envVars.put("WINE_SIMULATE_WRITECOPY", "1");
+        }
         // A safe, session-local troubleshooting mode for Battle.net Agent.
         // Wine/Box64 process synchronization failures can prevent the
         // updater from starting. This is experimental, opt-in only and

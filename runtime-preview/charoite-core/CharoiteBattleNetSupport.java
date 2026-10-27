@@ -384,30 +384,30 @@ public final class CharoiteBattleNetSupport {
             File report = new File(drive,
                     "CharoitePortal/Diagnostics/charoite_bnet_launch_monitor.txt");
             if (!report.isFile() || report.length() > 8192)
-                return "BATTLE.NET LIVE AGENT MONITOR\\nNo live-session record yet. " +
+                return "BATTLE.NET LIVE AGENT MONITOR\nNo live-session record yet. " +
                         "Open Battle.net, leave its window open briefly, " +
-                        "then return to Portal diagnostics.\\n";
+                        "then return to Portal diagnostics.\n";
             String data = new String(Files.readAllBytes(report.toPath()),
                     java.nio.charset.StandardCharsets.US_ASCII);
-            StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\\n");
+            StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\n");
             out.append("Sample timestamp: ")
-                    .append(new java.util.Date(report.lastModified())).append("\\n");
-            for (String line : data.split("\\\\r?\\\\n")) {
+                    .append(new java.util.Date(report.lastModified())).append("\n");
+            for (String line : data.split("\\r?\\n")) {
                 if (!line.matches("monitor_[a-z_0-9]{3,55}=[0-9]{1,12}"))
                     continue;
                 if (line.startsWith("monitor_sample_")) continue;
-                out.append("  ").append(line).append("\\n");
+                out.append("  ").append(line).append("\n");
             }
             long age = System.currentTimeMillis() - report.lastModified();
             if (age > 60 * 60 * 1000L)
-                out.append("This monitor record is older than one hour.\\n");
+                out.append("This monitor record is older than one hour.\n");
             if (data.contains("monitor_complete=1")) {
                 out.append("Monitoring completed during one active Wine session. " +
                         "If the Agent appeared in no samples while the launcher did, " +
-                        "focus on Agent startup and IPC instead of general HTTPS.\\n");
-            } else out.append("Monitor incomplete (launcher closed or session interrupted).\\n");
+                        "focus on Agent startup and IPC instead of general HTTPS.\n");
+            } else out.append("Monitor incomplete (launcher closed or session interrupted).\n");
             out.append("These counts cannot establish why a process exits or " +
-                    "whether Blizzard login completed.\\n");
+                    "whether Blizzard login completed.\n");
             return out.toString();
         } catch (Exception error) {
             return "BATTLE.NET LIVE AGENT MONITOR unavailable: " +

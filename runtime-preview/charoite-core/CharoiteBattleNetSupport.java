@@ -498,7 +498,8 @@ public final class CharoiteBattleNetSupport {
                 return "BATTLE.NET LIVE AGENT MONITOR\n" + androidState +
                         "No Wine-side monitor samples received yet. Open the " +
                         "installed Battle.net client, leave its window open " +
-                        "briefly, then return to this dedicated monitor view.\n";
+                        "briefly, then return to this dedicated monitor view.\n\n" +
+                        inspectGuestRpcPreflight(root);
             String data = new String(Files.readAllBytes(report.toPath()),
                     java.nio.charset.StandardCharsets.US_ASCII);
             StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\n");

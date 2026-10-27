@@ -442,11 +442,12 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     this::confirmBattleNetRpcStartup);
             battleCard.addView(battleNetRpcStartupButton);
             battleCard.addView(label(
-                    "The live monitor confirmed Wine RpcSs is STOPPED. This optional " +
-                    "one-session test requests RpcSs startup through Wine's service " +
-                    "manager while Battle.net is running and records the result. " +
-                    "It does not change permanent service settings, delete files, " +
-                    "or install a new Wine version. Close Battle.net before trying.",
+                    "Battle.net diagnostics confirmed RpcSs is stopped; starting " +
+                    "it returned Windows error 1058 (disabled). This opt-in test " +
+                    "temporarily switches a disabled RpcSs service to Manual, " +
+                    "tries starting it, then restores its prior Disabled setting. " +
+                    "A recovery marker protects against interrupted restoration. " +
+                    "No other environment or game is changed.",
                     12, SECONDARY, false));
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
@@ -802,15 +803,17 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         if (busy) return;
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Test Wine RpcSs service startup?")
-                .setMessage("The last monitor found Wine's RpcSs service STOPPED " +
-                        "throughout the Battle.net session. This experiment " +
-                        "opens the installed Battle.net client and requests " +
-                        "one RpcSs start using Wine's Service Control Manager " +
-                        "after its display session is ready. It may not fix " +
-                        "login, and the service can stop again after exit. " +
-                        "Please close any other Battle.net session first. " +
-                        "No game data, service startup type, Agent installation " +
-                        "or Wine prefix settings will be modified.")
+                .setMessage("Wine reported RpcSs STOPPED and service-start " +
+                        "error 1058 (disabled). Only for the active Battle.net " +
+                        "environment, this test can TEMPORARILY change RpcSs " +
+                        "startup from Disabled to Manual, request startup, " +
+                        "then restore Disabled even if startup fails. " +
+                        "A small Charoite recovery marker is retained if " +
+                        "restoration is interrupted, for a later retry. " +
+                        "Close other Battle.net sessions first, and keep this " +
+                        "session open for at least 30 seconds. Other Wine " +
+                        "environments, games, Agent files and saves are untouched. " +
+                        "The login fix is not guaranteed.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Try once", (dialog, which) -> {
                     try {

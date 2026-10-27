@@ -24,9 +24,9 @@
 ## 2. Current verified GitHub/APK state (October 27, 2026)
 
 **Latest verified Android runtime APK (source code):**
-- **Runtime code SHA:** `294f63667c5c8570521bf3b717cba58e35e1298f`.
-- **GitHub Actions run `40591365458` — SUCCESS:** https://github.com/rgarn023/CharoitePortal/actions/runs/40591365458
-- **APK artifact:** `Charoite-Portal-Android-APK`, artifact **12773863471**, uploaded/non-expired; ZIP archive **231,426,060 bytes**.
+- **Runtime code SHA:** `d1b10879dd6c3d64b931fb7fd15c983d0dc2cff9`.
+- **GitHub Actions run `40591957435` — SUCCESS:** https://github.com/rgarn023/CharoitePortal/actions/runs/40591957435
+- **APK artifact:** `Charoite-Portal-Android-APK`, artifact **12774297702**, uploaded/non-expired; ZIP archive **231,424,506 bytes**.
 - **Tests:** 130 regression tests passed. Win32 diagnostics helper compilation, full Android APK build, existing signing and packaging verification, upload completed.
 - **Phone status:** Pre-client RpcSs startup and normal Battle.net login are NOT yet verified on device in this APK. The PREVIOUS run `40586875588` demonstrated the opt-in **post-window** RpcSs startup RUNNING for 16/16 samples, with safe restoration; **Battle.net still spun**. This new APK changes startup order before the first Windows client process.
 - **Preserve:** package `com.charoite`, existing app data/Wine prefixes, games and saves. No new Wine build or prefix migration. Documentation-only commits after the code SHA do not require rebuilding.
@@ -136,7 +136,7 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 5. On **handoff-only** edits, put `[skip ci]` in the commit message to avoid redundant APK compilation. If a documentation commit advances `main` beyond last successful runtime commit, state so explicitly rather than claiming CI built that doc commit.
 6. Provide user the canonical [current handoff](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md) whenever context becomes long, so they can copy the raw Markdown into a new conversation. The old `docs/HANDOFF.md` is useful only as historical provenance.
 
-**Current priority (October 27):** User confirmed Battle.net **still spins** despite successful RpcSs RUNNING 16/16 and restored Disabled startup type. Latest code built in run **40591365458** now gates launch of the actual installed Battle.net client on a **before-client** RpcSs startup/rollback, using the first Wine guest program. Install/update APK without clearing data; in Battle.net Gaming → Setup select existing **TRY BATTLE.NET (START WINE RPC SERVICE)**, confirm, observe whether the spinner clears. After ~30 seconds, open **VIEW BATTLE.NET LOGIN / CEF REPORT**, copy full report including the NEW **BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT** section and monitor. Determine `preflight_rpc_ready`, `preflight_launch_ready`, `preflight_client_spawn_error`, RpcSs status/restore confirmation, and actual login UI. If the client did launch after preflight and still spins, focus CEF browser/GPU and Blizzard Agent IPC, not continued speculative service restarts. Do not declare success based only on CI or process counts.
+**Current priority (October 27):** User confirmed Battle.net **still spins** with successfully running RpcSs after its first window appeared. A new, Battle.net-only before-client startup gate is implemented in latest successful APK **run `40591957435`** (runtime SHA `d1b10879dd6c3d64b931fb7fd15c983d0dc2cff9`). It initializes RpcSs and restores its original Disabled startup setting BEFORE spawning the installed client; ordinary monitor remains read-only. New report `BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT` is now included even if no Windows window opens. User should update `com.charoite` safely and test **TRY BATTLE.NET (START WINE RPC SERVICE)**, then share report and whether login appears. If RpcSs ready before client but spinner persists, shift to Chromium CEF/Agent IPC and test rendering. No on-device validation yet of this pre-client route.
 
 ## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
 
@@ -324,6 +324,18 @@ monitor_complete=1
 3. Observe the actual Windows UI. If launcher fails to appear, that is useful evidence that gate did not complete; do not keep restarting or deleting prefix.
 4. After ~30 seconds return to Portal → **VIEW BATTLE.NET LOGIN / CEF REPORT** → **Copy report**; new lower section **BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT** reports `preflight_attempted`, `preflight_before_client`, `preflight_rpc_ready`, `preflight_client_spawn_error`, `preflight_launch_ready`, start type, service START/RUNNING and rollback status; regular live monitor and CEF logs still included.
 5. **If** `preflight_rpc_ready=1`, `preflight_launch_ready=1`, `RpcSs RUNNING` but spinner persists, abandon service timing as primary explanation and investigate CEF renderer flags/graphics backend or Agent IPC further, with bounded useful log categories and rollback of experiments. If preflight fails/no report, debug launched guest executable and WinHandler handoff. Do not claim Diablo III/IV works.
+
+## 16. October 27, 2026 — Final diagnostics safeguard and APK build verification
+
+The initial before-client RPC experiment at code SHA `294f63667c5c8570521bf3b717cba58e35e1298f` passed 130 CI tests and was published in successful Actions run `40591365458`. Review caught an important failure-case gap: if the preflight refuses to start the Windows client, then the usual post-first-window Live Agent Monitor is absent, and the Portal's early-return branch would have hidden the preflight file despite it being available.
+
+**Fixed before delivery:**
+- Commit `a46710312fdceecf2f4bcb5eb31188f180247eb2`: `CharoiteBattleNetSupport.inspectInSessionAgentMonitor()` now appends `inspectGuestRpcPreflight(root)` even on the **no live monitor report** return path. Thus the exact RPC/rollback/CreateProcess result is visible under **VIEW BATTLE.NET LOGIN / CEF REPORT**, whether or not Battle.net opens any window.
+- Commit `d1b10879dd6c3d64b931fb7fd15c983d0dc2cff9`: strengthened `test_battlenet_rpc_preflight_contract.py` for the early-return behavior.
+- **Current final successful APK:** GitHub Actions run **40591957435**, source SHA **`d1b10879dd6c3d64b931fb7fd15c983d0dc2cff9`**, `Charoite-Portal-Android-APK` artifact ID **12774297702** (231,424,506 byte ZIP, uploaded, nonexpired). Regression suite, native Win32 compile, full Android app build and signing succeeded. **On-device preflight has not been checked yet**.
+- The APK source commit differs from any subsequent `[skip ci]` handoff-only commit, which does not rebuild. Existing `com.charoite` private data and other environment behaviors remain unchanged.
+
+**Next phone action:** With prior Battle.net Wine session closed, update the APK without uninstalling/clearing app data, run **Battle.net Gaming → Setup → TRY BATTLE.NET (START WINE RPC SERVICE)** (confirm), wait about 30 seconds, and copy **VIEW BATTLE.NET LOGIN / CEF REPORT**. Focus on `BATTLE.NET BEFORE-CLIENT RPC PREFLIGHT`: `preflight_rpc_ready`, `preflight_client_spawn_attempted`, `preflight_client_spawn_error`, `preflight_launch_ready` plus `monitor_rpc_restore_confirmed`. Compare spinner/login and later live monitor. If `preflight_launch_ready=1` and login still spins, don't keep restarting RPC; focus on CEF renderer/GPU process and Agent IPC. If no preflight report, inspect startup state/missing helper. Do not assume success based on Android CI alone.
 
 ---
 **End of current Charoite Portal handoff.**

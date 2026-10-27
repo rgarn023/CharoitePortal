@@ -122,6 +122,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
     private Button battleNetOpenButton;
     private Button battleNetOriginalButton;
     private Button battleNetDirectButton;
+    private Button battleNetBrowserSettingsButton;
     private Button battleNetCompatButton;
     private Button battleNetDiagnoseButton;
     private TextView battleNetDownloadStatus;
@@ -385,6 +386,7 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         battleNetOpenButton = null;
         battleNetOriginalButton = null;
         battleNetDirectButton = null;
+        battleNetBrowserSettingsButton = null;
         battleNetCompatButton = null;
         battleNetDiagnoseButton = null;
         battleNetDownloadStatus = null;
@@ -415,6 +417,9 @@ public final class TouhouEntryActivity extends AppCompatActivity {
             battleNetDirectButton = outlinedButton("OPEN BATTLE.NET.EXE (DIRECT)",
                     this::openBattleNetDirect);
             battleCard.addView(battleNetDirectButton);
+            battleNetBrowserSettingsButton = outlinedButton(
+                    "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
+            battleCard.addView(battleNetBrowserSettingsButton);
             battleCard.addView(label("If Battle.net spins indefinitely or the first " +
                     "installer crashed, try Safe Browser first. It uses Blizzard's " +
                     "--disable-gpu argument for the embedded launcher browser only. " +
@@ -680,6 +685,41 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         } catch (Exception error) {
             setStatus("Cannot open Battle.net client: " + error.getMessage());
         }
+    }
+
+    /** Explicitly requested browser preference change; creates rollback copy. */
+    private void applyBattleNetBrowserFix() {
+        if (busy) return;
+        final File root;
+        try { root = battleNetRoot(); }
+        catch (Exception error) { setStatus(error.getMessage()); return; }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Disable Battle.net browser acceleration?")
+                .setMessage("Battle.net stores browser acceleration in " +
+                        "its own settings file. Charoite will back up that " +
+                        "existing file before setting HardwareAcceleration=false. " +
+                        "No files, Agent installations, game content, or account " +
+                        "data will be deleted. Close the running launcher first.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Apply with backup", (dialog, which) -> {
+                    busy = true;
+                    updateButtons();
+                    worker.execute(() -> {
+                        String status;
+                        try {
+                            status = CharoiteBattleNetSupport.applyBrowserSoftwareSetting(root);
+                        } catch (Exception failure) {
+                            status = "Battle.net setting unchanged: " +
+                                    failure.getClass().getSimpleName();
+                        }
+                        final String result = status;
+                        runOnUiThread(() -> {
+                            busy = false;
+                            updateButtons();
+                            setStatus(result);
+                        });
+                    });
+                }).show();
     }
 
     /** Read only: inspect whether Blizzard actually downloaded Agent.exe
@@ -1200,6 +1240,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                 battleNetOpenButton.setEnabled(!busy && ready && launcher != null);
             if (battleNetOriginalButton != null)
                 battleNetOriginalButton.setEnabled(!busy && ready && launcher != null);
+            if (battleNetBrowserSettingsButton != null)
+                battleNetBrowserSettingsButton.setEnabled(!busy && ready);
             if (battleNetDirectButton != null) {
                 File direct = null;
                 if (ready) {

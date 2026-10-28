@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Experimental Charoite Wine ARM64EC Windows startup utility.
+# Experimental Charoite Wine regular Windows ARM64 startup utility (not ARM64EC).
 # This is NOT proof that a Windows prefix can be initialized on Android.
 set -euo pipefail
 if [[ $# -ne 3 || "${1:-}" != /* || "${2:-}" != /* || "${3:-}" != /* ]]; then
@@ -28,11 +28,11 @@ boot="$PWD/programs/wineboot/aarch64-windows/wineboot.exe"
 [[ -s "$boot" && ! -L "$boot" ]] || { echo "wineboot PE missing" >&2; exit 5; }
 mkdir "$report"
 "$readobj" --file-headers "$boot" > "$report/wineboot-pe-header.txt"
-grep -E 'Machine: IMAGE_FILE_MACHINE_ARM64EC|Machine: ARM64EC|Machine: 0xA641' \
+grep -E 'Machine: IMAGE_FILE_MACHINE_ARM64 \\(0xAA64\\)|Machine: ARM64 \\(0xAA64\\)' \
   "$report/wineboot-pe-header.txt" || {
-    echo "Wineboot is not Windows ARM64EC" >&2; exit 5;
+    echo "Wineboot is not Windows ARM64 (0xAA64)" >&2; exit 5;
   }
-cp "$boot" "$report/wineboot-arm64ec.exe"
+cp "$boot" "$report/wineboot-arm64.exe"
 python3 - "$report" <<'PY'
 from pathlib import Path
 import hashlib, json, sys
@@ -40,10 +40,10 @@ out = Path(sys.argv[1])
 pe = out / "wineboot-arm64ec.exe"
 payload = {
     "schema_version": 1,
-    "project": "Charoite Wine ARM64EC wineboot experiment",
+    "project": "Charoite Wine Windows ARM64 wineboot experiment",
     "source_commit": "c74acb09d51b447f5d5ac56c87608d3ec565a767",
     "android_package": "com.charoitx",
-    "pe_machine": "0xA641",
+    "pe_machine": "0xAA64",
     "status": "compiled-not-executed",
     "launch_ready": False,
     "installable": False,

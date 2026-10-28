@@ -712,5 +712,21 @@ Artifacts at this run:
 
 **Next:** inspect 40786056442 and its logs. Fix only concrete build/test errors. Once green, record the actual artifact ID and ABI. Continue the remaining Wine PE/Unix/NLS import dependency closure, FEX, graphics and an isolated Next-only runtime slot. No APK was produced by this work, no prefix/device execution occurred, and Battle.net, Steam, Diablo IV and third-party anti-cheat remain unverified. Preserve stable com.charoite and side-by-side com.charoitx, all game data/saves/prefixes.
 
+
+## 36. October 28, 2026 — Correcting Android clipboard Winsock compile regression in new ARM64EC user32 DLL
+
+**New foundation CI diagnosis:** [run 40786056442](https://github.com/rgarn023/CharoitePortal/actions/runs/40786056442) on c86b9154b020082e9e320168e5bfd50961d53da7 failed only in the new PE foundation build after source, host, Android wineserver, ntdll, kernel and wineboot stages had passed. GitHub job logs showed six Clang errors in dlls/user32/clipboard.c: send() and recv() calls pass int pointers where Wine's winsock2.h requires const char* or char*. Those lines originate from the pinned upstream Android patch android/patches/common/dlls_user32_clipboard_c.patch. This was not caused by the existing Charoite linker patch 0500 or an Android-device execution.
+
+**Scoped source-controlled repair (preserves vendor attribution):**
+- 1dcad74208f346a4bc6ebe326652283fa5817776 — Charoite new patch 0600-arm64ec-clipboard-winsock-buffers.patch corrects six integer-buffer send/recv pointer types. Same wire bytes and lengths are maintained; this is compile/type correctness, not a device clipboard-behavior claim.
+- 3f0fe91dc80fd25295ca546f9e913f1e08874dde — registers patch 0600 after existing fixes in patches/SERIES.
+- 68d4dd8eaf6716117f22480f295cea3b65e72845 — prepares exactly seven active Charoite patches, unchanged prerequisite and GE provenance, refuses invalid or overlapping source.
+- 938602a7c9caba907fa0bfa52fc4c71ca0a08e74 — expands source-provenance tests for new seven-patch series.
+- 2a7d2287174766e294a9c53744e6fc291b88625d — documents new patch authorship and vendor origin in next-generation/charoite-wine/README.md.
+
+**Validation checkpoint:** [run 40786744688](https://github.com/rgarn023/CharoitePortal/actions/runs/40786744688) on code commit 2a7d2287174766e294a9c53744e6fc291b88625d: source validation including patch 0600 completed SUCCESS, and the Linux host build completed SUCCESS; Android native compilation was still running at this update. Therefore **do not yet claim three foundation DLLs built successfully, or claim an artifact ID**. A final outcome requires all four jobs green and the Charoite-Wine-ARM64EC-PE-Foundation-Experimental artifact actually present.
+
+**Next:** finish checking 40786744688 and any exact new errors; if green, record artifact ID and verify 0xA641 and SHA-256 from logs. Continue dependency closure after the verified base (other sampled Windows APIs include crypt32, setupapi, shell32, shlwapi, ucrtbase, version, newdev) and stage only in a new Next-specific runtime. Core Next remains NOT runnable; both Android app packages and user prefixes/games are untouched.
+
 ---
 **End of current Charoite Portal handoff.**

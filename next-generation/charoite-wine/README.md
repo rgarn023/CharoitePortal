@@ -1,6 +1,6 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28, 2026): Wine 10.0 `wineserver` has now been cross-compiled for Android AArch64 at API 35 with 16 KiB ELF alignment, under the earlier patch series. A new Android machine-ID safety patch is undergoing CI validation. Full ARM64EC Wine DLLs, FEX and phone operation remain unverified.**
+**Status (October 28, 2026): Wine 10.0 `wineserver`, Windows ARM64EC `ntdll.dll`, and Android AArch64 `ntdll.so` have now been successfully cross-compiled in isolated GitHub Actions jobs, with PE/ELF architecture validation. FEX, graphics, a complete Wine runtime, installer, phone testing, Battle.net and Steam remain unverified.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
 
@@ -40,6 +40,19 @@ These patches establish a reproducible starting point for **Charoite-maintained 
 **GitHub Actions [40715586360](https://github.com/rgarn023/CharoitePortal/actions/runs/40715586360) passed all three jobs** at source commit `244cf07400b7f5603d4f153bee5b034eadfcb73b`. CI verified the 3-entry Charoite patch series, host Wine server compilation, and NDK r27d Android API 35 **AArch64 wineserver** cross-compilation. ELF `LOAD` alignment values: `[16384, 16384, 16384, 16384]`. The uninitialized `FILE *f` warning from the preceding run no longer appears (an unrelated unused-variable warning remains).
 
 Experimental Android-native artifact: `Charoite-Wine-Android-ARM64-Experimental` ID **12828870997**, with checksums and ELF reports. This file is a component, **not a complete runner or APK**, and has **not been executed on the Galaxy S26 Ultra**. No FEX bridges, ARM64EC `ntdll.dll`/`ntdll.so`, DXVK/VKD3D or Steam/Battle.net integration exists yet in this experimental output.
+
+## Verified Charoite Wine ARM64EC ntdll compilation
+
+[**GitHub Actions run 40721844963 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/40721844963), compiled code SHA `26c7a33c7cd6207123211c1c1af20df47c62e167`. **All four independent CI jobs passed**: source patch validation (5 active Charoite Wine patches after 70 Android/Bionic/FEX prerequisites and 10 GE fixes), Linux host wineserver, Android AArch64 wineserver, and newly built ARM64EC PE + Android Unix ntdll pair.
+
+- **Windows PE:** `ntdll-arm64ec.dll` verified by LLVM `llvm-readobj` as `IMAGE_FILE_MACHINE_ARM64EC (0xA641)`, not ordinary ARM64.
+- **Android Unix:** `ntdll-arm64-android.so` verified as AArch64 ELF with four `PT_LOAD` segments each aligned to **16,384 bytes**.
+- **Pinned toolchains:** Android NDK `27.3.13750724` API 35; LLVM-MinGW UCRT 20261020 pinned SHA-256 `55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335`.
+- **Binary artifact:** `Charoite-Wine-ARM64EC-NTDLL-Experimental`, GitHub artifact **12831021769** (contains the verified ntdll pair, ELF and PE inspection reports and checksums). Android wineserver artifact `Charoite-Wine-Android-ARM64-Experimental` **12829954961**; host report **12831640935**; source provenance **12830373158**.
+- Charoite-specific corrections `0300` and `0400` prevent ARM64EC's hybrid `__x86_64__` macro from selecting x86 fast-fail and atomic assembly instructions; ARM64EC acquires correct compiler builtin atomic operations and memory-ordering semantics. The code changes are maintained as LGPL-compatible source patches, not as unauthorized originals.
+- **No Android APK containing this modified Wine was built.** These are standalone native components. No device execution test, working Wine session, Battle.net/Steam operation or anti-cheat support is established by CI.
+
+**Next milestone:** source/build the rest of the compatible Android ARM64EC Wine 10 runner, FEX x86/x64 bridge and dependent graphics components; create an **entirely new app-private runtime slot and Wine prefix** in `com.charoitx` with manifest checksums, reversible staging and no migrations; run basic Windows program and rendering smoke tests on Galaxy S26 Ultra before enabling an engine selector. Neither stable `com.charoite` nor existing `com.charoitx` installations should be overwritten.
 
 ## Engineering boundary
 

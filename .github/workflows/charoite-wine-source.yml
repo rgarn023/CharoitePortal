@@ -1,0 +1,46 @@
+name: Charoite Wine ARM64EC source validation
+on:
+  push:
+    paths:
+      - '.github/workflows/charoite-wine-source.yml'
+      - 'next-generation/charoite-wine/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: charoite-wine-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-wine-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout Charoite source and attribution
+        uses: actions/checkout@v4
+
+      - name: Validate preparation safety contract
+        run: python3 -m unittest discover -s next-generation/charoite-wine/tests -p 'test_*.py' -v
+
+      - name: Verify pinned Wine source plus ARM64EC/GE/Charoite patches
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/charoite-wine-prepared"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-source-validation.txt"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-source-delta.patch"
+          grep -F 'This is patched SOURCE' "$RUNNER_TEMP/charoite-wine-prepared/charoite-source-validation.txt"
+          mkdir -p "$RUNNER_TEMP/charoite-source-report"
+          cp "$RUNNER_TEMP/charoite-wine-prepared/charoite-source-validation.txt" "$RUNNER_TEMP/charoite-source-report/"
+          cp "$RUNNER_TEMP/charoite-wine-prepared/charoite-prerequisite-order.txt" "$RUNNER_TEMP/charoite-source-report/"
+          cp "$RUNNER_TEMP/charoite-wine-prepared/charoite-source-delta.patch" "$RUNNER_TEMP/charoite-source-report/"
+
+      - name: Publish validated SOURCE provenance only
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Source-Validation
+          path: ${{ runner.temp }}/charoite-source-report/
+          retention-days: 14
+          if-no-files-found: error

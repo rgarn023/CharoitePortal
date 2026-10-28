@@ -142,7 +142,7 @@ python3 "$(
   cd "$(dirname "${BASH_SOURCE[0]}")" && pwd
 )/package-runtime-slice.py" \
   "$source_dir/charoite-arm64ec-android" \
-  "$source_dir/charoite-arm64ec-artifact" \
+  "$source_dir/charoite-runtime-slice" \
   "$ndk_bin/llvm-readelf" \
   "$llvm_bin/llvm-readobj"
 echo "CHAROITE WINE COHERENT NATIVE SLICE VALIDATED (not installable)"

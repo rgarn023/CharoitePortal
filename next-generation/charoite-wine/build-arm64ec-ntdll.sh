@@ -76,7 +76,7 @@ export x86_64_CC="$llvm_bin/x86_64-w64-mingw32-clang"
 
 ../configure \
   --host=aarch64-linux-android35 --enable-win64 --disable-tests \
-  --enable-archs=arm64ec,aarch64 --with-mingw=clang \
+  --enable-archs=arm64ec,aarch64 --with-mingw=yes \
   --with-wine-tools=../charoite-arm64ec-host-tools \
   --prefix=/data/data/com.charoitx/files/rootfs/usr/opt/charoite-wine \
   --bindir=/data/data/com.charoitx/files/rootfs/usr/opt/charoite-wine/bin \

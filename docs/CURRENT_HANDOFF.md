@@ -638,5 +638,22 @@ Artifacts at this run:
 
 **Boundaries:** This work does not create an installable Android APK, working prefix, complete Wine/Proton, FEX or Vulkan graphics environment; does not solve Battle.net login/Steam/Diablo IV or publisher anti-cheat support. If kernel PE libraries compile, the next candidate is Wine boot services (`wineboot.exe` and dependencies), full DLL tree, Android/FEX bridge, prefix and phone tests, all in a new Next-only runner slot.
 
+## 32. October 28, 2026 — Wineboot Windows startup PE cross-compilation
+
+**User instruction:** continue development directly on connected `rgarn023/CharoitePortal` `main`, maintain GitHub handoffs; preserve original stable Portal and side-by-side Next private storage, game installations, prefixes and APKs.
+
+**Verified previous milestone:** [Actions run 40739844466](https://github.com/rgarn023/CharoitePortal/actions/runs/40739844466), all four jobs SUCCESS; ARM64EC Windows `kernelbase.dll` and `kernel32.dll` verified machine 0xA641, `Charoite-Wine-ARM64EC-Kernel-Experimental` artifact **12838573488**, source patch 0500 fixed Clang/winegcc spurious `libgcc.a` link.
+
+**New implementation:**
+- `next-generation/charoite-wine/build-wineboot.sh` compiles `programs/wineboot/aarch64-windows/wineboot.exe` from the **same** patched Wine 10 Android ARM64EC tree after verifying `ntdll`, `kernelbase`, `kernel32`; lets Wine build the transitive API imports; checks the resulting PE machine type 0xA641 and creates a SHA-256 manifest that explicitly says `compiled-not-executed`, `prefix_created=false`, `launch_ready=false`, `installable=false`.
+- `next-generation/charoite-wine/verify-wineboot.py` independently checks exact file inventory, hashes, PE header and hard-disabled engine/prefix state.
+- `next-generation/charoite-wine/tests/test_wineboot.py` covers no destructive app/prefix paths, expected Wine Makefile target and dependencies, tampering, invalid launch-ready and false prefix-created flags.
+- `.github/workflows/charoite-wine-source.yml` runs this stage **after** the known-good base slice and ARM64EC kernel DLL artifacts are independently published, then uploads a separate `Charoite-Wine-ARM64EC-Wineboot-Experimental` artifact only on successful PE ABI and manifest checks.
+- No installed Android binaries or data have been touched. This does not prove Android can execute `wineboot` or create a prefix; full Wine DLL/Unix and FEX/graphics dependencies remain missing.
+
+**Current CI:** [Actions run 40740753269](https://github.com/rgarn023/CharoitePortal/actions/runs/40740753269), code commit `28046b726dfd8973592179c05f7890816fbc1e71`, pending when written. Read actual compilation link results, artifact ID and PE header before claiming Wineboot success. If it fails, record the first root-cause and fix in GitHub; retain previous kernel success.
+
+**Next milestone if successful:** include boot utility, kernel modules and source-verified base in a coherent compatible Wine package; progressively build required Unix/PE DLLs, FEX and graphics stack; device-test on Galaxy S26 Ultra in a **fresh isolated Next-only** Wine prefix before enabling the modern engine. Do not imply Battle.net/Steam/Diablo IV or unsupported anti-cheat works.
+
 ---
 **End of current Charoite Portal handoff.**

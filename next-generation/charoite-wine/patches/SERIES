@@ -4,3 +4,4 @@
 # 0100 contains ONLY the remaining Wine ARM64 syscall dispatcher + thread grace.
 0100-arm64ec-syscall-stubs-and-thread-grace.patch
 0002-android-external-file-ownership.patch
+0200-android-machine-id-fallback.patch

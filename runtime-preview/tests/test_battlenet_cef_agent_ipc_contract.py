@@ -59,6 +59,35 @@ class BattleNetCefAgentIPCContract(unittest.TestCase):
         self.assertIn('Do not interpret this as',SUPPORT)
         self.assertNotIn('entry->dwOwningPid)',NATIVE.split('monitor_battlenet(',1)[1])
 
+    def test_passive_ipc_correlation_tracks_only_current_agent_and_client_pids(self):
+        for token in ('TCP_TABLE_OWNER_PID_ALL',
+                      'static int inspect_agent_client_ipv4_connections(',
+                      'entry->dwOwningPid==counts->agent_pids[a]',
+                      'entry->dwOwningPid==counts->client_pids[c]',
+                      'entry->dwRemotePort==agentListenerPorts[a]',
+                      'entry->dwRemoteAddr!=htonl(INADDR_LOOPBACK)',
+                      'entry->dwState!=MIB_TCP_STATE_ESTAB',
+                      'monitor_agent_ipc_tcp_connection_queries=%d',
+                      'monitor_agent_ipc_tcp_connection_query_success=%d',
+                      'monitor_agent_ipc_tcp_agent_established_max=%d',
+                      'monitor_agent_ipc_tcp_client_established_max=%d',
+                      'monitor_agent_ipc_tcp_client_to_agent_present_samples=%d',
+                      'monitor_agent_ipc_tcp_client_to_agent_max=%d',
+                      'monitor_agent_ipc_tcp_last_query_error=%lu'):
+            self.assertIn(token,NATIVE)
+        self.assertIn('required>512*1024',NATIVE)
+        passive=NATIVE.split(
+            'static int inspect_agent_client_ipv4_connections(',1)[1].split(
+            '/* Query the Wine service manager',1)[0]
+        for forbidden in ('connect(', 'send(', 'recv(', 'fprintf(',
+                          'ReadProcessMemory(', 'GetCommandLineW(',
+                          'WinHttpSendRequest(', 'RegSetValue('):
+            self.assertNotIn(forbidden,passive)
+        self.assertIn('Passive Battle.net-to-Agent IPv4 TCP correlation:',SUPPORT)
+        self.assertIn('A zero match can miss short-lived connections',SUPPORT)
+        self.assertIn('This does not read traffic',SUPPORT)
+        self.assertNotIn('entry->dwRemoteAddr)',NATIVE.split('monitor_battlenet(',1)[1])
+
     def test_report_is_bounded_no_raw_logs_and_no_overconfidence(self):
         for token in ('monitor_max_client_children',
                       'monitor_agent_loopback_1120_tests',

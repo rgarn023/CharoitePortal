@@ -19,6 +19,12 @@ test ! -e "$source_dir/charoite-host-build" || {
   echo "Refusing to overwrite an existing host build directory" >&2; exit 3;
 }
 mkdir "$source_dir/charoite-host-build"
+# Wine's pinned DirectAudio submodule supplies a required Makefile.in even
+# when the host smoke build disables audio. Fetch only its committed revision.
+git -C "$source_dir" submodule update --init --depth 1 dlls/winedirectaudio.drv
+[[ -f "$source_dir/dlls/winedirectaudio.drv/Makefile.in" ]] || {
+  echo "Pinned Wine DirectAudio submodule missing" >&2; exit 4;
+}
 # This Wine source commit intentionally tracks configure.ac rather than a
 # generated configure script. Regenerate in the isolated checkout first.
 ( cd "$source_dir" && ./autogen.sh )

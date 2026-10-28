@@ -1,7 +1,7 @@
 diff --git a/include/winnt.h b/include/winnt.h
 --- a/include/winnt.h
 +++ b/include/winnt.h
-@@ -7350,12 +7350,12 @@
+@@ -7350,8 +7350,8 @@
  static FORCEINLINE DECLSPEC_NORETURN void __fastfail(unsigned int code)
  {
 -#if defined(__x86_64__) || defined(__i386__)

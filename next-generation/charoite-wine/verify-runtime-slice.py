@@ -15,6 +15,12 @@ EXPECTED_PATHS = {
     "ntdll_arm64ec": "slice/lib/wine/aarch64-windows/ntdll.dll",
 }
 SOURCE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
+EXPECTED_SOURCE_FILES = {
+    "wine_lgpl": "source/COPYING.LIB",
+    "wine_license": "source/LICENSE",
+    "source_patch_delta": "source/charoite-source-delta.patch",
+    "vendor_mit": "source/WEHAVEPHONES-MIT.txt",
+}
 
 
 def verify(path: Path) -> dict:
@@ -22,7 +28,7 @@ def verify(path: Path) -> dict:
         raise ValueError("Missing experimental runtime slice")
     with tarfile.open(path, "r:gz") as archive:
         members = archive.getmembers()
-        expected = {"manifest.json", *EXPECTED_PATHS.values()}
+        expected = {"manifest.json", *EXPECTED_PATHS.values(), *EXPECTED_SOURCE_FILES.values()}
         actual = {m.name for m in members}
         if len(members) != len(expected) or actual != expected:
             raise ValueError(f"Unexpected runtime archive contents: {sorted(actual)}")
@@ -66,6 +72,25 @@ def verify(path: Path) -> dict:
                     raise ValueError("Wrong native Android architecture")
                 if min(info["load_alignment"]) < 16384:
                     raise ValueError("Insufficient Android ELF 16 KiB alignment")
+        sources = manifest.get("source_files")
+        if not isinstance(sources, dict) or set(sources) != set(EXPECTED_SOURCE_FILES):
+            raise ValueError("Missing Wine LGPL/license/source delta")
+        recovery = manifest.get("source_reconstruction", {})
+        if (recovery.get("upstream_commit") != SOURCE_SHA or
+            recovery.get("patch") != EXPECTED_SOURCE_FILES["source_patch_delta"]):
+            raise ValueError("Wine corresponding source reconstruction missing")
+        for name, source_path in EXPECTED_SOURCE_FILES.items():
+            entry = sources[name]
+            if entry.get("file") != source_path or len(entry.get("sha256", "")) != 64:
+                raise ValueError(f"Bad license/source manifest entry: {name}")
+            h = hashlib.sha256()
+            size = 0
+            with archive.extractfile(source_path) as stream:
+                while block := stream.read(1048576):
+                    h.update(block)
+                    size += len(block)
+            if size != entry.get("size") or h.hexdigest() != entry["sha256"]:
+                raise ValueError(f"Tampered Wine license/source file: {name}")
     return manifest
 
 

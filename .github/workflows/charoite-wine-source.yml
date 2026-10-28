@@ -241,3 +241,23 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-dependency-inventory/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Build Windows ARM64EC PE foundation from audited imports (experimental)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-pe-foundation.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-dependency-inventory/runtime-dependency-inventory.json" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-foundation"
+          python3 next-generation/charoite-wine/verify-pe-foundation.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-foundation"
+
+      - name: Publish experimental ARM64EC PE API foundation (not executable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-PE-Foundation-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-foundation/
+          retention-days: 14
+          if-no-files-found: error

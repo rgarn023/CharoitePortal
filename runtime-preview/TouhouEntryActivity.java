@@ -442,12 +442,10 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                     this::confirmBattleNetRpcStartup);
             battleCard.addView(battleNetRpcStartupButton);
             battleCard.addView(label(
-                    "Battle.net diagnostics confirmed RpcSs is stopped; starting " +
-                    "it returned Windows error 1058 (disabled). This opt-in test " +
-                    "temporarily switches a disabled RpcSs service to Manual, " +
-                    "tries starting it, then restores its prior Disabled setting. " +
-                    "A recovery marker protects against interrupted restoration. " +
-                    "No other environment or game is changed.",
+                    "RpcSs before-client startup and restoration have been " +
+                    "verified on the phone. The opt-in dialog now also offers " +
+                    "a combined RPC + graphics experiment using WineD3D/VirGL. " +
+                    "Both modes leave saved container settings and game data unchanged.",
                     12, SECONDARY, false));
             battleNetBrowserSettingsButton = outlinedButton(
                     "APPLY BROWSER ACCELERATION FIX (BACKUP)", this::applyBattleNetBrowserFix);
@@ -795,42 +793,54 @@ public final class TouhouEntryActivity extends AppCompatActivity {
         }
     }
 
-    /** Consent before a Battle.net-only Wine service start attempt.
-     * The Win32 probe runs inside this same Wine session; it is NOT a registry
-     * change and never starts services for the Touhou/General environments.
-     */
+    /** Only this explicitly consented Battle.net test initializes RpcSs
+     * BEFORE the client. The optional graphics fallback changes per-launch
+     * environment variables and renderer, never the saved Wine container. */
+    private void launchBattleNetRpcTest(boolean compatibilityGraphics) {
+        if (busy) return;
+        try {
+            File root = battleNetRoot();
+            File exe = CharoiteBattleNetSupport.installedDirectClient(root);
+            if (exe == null)
+                exe = CharoiteBattleNetSupport.installedLauncher(root);
+            if (exe == null)
+                throw new IllegalStateException(
+                        "Battle.net client or launcher not installed");
+            CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
+                    containerId, exe.getAbsolutePath(), false, false,
+                    compatibilityGraphics, true, false, true);
+        } catch (Exception error) {
+            setStatus("RpcSs launch test failed: " + error.getMessage());
+        }
+    }
+
+    /** Explicitly selected service-start experiment. Service recovery marker
+     * handles an interrupted startup-config rollback in this Wine prefix.
+     * The separate graphics fallback is deliberately not automatic. */
     private void confirmBattleNetRpcStartup() {
         if (busy) return;
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Test Wine RpcSs service startup?")
-                .setMessage("Wine reported RpcSs STOPPED and service-start " +
-                        "error 1058 (disabled). Only for the active Battle.net " +
-                        "environment, this test can TEMPORARILY change RpcSs " +
-                        "startup from Disabled to Manual, request startup, " +
-                        "then restore Disabled even if startup fails. " +
-                        "A small Charoite recovery marker is retained if " +
-                        "restoration is interrupted, for a later retry. " +
-                        "Close other Battle.net sessions first, and keep this " +
-                        "session open for at least 30 seconds. Other Wine " +
-                        "environments, games, Agent files and saves are untouched. " +
-                        "The login fix is not guaranteed.")
+                .setTitle("Test Battle.net RPC + browser startup?")
+                .setMessage("The Galaxy tests confirm that Wine RpcSs starts " +
+                        "before Battle.net and its original Disabled startup " +
+                        "configuration is restored afterward. The sign-in " +
+                        "browser still needs investigation. " +
+                        "TRY ONCE repeats the existing service and safe-browser " +
+                        "test. RPC + GRAPHICS also selects temporary WineD3D/" +
+                        "VirGL rendering and disables ESYNC/FSYNC for this " +
+                        "Battle.net session, to isolate Chromium graphics " +
+                        "and synchronization problems. Both tests use the " +
+                        "same bounded RPC restoration check and "--" +
+                        "disable-gpu browser option. No installed game, " +
+                        "Blizzard data, Wine prefix or other environment is " +
+                        "reset. Close older Battle.net sessions first. " +
+                        "Neither mode guarantees login.")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Try once", (dialog, which) -> {
-                    try {
-                        File root = battleNetRoot();
-                        File exe = CharoiteBattleNetSupport.installedDirectClient(root);
-                        if (exe == null)
-                            exe = CharoiteBattleNetSupport.installedLauncher(root);
-                        if (exe == null)
-                            throw new IllegalStateException(
-                                    "Battle.net client or launcher not installed");
-                        CharoiteGameSessions.launch(this, XServerDisplayActivity.class,
-                                containerId, exe.getAbsolutePath(), false, false,
-                                false, true, false, true);
-                    } catch (Exception error) {
-                        setStatus("RpcSs launch test failed: " + error.getMessage());
-                    }
-                }).show();
+                .setNeutralButton("RPC + graphics",
+                        (dialog, which) -> launchBattleNetRpcTest(true))
+                .setPositiveButton("Try once",
+                        (dialog, which) -> launchBattleNetRpcTest(false))
+                .show();
     }
 
     /** Explicitly requested browser preference change; creates rollback copy. */

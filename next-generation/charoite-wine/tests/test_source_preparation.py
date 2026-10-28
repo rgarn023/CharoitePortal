@@ -27,11 +27,15 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 3)
+        self.assertEqual(len(patched), 4)
         active = (WINE / "patches/SERIES").read_text()
         self.assertIn("0100-arm64ec-syscall-stubs-and-thread-grace.patch",active)
         self.assertIn("0002-android-external-file-ownership.patch",active)
+        self.assertIn("0200-android-machine-id-fallback.patch",active)
         self.assertNotIn("\n0001-arm64ec-copyable-syscalls-and-thread-grace.patch",active)
+        safety = (WINE / "patches/0200-android-machine-id-fallback.patch").read_text()
+        self.assertIn("FILE *f = NULL", safety)
+        self.assertIn("if (!f)", safety)
         text = (WINE / "README.md").read_text()
         for patch in patched:
             self.assertIn(patch.name.split("-", 1)[0], text)

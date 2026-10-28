@@ -1,6 +1,6 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28, 2026): source patch set only; not compiled, bundled, or phone-tested.**
+**Status (October 28, 2026): source patch queue validated and Wine 10.0 `wineserver` successfully compiled for a Linux x86-64 host test. Android ARM64/ARM64EC binaries are NOT yet compiled, bundled or phone-tested.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
 
@@ -15,6 +15,18 @@ This is the beginning of **our modified Wine implementation** for Charoite Core 
 **Patch order:** `patches/SERIES` applies 0100 and 0002 after the pinned Android/Bionic/FEX prerequisites and GE game fixes. Patch 0001 is kept as the original upstream reference only; reapplying all its suspension and SVE hunks duplicates the upstream patch list and fails. The validated prep script refuses an existing workspace and refuses fuzzy or partially applied Charoite patches.
 
 These patches establish a reproducible starting point for **Charoite-maintained Wine patches**. They must be validated against the exact source state (including upstream GE and ARM64EC build prepatches) before building. No claim is made that merely applying these files produces a functioning Android Wine executable.
+
+## First verified Charoite Wine build checkpoint
+
+[GitHub Actions run 40709722718](https://github.com/rgarn023/CharoitePortal/actions/runs/40709722718) **SUCCESS** (source commit `c4292c9e78cb5c81607b6166d26031078e807a38`).
+
+- The `prepare-source.sh` pipeline applied **70** pinned Android/Bionic/FEX prerequisite patches, **10** GE game-fix patches, then the **2** explicitly selected Charoite Wine patch-series entries, with no rejects or failed Git checks.
+- The second job initialized the pinned DirectAudio submodule, ran Wine's `autogen.sh`, configured a minimal isolated host build and **compiled Wine 10.0 `server/wineserver`**, including patched `server/token.c`.
+- Verified output: Linux **x86-64 ELF64** `wineserver`; `wineserver --version` returned **Wine 10.0**. This test only validates host-source compilation/linking; the Android-specific `__ANDROID__` runtime path, ARM64EC `ntdll`, FEX and GPU compatibility remain untested.
+- Downloadable CI reports: `Charoite-Wine-Source-Validation` artifact **12824344954** and `Charoite-Wine-Host-Build-Validation` artifact **12825407581**. Reports deliberately do **not** include an installable Wine runtime.
+- Original stable `com.charoite` APK remains on run `40641148611`; Next `com.charoitx` APK remains on run `40649258138`. Neither is replaced by this source build.
+
+**Next native milestone:** reproducible pinned Android NDK/LLVM-MinGW ARM64EC cross-toolchain and host sysroot; compile `aarch64-windows/ntdll.dll`, `aarch64-unix/ntdll.so`, Android `wineserver` and supporting Wine pieces, verify 16-KiB-page alignment / ABI and hashes, then stage in a **new Charoite Next runtime slot and prefix only**. No game's anti-cheat or credentials are accessed by CI.
 
 ## Engineering boundary
 

@@ -28,7 +28,8 @@ boot="$PWD/programs/wineboot/aarch64-windows/wineboot.exe"
 [[ -s "$boot" && ! -L "$boot" ]] || { echo "wineboot PE missing" >&2; exit 5; }
 mkdir "$report"
 "$readobj" --file-headers "$boot" > "$report/wineboot-pe-header.txt"
-grep -E 'Machine: IMAGE_FILE_MACHINE_ARM64 \\(0xAA64\\)|Machine: ARM64 \\(0xAA64\\)' \
+cat "$report/wineboot-pe-header.txt"
+grep -E 'Machine: IMAGE_FILE_MACHINE_ARM64 \(0xAA64\)|Machine: ARM64 \(0xAA64\)' \
   "$report/wineboot-pe-header.txt" || {
     echo "Wineboot is not Windows ARM64 (0xAA64)" >&2; exit 5;
   }

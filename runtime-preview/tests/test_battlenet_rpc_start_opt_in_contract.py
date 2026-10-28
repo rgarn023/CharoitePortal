@@ -17,8 +17,16 @@ class BattleNetRpcOptInContract(unittest.TestCase):
             '/** Explicitly requested browser preference change;',1)[0]
         self.assertIn('setPositiveButton("Try once"',method)
         self.assertIn('setNegativeButton("Cancel", null)',method)
-        self.assertIn('CharoiteGameSessions.launch(',method)
-        self.assertIn('false, true, false, true)',method)
+        self.assertIn('setNeutralButton("RPC + graphics"',method)
+        self.assertIn('launchBattleNetRpcTest(true)',method)
+        self.assertIn('launchBattleNetRpcTest(false)',method)
+        helper=PORTAL.split('private void launchBattleNetRpcTest(boolean compatibilityGraphics)',1)[1].split(
+            'private void confirmBattleNetRpcStartup()',1)[0]
+        self.assertIn('CharoiteGameSessions.launch(',helper)
+        self.assertIn('compatibilityGraphics, true, false, true)',helper)
+        self.assertIn('installedDirectClient(root)',helper)
+        self.assertIn('installedLauncher(root)',helper)
+        self.assertIn('if (busy) return;',helper)
         self.assertNotIn('.delete(',method)
         self.assertNotIn('backupAndResetBrowserCache',method)
 
@@ -67,8 +75,11 @@ class BattleNetRpcOptInContract(unittest.TestCase):
         self.assertIn('start error:',REPORT)
         self.assertIn('STARTUP CONFIGURATION RESTORED:',REPORT)
         self.assertIn('RESTORATION NOT CONFIRMED:',REPORT)
-        self.assertIn('temporarily switches',PORTAL)
-        self.assertIn('restores its prior Disabled setting',PORTAL)
+        self.assertIn('restored afterward',PORTAL)
+        self.assertIn('its original Disabled startup',PORTAL)
+        self.assertIn('temporary WineD3D/',PORTAL)
+        self.assertIn('VirGL rendering',PORTAL)
+        self.assertIn('disables ESYNC/FSYNC',PORTAL)
         self.assertIn('The Wine Service Control Manager reported RpcSs RUNNING',REPORT)
         self.assertIn('CharoiteTpdpTouchControls.attach(',OVERLAY)
         self.assertIn('CharoiteLegacyKeyboard.sendScan(',OVERLAY)

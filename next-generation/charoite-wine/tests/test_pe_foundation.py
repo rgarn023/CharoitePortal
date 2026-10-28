@@ -17,7 +17,9 @@ class FoundationContract(unittest.TestCase):
         for name in mod.NAMES:
             d=synthetic_pe()
             (self.root/f"{name}-arm64ec.dll").write_bytes(d)
-            (self.root/f"{name}-pe-header.txt").write_text("Machine: IMAGE_FILE_MACHINE_ARM64EC (0xA641)\n")
+            (self.root/f"{name}-pe-header.txt").write_text(
+                "Format: COFF-ARM64X\nMachine: IMAGE_FILE_MACHINE_ARM64X (0xA64E)\n"
+                "Format: COFF-ARM64EC\nMachine: IMAGE_FILE_MACHINE_ARM64EC (0xA641)\n")
             parts[name]={"file":f"{name}-arm64ec.dll","pe_machine":"0xA641",
                          "sha256":hashlib.sha256(d).hexdigest(),"size":len(d)}
         self.manifest={"schema_version":1,"source_commit":mod.SOURCE,"android_package":"com.charoitx",
@@ -34,7 +36,7 @@ class FoundationContract(unittest.TestCase):
         self.save()
         with self.assertRaisesRegex(ValueError,"ARM64X carrier"):mod.verify(self.root)
     def test_missing_embedded_arm64ec_view_rejected(self):
-        (self.root/"user32-pe-header.txt").write_text("Format: COFF-ARM64X\\nMachine: IMAGE_FILE_MACHINE_ARM64X (0xA64E)\\n")
+        (self.root/"user32-pe-header.txt").write_text("Format: COFF-ARM64X\nMachine: IMAGE_FILE_MACHINE_ARM64X (0xA64E)\n")
         with self.assertRaisesRegex(ValueError,"dual view"):mod.verify(self.root)
     def test_tamper_rejected(self):
         (self.root/"ws2_32-arm64ec.dll").write_bytes(b"corrupt")

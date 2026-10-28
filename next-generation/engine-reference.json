@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "project": "Charoite Core Next",
+  "status": "reference-only; no modern runner installed",
+  "runtimes": [
+    {
+      "id": "wine-box64",
+      "origin": "Charoite Portal pinned Winlator-derived runtime",
+      "runnableInThisPrototype": true,
+      "proton": false,
+      "notes": "Legacy engine retained in side-by-side Charoite Next identity; not a modern Battle.net fix."
+    },
+    {
+      "id": "proton-arm64ec-fex",
+      "origin": "The412Banner/proton-wine and GE-Proton 10.0-34 ARM64EC; modified Wine and FEX integration studied from WeHavePhones",
+      "runnableInThisPrototype": false,
+      "proton": true,
+      "upstreamWineCommit": "c74acb09d51b447f5d5ac56c87608d3ec565a767",
+      "layer": {
+        "source": "https://github.com/The412Banner/proton-wine/releases/download/build-bionic-layers-20260911-xp/GE-proton-10.0-34-arm64ec.wcp",
+        "sha256": "50344ec9fa1f37ae22f5b1a5d509cb50cac818fe15f0ecc4fd187e8f97969110"
+      },
+      "evidence": "https://github.com/ashmerra/wehavephones/blob/main/docs/WEHAVEPHONES_RUNTIME.md",
+      "required": [
+        "licensed reproducible Charoite Wine fork and patchset",
+        "pinned and verified ntdll and wineserver",
+        "FEX CPU bridge",
+        "ARM64EC loader and DLL validation",
+        "DXVK/VKD3D-Proton graphics smoke tests",
+        "fresh isolated Windows prefix and launcher tests"
+      ]
+    },
+    {
+      "id": "wine-staging-box64",
+      "origin": "Future Charoite Wine Staging/Box64 build",
+      "runnableInThisPrototype": false
+    }
+  ],
+  "compliance": {
+    "antiCheat": "Game/vendor-supported only; no evasion, impersonation, stealth or kernel anti-cheat bypass",
+    "gameData": "Never patch or migrate existing Charoite Portal game data; new package ID means Android UID is isolated",
+    "license": "Wine/Proton/Winlator/FEX/DXVK/VKD3D/Mesa notices and applicable source obligations must be satisfied before binary distribution"
+  }
+}

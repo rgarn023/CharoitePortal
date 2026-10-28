@@ -6,3 +6,4 @@
 0002-android-external-file-ownership.patch
 0200-android-machine-id-fallback.patch
 0300-arm64ec-fastfail-instruction.patch
+0400-arm64ec-atomic-operations.patch

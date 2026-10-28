@@ -33,6 +33,8 @@ typedef struct {
     // Neither PIDs nor unfiltered network tables are written to reports.
     DWORD agent_pids[16];
     int agent_pid_count;
+    DWORD client_pids[64];
+    int client_pid_count;
     DWORD error;
 } ProcessCounts;
 
@@ -49,19 +51,18 @@ static ProcessCounts get_process_counts(void) {
         /* Browser subprocesses often reuse Battle.net.exe. Count only
          * parent-child relationships using PIDs; never read command lines,
          * tokens, process memory, browser URLs, or window titles. */
-        DWORD clientPids[64];
-        int clientPidCount=0;
         if (Process32FirstW(snapshot, &proc)) do {
             if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe") ||
                     !_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe")) {
-                if (clientPidCount < 64) clientPids[clientPidCount++]=proc.th32ProcessID;
+                if (counts.client_pid_count < 64)
+                    counts.client_pids[counts.client_pid_count++]=proc.th32ProcessID;
             }
         } while (Process32NextW(snapshot, &proc));
         proc.dwSize = sizeof(proc);
         if (Process32FirstW(snapshot, &proc)) do {
             if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) {
-                for (int n=0;n<clientPidCount;n++) {
-                    if (proc.th32ParentProcessID==clientPids[n] &&
+                for (int n=0;n<counts.client_pid_count;n++) {
+                    if (proc.th32ParentProcessID==counts.client_pids[n] &&
                             proc.th32ParentProcessID!=proc.th32ProcessID) {
                         counts.client_children++;
                         break;
@@ -211,6 +212,96 @@ static int inspect_agent_owned_ipv4_listeners(const ProcessCounts *counts,
             (*loopback)++;
             if (!*examplePort)
                 *examplePort=ntohs((u_short)entry->dwLocalPort);
+        }
+    }
+    free(table);
+    return 1;
+}
+
+/*
+ * Passive connection correlation for the current Agent and Battle.net PIDs.
+ * Uses TCP_TABLE_OWNER_PID_ALL; no socket open/connect/send/recv and no
+ * Blizzard files, URLs, addresses, per-process ports or tokens are copied.
+ * Only the Agent listener ports observed in this SAME snapshot qualify as
+ * possible local IPC endpoints. Sampling cannot catch short-lived connects.
+ */
+static int inspect_agent_client_ipv4_connections(const ProcessCounts *counts,
+        DWORD *error, int *agentEstablished, int *clientEstablished,
+        int *clientToAgentListener) {
+    *error=0;
+    *agentEstablished=0;
+    *clientEstablished=0;
+    *clientToAgentListener=0;
+    DWORD required=0;
+    DWORD status=GetExtendedTcpTable(NULL,&required,FALSE,
+            AF_INET,TCP_TABLE_OWNER_PID_ALL,0);
+    if (status!=ERROR_INSUFFICIENT_BUFFER && status!=NO_ERROR) {
+        *error=status;
+        return 0;
+    }
+    if (required<sizeof(DWORD) || required>512*1024) {
+        *error=ERROR_BAD_LENGTH;
+        return 0;
+    }
+    MIB_TCPTABLE_OWNER_PID *table=(MIB_TCPTABLE_OWNER_PID*)malloc(required);
+    if (!table) {
+        *error=ERROR_NOT_ENOUGH_MEMORY;
+        return 0;
+    }
+    status=GetExtendedTcpTable(table,&required,FALSE,
+            AF_INET,TCP_TABLE_OWNER_PID_ALL,0);
+    if (status!=NO_ERROR) {
+        *error=status;
+        free(table);
+        return 0;
+    }
+    if (table->dwNumEntries>
+            (required-sizeof(DWORD))/sizeof(MIB_TCPROW_OWNER_PID)) {
+        *error=ERROR_BAD_LENGTH;
+        free(table);
+        return 0;
+    }
+
+    // All comparisons use network-order ports; don't expose them in report.
+    DWORD agentListenerPorts[32];
+    int agentListenerCount=0;
+    for (DWORD row=0;row<table->dwNumEntries;row++) {
+        const MIB_TCPROW_OWNER_PID *entry=&table->table[row];
+        if (entry->dwState!=MIB_TCP_STATE_LISTEN) continue;
+        if (entry->dwLocalAddr!=htonl(INADDR_LOOPBACK) &&
+                entry->dwLocalAddr!=htonl(INADDR_ANY)) continue;
+        for (int a=0;a<counts->agent_pid_count;a++) {
+            if (entry->dwOwningPid==counts->agent_pids[a]) {
+                if (agentListenerCount<32)
+                    agentListenerPorts[agentListenerCount++]=entry->dwLocalPort;
+                break;
+            }
+        }
+    }
+    for (DWORD row=0;row<table->dwNumEntries;row++) {
+        const MIB_TCPROW_OWNER_PID *entry=&table->table[row];
+        if (entry->dwState!=MIB_TCP_STATE_ESTAB) continue;
+        for (int a=0;a<counts->agent_pid_count;a++) {
+            if (entry->dwOwningPid==counts->agent_pids[a]) {
+                (*agentEstablished)++;
+                break;
+            }
+        }
+        int isClient=0;
+        for (int c=0;c<counts->client_pid_count;c++) {
+            if (entry->dwOwningPid==counts->client_pids[c]) {
+                isClient=1;
+                break;
+            }
+        }
+        if (!isClient) continue;
+        (*clientEstablished)++;
+        if (entry->dwRemoteAddr!=htonl(INADDR_LOOPBACK)) continue;
+        for (int a=0;a<agentListenerCount;a++) {
+            if (entry->dwRemotePort==agentListenerPorts[a]) {
+                (*clientToAgentListener)++;
+                break;
+            }
         }
     }
     free(table);
@@ -525,6 +616,10 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     int agentTcpListenerPresentSamples=0, agentTcpListenerMax=0;
     int agentTcpLoopbackMax=0;
     DWORD agentTcpExampleLoopbackPort=0,agentTcpLastError=0;
+    int agentConnQueries=0,agentConnQuerySuccess=0;
+    int agentConnAgentEstablishedMax=0,agentConnClientEstablishedMax=0;
+    int agentConnClientToAgentPresentSamples=0,agentConnClientToAgentMax=0;
+    DWORD agentConnQueryLastError=0;
     RpcServiceStatus lastRpc;
     ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
@@ -565,6 +660,20 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
                 if (loopbackListeners>agentTcpLoopbackMax)
                     agentTcpLoopbackMax=loopbackListeners;
                 if (examplePort) agentTcpExampleLoopbackPort=examplePort;
+            }
+            agentConnQueries++;
+            int agentEstablished=0,clientEstablished=0,clientToAgent=0;
+            if (inspect_agent_client_ipv4_connections(&c,
+                    &agentConnQueryLastError,&agentEstablished,
+                    &clientEstablished,&clientToAgent)) {
+                agentConnQuerySuccess++;
+                if (agentEstablished>agentConnAgentEstablishedMax)
+                    agentConnAgentEstablishedMax=agentEstablished;
+                if (clientEstablished>agentConnClientEstablishedMax)
+                    agentConnClientEstablishedMax=clientEstablished;
+                if (clientToAgent>0) agentConnClientToAgentPresentSamples++;
+                if (clientToAgent>agentConnClientToAgentMax)
+                    agentConnClientToAgentMax=clientToAgent;
             }
         }
         if (c.agents > maxAgent) maxAgent = c.agents;
@@ -613,6 +722,19 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
             (unsigned long)agentTcpExampleLoopbackPort);
     fprintf(report,"monitor_agent_tcp_ipv4_last_query_error=%lu\n",
             (unsigned long)agentTcpLastError);
+    fprintf(report,"monitor_agent_ipc_tcp_connection_queries=%d\n",agentConnQueries);
+    fprintf(report,"monitor_agent_ipc_tcp_connection_query_success=%d\n",
+            agentConnQuerySuccess);
+    fprintf(report,"monitor_agent_ipc_tcp_agent_established_max=%d\n",
+            agentConnAgentEstablishedMax);
+    fprintf(report,"monitor_agent_ipc_tcp_client_established_max=%d\n",
+            agentConnClientEstablishedMax);
+    fprintf(report,"monitor_agent_ipc_tcp_client_to_agent_present_samples=%d\n",
+            agentConnClientToAgentPresentSamples);
+    fprintf(report,"monitor_agent_ipc_tcp_client_to_agent_max=%d\n",
+            agentConnClientToAgentMax);
+    fprintf(report,"monitor_agent_ipc_tcp_last_query_error=%lu\n",
+            (unsigned long)agentConnQueryLastError);
     fprintf(report,"monitor_max_launcher=%d\n",maxLauncher);
     fprintf(report,"monitor_rpcss_present_samples=%d\n",seenRpcss);
     fprintf(report,"monitor_services_present_samples=%d\n",seenServices);

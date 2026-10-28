@@ -830,8 +830,8 @@ public final class TouhouEntryActivity extends AppCompatActivity {
                         "VirGL rendering and disables ESYNC/FSYNC for this " +
                         "Battle.net session, to isolate Chromium graphics " +
                         "and synchronization problems. Both tests use the " +
-                        "same bounded RPC restoration check and "--" +
-                        "disable-gpu browser option. No installed game, " +
+                        "same bounded RPC restoration check and " +
+                        "--disable-gpu browser option. No installed game, " +
                         "Blizzard data, Wine prefix or other environment is " +
                         "reset. Close older Battle.net sessions first. " +
                         "Neither mode guarantees login.")

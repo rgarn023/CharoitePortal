@@ -16,7 +16,7 @@ class Arm64ecBuildContract(unittest.TestCase):
         self.assertIn("--with-mingw=yes", SCRIPT)
 
     def test_native_ntdll_is_not_wineserver(self):
-        self.assertIn("dlls/ntdll/aarch64-windows/ntdll.dll", SCRIPT)
+        self.assertIn("dlls/ntdll/arm64ec-windows/ntdll.dll", SCRIPT)
         self.assertIn("dlls/ntdll/ntdll.so", SCRIPT)
         self.assertIn("AArch64", SCRIPT)
         self.assertIn("16384", SCRIPT)

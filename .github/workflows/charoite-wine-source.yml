@@ -72,3 +72,43 @@ jobs:
           path: ${{ runner.temp }}/charoite-host-report/
           retention-days: 14
           if-no-files-found: error
+
+  android-arm64-wineserver:
+    needs: validate-wine-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout Charoite Wine integration
+        uses: actions/checkout@v4
+
+      - name: Install pinned Android NDK for native ARM64 Wine
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android NDK r27d (API 35, 16 KiB pages)
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Prepare exact verified Charoite Wine source
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/charoite-wine-prepared"
+
+      - name: Cross-compile Android ARM64 Wine server and verify native ELF
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-android-arm64.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared" \
+            "$ANDROID_HOME/ndk/27.3.13750724"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-android-native-artifact/wineserver-arm64-android"
+          grep -F 'Target: Android API 35' "$RUNNER_TEMP/charoite-wine-prepared/charoite-android-native-artifact/build-report.txt"
+
+      - name: Publish experimental ARM64 wineserver, not a functional runner
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Android-ARM64-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-android-native-artifact/
+          retention-days: 14
+          if-no-files-found: error

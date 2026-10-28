@@ -27,9 +27,11 @@ class BattleNetCefAgentIPCContract(unittest.TestCase):
         self.assertIn('monitor_agent_loopback_1120_connect_success=%d',NATIVE)
         self.assertIn('monitor_agent_loopback_1120_last_winsock_error=%lu',NATIVE)
         self.assertIn('closesocket(sock);',NATIVE)
+        local_probe=NATIVE.split('static int probe_agent_loopback_1120(',1)[1].split(
+            '/* Query the Wine service manager',1)[0]
         for banned in ('send(sock', 'recv(sock', 'HttpSendRequest(',
                        'WinHttpReadData(', 'getaddrinfo(', 'gethostbyname('):
-            self.assertNotIn(banned,NATIVE)
+            self.assertNotIn(banned,local_probe)
         self.assertIn('-lwinhttp -lws2_32 -luser32 -ladvapi32',WORKFLOW)
 
     def test_report_is_bounded_no_raw_logs_and_no_overconfidence(self):

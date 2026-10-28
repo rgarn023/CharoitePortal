@@ -373,6 +373,118 @@ public final class CharoiteBattleNetSupport {
     }
 
     /**
+     * Android-side, numeric-only launch fingerprint. This records the actual
+     * parsed renderer and whether getWineStartCommand included --disable-gpu.
+     * Intent selection alone does NOT establish a flag reached Wine. The guest
+     * process may still ignore CEF flags; never claim CEF applied them.
+     * Never record raw argv, paths, accounts, registry or Blizzard files.
+     */
+    public static void recordBattleNetLaunchCommand(File root,
+            boolean rpcRequested, boolean compatibilityRequested,
+            boolean browserGpuRequested, boolean browserGpuFlagPresent,
+            boolean actualVirgl, boolean actualWineD3D) {
+        writeBnetLaunchFingerprint(root,"charoite_bnet_launch_command.txt",
+                "launch_rpc_requested="+(rpcRequested?1:0)+"\n"+
+                "launch_compatibility_requested="+(compatibilityRequested?1:0)+"\n"+
+                "launch_disable_gpu_requested="+(browserGpuRequested?1:0)+"\n"+
+                "launch_disable_gpu_command_present="+(browserGpuFlagPresent?1:0)+"\n"+
+                "launch_renderer_virgl_resolved="+(actualVirgl?1:0)+"\n"+
+                "launch_dxwrapper_wined3d_resolved="+(actualWineD3D?1:0)+"\n");
+    }
+
+    /** Captures effective EnvVars AFTER temporary overrides are set, before
+     * the Wine guest launcher receives them; no Wine settings are persisted. */
+    public static void recordBattleNetRuntimeEnv(File root,
+            boolean esyncOff, boolean fsyncOff, boolean locationapiRulePresent) {
+        writeBnetLaunchFingerprint(root,"charoite_bnet_launch_env.txt",
+                "launch_env_esync_off="+(esyncOff?1:0)+"\n"+
+                "launch_env_fsync_off="+(fsyncOff?1:0)+"\n"+
+                "launch_env_locationapi_rule_present="+
+                        (locationapiRulePresent?1:0)+"\n");
+    }
+
+    private static void writeBnetLaunchFingerprint(
+            File root,String fileName,String numericFields) {
+        try {
+            File drive=wineDrive(root);
+            File folder=new File(drive,"CharoitePortal/Diagnostics");
+            if (!folder.isDirectory() && !folder.mkdirs()) return;
+            File file=new File(folder,fileName);
+            String content="launch_android_epoch_ms="+System.currentTimeMillis()+
+                    "\n"+numericFields;
+            // All fields are hard-coded numeric booleans. No sensitive argv.
+            Files.write(file.toPath(),
+                    content.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        } catch (IOException ignored) {
+            // A diagnostics write must never block the actual game session.
+        }
+    }
+
+    /** Show ONLY known Charoite-owned numeric fields and timestamps; an old
+     * fingerprint must not be mistaken for the current Wine session. */
+    public static String inspectBattleNetLaunchFingerprint(File root) {
+        final File drive;
+        try { drive=wineDrive(root); }
+        catch (IOException error) {
+            return "BATTLE.NET LAUNCH FINGERPRINT: Wine drive unavailable.\n";
+        }
+        StringBuilder report=new StringBuilder("BATTLE.NET LAUNCH FINGERPRINT\n");
+        String[] names={"charoite_bnet_launch_command.txt",
+                "charoite_bnet_launch_env.txt"};
+        String[] keys={"launch_rpc_requested",
+                "launch_compatibility_requested",
+                "launch_disable_gpu_requested",
+                "launch_disable_gpu_command_present",
+                "launch_renderer_virgl_resolved",
+                "launch_dxwrapper_wined3d_resolved",
+                "launch_env_esync_off","launch_env_fsync_off",
+                "launch_env_locationapi_rule_present"};
+        long newest=0,oldest=Long.MAX_VALUE;
+        int found=0;
+        for (String name:names) {
+            File file=new File(drive,"CharoitePortal/Diagnostics/"+name);
+            if (!file.isFile() || file.length()>1024 || file.length()==0)
+                continue;
+            try {
+                String data=new String(Files.readAllBytes(file.toPath()),
+                        java.nio.charset.StandardCharsets.US_ASCII);
+                java.util.LinkedHashMap<String,String> fields=
+                        new java.util.LinkedHashMap<>();
+                for (String line:data.split("\\r?\\n")) {
+                    if (line.matches("launch_[a-z_]{3,48}=[01]")) {
+                        int sep=line.indexOf('=');
+                        fields.put(line.substring(0,sep),line.substring(sep+1));
+                    }
+                }
+                if (fields.isEmpty()) continue;
+                found++;
+                newest=Math.max(newest,file.lastModified());
+                oldest=Math.min(oldest,file.lastModified());
+                report.append(name.contains("command") ?
+                        "  Command-stage snapshot: " : "  Env-stage snapshot: ")
+                        .append(new java.util.Date(file.lastModified())).append("\n");
+                for (String key:keys)
+                    if (fields.containsKey(key))
+                        report.append("  ").append(key).append("=")
+                                .append(fields.get(key)).append("\n");
+            } catch (IOException ignored) { }
+        }
+        if (found==0)
+            report.append("  No launch-mode records for this build.\n");
+        else if (found<2)
+            report.append("  WARNING: launch or environment snapshot missing.\n");
+        else if (newest-oldest>10000)
+            report.append("  WARNING: snapshots more than 10 seconds apart; "+
+                    "they may be from different launches.\n");
+        if (found>0 && System.currentTimeMillis()-newest>3600000)
+            report.append("  WARNING: launch fingerprint older than one hour.\n");
+        report.append("These are Android-selected startup arguments and " +
+                "renderer/environment selections, not proof CEF honored them " +
+                "or successfully rendered the login screen.\n");
+        return report.toString();
+    }
+
+    /**
      * Status of the Charoite-owned in-session observer. This small local
      * state record exists even if WinHandler never starts the guest probe.
      * No Blizzard files, process logs or personal data are read or modified.

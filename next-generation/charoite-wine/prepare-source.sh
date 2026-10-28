@@ -72,7 +72,7 @@ fi
 count=0
 while IFS= read -r rel; do
   [[ -n "$rel" && "$rel" != \#* ]] || continue
-  [[ "$rel" =~ ^[0-9]{4}-[A-Za-z0-9-]+\\.patch$ ]] || {
+  [[ "$rel" =~ ^[0-9]{4}-[A-Za-z0-9-]+\.patch$ ]] || {
     echo "Invalid Charoite patch series entry" >&2; exit 12;
   }
   patch="$script_dir/patches/$rel"

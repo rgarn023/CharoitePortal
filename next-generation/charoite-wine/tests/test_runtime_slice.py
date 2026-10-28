@@ -43,6 +43,11 @@ class SliceContract(unittest.TestCase):
         self.source = root / "charoite-wine-prepared"
         self.source.mkdir()
         (self.source / "charoite-source-validation.txt").write_text("SOURCE VALIDATED")
+        (self.source / "COPYING.LIB").write_text("GNU LGPL synthetic test notice")
+        (self.source / "LICENSE").write_text("Synthetic Wine license notice")
+        (self.source / "charoite-source-delta.patch").write_text(
+            "diff --git a/server/token.c b/server/token.c\n"
+            "--- a/server/token.c\n+++ b/server/token.c\n")
         self.build = self.source / "charoite-arm64ec-android"
         self.build.mkdir()
         for idx, (source, bundled, typ) in enumerate(packer.COMPONENTS.values()):
@@ -65,6 +70,9 @@ class SliceContract(unittest.TestCase):
         self.assertFalse(manifest["launch_ready"])
         self.assertFalse(manifest["installable"])
         self.assertEqual(set(manifest["components"]), set(packer.COMPONENTS))
+        self.assertEqual(set(manifest["source_files"]), set(packer.SOURCE_FILES))
+        self.assertEqual(manifest["source_reconstruction"]["upstream_commit"],
+                         packer.SOURCE_SHA)
         self.assertEqual(manifest["components"]["ntdll_arm64ec"]["pe_machine"],
                          "0xA641")
 
@@ -111,6 +119,20 @@ class SliceContract(unittest.TestCase):
                 target.addfile(unexpected, io.BytesIO(b"bad"))
         with self.assertRaises(ValueError):
             verifier.verify(extra)
+
+    def test_rejects_corrupted_source_delta(self):
+        archive = self.make_archive()
+        bad = self.source / "bad-source.tar.gz"
+        with tarfile.open(archive, "r:gz") as original:
+            with tarfile.open(bad, "w:gz") as target:
+                for member in original.getmembers():
+                    payload = original.extractfile(member).read()
+                    if member.name == "source/charoite-source-delta.patch":
+                        payload += b"corrupted patch"
+                        member.size = len(payload)
+                    target.addfile(member, io.BytesIO(payload))
+        with self.assertRaisesRegex(ValueError, "Tampered Wine license/source"):
+            verifier.verify(bad)
 
 
 if __name__ == "__main__":

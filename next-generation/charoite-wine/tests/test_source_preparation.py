@@ -27,16 +27,17 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 7)
+        self.assertEqual(len(patched), 8)
         active = (WINE / "patches/SERIES").read_text()
         active_patches = [line.strip() for line in active.splitlines()
                           if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(active_patches), 6)
+        self.assertEqual(len(active_patches), 7)
         self.assertEqual(len(active_patches), len(set(active_patches)))
         self.assertEqual(set(active_patches),
                          {p.name for p in patched} -
                          {"0001-arm64ec-copyable-syscalls-and-thread-grace.patch"})
         self.assertIn("0500-arm64ec-no-spurious-libgcc.patch", active_patches)
+        self.assertIn("0600-arm64ec-clipboard-winsock-buffers.patch", active_patches)
         self.assertNotIn("0500-arm64ec-clang-compiler-rt.patch", active_patches)
         self.assertIn("0100-arm64ec-syscall-stubs-and-thread-grace.patch",active)
         self.assertIn("0002-android-external-file-ownership.patch",active)

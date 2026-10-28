@@ -611,7 +611,8 @@ public final class CharoiteBattleNetSupport {
                         "No Wine-side monitor samples received yet. Open the " +
                         "installed Battle.net client, leave its window open " +
                         "briefly, then return to this dedicated monitor view.\n\n" +
-                        inspectGuestRpcPreflight(root);
+                        inspectGuestRpcPreflight(root) + "\n" +
+                        inspectBattleNetLaunchFingerprint(root);
             String data = new String(Files.readAllBytes(report.toPath()),
                     java.nio.charset.StandardCharsets.US_ASCII);
             StringBuilder out = new StringBuilder("BATTLE.NET LIVE AGENT MONITOR\n");
@@ -796,7 +797,8 @@ public final class CharoiteBattleNetSupport {
             }
             out.append("These counts cannot establish why a process exits or " +
                     "whether Blizzard login completed.\n");
-            return out.toString() + "\n" + inspectGuestRpcPreflight(root);
+            return out.toString() + "\n" + inspectGuestRpcPreflight(root) +
+                    "\n" + inspectBattleNetLaunchFingerprint(root);
         } catch (Exception error) {
             return "BATTLE.NET LIVE AGENT MONITOR unavailable: " +
                     error.getClass().getSimpleName();

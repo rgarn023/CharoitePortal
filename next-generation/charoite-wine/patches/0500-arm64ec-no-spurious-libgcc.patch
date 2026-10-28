@@ -8,12 +8,12 @@ diff --git a/tools/winegcc/winegcc.c b/tools/winegcc/winegcc.c
          case PLATFORM_CYGWIN:
 -            libgcc = find_libgcc( opts->prefix, link_args );
 -            if (!libgcc) libgcc = "-lgcc";
-+            /* ARM64EC hybrid PE builds with Clang --no-default-config and
-+             * -nodefaultlibs use Wine's PE imports, not GCC. The toolchain's
-+             * '-print-libgcc-file-name' may return the bare nonexistent
-+             * 'libgcc.a', causing the final PE link to fail. Keep GCC paths
-+             * unchanged for all other targets and build configurations. */
-+            if (!(opts->target.cpu == CPU_ARM64EC && opts->nodefaultlibs &&
++            /* LLVM ARM64 and ARM64EC PE builds with --no-default-config
++             * use Wine's PE imports / LLVM toolchain, not GCC. Clang's
++             * '-print-libgcc-file-name' can report bare nonexistent
++             * 'libgcc.a', breaking both DLL and wineboot.exe link stages.
++             * Preserve GCC handling on all other build configurations. */
++            if (!((opts->target.cpu == CPU_ARM64 || opts->target.cpu == CPU_ARM64EC) &&
 +                  opts->no_default_config))
 +            {
 +                libgcc = find_libgcc( opts->prefix, link_args );

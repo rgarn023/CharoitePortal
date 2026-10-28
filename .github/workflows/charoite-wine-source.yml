@@ -112,3 +112,56 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-android-native-artifact/
           retention-days: 14
           if-no-files-found: error
+
+  android-arm64ec-ntdll:
+    needs: validate-wine-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin Android NDK r27d
+        uses: android-actions/setup-android@v4
+
+      - name: Install native ARM64 NDK compiler
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Download checksum-pinned LLVM-MinGW PE cross compiler
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/charoite-llvm-mingw-20261020.tar.xz"
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 "$URL" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/clang" --version
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare signed-off, pinned ARM64EC Wine source
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/charoite-wine-prepared"
+
+      - name: Cross-build ARM64EC PE plus Android native ntdll components
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-artifact/ntdll-arm64ec.dll"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-artifact/ntdll-arm64-android.so"
+
+      - name: Publish experimental ARM64EC ntdll pair only after ABI validation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-NTDLL-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-arm64ec-artifact/
+          retention-days: 14
+          if-no-files-found: error

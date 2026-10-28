@@ -1,6 +1,6 @@
 # CHAROITE PORTAL / CHAROITE CORE — CURRENT PROJECT HANDOFF
 
-**Current handoff updated:** October 27, 2026  
+**Current handoff updated:** October 28, 2026  
 **Purpose:** Paste this entire file, or share its raw GitHub URL, in a new ChatGPT conversation to resume development.  
 **Canonical copy:** `https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md`  
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
@@ -452,7 +452,7 @@ WinSock `10061` is **connection refused** at `127.0.0.1:1120`. It does NOT prove
 
 **Next phone steps:** Update `com.charoite` APK **over** installed app, never uninstall/clear storage. Fully close Wine Battle.net session. Recommended reversible current control: Battle.net Gaming → Setup → **BACK UP + RESET BATTLE.NET BROWSER CACHE** after client is closed; this prompts confirmation then only moves selected `AppData/Local/Battle.net/{Cache,BrowserCaches,GPUCache,Code Cache}` to timestamped backups on same filesystem, not `ProgramData/Battle.net`, Agent, games or registry. Then launch **TRY BATTLE.NET (START WINE RPC SERVICE) → RPC + graphics** and after ~30sec copy **VIEW BATTLE.NET LOGIN / CEF REPORT**. Check `launch_compatibility_requested=1`, `launch_disable_gpu_command_present=1`, `launch_renderer_virgl_resolved=1`, `launch_dxwrapper_wined3d_resolved=1`, `launch_env_esync_off=1`, `launch_env_fsync_off=1`. A 0 identifies launch plumbing gap; values=1 only proves selection/command, NOT successful CEF rendering. Also note whether login appears or spinner persists. If they already reset cache, don't repeat; ask for new fingerprint. Do not jump to a full Wine rewrite or destructive Blizzard data removal.
 
-## 22. October 28, 2026 — Battle.net still spins; independent proof of Android/S26 feasibility changes strategy
+## 23. October 28, 2026 — Battle.net still spins; independent proof of Android/S26 feasibility changes strategy
 
 The user answered **"Still spinning"**, then asked **"Are you stuck"** and **"Is this even possible at this point?"** after repeated diagnostic APKs. A feasible result is **not yet delivered in Charoite Portal**, and further socket/RpcSs probes alone are not justified.
 
@@ -464,10 +464,24 @@ The user answered **"Still spinning"**, then asked **"Are you stuck"** and **"Is
 - Project reports Proton 10 rendered Battle.net CEF, whereas their tested GE-Proton 11 variants did NOT (CEF browser/renderer Mojo connection timeout), demonstrating that blindly upgrading Wine/Proton can regress login. This is a **project-specific reported result**, not universal proof about all Proton 11.
 - Their Build Assets docs describe pinned downloaded runtime assets and distinct runtime setup; this is a larger architectural change than extra command-line switches, not safe to transplant unreviewed into Charoite. Respect original attribution/licensing and pinned asset hashes.
 - Charoite currently uses pinned upstream Winlator-derived Wine/Box64 runtime with per-environment Wine containers (see repo README and `.github/workflows/runtime-preview.yml`). **Proposed (NOT IMPLEMENTED):** an OPTIONAL separate Battle.net-compatible engine selection for Battle.net Gaming, using an isolated new prefix and never overwriting Touhou/TPDP existing runtime or user installation. Review architecture and possible dual-runtime asset footprint/licensing, then implement incremental authenticated pinned downloads/builds and compare same phone results before migrating/retiring any engine.
-- Latest Charoite APK remains GitHub Actions `40627760121` (code SHA `61c8d1156fe9e5ba8443afd82f4a6009845896ee`, 135 tests passed, artifact 12789983316). **No APK was built in this feasibility-review turn.** A new runtime is NOT installed.
+- Latest verified Charoite APK is GitHub Actions `40641148611` (code SHA `553d9cbd8dc49edc84016fda2adc83cb27c031b5`, 138 tests passed, artifact `12795777267`). **No APK was built in this feasibility-review turn.** A new runtime is NOT installed.
 - **Diablo IV** needs separate compatibility/performance tests (64-bit Windows game, DirectX 12, substantial resources), and WoW success cannot be extrapolated to Diablo IV.
 
 **Message to user:** This is technically possible, backed by an independently documented result even on Galaxy S26 Ultra, but not guaranteed to work with current Charoite engine. Acknowledge excessive prior incremental diagnostics without a working UI. Recommend runtime-level comparison with the functioning implementation, not further repetitive port/RPC testing. No uninstall or clearing existing data.
+
+## 24. October 28, 2026 — Live architecture audit for separate Battle.net runtime (documentation only)
+
+**Fresh GitHub verification:** At audit time Charoite `main` HEAD was `5a0bad3bcd68cf3803be14f0dfaace9b0caa1e88`, a documentation-only `[skip ci]` commit. Most recent successful Android workflow is [run 40641148611](https://github.com/rgarn023/CharoitePortal/actions/runs/40641148611), runtime source SHA `553d9cbd8dc49edc84016fda2adc83cb27c031b5`, artifact `Charoite-Portal-Android-APK` ID `12795777267` (unexpired on audit), 138 contract tests. No newer runtime build identified; this audit does not implement a new engine or APK.
+
+**Source-grounded integration boundary:**
+- `CharoiteEnvironments.java`: each realm maps to its own existing Winlator `ContainerManager` container ID, C: drive, registry/theme; attaching containers must never overwrite or re-create user data. There is **no independent per-environment Wine/FEX engine registry**.
+- `CharoiteGameSessions.java`: launches the common `XServerDisplayActivity` with per-launch Intent flags and carefully Battle.net-scoped diagnostics. Engine selection is not currently modeled.
+- `CharoiteCore.java` explicitly describes existing runtime as Winlator-derived Wine/Box64. `runtime-preview/overlay.py` modifies pinned upstream at build time. Replacing the Wine binary in an existing container is **not** equivalent to an isolated backend.
+- Independent [WeHavePhones runtime documentation](https://github.com/ashmerra/wehavephones/blob/main/docs/WEHAVEPHONES_RUNTIME.md) describes **GE-Proton 10.0-34 ARM64EC**, FEX, patched ntdll+wineserver, additional ARM64 DLLs, device driver rules and Chromium's `NetworkServiceInProcess2`; its [app architecture](https://github.com/ashmerra/wehavephones/blob/main/docs/WEHAVEPHONES_APP.md) applies a verified single-runtime profile. Its [tested devices](https://github.com/ashmerra/wehavephones/blob/main/docs/TESTED_DEVICES.md) record reported S26 Ultra successful sign-in/in-world Classic Era but do not verify Charoite or Diablo IV.
+
+**Next engineering stage (NOT IMPLEMENTED):** Study exact runner/asset build licenses, packaging size, hashes, Java launch hooks, FEX bridge and XServer lifecycle. Introduce a backend interface/descriptor that defaults to the existing Charoite engine for **all existing realms and containers**, with strict opt-in/rollback and explicit availability checks. Provision any candidate Proton+FEX runtime to a **new** app-private staging directory and **new** Battle.net test Wine container, using pinned manifests, integrity checks and atomic rename; don't mutate the existing Battle.net, TPDP, Touhou or other prefixes. Only after isolated native/runtime smoke tests and Android CI should an engine switch be exposed. Actual Galaxy sign-in and game tests remain required; never claim support based on build alone.
+
+**Unchanged:** `com.charoite`, existing APK signing identity, every user's game/Wine/Blizzard data, and all currently installed runtimes. No code files or APK were changed during this audit.
 
 ---
 **End of current Charoite Portal handoff.**

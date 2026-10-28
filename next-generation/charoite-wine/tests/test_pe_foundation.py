@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("pe_foundation",ROOT/"verify-pe-foundation.py")
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 BUILD=(ROOT/"build-pe-foundation.sh").read_text(encoding="utf-8")
-def synthetic_pe(machine=0xA641):
+def synthetic_pe(machine=0xAA64):
     data=bytearray(128);data[:2]=b"MZ"
     struct.pack_into("<I",data,0x3c,64);data[64:68]=b"PE\x00\x00"
     struct.pack_into("<H",data,68,machine)
@@ -29,10 +29,13 @@ class FoundationContract(unittest.TestCase):
     def tearDown(self): self.tmp.cleanup()
     def test_valid(self): self.assertEqual(len(mod.verify(self.root)["components"]),3)
     def test_wrong_machine_rejected(self):
-        p=self.root/"user32-arm64ec.dll";d=synthetic_pe(0xAA64);p.write_bytes(d)
+        p=self.root/"user32-arm64ec.dll";d=synthetic_pe(0x8664);p.write_bytes(d)
         self.manifest["components"]["user32"]["sha256"]=hashlib.sha256(d).hexdigest()
         self.save()
-        with self.assertRaisesRegex(ValueError,"not ARM64EC"):mod.verify(self.root)
+        with self.assertRaisesRegex(ValueError,"ARM64X carrier"):mod.verify(self.root)
+    def test_missing_embedded_arm64ec_view_rejected(self):
+        (self.root/"user32-pe-header.txt").write_text("Format: COFF-ARM64X\\nMachine: IMAGE_FILE_MACHINE_ARM64X (0xA64E)\\n")
+        with self.assertRaisesRegex(ValueError,"dual view"):mod.verify(self.root)
     def test_tamper_rejected(self):
         (self.root/"ws2_32-arm64ec.dll").write_bytes(b"corrupt")
         with self.assertRaisesRegex(ValueError,"digest"):mod.verify(self.root)

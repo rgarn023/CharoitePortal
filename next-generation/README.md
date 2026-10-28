@@ -12,7 +12,7 @@
 
 An original **Charoite integration and compatibility platform**, incorporating a **Charoite-maintained fork of Wine/Proton Wine**, ARM64EC, FEX or Box64 translation, DirectX→Vulkan via DXVK/VKD3D-Proton, Mesa/Turnip, Android display/input integration, per-game compatibility profiles and multi-engine selection.
 
-A modified Wine implementation will be **derived from licensed upstream Wine/Proton Wine sources**. This is not a clean-room rewrite of all Windows APIs. See [Charoite Wine source baseline](charoite-wine/README.md). The first two patches in the source queue are attributed imports; they **have not yet been applied, compiled, or installed in this APK**.
+A modified Wine implementation will be **derived from licensed upstream Wine/Proton Wine sources**. This is not a clean-room rewrite of all Windows APIs. See [Charoite Wine source baseline](charoite-wine/README.md). The original attributed Wine patches are retained with provenance, alongside Charoite-authored ARM64EC and Android corrections. The patched Wine **source and individual native components have now compiled successfully in standalone CI**; **the new Wine runtime has still not been installed in this APK**.
 
 ## Why a separate app?
 
@@ -20,7 +20,9 @@ The original `com.charoite` data, Wine C: drive, TPDP and other installed games 
 
 ## Current Charoite Wine compilation milestone
 
-The modified Charoite Wine source has now passed a reproducible patch validation and **Linux host compilation** checkpoint: [Actions 40709722718](https://github.com/rgarn023/CharoitePortal/actions/runs/40709722718). Source, attribution and host-build validation artifacts are available there. The generated `wineserver` is **x86-64 Linux only**, not Android ARM64EC and not bundled in the APK. Next, the Android ARM64EC/Wine server components must be cross-compiled and integrated with FEX and a new prefix before testing Battle.net or Steam. See [Charoite Wine details](charoite-wine/README.md).
+[**GitHub Actions run 40721844963**](https://github.com/rgarn023/CharoitePortal/actions/runs/40721844963) successfully built source-validated Wine 10.0 components from our maintained patches. **All 4 CI jobs passed**, including an Android ARM64 `wineserver` with 16 KiB ELF alignment and a **Windows ARM64EC `ntdll.dll` (machine 0xA641)** paired with an **Android AArch64 `ntdll.so` (16 KiB aligned)**. Experimental binary artifacts: `Charoite-Wine-ARM64EC-NTDLL-Experimental` (ID **12831021769**) and `Charoite-Wine-Android-ARM64-Experimental` (ID **12829954961**).
+
+**These are individual binaries, not a functioning full runner or a new APK.** They have not been added to the Charoite Next installation or tested on the Galaxy S26 Ultra. The Next APK still runs its isolated **legacy Wine/Box64** engine and explicitly marks the modern ARM64EC/FEX engine **NOT READY**. A complete Wine runtime, FEX, graphics dependencies, isolated prefix and device validation are still required before Battle.net/Steam testing. See [Charoite Wine source/build details](charoite-wine/README.md) and the [GitHub handoff](../docs/CURRENT_HANDOFF.md).
 
 ## Device validation roadmap
 

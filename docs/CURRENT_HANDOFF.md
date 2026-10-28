@@ -558,5 +558,36 @@ Artifacts at this run:
 
 **Engineering next steps:** Fix actual ARM64EC cross-compiler/build failures shown by CI (if any); require real PE machine 0xA641 and Android ELF ABI before describing the ntdll pair as compiled. Next create isolated Charoite Next runner slot, test FEX bridge, graphics and prefix on Galaxy S26 Ultra. Never bypass anti-cheat or claim Battle.net/Steam games work without device tests.
 
+## 29. October 28, 2026 — VERIFIED ARM64EC ntdll and Android Unix ntdll pair
+
+**User request:** “Please continue. Are you documenting handoffs in github?” Yes, the definitive handoff remains `docs/CURRENT_HANDOFF.md` on existing branch `main`. ChatGPT directly implemented new source, patches, workflows and tests on GitHub without touching either installed Android edition or the stable app CI.
+
+**The previous section 28's pending ARM64EC result has now been superseded by successful compilation.** This phase had real compiler problems, diagnosed and corrected in source-controlled Wine patches; failed runs are intentionally retained for traceability:
+- [40719387480](https://github.com/rgarn023/CharoitePortal/actions/runs/40719387480): first ARM64EC probe correctly emitted PE machine 0xA641, but Wine `include/winnt.h` used x86-only fastfail instruction with invalid register constraint on ARM64EC.
+- [40720190029](https://github.com/rgarn023/CharoitePortal/actions/runs/40720190029): source patch 0300 hunk-count malformed; corrected and passed subsequently.
+- [40720332734](https://github.com/rgarn023/CharoitePortal/actions/runs/40720332734): source validation passed; cross-build requested nonexistent `arm64ec-windows/ntdll.dll` target, corrected to Wine 10's real `aarch64-windows/ntdll.dll` target (which includes ARM64EC hybrid objects). Final PE machine type is verified rather than assumed from path.
+- [40720915045](https://github.com/rgarn023/CharoitePortal/actions/runs/40720915045): compilation reached ARM64EC hybrid `heap.c` and `loader.c`, but x86 `lock; xchg` atomic assembly emitted invalid AArch64 instructions. Added Charoite-authored `0400-arm64ec-atomic-operations.patch`: compiler atomic builtins for exchange/pointer exchange and explicit ARM64EC acquire/release atomics.
+
+**Success:** [**GitHub Actions run 40721844963**](https://github.com/rgarn023/CharoitePortal/actions/runs/40721844963), compiled code SHA **`26c7a33c7cd6207123211c1c1af20df47c62e167`**. **ALL FOUR JOBS PASSED**: `validate-wine-source`, `smoke-build-host-wineserver`, `android-arm64-wineserver`, `android-arm64ec-ntdll`. Charoite Wine source queue contains 5 active patches: `0100`, `0002`, `0200`, `0300`, `0400`; additionally 70 Android/Bionic/FEX base prerequisite and 10 GE patches. Original vendor `0001` remains retained only as attribution reference to avoid double-applying duplicate hunks.
+
+**Verified binary artifacts for this run:**
+- `Charoite-Wine-ARM64EC-NTDLL-Experimental` — artifact ID **12831021769**, ~949,460 bytes ZIP. Includes `ntdll-arm64ec.dll` Windows PE machine **IMAGE_FILE_MACHINE_ARM64EC (0xA641)** and `ntdll-arm64-android.so` Android ELF AArch64; its four `PT_LOAD` p_align values are **[16384,16384,16384,16384]**. Includes build report, hashes and headers.
+- `Charoite-Wine-Android-ARM64-Experimental` — artifact ID **12829954961**, AArch64 Android wineserver plus build/ELF reports.
+- `Charoite-Wine-Host-Build-Validation` — artifact ID **12831640935**.
+- `Charoite-Wine-Source-Validation` — artifact ID **12830373158**.
+
+**Implemented directly in repository:**
+- `next-generation/charoite-wine/build-arm64ec-ntdll.sh` (NDK/API35 and pinned LLVM-MinGW SHA256, host-tool configure, hybrid ARM64EC PE cross compiler probe, simultaneous ntdll PE and Unix .so compilation, fail-close PE machine check, 16 KiB ELF ABI and hash report, no installation).
+- `.github/workflows/charoite-wine-source.yml` independent ARM64EC ntdll CI job; does **not** modify Next or stable APK workflows.
+- `next-generation/charoite-wine/patches/0300-arm64ec-fastfail-instruction.patch`, `0400-arm64ec-atomic-operations.patch` (Charoite-authored Wine derivative modifications).
+- `next-generation/charoite-wine/tests/test_arm64ec_contract.py` plus updated source patch count tests. All CI validations passed.
+- `next-generation/charoite-wine/README.md` updated with the complete verified run and artifacts.
+
+**Limitations:** These are independently compiled components, **not yet a functioning full Android Wine/Proton/FEX runtime, not an APK and not yet device-tested**. The modern launcher engine is still marked **NOT READY**. CI does not establish Battle.net, Steam, Diablo IV, a graphics pipeline or any particular anti-cheat compatibility. No kernel anti-cheat bypass or integrity-check manipulation will be implemented.
+
+**Preserved editions:** stable Charoite Portal `com.charoite` [run 40641148611](https://github.com/rgarn023/CharoitePortal/actions/runs/40641148611); side-by-side Charoite Next `com.charoitx` [run 40649258138](https://github.com/rgarn023/CharoitePortal/actions/runs/40649258138). Do not uninstall, clear storage, replace prefixes or mutate user installed games.
+
+**Exact next engineering milestone:** assemble and ABI-check a complete Android-native ARM64EC Wine 10 package from our source plus a pinned FEX bridge and DirectX-to-Vulkan drivers. Implement atomic/hashes-first staging and rollback into **new** Next-only runner slot, create a new isolated Wine prefix, then on-device baseline tests and Battle.net/Steam scenarios. Maintain separate source/build artifacts and device diagnostics.
+
 ---
 **End of current Charoite Portal handoff.**

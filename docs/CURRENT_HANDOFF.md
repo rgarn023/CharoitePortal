@@ -589,5 +589,23 @@ Artifacts at this run:
 
 **Exact next engineering milestone:** assemble and ABI-check a complete Android-native ARM64EC Wine 10 package from our source plus a pinned FEX bridge and DirectX-to-Vulkan drivers. Implement atomic/hashes-first staging and rollback into **new** Next-only runner slot, create a new isolated Wine prefix, then on-device baseline tests and Battle.net/Steam scenarios. Maintain separate source/build artifacts and device diagnostics.
 
+## 30. October 28, 2026 — Same-source ARM64EC Wine loader/server/ntdll runtime slice
+
+**Goal:** Advance beyond separately compiled Charoite Wine components by compiling the ARM64EC PE `ntdll.dll`, Android AArch64 Unix `ntdll.so`, Android `wineserver`, and Android `wine` loader **in one Wine configure/build tree**, then publish a reproducible, read-only, ABI and SHA-256 verified **experimental** package. No current Charoite app APK, game data, legacy Wine prefix, installer or runtime switch changed. Preserve stable `com.charoite` and standalone Next `com.charoitx`.
+
+**Changes committed directly on existing `main`:**
+- `next-generation/charoite-wine/build-arm64ec-ntdll.sh`: after compiling the two ntdll components, also compiles `make server/wineserver loader/wine` from the **same** Android ARM64EC build tree, and invokes a separate safe bundle packager with absolute script path.
+- `next-generation/charoite-wine/package-runtime-slice.py`: verifies all 4 binary architectures, PE machine **0xA641**, AArch64 ELF `PT_LOAD` minimum 16 KiB alignment, runtime library dependencies, independent SHA-256 and size; produces `charoite-wine-arm64ec-base-slice.tar.gz` and deterministic, fail-closed `manifest.json` with `launch_ready=false` and `installable=false`. Archive uses no symlinks or unsafe extraction paths.
+- `next-generation/charoite-wine/verify-runtime-slice.py`: read-only verification of archive manifest, exact member list, path safety, binary SHA-256 and architecture metadata. Never unpacks or installs files.
+- `next-generation/charoite-wine/tests/test_runtime_slice.py`: synthetic tests verify good archive, tampering rejection, bad PE machine, 4 KiB rather than 16 KiB rejection, and overwrite refusal. CI source-validation stage runs tests.
+- `.github/workflows/charoite-wine-source.yml`: existing independent native tests retained; experimental `android-arm64ec-ntdll` job now additionally verifies and uploads separate `Charoite-Wine-ARM64EC-Base-Slice-Experimental` artifact only after all bundle checks.
+- **Never** enable modern Proton/FEX engine in Charoite Next merely from the package's existence. FEX, full Wine DLL tree, DirectX/Vulkan, display/input, genuine prefix provisioning, Battle.net/Steam and device compatibility **NOT YET IMPLEMENTED**.
+
+**CI diagnostic and fix:** [Run 40726234534](https://github.com/rgarn023/CharoitePortal/actions/runs/40726234534) passed source tests, Linux host build, standard Android ARM64 wineserver; the new hybrid build **successfully compiled all FOUR** PE/ELF components but failed during packaging because a relative shell script path was resolved after switching working directory to the Wine build tree. Fixed by computing `script_dir` as an absolute path before `cd`, commit `2a7454af195ddeb70c7b707a07cfa91a379bbbab`.
+
+**Latest verification:** [Run 40727103047](https://github.com/rgarn023/CharoitePortal/actions/runs/40727103047) created for the corrected package script. **Pending during this initial handoff entry**. Never claim a completed runtime slice or give an artifact ID until the workflow success and actual published artifacts are confirmed.
+
+**Next after success:** audit actual ELF dynamic `NEEDED` dependencies and Android executable path assumptions, then source/package other Wine runtime DLLs, NLS, FEX and graphics into a versioned, checksum-verified Next-only runtime slot. Only after completeness and phone smoke tests should the modern runner selector become runnable.
+
 ---
 **End of current Charoite Portal handoff.**

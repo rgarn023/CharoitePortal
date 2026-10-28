@@ -1,6 +1,6 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28, 2026): source patch queue validated and Wine 10.0 `wineserver` successfully compiled for a Linux x86-64 host test. Android ARM64/ARM64EC binaries are NOT yet compiled, bundled or phone-tested.**
+**Status (October 28, 2026): Wine 10.0 `wineserver` has now been cross-compiled for Android AArch64 at API 35 with 16 KiB ELF alignment, under the earlier patch series. A new Android machine-ID safety patch is undergoing CI validation. Full ARM64EC Wine DLLs, FEX and phone operation remain unverified.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
 
@@ -9,10 +9,11 @@ This is the beginning of **our modified Wine implementation** for Charoite Core 
 - Candidate upstream: [The412Banner/proton-wine](https://github.com/The412Banner/proton-wine), commit `c74acb09d51b447f5d5ac56c87608d3ec565a767`, Proton 10 GE ARM64EC lineage reported by WeHavePhones.
 - **Patch 0001**: ARM64 syscall-stub relocatability, suspension and thread-exit grace, attributed to [WeHavePhones's Wine patch](https://github.com/ashmerra/wehavephones/blob/main/patches/wine/arm64-copyable-syscalls-grace-wine10.patch). It is *not* originally authored by Charoite.
 - **Patch 0100**: the rebased additive syscall-stub/dispatcher and ARM64 thread-grace changes. This derivative includes only hunks not already applied by the pinned upstream Android/ARM64EC prerequisite set; source attributed to the Patch 0001 vendor work. It is Charoite's maintained integration/rebase, not a claim of original authorship of the underlying Wine fixes.
+- **Patch 0200**: Charoite-authored Android machine-ID fallback hardening. A native ARM64 build exposed that the upstream Android per-prefix fopen path could leave `FILE *f` uninitialized when `WINEPREFIX` is absent or the file is unreadable. The patch initializes the pointer and uses a deterministic Android-UID-derived machine ID if no prefix file is accessible, preventing undefined reads; native cross-build and on-device behavior must both be checked.
 - **Patch 0002**: Android media-file Unix ownership / Windows SID behavior, attributed to [WeHavePhones's Wine patch](https://github.com/ashmerra/wehavephones/blob/main/patches/wine/server-android-file-owner-wine10.patch). It is *not* originally authored by Charoite.
 - Wine and modifications remain subject to applicable Wine LGPL terms; this source is distributed alongside attribution to upstream and the source patches. Separate FEX, Mesa, DXVK and Proton license reviews are required for binaries.
 
-**Patch order:** `patches/SERIES` applies 0100 and 0002 after the pinned Android/Bionic/FEX prerequisites and GE game fixes. Patch 0001 is kept as the original upstream reference only; reapplying all its suspension and SVE hunks duplicates the upstream patch list and fails. The validated prep script refuses an existing workspace and refuses fuzzy or partially applied Charoite patches.
+**Patch order:** `patches/SERIES` applies 0100, 0002 and 0200 after the pinned Android/Bionic/FEX prerequisites and GE game fixes. Patch 0001 is kept as the original upstream reference only; reapplying all its suspension and SVE hunks duplicates the upstream patch list and fails. The validated prep script refuses an existing workspace and refuses fuzzy or partially applied Charoite patches.
 
 These patches establish a reproducible starting point for **Charoite-maintained Wine patches**. They must be validated against the exact source state (including upstream GE and ARM64EC build prepatches) before building. No claim is made that merely applying these files produces a functioning Android Wine executable.
 
@@ -27,6 +28,10 @@ These patches establish a reproducible starting point for **Charoite-maintained 
 - Original stable `com.charoite` APK remains on run `40641148611`; Next `com.charoitx` APK remains on run `40649258138`. Neither is replaced by this source build.
 
 **Next native milestone:** reproducible pinned Android NDK/LLVM-MinGW ARM64EC cross-toolchain and host sysroot; compile `aarch64-windows/ntdll.dll`, `aarch64-unix/ntdll.so`, Android `wineserver` and supporting Wine pieces, verify 16-KiB-page alignment / ABI and hashes, then stage in a **new Charoite Next runtime slot and prefix only**. No game's anti-cheat or credentials are accessed by CI.
+
+## First verified Android ARM64 build
+
+[GitHub Actions run 40714449477](https://github.com/rgarn023/CharoitePortal/actions/runs/40714449477) **SUCCESS**, commit `f7476eab05b9705c1a2fcd7248442e2939f58490`, independent from the Portal APK. All three jobs passed: source patch series, native Linux host Wine server, and Android NDK r27d ARM64 cross-compile. The experimental `Charoite-Wine-Android-ARM64-Experimental` artifact ID **12827792939** contains the AArch64 server and inspection reports. ELF inspection reports four `LOAD` segments with 16 KiB alignment. **Not an installable Wine/Proton runtime.** The Android-native build also exposed the potential uninitialized Android machine-ID file pointer addressed by source patch 0200; a follow-up build must verify the fix.
 
 ## Engineering boundary
 

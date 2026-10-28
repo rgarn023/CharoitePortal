@@ -47,7 +47,9 @@ class FoundationContract(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"unsafe"):mod.verify(self.root)
     def test_build_is_non_destructive(self):
         self.assertIn("CHAROITE_PE_FOUNDATION_AUDIT_INPUT_VERIFIED=PASS",BUILD)
-        for name in mod.NAMES: self.assertIn(f"dlls/$name/aarch64-windows/$name.dll",BUILD)
+        self.assertIn("for name in advapi32 user32 ws2_32",BUILD)
+        self.assertIn("dlls/$name/aarch64-windows/$name.dll",BUILD)
+        self.assertEqual(set(mod.NAMES),{"advapi32","user32","ws2_32"})
         for bad in ("adb install","rm -rf","WINEPREFIX=","su -c"):
             self.assertNotIn(bad,BUILD)
         self.assertIn("Refusing to overwrite output",BUILD)

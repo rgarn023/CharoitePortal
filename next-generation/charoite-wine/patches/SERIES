@@ -8,4 +8,3 @@
 0300-arm64ec-fastfail-instruction.patch
 0400-arm64ec-atomic-operations.patch
 0500-arm64ec-no-spurious-libgcc.patch
-0500-arm64ec-clang-compiler-rt.patch

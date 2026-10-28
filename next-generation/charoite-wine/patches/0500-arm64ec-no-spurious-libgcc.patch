@@ -1,0 +1,25 @@
+diff --git a/tools/winegcc/winegcc.c b/tools/winegcc/winegcc.c
+--- a/tools/winegcc/winegcc.c
++++ b/tools/winegcc/winegcc.c
+@@ -1253,10 +1253,20 @@
+         switch (opts->target.platform)
+         {
+         case PLATFORM_MINGW:
+         case PLATFORM_CYGWIN:
+-            libgcc = find_libgcc( opts->prefix, link_args );
+-            if (!libgcc) libgcc = "-lgcc";
++            /* ARM64EC hybrid PE builds with Clang --no-default-config and
++             * -nodefaultlibs use Wine's PE imports, not GCC. The toolchain's
++             * '-print-libgcc-file-name' may return the bare nonexistent
++             * 'libgcc.a', causing the final PE link to fail. Keep GCC paths
++             * unchanged for all other targets and build configurations. */
++            if (!(opts->target.cpu == CPU_ARM64EC && opts->nodefaultlibs &&
++                  opts->no_default_config))
++            {
++                libgcc = find_libgcc( opts->prefix, link_args );
++                if (!libgcc) libgcc = "-lgcc";
++            }
+             break;
+         default:
+             break;
+         }

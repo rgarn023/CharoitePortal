@@ -22,6 +22,8 @@ text = gradle.read_text(encoding="utf-8")
 assert text.count("applicationId 'com.charoite'") == 1
 text = text.replace("applicationId 'com.charoite'",
                     "applicationId 'com.charoitx'")
+assert text.count("/.android/debug.keystore") == 1, "Original signing identity path changed"
+text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 text = text.replace('versionName "11.2"',
                     'versionName "11.2-next.0.1"')

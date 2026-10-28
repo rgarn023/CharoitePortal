@@ -22,11 +22,16 @@ class SourceContract(unittest.TestCase):
         self.assertNotIn("CHAROITE_WINE_PREREQUISITES_PREPARED", SCRIPT)
         self.assertIn("CHAROITE_WINE_PREREQUISITES_APPLIED=", SCRIPT)
         self.assertIn("git apply --check", SCRIPT)
+        self.assertIn("patches/SERIES", SCRIPT)
         self.assertIn("git diff --check", SCRIPT)
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 2)
+        self.assertEqual(len(patched), 3)
+        active = (WINE / "patches/SERIES").read_text()
+        self.assertIn("0100-arm64ec-syscall-stubs-and-thread-grace.patch",active)
+        self.assertIn("0002-android-external-file-ownership.patch",active)
+        self.assertNotIn("\n0001-arm64ec-copyable-syscalls-and-thread-grace.patch",active)
         text = (WINE / "README.md").read_text()
         for patch in patched:
             self.assertIn(patch.name.split("-", 1)[0], text)

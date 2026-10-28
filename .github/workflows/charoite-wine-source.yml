@@ -44,3 +44,31 @@ jobs:
           path: ${{ runner.temp }}/charoite-source-report/
           retention-days: 14
           if-no-files-found: error
+
+  smoke-build-host-wineserver:
+    needs: validate-wine-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare pinned patched Wine source without installing
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/charoite-wine-prepared"
+
+      - name: Compile patched Wine server for host-only ABI smoke check
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/smoke-build-host.sh "$RUNNER_TEMP/charoite-wine-prepared"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-host-build-validation.txt"
+          mkdir -p "$RUNNER_TEMP/charoite-host-report"
+          cp "$RUNNER_TEMP/charoite-wine-prepared/charoite-host-build-validation.txt" "$RUNNER_TEMP/charoite-host-report/"
+
+      - name: Publish Linux host compile report (not an Android runner)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Host-Build-Validation
+          path: ${{ runner.temp }}/charoite-host-report/
+          retention-days: 14
+          if-no-files-found: error

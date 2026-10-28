@@ -483,5 +483,26 @@ The user answered **"Still spinning"**, then asked **"Are you stuck"** and **"Is
 
 **Unchanged:** `com.charoite`, existing APK signing identity, every user's game/Wine/Blizzard data, and all currently installed runtimes. No code files or APK were changed during this audit.
 
+## 25. October 28, 2026 — Charoite Core Next side-by-side implementation (modern engine NOT BUILT)
+
+**User direction:** Preserve the current stable APK unchanged, create a separately installed next-gen edition integrating a **Charoite-maintained derivative of Wine/Proton Wine** with FEX/Box64 and graphics translation for Samsung Galaxy S26 Ultra. Aim for broad Steam/Battle.net Windows compatibility while respecting anti-cheat support; no kernel anti-cheat evasion/bypass or promise of universal compatibility. Original Charoite integration does **not** mean reimplementing all of Wine from scratch.
+
+**Stable preserved:** existing `com.charoite` APK from [Actions 40641148611](https://github.com/rgarn023/CharoitePortal/actions/runs/40641148611), source `553d9cbd8dc49edc84016fda2adc83cb27c031b5`, artifact `12795777267`, 138 tests. Stable workflow `.github/workflows/runtime-preview.yml` was not edited and retains existing signing identity/data paths.
+
+**Direct code committed to `main`:**
+- `next-generation/rewrite_prefix_next.py`: reuse pinned upstream asset rewrite logic but swap fixed-width `com.winlator` to **`com.charoitx`**, never `com.charoite`. Distinct Android UID and filesystem roots.
+- `next-generation/prepare_next.py`: after stable overlay, sets new `com.charoitx` application ID, **Charoite Next** label, distinct debug signing key path (`~/.android/charoite-next.keystore`), provider authority, native/Java path translation, embedded new engine status UI and reference manifest.
+- `next-generation/CharoiteNextRuntime.java`: fail-closed runner inventory, bundled legacy Wine/Box64 initially usable; Proton ARM64EC/FEX and future Wine Staging/Box64 explicitly **not installed and launch blocked**.
+- `next-generation/engine-reference.json`: pinned candidate Proton ARM64EC reference hash/source, provenance, required validation stages, anti-cheat limits; reference data ONLY, not a downloaded or distributed modern engine.
+- `next-generation/tests/test_next_isolation_contract.py`: assertions for separate signing, Android package, no prefix migration, engine not-ready status, anti-cheat safety.
+- `.github/workflows/charoite-next.yml`: independent Android APK CI builds pinned Winlator source with legacy functional Core overlay plus Next identity and runtime inventory, separate APK `Charoite-Next-Android.apk`, artifact name `Charoite-Core-Next-Android-APK`; does not overwrite stable artifact. Separate MIT-source attribution in legal bundle.
+- `next-generation/charoite-wine/patches/` introduces first **attributed** upstream ARM64EC syscall/thread patch and Android file-owner patch from WeHavePhones. `next-generation/charoite-wine/README.md` includes source lineage, Wine LGPL and WeHavePhones MIT attribution/limitations; `UPSTREAM-WEHAVEPHONES-LICENSE.txt` preserves the full MIT license. `prepare-source.sh` pins the Proton-Wine source and **refuses to apply patches until GE/ARM64EC prerequisites explicitly verified**; nothing modifies installed Wine.
+
+**Current boundary:** This is an actual side-by-side development edition foundation and source-controlled Wine patch baseline, **NOT yet a successfully built or usable Proton/FEX/Charoite Wine engine**. Do not claim Steam login/Battle.net spinner fixed, anti-cheat compatibility, DX12, or new Wine binaries shipped.
+
+**Latest Next source commit:** `aa89290a7e7a326ce495b6f3226f74adf8daf58a`. At handoff-edit time [Actions run 40649258138](https://github.com/rgarn023/CharoitePortal/actions/runs/40649258138) was pending, with earlier attempts superseded/cancelled by new commits. **Check its live outcome**; it is NOT verified successful at this writing. If failed, inspect job logs, make minimal corrections and rerun. Don't direct user to download an unverified APK.
+
+**NEXT:** First achieve successful Next APK CI and phone install side-by-side; then implement an isolated reproducible Charoite Wine ARM64EC/FEX runner with source-built/pinned Wine `ntdll`/wineserver and FEX bridge in a NEW Next container. Smoke test portable Win32 program, Battle.net sign-in and Steam in separate newly created prefixes, record device evidence, retain a clean rollback. Only expose modern runner selection after all checks. No migration of existing `com.charoite` game data.
+
 ---
 **End of current Charoite Portal handoff.**

@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/charoite-next.yml'
       - 'next-generation/**'
+      - '!next-generation/charoite-wine/**'
   workflow_dispatch:
 
 permissions:

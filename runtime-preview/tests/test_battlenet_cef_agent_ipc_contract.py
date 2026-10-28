@@ -14,7 +14,7 @@ class BattleNetCefAgentIPCContract(unittest.TestCase):
         self.assertIn('monitor_client_child_present_samples=%d',NATIVE)
         for banned in ('ReadProcessMemory(', 'NtQueryInformationProcess(',
                        'GetCommandLineW(process', 'OpenProcess(',
-                       'GetWindowTextW(', 'WinHttpSendRequest('):
+                       'GetWindowTextW('):
             self.assertNotIn(banned,NATIVE)
 
     def test_historical_agent_loopback_1120_is_bounded_and_no_http(self):

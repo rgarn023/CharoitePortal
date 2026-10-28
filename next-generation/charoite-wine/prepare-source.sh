@@ -84,7 +84,7 @@ while IFS= read -r rel; do
   git apply --whitespace=error "$patch"
   count=$((count+1))
 done < "$script_dir/patches/SERIES"
-[[ "$count" -eq 6 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
+[[ "$count" -eq 7 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
 git diff --check
 printf 'Charoite Wine imported patches applied: %s\n' "$count"
 for symbol in 'syscall_dispatcher' 'RtlExitUserThread' 'security_unix_uid_to_sid'; do

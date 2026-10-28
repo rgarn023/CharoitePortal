@@ -20,9 +20,9 @@ The original `com.charoite` data, Wine C: drive, TPDP and other installed games 
 
 ## Current Charoite Wine compilation milestone
 
-[**GitHub Actions run 40721844963**](https://github.com/rgarn023/CharoitePortal/actions/runs/40721844963) successfully built source-validated Wine 10.0 components from our maintained patches. **All 4 CI jobs passed**, including an Android ARM64 `wineserver` with 16 KiB ELF alignment and a **Windows ARM64EC `ntdll.dll` (machine 0xA641)** paired with an **Android AArch64 `ntdll.so` (16 KiB aligned)**. Experimental binary artifacts: `Charoite-Wine-ARM64EC-NTDLL-Experimental` (ID **12831021769**) and `Charoite-Wine-Android-ARM64-Experimental` (ID **12829954961**).
+[**GitHub Actions 40728026115**](https://github.com/rgarn023/CharoitePortal/actions/runs/40728026115) passed all four CI jobs, including **21 source/archive tests**. The experimental `Charoite-Wine-ARM64EC-Base-Slice-Experimental` artifact ID **12834111695** contains the **Android ARM64 `wine` launcher, Android ARM64 `wineserver`, ARM64EC PE `ntdll.dll`, and Android ARM64 `ntdll.so`**, built from the same patched Wine source and toolchain, with checked ABI, SHA-256, Wine LGPL notices and corresponding source delta.
 
-**These are individual binaries, not a functioning full runner or a new APK.** They have not been added to the Charoite Next installation or tested on the Galaxy S26 Ultra. The Next APK still runs its isolated **legacy Wine/Box64** engine and explicitly marks the modern ARM64EC/FEX engine **NOT READY**. A complete Wine runtime, FEX, graphics dependencies, isolated prefix and device validation are still required before Battle.net/Steam testing. See [Charoite Wine source/build details](charoite-wine/README.md) and the [GitHub handoff](../docs/CURRENT_HANDOFF.md).
+**This is a development bundle, not an installable Wine runner or Android APK.** It is explicitly marked `launch_ready=false`. It does **not** replace the Next APK or original Portal, and it has not been run on the Galaxy S26 Ultra. A complete Wine/GE-Proton runtime, FEX, Vulkan graphics, dedicated prefix and device tests are still necessary for Battle.net and Steam. See [Charoite Wine details](charoite-wine/README.md) and [current GitHub handoff](../docs/CURRENT_HANDOFF.md).
 
 ## Device validation roadmap
 

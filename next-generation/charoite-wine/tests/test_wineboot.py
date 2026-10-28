@@ -42,6 +42,8 @@ class WinebootContract(unittest.TestCase):
         self.assertIn("dlls/kernelbase/aarch64-windows/kernelbase.dll", SCRIPT)
         self.assertIn("dlls/kernel32/aarch64-windows/kernel32.dll", SCRIPT)
         self.assertIn("programs/wineboot/aarch64-windows/wineboot.exe", SCRIPT)
+        self.assertIn(r"IMAGE_FILE_MACHINE_ARM64 \(0xAA64\)", SCRIPT)
+        self.assertNotIn(r"IMAGE_FILE_MACHINE_ARM64 \\(0xAA64\\)", SCRIPT)
         for value in ("rm -rf", "adb install", "com.charoite/files", "WINEPREFIX=", "su -c"):
             self.assertNotIn(value, SCRIPT)
 

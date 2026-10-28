@@ -19,6 +19,10 @@ test ! -e "$source_dir/charoite-host-build" || {
   echo "Refusing to overwrite an existing host build directory" >&2; exit 3;
 }
 mkdir "$source_dir/charoite-host-build"
+# This Wine source commit intentionally tracks configure.ac rather than a
+# generated configure script. Regenerate in the isolated checkout first.
+( cd "$source_dir" && ./autogen.sh )
+[[ -f "$source_dir/configure" ]] || { echo "Wine configure generation failed" >&2; exit 4; }
 cd "$source_dir/charoite-host-build"
 
 # This deliberately configures a minimal Linux/host Wine server toolchain.

@@ -18,15 +18,15 @@ class WinebootContract(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         data = b"synthetic-wineboot-not-executable"
-        (self.root / "wineboot-arm64ec.exe").write_bytes(data)
+        (self.root / "wineboot-arm64.exe").write_bytes(data)
         (self.root / "wineboot-pe-header.txt").write_text(
-            "Machine: IMAGE_FILE_MACHINE_ARM64EC (0xA641)\n")
+            "Machine: IMAGE_FILE_MACHINE_ARM64 (0xAA64)\n")
         self.manifest = {
             "schema_version": 1, "android_package": "com.charoitx",
             "source_commit": "c74acb09d51b447f5d5ac56c87608d3ec565a767",
-            "pe_machine": "0xA641", "status": "compiled-not-executed",
+            "pe_machine": "0xAA64", "status": "compiled-not-executed",
             "prefix_created": False, "installable": False,
-            "launch_ready": False, "file": "wineboot-arm64ec.exe",
+            "launch_ready": False, "file": "wineboot-arm64.exe",
             "size": len(data), "sha256": hashlib.sha256(data).hexdigest(),
         }
         self.save()
@@ -46,10 +46,10 @@ class WinebootContract(unittest.TestCase):
             self.assertNotIn(value, SCRIPT)
 
     def test_verified_artifact(self):
-        self.assertEqual(verifier.verify(self.root)["pe_machine"], "0xA641")
+        self.assertEqual(verifier.verify(self.root)["pe_machine"], "0xAA64")
 
     def test_corrupted_pe_rejected(self):
-        (self.root / "wineboot-arm64ec.exe").write_bytes(b"tampered")
+        (self.root / "wineboot-arm64.exe").write_bytes(b"tampered")
         with self.assertRaisesRegex(ValueError, "tampered"):
             verifier.verify(self.root)
 

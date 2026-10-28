@@ -1,0 +1,36 @@
+diff --git a/server/token.c b/server/token.c
+--- a/server/token.c
++++ b/server/token.c
+@@ -219,7 +219,7 @@ void init_user_sid(void)
+     char machine_id[17];
+     uint64_t id;
+     size_t n;
+-    FILE *f;
++    FILE *f = NULL;
+ 
+ #ifdef __ANDROID__
+     /* /etc/machine-id is absent on Android.  Fall back to a per-prefix
+@@ -252,8 +252,21 @@ void init_user_sid(void)
+     }
+ #endif
+ 
+-    n = fread( machine_id, sizeof(*machine_id), 16, f );
+-    fclose(f);
++#ifdef __ANDROID__
++    /* A missing or unreadable per-prefix machine-id must never result in
++     * fread(NULL). Keep an explicit, deterministic Android-UID fallback. */
++    if (!f)
++    {
++        snprintf( machine_id, sizeof(machine_id), "%08x%08x",
++                  0x414e4452u, (unsigned int)getuid() );
++        n = 16;
++    }
++    else
++#endif
++    {
++        n = fread( machine_id, sizeof(*machine_id), 16, f );
++        fclose(f);
++    }
+ 
+     if (n != 16)
+     {

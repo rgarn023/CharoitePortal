@@ -31,6 +31,19 @@ COMPONENTS = {
     ),
 }
 
+SOURCE_FILES = {
+    "wine_lgpl": ("COPYING.LIB", "source/COPYING.LIB"),
+    "wine_license": ("LICENSE", "source/LICENSE"),
+    "source_patch_delta": ("charoite-source-delta.patch", "source/charoite-source-delta.patch"),
+    "vendor_mit": ("@vendor-license", "source/WEHAVEPHONES-MIT.txt"),
+}
+
+
+def source_file(build_dir: Path, filename: str) -> Path:
+    if filename == "@vendor-license":
+        return Path(__file__).resolve().parent / "UPSTREAM-WEHAVEPHONES-LICENSE.txt"
+    return build_dir.parent / filename
+
 
 def run(*argv: str) -> str:
     return subprocess.run(argv, text=True, stdout=subprocess.PIPE,
@@ -104,8 +117,25 @@ def build_manifest(build_dir: Path, readelf: str, readobj: str) -> dict:
             "sha256": file_digest(path),
             **abi,
         }
+    license_sources = {}
+    for name, (source_name, dest) in SOURCE_FILES.items():
+        p = source_file(build_dir, source_name)
+        check_file(p)
+        license_sources[name] = {
+            "file": dest,
+            "size": p.stat().st_size,
+            "sha256": file_digest(p),
+        }
     return {
         "schema_version": 1,
+        "source_files": license_sources,
+        "source_reconstruction": {
+            "upstream_repository": "https://github.com/The412Banner/proton-wine",
+            "upstream_commit": SOURCE_SHA,
+            "patch": "source/charoite-source-delta.patch",
+            "integration_source": "https://github.com/rgarn023/CharoitePortal/tree/main/next-generation/charoite-wine",
+            "note": "Wine LGPL; reapply corresponding source delta to pinned upstream. Additional third-party obligations apply to future full runners.",
+        },
         "name": "Charoite Wine ARM64EC source-built base slice",
         "version": "wine10-arm64ec-slice.0.1",
         "source_commit": SOURCE_SHA,
@@ -144,6 +174,14 @@ def package(build_dir: Path, output: Path, readelf: str, readobj: str) -> Path:
         dest.chmod(0o755 if entry["format"] == "ELF64" else 0o644)
         if file_digest(dest) != entry["sha256"]:
             raise ValueError("Bundle hash mismatch")
+    for name, (source_name, bundled) in SOURCE_FILES.items():
+        source = source_file(build_dir, source_name)
+        dest = output / bundled
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, dest)
+        dest.chmod(0o644)
+        if file_digest(dest) != manifest["source_files"][name]["sha256"]:
+            raise ValueError("Wine corresponding source/license mismatch")
     payload = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
     (output / "manifest.json").write_text(payload, encoding="utf-8")
     archive = output.parent / "charoite-wine-arm64ec-base-slice.tar.gz"
@@ -153,7 +191,8 @@ def package(build_dir: Path, output: Path, readelf: str, readobj: str) -> Path:
     with archive.open("wb") as sink, gzip.GzipFile(
         filename="", mode="wb", fileobj=sink, mtime=0
     ) as compressed, tarfile.open(mode="w", fileobj=compressed) as tar:
-        for path in [output / "manifest.json", *sorted(files_root.rglob("*"))]:
+        for path in [output / "manifest.json", *sorted(files_root.rglob("*")),
+                     *sorted((output / "source").rglob("*"))]:
             if not path.is_file():
                 continue
             relative = path.relative_to(output).as_posix()

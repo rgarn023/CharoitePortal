@@ -33,11 +33,22 @@ def verify(root):
         data=path.read_bytes()
         if len(data)!=entry.get("size") or hashlib.sha256(data).hexdigest()!=entry.get("sha256"):
             raise ValueError("PE DLL digest mismatch")
-        if machine_from_file(data)!=0xA641: raise ValueError("PE DLL is not ARM64EC")
+        # Wine's -marm64x DLL is an ARM64 loader carrier with a second ARM64EC view.
+        # A raw AA64 COFF value is expected; the LLVM report must prove both
+        # ARM64X and ARM64EC views. Never mistake plain ARM64 for the hybrid DLL.
+        if machine_from_file(data)!=0xAA64:
+            raise ValueError("PE DLL is not an ARM64X carrier (raw AA64)")
         report=root/f"{name}-pe-header.txt"
-        if report.is_symlink() or not report.is_file() or not re.search(
-            r"Machine:\s+(?:IMAGE_FILE_MACHINE_ARM64EC|ARM64EC)\s+\(0xA641\)",
-            report.read_text(encoding="utf-8")): raise ValueError("Wrong PE inspection report")
+        if report.is_symlink() or not report.is_file():
+            raise ValueError("Missing PE inspection report")
+        header=report.read_text(encoding="utf-8")
+        if not all(re.search(pattern,header) for pattern in (
+            r"Format:\s+COFF-ARM64X",
+            r"Machine:\s+IMAGE_FILE_MACHINE_ARM64X\s+\(0xA64E\)",
+            r"Format:\s+COFF-ARM64EC",
+            r"Machine:\s+IMAGE_FILE_MACHINE_ARM64EC\s+\(0xA641\)",
+        )):
+            raise ValueError("PE inspection report lacks ARM64X/ARM64EC dual view")
     if {p.name for p in root.iterdir()}!=expected: raise ValueError("Unexpected bundle entries")
     return m
 if __name__=="__main__":

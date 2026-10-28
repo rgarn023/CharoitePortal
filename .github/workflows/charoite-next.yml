@@ -343,6 +343,8 @@ jobs:
           cp next-generation/prepare_next.py legal-bundle/prepare_next.py
           cp next-generation/rewrite_prefix_next.py legal-bundle/rewrite_prefix_next.py
           cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
+          cp next-generation/charoite-wine/UPSTREAM-WEHAVEPHONES-LICENSE.txt legal-bundle/UPSTREAM-WEHAVEPHONES-LICENSE.txt
+          cp next-generation/charoite-wine/README.md legal-bundle/Charoite-Wine-README.md
           cp runtime-preview/charoite-core/input/charoite_keyscan.c legal-bundle/charoite_keyscan.c
           cp runtime-preview/overlay.py legal-bundle/overlay.py
           cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py

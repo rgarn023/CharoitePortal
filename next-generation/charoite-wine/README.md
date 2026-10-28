@@ -33,6 +33,12 @@ These patches establish a reproducible starting point for **Charoite-maintained 
 
 [GitHub Actions run 40714449477](https://github.com/rgarn023/CharoitePortal/actions/runs/40714449477) **SUCCESS**, commit `f7476eab05b9705c1a2fcd7248442e2939f58490`, independent from the Portal APK. All three jobs passed: source patch series, native Linux host Wine server, and Android NDK r27d ARM64 cross-compile. The experimental `Charoite-Wine-Android-ARM64-Experimental` artifact ID **12827792939** contains the AArch64 server and inspection reports. ELF inspection reports four `LOAD` segments with 16 KiB alignment. **Not an installable Wine/Proton runtime.** The Android-native build also exposed the potential uninitialized Android machine-ID file pointer addressed by source patch 0200; a follow-up build must verify the fix.
 
+## Verified Android-native checkpoint with Charoite safety patch
+
+**GitHub Actions [40715586360](https://github.com/rgarn023/CharoitePortal/actions/runs/40715586360) passed all three jobs** at source commit `244cf07400b7f5603d4f153bee5b034eadfcb73b`. CI verified the 3-entry Charoite patch series, host Wine server compilation, and NDK r27d Android API 35 **AArch64 wineserver** cross-compilation. ELF `LOAD` alignment values: `[16384, 16384, 16384, 16384]`. The uninitialized `FILE *f` warning from the preceding run no longer appears (an unrelated unused-variable warning remains).
+
+Experimental Android-native artifact: `Charoite-Wine-Android-ARM64-Experimental` ID **12828870997**, with checksums and ELF reports. This file is a component, **not a complete runner or APK**, and has **not been executed on the Galaxy S26 Ultra**. No FEX bridges, ARM64EC `ntdll.dll`/`ntdll.so`, DXVK/VKD3D or Steam/Battle.net integration exists yet in this experimental output.
+
 ## Engineering boundary
 
 1. Prepare an isolated clone at the pinned upstream commit. Review and apply upstream GE and Android ARM64EC prerequisites **in the documented order**. Fail if conflicts occur; do not force a patch.

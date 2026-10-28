@@ -1,0 +1,17 @@
+diff --git a/tools/winegcc/winegcc.c b/tools/winegcc/winegcc.c
+--- a/tools/winegcc/winegcc.c
++++ b/tools/winegcc/winegcc.c
+@@ -1248,6 +1248,13 @@ static void build(struct options* opts)
+     /* link everything together now */
+     link_args = get_link_args( opts, output_name );
+ 
++    /* The ARM64EC toolchain is LLVM-MinGW and provides compiler-rt builtins,
++     * not GCC's libgcc.a. Explicitly select compiler-rt even with
++     * --no-default-config, so the subsequent -print-libgcc-file-name probe
++     * resolves the correct ARM64EC builtins archive. */
++    if (opts->target.cpu == CPU_ARM64EC && opts->target.platform == PLATFORM_MINGW)
++        strarray_add( &link_args, "-rtlib=compiler-rt" );
++
+     if (opts->nodefaultlibs || opts->use_msvcrt)
+     {
+         switch (opts->target.platform)

@@ -6,6 +6,7 @@ if [[ $# -ne 3 || "${1:-}" != /* || "${2:-}" != /* || "${3:-}" != /* ]]; then
   echo "Usage: bash build-arm64ec-ntdll.sh ABS_PREPARED_WINE ABS_NDK_R27D ABS_LLVM_MINGW" >&2
   exit 2
 fi
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source_dir="$1"
 ndk="$2"
 mingw="$3"
@@ -138,9 +139,7 @@ cp "$elf" "$source_dir/charoite-arm64ec-artifact/ntdll-arm64-android.so"
 echo "CHAROITE WINE ARM64EC NTDLL PE + ANDROID NTDLL SO BUILT"
 # One source revision and one Android toolchain for server/loader/ntdll;
 # fails closed if any ABI or package-integrity check is not satisfied.
-python3 "$(
-  cd "$(dirname "${BASH_SOURCE[0]}")" && pwd
-)/package-runtime-slice.py" \
+python3 "$script_dir/package-runtime-slice.py" \
   "$source_dir/charoite-arm64ec-android" \
   "$source_dir/charoite-runtime-slice" \
   "$ndk_bin/llvm-readelf" \

@@ -70,15 +70,21 @@ fi
 # Imported Charoite patches are applied only after the upstream prerequisites.
 # Never use --3way, --reject or a force flag; report incompatible deltas instead.
 count=0
-for patch in "$script_dir"/patches/*.patch; do
-  [[ -f "$patch" ]] || { echo "No Charoite Wine patches" >&2; exit 12; }
+while IFS= read -r rel; do
+  [[ -n "$rel" && "$rel" != \#* ]] || continue
+  [[ "$rel" =~ ^[0-9]{4}-[A-Za-z0-9-]+\\.patch$ ]] || {
+    echo "Invalid Charoite patch series entry" >&2; exit 12;
+  }
+  patch="$script_dir/patches/$rel"
+  [[ -f "$patch" ]] || { echo "Missing Charoite patch in series: $rel" >&2; exit 12; }
   if ! git apply --check "$patch"; then
-    echo "Charoite Wine source patch needs rebase: $(basename "$patch")" >&2
+    echo "Charoite Wine source patch needs rebase: $rel" >&2
     exit 13
   fi
   git apply --whitespace=error "$patch"
   count=$((count+1))
-done
+done < "$script_dir/patches/SERIES"
+[[ "$count" -eq 2 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
 git diff --check
 printf 'Charoite Wine imported patches applied: %s\n' "$count"
 for symbol in 'syscall_dispatcher' 'RtlExitUserThread' 'security_unix_uid_to_sid'; do

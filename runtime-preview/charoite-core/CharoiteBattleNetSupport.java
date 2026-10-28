@@ -584,6 +584,33 @@ public final class CharoiteBattleNetSupport {
                         .append(agentProbeTests).append(" attempts. This sends " +
                                 "no HTTP requests, cannot verify login/auth, " +
                                 "and the Agent may use another port.\n");
+            int ownerQueries=monitorNumber(fields,"monitor_agent_tcp_ipv4_owner_queries");
+            int ownerQuerySuccess=monitorNumber(fields,"monitor_agent_tcp_ipv4_owner_query_success");
+            if (ownerQueries >= 0) {
+                int listenerSamples=monitorNumber(fields,
+                        "monitor_agent_tcp_ipv4_listener_present_samples");
+                int maxListeners=monitorNumber(fields,"monitor_agent_tcp_ipv4_max_listeners");
+                int maxLoopback=monitorNumber(fields,
+                        "monitor_agent_tcp_ipv4_max_loopback_listeners");
+                int examplePort=monitorNumber(fields,
+                        "monitor_agent_tcp_ipv4_example_loopback_port");
+                int lastError=monitorNumber(fields,
+                        "monitor_agent_tcp_ipv4_last_query_error");
+                out.append("Read-only Agent.exe IPv4 TCP listener ownership query: ")
+                        .append(ownerQuerySuccess).append(" successful of ")
+                        .append(ownerQueries).append(" attempts; matching listeners " +
+                                "present in ").append(listenerSamples)
+                        .append(" samples; maximum Agent-owned listeners ")
+                        .append(maxListeners).append(", loopback or wildcard listeners ")
+                        .append(maxLoopback).append(". ")
+                        .append("Example local loopback/wildcard port: ")
+                        .append(examplePort).append("; last table error: ")
+                        .append(lastError).append(". If no Agent-owned IPv4 listener " +
+                                "was found, the Agent may instead use named pipes, " +
+                                "IPv6, another IPC mechanism, or Wine may not " +
+                                "expose owner PIDs. Do not interpret this as " +
+                                "authentication failure.\n");
+            }
             int rpcStartRequested = monitorNumber(fields, "monitor_rpc_opt_in_start_requested");
             int rpcStartAttempted = monitorNumber(fields, "monitor_rpc_start_attempted");
             if (rpcStartRequested == 1 && rpcStartAttempted >= 0) {

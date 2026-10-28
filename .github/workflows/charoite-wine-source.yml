@@ -156,6 +156,12 @@ jobs:
             "$RUNNER_TEMP/charoite-llvm-mingw"
           test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-artifact/ntdll-arm64ec.dll"
           test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-artifact/ntdll-arm64-android.so"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-wine-arm64ec-base-slice.tar.gz"
+          test -s "$RUNNER_TEMP/charoite-wine-prepared/charoite-runtime-slice/manifest.json"
+          grep -F 'CHAROITE_WINE_SLICE_ABI_CHECK=PASS' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-slice-validation.txt"
+          python3 next-generation/charoite-wine/verify-runtime-slice.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-wine-arm64ec-base-slice.tar.gz"
 
       - name: Publish experimental ARM64EC ntdll pair only after ABI validation
         if: success()
@@ -163,5 +169,17 @@ jobs:
         with:
           name: Charoite-Wine-ARM64EC-NTDLL-Experimental
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-arm64ec-artifact/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Publish same-source ARM64EC loader/server/ntdll experimental slice
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-Base-Slice-Experimental
+          path: |
+            ${{ runner.temp }}/charoite-wine-prepared/charoite-wine-arm64ec-base-slice.tar.gz
+            ${{ runner.temp }}/charoite-wine-prepared/charoite-slice-validation.txt
+            ${{ runner.temp }}/charoite-wine-prepared/charoite-runtime-slice/manifest.json
           retention-days: 14
           if-no-files-found: error

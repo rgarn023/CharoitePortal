@@ -91,9 +91,9 @@ export x86_64_CC="$llvm_bin/x86_64-w64-mingw32-clang"
 
 # Windows ARM64EC PE and Unix Android loader must come from THE SAME source.
 # Wine 10's ARM64EC PE install directory uses aarch64-windows.
-make -j2 dlls/ntdll/aarch64-windows/ntdll.dll dlls/ntdll/ntdll.so
+make -j2 dlls/ntdll/arm64ec-windows/ntdll.dll dlls/ntdll/ntdll.so
 
-pe="$PWD/dlls/ntdll/aarch64-windows/ntdll.dll"
+pe="$PWD/dlls/ntdll/arm64ec-windows/ntdll.dll"
 elf="$PWD/dlls/ntdll/ntdll.so"
 [[ -s "$pe" && -s "$elf" ]] || {
   echo "Both Wine ntdll components must be nonempty" >&2; exit 5;

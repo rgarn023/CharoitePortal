@@ -93,6 +93,11 @@ export x86_64_CC="$llvm_bin/x86_64-w64-mingw32-clang"
 # Wine 10's ARM64EC PE install directory uses aarch64-windows.
 make -j2 dlls/ntdll/aarch64-windows/ntdll.dll dlls/ntdll/ntdll.so
 
+# Compile the Android Unix launcher and server from this EXACT build tree.
+# A standalone ntdll pair is not sufficient to start a Windows program.
+# These are additional experimental components, not a runnable complete Wine.
+make -j2 server/wineserver loader/wine
+
 pe="$PWD/dlls/ntdll/aarch64-windows/ntdll.dll"
 elf="$PWD/dlls/ntdll/ntdll.so"
 [[ -s "$pe" && -s "$elf" ]] || {
@@ -131,3 +136,13 @@ cp "$elf" "$source_dir/charoite-arm64ec-artifact/ntdll-arm64-android.so"
   sha256sum "$pe" "$elf"
 } > "$source_dir/charoite-arm64ec-artifact/build-report.txt"
 echo "CHAROITE WINE ARM64EC NTDLL PE + ANDROID NTDLL SO BUILT"
+# One source revision and one Android toolchain for server/loader/ntdll;
+# fails closed if any ABI or package-integrity check is not satisfied.
+python3 "$(
+  cd "$(dirname "${BASH_SOURCE[0]}")" && pwd
+)/package-runtime-slice.py" \
+  "$source_dir/charoite-arm64ec-android" \
+  "$source_dir/charoite-arm64ec-artifact" \
+  "$ndk_bin/llvm-readelf" \
+  "$llvm_bin/llvm-readobj"
+echo "CHAROITE WINE COHERENT NATIVE SLICE VALIDATED (not installable)"

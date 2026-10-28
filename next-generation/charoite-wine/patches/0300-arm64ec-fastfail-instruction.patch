@@ -1,0 +1,14 @@
+diff --git a/include/winnt.h b/include/winnt.h
+--- a/include/winnt.h
++++ b/include/winnt.h
+@@ -7350,12 +7350,12 @@
+ static FORCEINLINE DECLSPEC_NORETURN void __fastfail(unsigned int code)
+ {
+-#if defined(__x86_64__) || defined(__i386__)
++#if (defined(__x86_64__) || defined(__i386__)) && !defined(__arm64ec__)
+     for (;;) __asm__ __volatile__( "int $0x29" :: "c" ((ULONG_PTR)code) : "memory" );
+-#elif defined(__aarch64__)
++#elif defined(__aarch64__) || defined(__arm64ec__)
+     register ULONG_PTR val __asm__("x0") = code;
+     for (;;) __asm__ __volatile__( "brk #0xf003" :: "r" (val) : "memory" );
+ #elif defined(__arm__)

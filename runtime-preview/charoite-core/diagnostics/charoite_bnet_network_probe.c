@@ -27,6 +27,7 @@ typedef struct {
     int launchers;
     int rpcss;
     int services;
+    int client_children;
     DWORD error;
 } ProcessCounts;
 
@@ -40,7 +41,28 @@ static ProcessCounts get_process_counts(void) {
         PROCESSENTRY32W proc;
         ZeroMemory(&proc, sizeof(proc));
         proc.dwSize = sizeof(proc);
+        /* Browser subprocesses often reuse Battle.net.exe. Count only
+         * parent-child relationships using PIDs; never read command lines,
+         * tokens, process memory, browser URLs, or window titles. */
+        DWORD clientPids[64];
+        int clientPidCount=0;
         if (Process32FirstW(snapshot, &proc)) do {
+            if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe") ||
+                    !_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe")) {
+                if (clientPidCount < 64) clientPids[clientPidCount++]=proc.th32ProcessID;
+            }
+        } while (Process32NextW(snapshot, &proc));
+        proc.dwSize = sizeof(proc);
+        if (Process32FirstW(snapshot, &proc)) do {
+            if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) {
+                for (int n=0;n<clientPidCount;n++) {
+                    if (proc.th32ParentProcessID==clientPids[n] &&
+                            proc.th32ParentProcessID!=proc.th32ProcessID) {
+                        counts.client_children++;
+                        break;
+                    }
+                }
+            }
             if (!_wcsicmp(proc.szExeFile, L"Agent.exe")) counts.agents++;
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) counts.clients++;
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe"))
@@ -62,6 +84,62 @@ static void process_status(FILE *report) {
     fprintf(report,"guest_battlenet_launcher_process_count=%d\n", counts.launchers);
 }
 
+
+/*
+ * Historical Battle.net Agent builds expose local HTTP IPC on 127.0.0.1:1120.
+ * This is ONLY a bounded TCP connect test -- do not send HTTP requests,
+ * receive response bodies, inspect tokens or enumerate other ports. Future
+ * versions may use another port, so failure is NOT proof Agent IPC is broken.
+ */
+static int probe_agent_loopback_1120(DWORD *lastError) {
+    WSADATA wsa;
+    int startup=WSAStartup(MAKEWORD(2,2),&wsa);
+    if (startup) { *lastError=(DWORD)startup; return 0; }
+    SOCKET sock=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+    if (sock==INVALID_SOCKET) {
+        *lastError=(DWORD)WSAGetLastError();
+        WSACleanup();
+        return 0;
+    }
+    u_long nonblocking=1;
+    if (ioctlsocket(sock,FIONBIO,&nonblocking)!=0) {
+        *lastError=(DWORD)WSAGetLastError();
+        closesocket(sock); WSACleanup();
+        return 0;
+    }
+    struct sockaddr_in endpoint;
+    ZeroMemory(&endpoint,sizeof(endpoint));
+    endpoint.sin_family=AF_INET;
+    endpoint.sin_port=htons(1120);
+    endpoint.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
+    int connected=(connect(sock,(struct sockaddr*)&endpoint,
+            sizeof(endpoint))==0);
+    if (!connected) {
+        int error=WSAGetLastError();
+        if (error==WSAEWOULDBLOCK || error==WSAEINPROGRESS) {
+            fd_set writable, failed;
+            FD_ZERO(&writable); FD_ZERO(&failed);
+            FD_SET(sock,&writable); FD_SET(sock,&failed);
+            struct timeval timeout;
+            timeout.tv_sec=0;
+            timeout.tv_usec=200000;
+            int selected=select(0,NULL,&writable,&failed,&timeout);
+            if (selected>0) {
+                int soError=0;
+                int len=sizeof(soError);
+                if (getsockopt(sock,SOL_SOCKET,SO_ERROR,(char*)&soError,&len)==0) {
+                    connected=soError==0 && FD_ISSET(sock,&writable);
+                    error=soError;
+                } else error=WSAGetLastError();
+            } else if (selected==0) error=WSAETIMEDOUT;
+            else error=WSAGetLastError();
+        }
+        *lastError=connected ? 0 : (DWORD)error;
+    } else *lastError=0;
+    closesocket(sock);
+    WSACleanup();
+    return connected;
+}
 
 /* Query the Wine service manager without starting, stopping, or changing a
  * service. The process name alone cannot establish whether RpcSs is running.
@@ -364,6 +442,9 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     int seenRpcss=0, seenServices=0, maxRpcss=0, maxServices=0;
     int scmOk=0, rpcRunning=0, rpcStopped=0, rpcUnqueryable=0;
     int rpcDisabled=0, rpcManual=0, rpcConfigFailed=0;
+    int clientChildPresentSamples=0, maxClientChildren=0;
+    int localAgentTests=0, localAgentConnectOk=0;
+    DWORD localAgentLastError=0;
     RpcServiceStatus lastRpc;
     ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
@@ -383,6 +464,16 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
         if (!rpc.config_error && rpc.start_type==SERVICE_DISABLED) rpcDisabled++;
         if (!rpc.config_error && rpc.start_type==SERVICE_DEMAND_START) rpcManual++;
         if (rpc.config_error) rpcConfigFailed++;
+        if (c.client_children > maxClientChildren)
+            maxClientChildren = c.client_children;
+        if (c.client_children > 0) clientChildPresentSamples++;
+        // Four spaced checks only; the rest of the monitoring cadence is
+        // unchanged and the Wine session never sends Agent a request.
+        if ((i%4)==3) {
+            localAgentTests++;
+            if (probe_agent_loopback_1120(&localAgentLastError))
+                localAgentConnectOk++;
+        }
         if (c.agents > maxAgent) maxAgent = c.agents;
         if (c.clients > maxClient) maxClient = c.clients;
         if (c.launchers > maxLauncher) maxLauncher = c.launchers;
@@ -408,6 +499,13 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     fprintf(report,"monitor_launcher_present_samples=%d\n",seenLauncher);
     fprintf(report,"monitor_max_agent=%d\n",maxAgent);
     fprintf(report,"monitor_max_client=%d\n",maxClient);
+    fprintf(report,"monitor_max_client_children=%d\n",maxClientChildren);
+    fprintf(report,"monitor_client_child_present_samples=%d\n",clientChildPresentSamples);
+    fprintf(report,"monitor_agent_loopback_1120_tests=%d\n",localAgentTests);
+    fprintf(report,"monitor_agent_loopback_1120_connect_success=%d\n",
+            localAgentConnectOk);
+    fprintf(report,"monitor_agent_loopback_1120_last_winsock_error=%lu\n",
+            (unsigned long)localAgentLastError);
     fprintf(report,"monitor_max_launcher=%d\n",maxLauncher);
     fprintf(report,"monitor_rpcss_present_samples=%d\n",seenRpcss);
     fprintf(report,"monitor_services_present_samples=%d\n",seenServices);

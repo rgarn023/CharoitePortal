@@ -27,7 +27,7 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 4)
+        self.assertEqual(len(patched), 5)
         active = (WINE / "patches/SERIES").read_text()
         self.assertIn("0100-arm64ec-syscall-stubs-and-thread-grace.patch",active)
         self.assertIn("0002-android-external-file-ownership.patch",active)

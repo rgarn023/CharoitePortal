@@ -1,7 +1,7 @@
 diff --git a/tools/winegcc/winegcc.c b/tools/winegcc/winegcc.c
 --- a/tools/winegcc/winegcc.c
 +++ b/tools/winegcc/winegcc.c
-@@ -1253,10 +1253,20 @@
+@@ -1253,10 +1253,19 @@
          switch (opts->target.platform)
          {
          case PLATFORM_MINGW:

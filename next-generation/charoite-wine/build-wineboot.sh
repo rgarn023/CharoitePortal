@@ -37,7 +37,7 @@ python3 - "$report" <<'PY'
 from pathlib import Path
 import hashlib, json, sys
 out = Path(sys.argv[1])
-pe = out / "wineboot-arm64ec.exe"
+pe = out / "wineboot-arm64.exe"
 payload = {
     "schema_version": 1,
     "project": "Charoite Wine Windows ARM64 wineboot experiment",

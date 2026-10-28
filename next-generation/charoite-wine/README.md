@@ -79,6 +79,12 @@ Other current artifacts from the same run include the coherent source-provenance
 
 **Not bootable yet.** Kernel32/kernelbase are only two required Windows API DLLs. Missing components still include Wine's boot program, its transitive API DLLs/Unix interfaces, a full runtime and NLS tree, FEX, graphics/display/input, isolated Windows prefix and phone validation. Both installed Charoite apps and game data remain unchanged.
 
+## Verified Windows ARM64 wineboot bootstrap utility
+
+[**GitHub Actions 40743283497 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/40743283497) passed all four jobs and built Wine's `wineboot.exe` after the verified ARM64EC `kernelbase.dll` / `kernel32.dll` stage. The PE machine is **ordinary Windows ARM64 (0xAA64)** per Wine's actual Makefile target, rather than ARM64EC (0xA641). The independent ABI/manifest verifier passed. Artifact: `Charoite-Wine-ARM64-Wineboot-Experimental`, ID **12839039906**. The same run's ARM64EC kernel DLL artifact was **12840457429**, and coherent four-component base-slice artifact was **12839884074**.
+
+**Not boot-tested**: The `wineboot.exe` module was compiled and checksum-validated, **not executed on Android**. No prefix, complete Wine runtime, FEX/graphics stack or Battle.net/Steam capability is proven. The Charoite-maintained source patch `0500-arm64ec-no-spurious-libgcc.patch` prevents Wine's Clang ARM64/ARM64EC link steps from appending an absent GCC `libgcc.a`; the proven patch must not be replaced with an overlapping linker experiment. Both installed apps and their existing games remain untouched.
+
 ## Engineering boundary
 
 1. Prepare an isolated clone at the pinned upstream commit. Review and apply upstream GE and Android ARM64EC prerequisites **in the documented order**. Fail if conflicts occur; do not force a patch.

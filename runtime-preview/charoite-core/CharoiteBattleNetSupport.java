@@ -611,6 +611,33 @@ public final class CharoiteBattleNetSupport {
                                 "expose owner PIDs. Do not interpret this as " +
                                 "authentication failure.\n");
             }
+            int connQueries=monitorNumber(fields,"monitor_agent_ipc_tcp_connection_queries");
+            if (connQueries >= 0) {
+                int connSuccess=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_connection_query_success");
+                int agentEstablished=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_agent_established_max");
+                int clientEstablished=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_client_established_max");
+                int clientToAgentSamples=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_client_to_agent_present_samples");
+                int clientToAgentMax=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_client_to_agent_max");
+                int connError=monitorNumber(fields,
+                        "monitor_agent_ipc_tcp_last_query_error");
+                out.append("Passive Battle.net-to-Agent IPv4 TCP correlation: ")
+                        .append(connSuccess).append(" successful tables of ")
+                        .append(connQueries).append("; max Agent ESTABLISHED ")
+                        .append(agentEstablished).append(", max Battle.net ESTABLISHED ")
+                        .append(clientEstablished).append("; client connections to " +
+                                "a same-snapshot Agent-owned local listener seen in ")
+                        .append(clientToAgentSamples).append(" samples (max ")
+                        .append(clientToAgentMax).append("); last query error ")
+                        .append(connError).append(". This does not read traffic " +
+                                "or prove application IPC/authentication. " +
+                                "A zero match can miss short-lived connections " +
+                                "or connections using IPv6 or non-TCP IPC.\n");
+            }
             int rpcStartRequested = monitorNumber(fields, "monitor_rpc_opt_in_start_requested");
             int rpcStartAttempted = monitorNumber(fields, "monitor_rpc_start_attempted");
             if (rpcStartRequested == 1 && rpcStartAttempted >= 0) {

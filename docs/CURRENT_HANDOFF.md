@@ -663,5 +663,26 @@ Artifacts at this run:
 
 **Next milestone if successful:** include boot utility, kernel modules and source-verified base in a coherent compatible Wine package; progressively build required Unix/PE DLLs, FEX and graphics stack; device-test on Galaxy S26 Ultra in a **fresh isolated Next-only** Wine prefix before enabling the modern engine. Do not imply Battle.net/Steam/Diablo IV or unsupported anti-cheat works.
 
+## 33. October 28, 2026 — Latest kernel and Windows ARM64 wineboot build reverified
+
+**User status follow-up:** "Are you stuck?" ChatGPT checked the repository and confirmed that the older [run 40738747087](https://github.com/rgarn023/CharoitePortal/actions/runs/40738747087) failed on `winegcc` injecting missing `libgcc.a` when linking the ARM64EC `kernelbase.dll`/`kernel32.dll`; that failure **was superseded** by later source-controlled patches and successful runs. Do not revert the existing `0500-arm64ec-no-spurious-libgcc.patch` or reintroduce overlapping fixes.
+
+**Latest verified full success:** [Actions run 40758229566](https://github.com/rgarn023/CharoitePortal/actions/runs/40758229566), compiled SHA `2f75b070186396d7db465c9d59334c7267c9fcc6`. All four jobs `validate-wine-source`, `smoke-build-host-wineserver`, `android-arm64-wineserver`, `android-arm64ec-ntdll` completed **SUCCESS**. CI logs explicitly confirm:
+- `CHAROITE_WINE_SLICE_ABI_CHECK=PASS`, `CHAROITE_WINE_SLICE_ARCHIVE_VERIFIED=PASS`
+- `CHAROITE_ARM64EC_KERNEL_DLL_ABI=PASS`, `CHAROITE_ARM64EC_KERNEL_BUNDLE_VERIFIED=PASS`: Windows ARM64EC `kernel32.dll` and `kernelbase.dll` PE machine `0xA641`
+- `CHAROITE_ARM64EC_WINEBOOT_PE=PASS`, `CHAROITE_WINEBOOT_MANIFEST_VERIFIED=PASS`, `CHAROITE_WINEBOOT_COMPILED_NOT_RUN`: Windows ARM64 `wineboot.exe` PE machine `0xAA64` (not ARM64EC).
+- Modern runtime manifests continue to say `LAUNCH_READY=false`, `installable=false`. **No device installation/execution and no fresh prefix yet.**
+
+**Artifacts on run 40758229566:**
+- `Charoite-Wine-ARM64EC-Kernel-Experimental` — **12847911180**
+- `Charoite-Wine-ARM64-Wineboot-Experimental` — **12846877090**
+- `Charoite-Wine-ARM64EC-Base-Slice-Experimental` — **12847208300**
+- `Charoite-Wine-ARM64EC-NTDLL-Experimental` — **12845619910**
+- `Charoite-Wine-Android-ARM64-Experimental` — **12846319711**
+- `Charoite-Wine-Source-Validation` — **12847910721**
+- `Charoite-Wine-Host-Build-Validation` — **12847387693**
+
+**Exact next milestone:** build/collect all required PE/Unix DLLs, NLS data, FEX translator and Vulkan graphics libraries, ensure licensing/provenance and dependency closure, create a new dedicated `com.charoitx` modern-engine slot with checksum verification and rollback, then device test `wineboot` in a fresh Next-only prefix before attempting Battle.net or Steam. Existing stable Charoite Portal `com.charoite`, Next `com.charoitx`, original prefixes, games and saves must remain untouched. No claims of anti-cheat support or launcher operation.
+
 ---
 **End of current Charoite Portal handoff.**

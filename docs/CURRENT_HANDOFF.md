@@ -544,5 +544,19 @@ Artifacts at this run:
 
 **Next implementation step:** pin the LLVM-MinGW ARM64EC toolchain with SHA256 and build the ARM64EC PE `ntdll.dll`, paired Android `ntdll.so`, and ABI/checksum verification as separate, non-installing CI artifacts. Then integrate a verified runnable runner in a **new** Next-only prefix.
 
+## 28. October 28, 2026 — ARM64EC Wine ntdll cross-compilation
+
+**User request:** “Please continue. Are you documenting handoffs in github”. **Answer: YES**, continuously at this `docs/CURRENT_HANDOFF.md` on the existing `main` branch. Last verified full native build prior to this phase remains [Actions 40715586360](https://github.com/rgarn023/CharoitePortal/actions/runs/40715586360), which produced a *standalone experimental Android ARM64* `wineserver` with 16 KiB `PT_LOAD` alignment and machine-ID safety patch 0200. No Android runner was installed.
+
+**New work committed on `main`:**
+- `next-generation/charoite-wine/build-arm64ec-ntdll.sh`: **new isolated ARM64EC ntdll build** using pinned source (`c74acb09d51b447f5d5ac56c87608d3ec565a767`), GE+Bionic/FEX/Charoite patch queue, NDK r27d (API 35), and SHA-256 pinned LLVM-MinGW 20261020 UCRT toolchain. Builds Windows ARM64EC PE `ntdll.dll` plus Android AArch64 Unix `ntdll.so`, checks the PE machine is ARM64EC (0xA641 rather than ordinary ARM64) and Unix ELF PT_LOAD 16 KiB alignment, emits hashes. **Experimental; no installation**.
+- New `android-arm64ec-ntdll` job in `.github/workflows/charoite-wine-source.yml` downloads `llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz`, expected SHA-256 `55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335`. Only publishes `Charoite-Wine-ARM64EC-NTDLL-Experimental` after strict successful build.
+- `next-generation/charoite-wine/tests/test_arm64ec_contract.py` safeguards PE arch distinct from AArch64, pinned toolchain, source check, no user app mutation and separate artifact.
+- Prior standalone Charoite Next `com.charoitx` and stable Portal `com.charoite` APK workflows are deliberately untouched. No changes to any existing game prefix/data.
+
+**ARM64EC CI result at documentation time:** [Actions run 40719387480](https://github.com/rgarn023/CharoitePortal/actions/runs/40719387480) started from `80a72851f1741a1f32b321086588e33f55761a24`. **Pending/in progress at time of initial handoff entry**, result must be read and recorded before claiming ARM64EC DLLs are compiled. Older source/native ARM64 run 40715586360 remains green.
+
+**Engineering next steps:** Fix actual ARM64EC cross-compiler/build failures shown by CI (if any); require real PE machine 0xA641 and Android ELF ABI before describing the ntdll pair as compiled. Next create isolated Charoite Next runner slot, test FEX bridge, graphics and prefix on Galaxy S26 Ultra. Never bypass anti-cheat or claim Battle.net/Steam games work without device tests.
+
 ---
 **End of current Charoite Portal handoff.**

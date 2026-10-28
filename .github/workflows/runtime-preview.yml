@@ -158,7 +158,7 @@ jobs:
           "$CC32" -std=c11 -O2 -Wall -Wextra -mwindows \
             runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c \
             -o runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe \
-            -lwinhttp -lws2_32 -luser32 -ladvapi32
+            -lwinhttp -lws2_32 -luser32 -ladvapi32 -liphlpapi
           file runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe
           test $(stat -c %s runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe) -gt 5000
 

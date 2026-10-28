@@ -797,6 +797,20 @@ code = code.replace(bnet_prelaunch_anchor, """            String charoiteNormalW
                             container.getRootDir(), "RPC_PREFLIGHT_PREFIX_MISMATCH");
                 }
             }
+            if (container != null &&
+                    getIntent().getBooleanExtra("charoite_bnet_monitor", false) &&
+                    "battle-net-gaming".equals(getIntent().getStringExtra("charoite_environment_id"))) {
+                // Record actual parsed renderer and assembled client command,
+                // not just UI selection. Do NOT persist command lines or paths.
+                com.charoitegames.core.CharoiteBattleNetSupport.recordBattleNetLaunchCommand(
+                        container.getRootDir(),
+                        getIntent().getBooleanExtra("charoite_bnet_rpc_preflight", false),
+                        getIntent().getBooleanExtra("charoite_bnet_agent_compatibility", false),
+                        getIntent().getBooleanExtra("charoite_bnet_disable_gpu", false),
+                        charoiteNormalWinHandler.contains(" --disable-gpu"),
+                        GraphicsDrivers.VIRGL.equals(this.graphicsDriver[1]),
+                        DXWrappers.WINED3D.equals(this.dxwrapper));
+            }
 """)
 
 # Battle.net CEF launcher: Blizzard recommends --disable-gpu when its
@@ -1012,6 +1026,18 @@ code = code.replace(tpdp_debug_anchor, """
                         getIntent().getStringExtra("exec_path"))) {
             // Keep existing installer diagnosis separate from game profiles.
             envVars.put("WINEDEBUG", "err+all,warn+all");
+        }
+        if (container != null &&
+                getIntent().getBooleanExtra("charoite_bnet_monitor", false) &&
+                "battle-net-gaming".equals(getIntent().getStringExtra("charoite_environment_id"))) {
+            String dllOverrides = envVars.get("WINEDLLOVERRIDES");
+            com.charoitegames.core.CharoiteBattleNetSupport.recordBattleNetRuntimeEnv(
+                    container.getRootDir(),
+                    "0".equals(envVars.get("WINEESYNC")),
+                    "0".equals(envVars.get("WINEFSYNC")),
+                    dllOverrides != null && java.util.regex.Pattern.compile(
+                            "(^|;)locationapi=", java.util.regex.Pattern.CASE_INSENSITIVE)
+                            .matcher(dllOverrides).find());
         }
 """ + tpdp_debug_anchor)
 display.write_text(code, encoding="utf-8")

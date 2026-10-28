@@ -1,0 +1,6 @@
+# Applied AFTER upstream pinned Bionic/ARM64EC and GE game-fix patches.
+# 0001 is retained solely as the original attributed vendor reference:
+# its suspension/SVE context hunks are already present from upstream prerequisites.
+# 0100 contains ONLY the remaining Wine ARM64 syscall dispatcher + thread grace.
+0100-arm64ec-syscall-stubs-and-thread-grace.patch
+0002-android-external-file-ownership.patch

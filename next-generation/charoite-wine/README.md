@@ -69,6 +69,16 @@ Other verified artifacts on the same run: `Charoite-Wine-ARM64EC-NTDLL-Experimen
 
 **Next source/runtime work:** pin and validate a complete compatible Wine/Proton 10 ARM64EC layer and FEX components, preserve licenses and hashes, audit the manifest's listed Android DT_NEEDED dependencies, stage in a new Next-only runtime slot, create a fresh prefix, then run controlled Windows-program tests on device before enabling the modern engine.
 
+## Verified ARM64EC kernelbase and kernel32 build
+
+[**GitHub Actions run 40739844466 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/40739844466), compiled source SHA `fc561a467c60a756ebd136f92091c0bb44a1a210`. All four CI jobs passed. After the coherent source-verified `wine` loader, `wineserver`, `ntdll.dll` and `ntdll.so` were built, the same configured Wine 10 tree successfully linked **Windows `kernelbase.dll` and `kernel32.dll`**, both confirmed as genuine **ARM64EC (machine 0xA641)**, not generic ARM64 PE.
+
+The separate `Charoite-Wine-ARM64EC-Kernel-Experimental` artifact ID **12838573488** contains both DLLs, LLVM PE machine reports and SHA-256 manifest. `verify-kernel-bridge.py` checks files, SHA hashes, ABI and disabled state without installing anything. Source patch `0500-arm64ec-no-spurious-libgcc.patch` corrects Wine's `winegcc` wrapper so Clang ARM64EC `-nodefaultlibs` mode does not append a nonexistent `libgcc.a`; other targets remain unchanged.
+
+Other current artifacts from the same run include the coherent source-provenance base slice **12837799898**, standalone ARM64EC ntdll pair **12838443793**, Android ARM64 wineserver **12838564522**, source provenance **12839490543** and host compilation report **12839820086**.
+
+**Not bootable yet.** Kernel32/kernelbase are only two required Windows API DLLs. Missing components still include Wine's boot program, its transitive API DLLs/Unix interfaces, a full runtime and NLS tree, FEX, graphics/display/input, isolated Windows prefix and phone validation. Both installed Charoite apps and game data remain unchanged.
+
 ## Engineering boundary
 
 1. Prepare an isolated clone at the pinned upstream commit. Review and apply upstream GE and Android ARM64EC prerequisites **in the documented order**. Fail if conflicts occur; do not force a patch.

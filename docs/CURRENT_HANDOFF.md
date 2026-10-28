@@ -697,5 +697,20 @@ Artifacts at this run:
 
 **Next action:** Check run **40762672727**, inspect any failed validation or PE/ELF inspector parsing; make minimal fixes and verify all four jobs plus the new audit artifact. Read the JSON to prioritize actual unsampled Wine PE DLL imports and Android native dependencies. Then build/package the necessary Wine PE/Unix DLLs and NLS from the pinned source, preserving source/license provenance and fail-closed manifests. Only after full runtime, FEX and graphics are staged safely in an isolated Next-only slot should `com.charoitx` attempt a fresh prefix and on-device `wineboot`. Maintain distinct stable `com.charoite` and Next `com.charoitx` app data. Battle.net, Steam, Diablo IV and third-party anti-cheat compatibility remain **unverified**.
 
+
+## 35. October 28, 2026 — Bootstrap import audit passed; PE API foundation in progress
+
+**Verified previous milestone:** [GitHub Actions run 40762672727](https://github.com/rgarn023/CharoitePortal/actions/runs/40762672727) completed SUCCESS, all four jobs green, source SHA 7b6c83eef51931829673c4ed99ab9b2fa34e180c. The dependency report artifact was **Charoite-Wine-Bootstrap-Dependency-Audit, ID 12849901195**. Its CI log confirmed 7 same-tree bootstrap components, sampled PE imports outside the three sampled PE DLLs of advapi32.dll, crypt32.dll, newdev.dll, setupapi.dll, shell32.dll, shlwapi.dll, ucrtbase.dll, user32.dll, version.dll and ws2_32.dll, and Android ELF DT_NEEDED entries libc.so and libdl.so. Imports outside the *sample* are not proven absent from the full Wine source/build or Android system.
+
+**New source work committed directly to main:**
+- a6bdd8597f495bda7eff1fe063d8af7aaf6f7d51 — next-generation/charoite-wine/build-pe-foundation.sh builds advapi32.dll, user32.dll, ws2_32.dll from the same validated source configuration, after ntdll/kernelbase/kernel32/wineboot. CI-only and output-only; does not install or touch phone data.
+- cbf4139efa530908c03d03341eb889a7771e1924 — verify-pe-foundation.py checks exact files, SHA-256, actual PE COFF 0xA641 ARM64EC machine, independent LLVM reports and hard-disabled status.
+- 6070d459df1abe1ade963130cb85767bafc85db4 and c86b9154b020082e9e320168e5bfd50961d53da7 — seven regression tests plus corrected parametrized build loop assertion.
+- 8484b72e3513c3ff0db2e2dd14fff25fc179aa32 — source CI now builds and verifies the above three Windows DLLs, then publishes optional **Charoite-Wine-ARM64EC-PE-Foundation-Experimental** artifact only after success.
+
+**Build status:** [run 40786056442](https://github.com/rgarn023/CharoitePortal/actions/runs/40786056442), code commit c86b9154b020082e9e320168e5bfd50961d53da7, is **in progress** at this documentation checkpoint. Source-validation unit-test step has passed; native PE linking, final artifact, and overall outcome are NOT YET VERIFIED. Superseded intermediate runs may be cancelled by workflow concurrency. Do not describe this as a successful three-DLL build without actual job verification.
+
+**Next:** inspect 40786056442 and its logs. Fix only concrete build/test errors. Once green, record the actual artifact ID and ABI. Continue the remaining Wine PE/Unix/NLS import dependency closure, FEX, graphics and an isolated Next-only runtime slot. No APK was produced by this work, no prefix/device execution occurred, and Battle.net, Steam, Diablo IV and third-party anti-cheat remain unverified. Preserve stable com.charoite and side-by-side com.charoitx, all game data/saves/prefixes.
+
 ---
 **End of current Charoite Portal handoff.**

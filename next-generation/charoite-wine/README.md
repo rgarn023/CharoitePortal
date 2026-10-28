@@ -1,6 +1,6 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28, 2026): Wine 10.0 `wineserver`, Windows ARM64EC `ntdll.dll`, and Android AArch64 `ntdll.so` have now been successfully cross-compiled in isolated GitHub Actions jobs, with PE/ELF architecture validation. FEX, graphics, a complete Wine runtime, installer, phone testing, Battle.net and Steam remain unverified.**
+**Status (October 28, 2026): Wine 10.0 Android ARM64 loader + wineserver and the ARM64EC/Android `ntdll` pair now compile together into an ABI- and SHA-256-verified, source-attributed experimental slice. This is NOT yet a complete Android Windows compatibility runtime or an installable APK; FEX/graphics/prefix/device testing remains outstanding.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
 
@@ -53,6 +53,20 @@ Experimental Android-native artifact: `Charoite-Wine-Android-ARM64-Experimental`
 - **No Android APK containing this modified Wine was built.** These are standalone native components. No device execution test, working Wine session, Battle.net/Steam operation or anti-cheat support is established by CI.
 
 **Next milestone:** source/build the rest of the compatible Android ARM64EC Wine 10 runner, FEX x86/x64 bridge and dependent graphics components; create an **entirely new app-private runtime slot and Wine prefix** in `com.charoitx` with manifest checksums, reversible staging and no migrations; run basic Windows program and rendering smoke tests on Galaxy S26 Ultra before enabling an engine selector. Neither stable `com.charoite` nor existing `com.charoitx` installations should be overwritten.
+
+## Verified coherent four-component Charoite Wine base slice
+
+[**GitHub Actions run 40728026115 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/40728026115), compiled source SHA `fae65c2491e1778cabd323dec507662feed82092`, **all four jobs successful** and **21 source/archive tests passed**.
+
+The new `Charoite-Wine-ARM64EC-Base-Slice-Experimental` artifact **12834111695** is a *single-source, ABI-checked build* containing the **Android AArch64 `wine` loader, Android AArch64 `wineserver`, Android AArch64 Unix `ntdll.so` and Windows ARM64EC PE `ntdll.dll`**. They were compiled together from the same patched and toolchain-pinned Wine 10 tree. CI checked all ELF `PT_LOAD` alignments (minimum 16 KiB), ARM64EC machine `0xA641`, component SHA-256, member paths, and a second read-only archive verifier. It includes a deterministic JSON manifest with `launch_ready=false` / `installable=false`.
+
+The archive also contains the original Wine `COPYING.LIB` / `LICENSE`, attributed vendor MIT notice, and `charoite-source-delta.patch` (the corresponding source differences from the pinned Wine upstream commit). Each source/license file also has a SHA-256 checked at package creation and verification. This improves source provenance but **does not substitute for reviewing future third-party FEX, GE, Vulkan and related licensing obligations**.
+
+Other verified artifacts on the same run: `Charoite-Wine-ARM64EC-NTDLL-Experimental` ID **12833398102** (separate ntdll pair), `Charoite-Wine-Android-ARM64-Experimental` ID **12833862177**, source-validation ID **12833219346**, host report ID **12834051928**.
+
+**Important limitations:** this four-component bundle is **not** a complete executable Wine/Proton environment. It lacks a full compatible Wine PE/Unix DLL/NLS tree, FEX CPU translation bridge, Windows prefix provisioning, Android graphics/display/input integrations, DXVK/VKD3D and a verified installation/rollback path. No actual Galaxy S26 Ultra process was launched and neither Battle.net nor Steam or anti-cheat support was tested. Existing stable `com.charoite` and side-by-side `com.charoitx` APKs and user data are unchanged.
+
+**Next source/runtime work:** pin and validate a complete compatible Wine/Proton 10 ARM64EC layer and FEX components, preserve licenses and hashes, audit the manifest's listed Android DT_NEEDED dependencies, stage in a new Next-only runtime slot, create a fresh prefix, then run controlled Windows-program tests on device before enabling the modern engine.
 
 ## Engineering boundary
 

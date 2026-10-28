@@ -203,7 +203,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - name: Build experimental Windows ARM64EC Wineboot
+      - name: Build experimental Windows ARM64 Wineboot
         run: |
           set -euo pipefail
           bash next-generation/charoite-wine/build-wineboot.sh \
@@ -213,11 +213,11 @@ jobs:
           python3 next-generation/charoite-wine/verify-wineboot.py \
             "$RUNNER_TEMP/charoite-wine-prepared/charoite-wineboot"
 
-      - name: Publish source-built Windows ARM64EC Wineboot (not executed)
+      - name: Publish source-built Windows ARM64 Wineboot (not executed)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Charoite-Wine-ARM64EC-Wineboot-Experimental
+          name: Charoite-Wine-ARM64-Wineboot-Experimental
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-wineboot/
           retention-days: 14
           if-no-files-found: error

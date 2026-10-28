@@ -566,6 +566,24 @@ public final class CharoiteBattleNetSupport {
                         .append(rpcConfiguredDisabled).append(" samples. ")
                         .append("Last startup type code: ").append(rpcStartType)
                         .append(" (4=Disabled, 3=Manual, 2=Automatic).\n");
+            int clientChildren=monitorNumber(fields,"monitor_max_client_children");
+            int childPresent=monitorNumber(fields,"monitor_client_child_present_samples");
+            if (clientChildren >= 0) {
+                out.append("Battle.net parent/child process relationships: maximum ")
+                        .append(clientChildren).append(" child processes, seen in ")
+                        .append(childPresent).append(" samples. This is only a " +
+                                "process-tree hint; Chromium subprocess type and " +
+                                "CEF health are not confirmed.\n");
+            }
+            int agentProbeTests=monitorNumber(fields,"monitor_agent_loopback_1120_tests");
+            int agentProbeOk=monitorNumber(fields,"monitor_agent_loopback_1120_connect_success");
+            if (agentProbeTests >= 0)
+                out.append("Local Agent TCP endpoint 127.0.0.1:1120 " +
+                        "(historical port): accepted connections in ")
+                        .append(agentProbeOk).append(" of ")
+                        .append(agentProbeTests).append(" attempts. This sends " +
+                                "no HTTP requests, cannot verify login/auth, " +
+                                "and the Agent may use another port.\n");
             int rpcStartRequested = monitorNumber(fields, "monitor_rpc_opt_in_start_requested");
             int rpcStartAttempted = monitorNumber(fields, "monitor_rpc_start_attempted");
             if (rpcStartRequested == 1 && rpcStartAttempted >= 0) {
@@ -769,8 +787,14 @@ public final class CharoiteBattleNetSupport {
         int sampled=0, errors=0, cef=0, rendering=0, ipc=0, network=0;
         int crash=0, gpu=0, login=0;
         int gpuProcess=0, deviceLost=0, memoryProtect=0, rpcService=0;
+        int freshFiles=0, cefLoginEmpty=0, cefSubprocess=0, tlsOrCert=0;
+        File preflightReport = new File(drive,
+                "CharoitePortal/Diagnostics/charoite_bnet_rpc_preflight.txt");
+        long preflightAt = preflightReport.isFile() ?
+                preflightReport.lastModified() : 0L;
         for(int i=0;i<Math.min(logs.size(),6);i++) {
             File file=logs.get(i);
+            if (preflightAt>0 && file.lastModified()>=preflightAt) freshFiles++;
             try(java.io.RandomAccessFile input=new java.io.RandomAccessFile(file,"r")) {
                 long begin=Math.max(0,input.length()-32768);
                 input.seek(begin);
@@ -810,11 +834,21 @@ public final class CharoiteBattleNetSupport {
                             line.contains("virtualprotect")) memoryProtect++;
                     if(line.contains("rpcss") || line.contains("rpc_s_server_unavailable") ||
                             line.contains("failed to open service manager")) rpcService++;
+                    if ((line.contains("tassadar") || line.contains("login url")) &&
+                            (line.contains("empty") || line.contains("null") ||
+                             line.contains("not set"))) cefLoginEmpty++;
+                    if ((line.contains("cef") || line.contains("browser") ||
+                            line.contains("gpu process")) &&
+                            (line.contains("subprocess") || line.contains("child process") ||
+                             line.contains("terminated"))) cefSubprocess++;
+                    if (line.contains("certificate") || line.contains("cert verify") ||
+                            line.contains("tls") || line.contains("ssl")) tlsOrCert++;
                 }
             } catch(IOException ignored) {}
         }
         return "BATTLE.NET CLIENT ERROR CATEGORIES\n" +
                 "  Recent client log files sampled: " + sampled + "\n" +
+                "  Sampled log files modified since RPC preflight: " + freshFiles + "\n" +
                 "  Error-like entries: " + errors + "\n" +
                 "  Browser/CEF references: " + cef + "\n" +
                 "  Rendering references: " + rendering + "\n" +
@@ -823,12 +857,16 @@ public final class CharoiteBattleNetSupport {
                 "  Device-lost/removed references: " + deviceLost + "\n" +
                 "  Memory-protection references: " + memoryProtect + "\n" +
                 "  RPC/service-manager references: " + rpcService + "\n" +
+                "  Empty CEF/login URL references: " + cefLoginEmpty + "\n" +
+                "  Browser/CEF subprocess exit references: " + cefSubprocess + "\n" +
+                "  TLS/certificate references: " + tlsOrCert + "\n" +
                 "  Agent/IPC references: " + ipc + "\n" +
                 "  Network references: " + network + "\n" +
                 "  Crash/exception references: " + crash + "\n" +
                 "  Login/authentication references: " + login + "\n" +
                 "This is a read-only categorization, not a diagnosis or a " +
-                "copy of raw Blizzard logs.\n";
+                "copy of raw Blizzard logs. Files modified since preflight " +
+                "can still contain older lines; category counts overlap.\n";
     }
 
 

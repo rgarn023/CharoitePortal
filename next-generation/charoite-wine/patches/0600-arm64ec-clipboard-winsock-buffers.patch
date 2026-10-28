@@ -1,0 +1,27 @@
+diff --git a/dlls/user32/clipboard.c b/dlls/user32/clipboard.c
+--- a/dlls/user32/clipboard.c
++++ b/dlls/user32/clipboard.c
+@@ -72,2 +72,2 @@ static int send_android_clipboard_data(android_clipboard_data_t clipboard_data) {
+-    ret = send(sock_fd, &net_requestcode, sizeof(net_requestcode), 0);
++    ret = send(sock_fd, (const char *)&net_requestcode, sizeof(net_requestcode), 0);
+     if (ret == SOCKET_ERROR) {
+@@ -77,2 +77,2 @@ static int send_android_clipboard_data(android_clipboard_data_t clipboard_data) {
+-    ret = send(sock_fd, &net_data_format, sizeof(net_data_format), 0);
++    ret = send(sock_fd, (const char *)&net_data_format, sizeof(net_data_format), 0);
+     if (ret == SOCKET_ERROR) {
+@@ -82,2 +82,2 @@ static int send_android_clipboard_data(android_clipboard_data_t clipboard_data) {
+-    ret = send(sock_fd, &net_data_size, sizeof(net_data_size), 0);
++    ret = send(sock_fd, (const char *)&net_data_size, sizeof(net_data_size), 0);
+     if (ret == SOCKET_ERROR) {
+@@ -133,2 +133,2 @@ static android_clipboard_data_t receive_android_clipboard_data() {
+-    ret = send(sock_fd, &net_requestcode, sizeof(net_requestcode), 0);
++    ret = send(sock_fd, (const char *)&net_requestcode, sizeof(net_requestcode), 0);
+     if (ret == SOCKET_ERROR) {
+@@ -137,2 +137,2 @@ static android_clipboard_data_t receive_android_clipboard_data() {
+-    ret = recv(sock_fd, &net_data_format, sizeof(net_data_format), 0);
++    ret = recv(sock_fd, (char *)&net_data_format, sizeof(net_data_format), 0);
+     if (ret == SOCKET_ERROR) {
+@@ -141,2 +141,2 @@ static android_clipboard_data_t receive_android_clipboard_data() {
+-    ret = recv(sock_fd, &net_data_size, sizeof(net_data_size), 0);
++    ret = recv(sock_fd, (char *)&net_data_size, sizeof(net_data_size), 0);
+     if (ret == SOCKET_ERROR) {

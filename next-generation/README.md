@@ -18,6 +18,10 @@ A modified Wine implementation will be **derived from licensed upstream Wine/Pro
 
 The original `com.charoite` data, Wine C: drive, TPDP and other installed games are intentionally inaccessible to `com.charoitx` under Android app isolation. The two editions have separate app identities, signing keystores and private storage. Never uninstall or clear the stable app as part of a Next trial.
 
+## Current Charoite Wine compilation milestone
+
+The modified Charoite Wine source has now passed a reproducible patch validation and **Linux host compilation** checkpoint: [Actions 40709722718](https://github.com/rgarn023/CharoitePortal/actions/runs/40709722718). Source, attribution and host-build validation artifacts are available there. The generated `wineserver` is **x86-64 Linux only**, not Android ARM64EC and not bundled in the APK. Next, the Android ARM64EC/Wine server components must be cross-compiled and integrated with FEX and a new prefix before testing Battle.net or Steam. See [Charoite Wine details](charoite-wine/README.md).
+
 ## Device validation roadmap
 
 1. Install Next **alongside** stable Portal; confirm both icons/apps and each edition's private data are independent.

@@ -16,6 +16,9 @@ class BattleNetPreClientRpcContract(unittest.TestCase):
         self.assertIn('CharoiteEnvironments.isBattleNet(host)',SESSIONS)
         self.assertIn('setPositiveButton("Try once"',UI)
         self.assertIn('TRY BATTLE.NET (START WINE RPC SERVICE)',UI)
+        self.assertIn('setNeutralButton("RPC + graphics"',UI)
+        self.assertIn('launchBattleNetRpcTest(true)',UI)
+        self.assertIn('launchBattleNetRpcTest(false)',UI)
 
     def test_first_wine_guest_program_is_preflight_not_battle_net(self):
         self.assertIn('bnet_prelaunch_anchor',OVERLAY)

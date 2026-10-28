@@ -523,5 +523,26 @@ The user answered **"Still spinning"**, then asked **"Are you stuck"** and **"Is
 
 **Exact next step:** implement a pinned Android 16-KiB-compatible NDK + LLVM-MinGW ARM64EC build using the now-valid source and native ABI checks; build patched ARM64EC `ntdll.dll`/`ntdll.so` and Android `wineserver`, then stage in a new app-private Next runner directory, validate hashes, create separate new Windows prefix; only then test Windows program, Battle.net and Steam on Galaxy S26 Ultra. Keep developer attribution and anti-cheat non-bypass boundary.
 
+## 27. October 28, 2026 — Android ARM64 Charoite Wine server and machine-ID safety fix
+
+**User instruction:** Continue developing Charoite Core Next / Charoite Wine directly on GitHub, preserve original `com.charoite` and independent Next `com.charoitx`, no reinstall/deletion or replacing game data. User interrupted with “Are you stuck?” and was told the native build succeeded.
+
+**Implementation committed to `main`:**
+- `next-generation/charoite-wine/build-android-arm64.sh`: explicit prepared-source check, pinned Android NDK r27d, API 35 AArch64 clang, native host tools, isolated Android Wine configure, build `server/wineserver` including patched `server/token.c`, verify ARM64 ELF type and all `PT_LOAD` p_align at least 16,384 bytes. Output only in dedicated CI artifacts, never installed in either Android app or game prefix.
+- New `android-arm64-wineserver` job in `.github/workflows/charoite-wine-source.yml`; runs after source validation and alongside existing x86-64 host smoke test. Emits experimental `Charoite-Wine-Android-ARM64-Experimental` artifact without claiming it is runnable standalone.
+- Native source-build warning revealed Wine upstream's Android `init_user_sid` path could leave `FILE *f` uninitialized. Charoite-authored `patches/0200-android-machine-id-fallback.patch` initializes pointer and falls back to deterministic UID-derived 16-digit machine ID when no per-prefix file is available. Added to `patches/SERIES`; preparation enforces 3 active patches; tests and attribution updated.
+- `next-generation/charoite-wine/tests/test_android_build_contract.py` guards Android NDK/ABI/16-KiB checks and non-destructive isolation. Existing Wine tests updated.
+
+**Verified full success:** [Actions run 40715586360](https://github.com/rgarn023/CharoitePortal/actions/runs/40715586360), source commit `244cf07400b7f5603d4f153bee5b034eadfcb73b`, all **3 jobs succeeded**: patch preparation, Linux host `wineserver` build, experimental Android AArch64 `wineserver`. Android ELF alignment verified `[16384,16384,16384,16384]`. The former uninitialized-file-pointer warning disappeared. A remaining upstream unused `anonymous_logon_sid` warning is not fatal.
+
+Artifacts at this run:
+- `Charoite-Wine-Android-ARM64-Experimental`, artifact **12828870997** (Android-native server, hash and ELF inspection reports; **not an APK**).
+- `Charoite-Wine-Host-Build-Validation`, artifact **12828840652** (host build report).
+- `Charoite-Wine-Source-Validation`, artifact **12828611014** (source provenance and patch report).
+
+**Important:** This **is not yet ARM64EC Wine/Proton running on Android**. `wineserver` is just one Android-native process. ARM64EC Windows `ntdll.dll`, Unix `ntdll.so`, loader, FEX, graphics, prefix provisioning and device-based Steam/Battle.net sign-in remain unbuilt/untested. Respect original `com.charoite` data; do not replace the existing Charoite Next APK until actual modern runtime integration passes. No unsupported anti-cheat bypass.
+
+**Next implementation step:** pin the LLVM-MinGW ARM64EC toolchain with SHA256 and build the ARM64EC PE `ntdll.dll`, paired Android `ntdll.so`, and ABI/checksum verification as separate, non-installing CI artifacts. Then integrate a verified runnable runner in a **new** Next-only prefix.
+
 ---
 **End of current Charoite Portal handoff.**

@@ -613,5 +613,22 @@ Artifacts at this run:
 
 **Next after success:** audit actual ELF dynamic `NEEDED` dependencies and Android executable path assumptions, then source/package other Wine runtime DLLs, NLS, FEX and graphics into a versioned, checksum-verified Next-only runtime slot. Only after completeness and phone smoke tests should the modern runner selector become runnable.
 
+## 31. October 28, 2026 — ARM64EC kernel32 and kernelbase bootstrap DLLs
+
+**User:** “Let's continue”. Continue Charoite Core Next independently on GitHub `main`, preserve existing stable `com.charoite` and side-by-side `com.charoitx`, all user prefixes/games and stable/Next APKs. The most recent validated component baseline remains [Wine CI 40728026115](https://github.com/rgarn023/CharoitePortal/actions/runs/40728026115), source-attributed four-component archive artifact **12834111695**, 21 tests, four jobs green.
+
+**Next source change implemented:** compile additional *Windows ARM64EC* bootstrap DLLs from the **same** already-built and source-validated ARM64EC Wine configuration: `dlls/kernelbase/aarch64-windows/kernelbase.dll` and `dlls/kernel32/aarch64-windows/kernel32.dll`. The Wine 10 Makefile graph uses the `aarch64-windows` output location for hybrid ARM64EC DLLs; **actual PE machine (0xA641) must be validated**, not assumed from directory. No user-visible engine readiness change.
+
+**Commits/new files:**
+- `next-generation/charoite-wine/build-kernel-bridge.sh`: refuses unchecked Wine source and existing output, requires prior ntdll in same tree, compiles both kernel DLLs, verifies each PE `IMAGE_FILE_MACHINE_ARM64EC (0xA641)` via pinned `llvm-readobj`, saves SHA-256 and machine metadata; output isolated and explicitly `installable=false`, `launch_ready=false`.
+- `next-generation/charoite-wine/verify-kernel-bridge.py`: read-only verification of hashes, PE machine report, exact expected files and disabled state.
+- `next-generation/charoite-wine/tests/test_kernel_bridge.py`: tests source isolation and no destructive paths, both DLLs, altered bytes rejection, normal ARM64 PE rejection, unsafe ready flag rejection and extra files rejection.
+- `.github/workflows/charoite-wine-source.yml`: after the previously verified base-slice artifact is published, executes kernel bridge compilation and metadata verification. On success publishes a separate `Charoite-Wine-ARM64EC-Kernel-Experimental` artifact.
+- The original `Charoite-Wine-ARM64EC-Base-Slice-Experimental` job steps remain unchanged and publish before this new stage; a failed kernel stage never contaminates prior known-good bundles.
+
+**Verification pending:** [Actions run 40738747087](https://github.com/rgarn023/CharoitePortal/actions/runs/40738747087), commit `83ac9067beaedb56048ff939eca8d08ad4013a70`, queued/running when this entry was written. Must inspect actual logs/artifacts to verify kernel DLL build; **never claim success until checked**.
+
+**Boundaries:** This work does not create an installable Android APK, working prefix, complete Wine/Proton, FEX or Vulkan graphics environment; does not solve Battle.net login/Steam/Diablo IV or publisher anti-cheat support. If kernel PE libraries compile, the next candidate is Wine boot services (`wineboot.exe` and dependencies), full DLL tree, Android/FEX bridge, prefix and phone tests, all in a new Next-only runner slot.
+
 ---
 **End of current Charoite Portal handoff.**

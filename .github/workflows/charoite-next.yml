@@ -1,0 +1,375 @@
+name: Charoite Core Next Android
+on:
+  push:
+    paths:
+      - '.github/workflows/charoite-next.yml'
+      - 'next-generation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: charoite-next-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-runtime-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify game folder import never auto-launches
+        run: python3 -m unittest discover -s runtime-preview/tests -p 'test_*.py' -v
+
+      - name: Verify Next multi-engine isolation tests
+        run: python3 -m unittest discover -s next-generation/tests -p 'test_*.py' -v
+
+      - name: Get pinned LGPL Winlator upstream source
+        run: |
+          git clone --filter=blob:none --depth 1 https://github.com/brunodev85/winlator-app.git upstream
+          cd upstream
+          git fetch --depth 1 origin 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          git checkout --detach 8077f374ef2d54127b088de9e8cd7b4af14d9c8b
+          test -f LICENSE
+          test -f app/src/main/assets/rootfs.tzst
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.5'
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install build dependencies
+        run: |
+          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0' 'ndk;24.0.8215888' 'cmake;3.22.1'
+
+      - name: Rebase embedded Box64 and Wine native paths
+        run: |
+          command -v zstd
+          python3 next-generation/rewrite_prefix_next.py upstream
+
+      - name: Verify Box64 points to this app's private loader
+        run: |
+          mkdir -p /tmp/touhou-elf-check
+          tar --use-compress-program=zstd -xf upstream/app/src/main/assets/box64/box64-0.4.4.tzst -C /tmp/touhou-elf-check ./usr/local/bin/box64
+          python3 - <<'PY'
+          from pathlib import Path
+          box64 = Path('/tmp/touhou-elf-check/usr/local/bin/box64').read_bytes()
+          assert b'/data/data/com.charoitx/files/rootfs/lib/ld-linux-aarch64.so.1' in box64
+          assert b'/data/data/com.winlator/' not in box64
+          assert b'/data/data/com.touhoudr/' not in box64
+          assert b'/data/data/com.charoitx/' in box64
+          assert b'/data/data/com.charoite/' not in box64
+          print('Box64 loader uses the separate Charoite Next private application data path.')
+          PY
+
+      - name: Build licensed Japanese language support pack
+        run: |
+          command -v localedef
+          command -v fc-scan
+          python3 runtime-preview/charoite-core/japanese/build_japanese_support.py upstream
+
+      - name: Restore compiled Japanese installer helpers
+        id: japanese-helper-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            runtime-preview/charoite-core/japanese/touhou_probe.exe
+            runtime-preview/charoite-core/japanese/touhou_font_hook32.dll
+            runtime-preview/charoite-core/japanese/touhou_font_hook64.dll
+            runtime-preview/charoite-core/japanese/touhou_font_helper32.exe
+            runtime-preview/charoite-core/japanese/touhou_font_helper64.exe
+            runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
+            runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
+            runtime-preview/charoite-core/input/charoite_keyscan.exe
+            runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe
+          key: charoite-win32-tools-v5-${{ hashFiles('runtime-preview/charoite-core/japanese/touhou_probe.c', 'runtime-preview/charoite-core/japanese/touhou_font_hook.c', 'runtime-preview/charoite-core/japanese/touhou_font_helper.c', 'runtime-preview/charoite-core/rendering/charoite_gdi_probe.c', 'runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c', 'runtime-preview/charoite-core/input/charoite_keyscan.c', 'runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c') }}
+
+      - name: Compile Japanese installer font helpers
+        if: steps.japanese-helper-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 12
+        run: |
+          # Ubuntu's Azure apt mirror stalled on 120 MB of MinGW packages
+          # (exit code 124). Download a pinned, verified LLVM-MinGW toolchain.
+          TOOLCHAIN=/tmp/charoite-llvm-mingw
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-msvcrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --connect-timeout 25 --max-time 240 \
+            "$URL" -o /tmp/charoite-llvm-mingw.tar.xz
+          echo "ceb8c5acc6f76e143f9c714772d2fa677027802561ce68c396e8dc990a80f0b6  /tmp/charoite-llvm-mingw.tar.xz" | sha256sum --check
+          mkdir -p "$TOOLCHAIN"
+          tar -xJf /tmp/charoite-llvm-mingw.tar.xz -C "$TOOLCHAIN" --strip-components=1
+          CC32="$TOOLCHAIN/bin/i686-w64-mingw32-clang"
+          CC64="$TOOLCHAIN/bin/x86_64-w64-mingw32-clang"
+          test -x "$CC32" && test -x "$CC64"
+          "$CC64" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+            runtime-preview/charoite-core/japanese/touhou_probe.c -o runtime-preview/charoite-core/japanese/touhou_probe.exe \
+            -luser32 -lgdi32
+          for arch in 32 64; do
+            if [ "$arch" = 32 ]; then cc="$CC32"; else cc="$CC64"; fi
+            "$cc" -std=c11 -O2 -Wall -Wextra -shared \
+              runtime-preview/charoite-core/japanese/touhou_font_hook.c \
+              -o "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" \
+              -luser32 -lgdi32
+            "$cc" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+              runtime-preview/charoite-core/japanese/touhou_font_helper.c \
+              -o "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe" \
+              -luser32
+            file "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe"
+            # Fail CI if callback decoration drifts from the helper lookup.
+            if [ "$arch" = 32 ]; then symbol="TouhouDrawHook@12"; else symbol="TouhouDrawHook"; fi
+            objdump -p "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" |
+              grep -F " $symbol"
+            # Verify the new native, pre-draw, read-only audit is exported
+            # with the correct LLVM-MinGW x86/x64 decoration.
+            if [ "$arch" = 32 ]; then audit="TouhouAuditHook@12"; else audit="TouhouAuditHook"; fi
+            objdump -p "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll" |
+              grep -F " $audit"
+            test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_hook${arch}.dll") -gt 5000
+            test $(stat -c %s "runtime-preview/charoite-core/japanese/touhou_font_helper${arch}.exe") -gt 5000
+          done
+          file runtime-preview/charoite-core/japanese/touhou_probe.exe
+          test $(stat -c %s runtime-preview/charoite-core/japanese/touhou_probe.exe) -gt 10000
+          # Shared read-only Unicode/CP932 test tool, deliberately not a Wine patch.
+          "$CC32" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+            runtime-preview/charoite-core/rendering/charoite_gdi_probe.c \
+            -o runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe \
+            -luser32 -lgdi32
+          file runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe
+          test $(stat -c %s runtime-preview/charoite-core/rendering/charoite_gdi_probe32.exe) -gt 10000
+          "$CC32" -std=c11 -O2 -Wall -Wextra -municode -mwindows \
+            runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe.c \
+            -o runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe \
+            -luser32 -lgdi32
+          file runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe
+          test $(stat -c %s runtime-preview/charoite-core/rendering/charoite_ownerdraw_probe32.exe) -gt 10000
+          # Keyboard scan-code helper is a small Windows executable.
+          "$CC32" -std=c11 -O2 -Wall -Wextra -mwindows \
+            runtime-preview/charoite-core/input/charoite_keyscan.c \
+            -o runtime-preview/charoite-core/input/charoite_keyscan.exe \
+            -lws2_32 -luser32
+          test $(stat -c %s runtime-preview/charoite-core/input/charoite_keyscan.exe) -gt 5000
+          # Standalone Win32-only, read-only Battle.net DNS/HTTPS/Agent probe.
+          "$CC32" -std=c11 -O2 -Wall -Wextra -mwindows \
+            runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c \
+            -o runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe \
+            -lwinhttp -lws2_32 -luser32 -ladvapi32 -liphlpapi
+          file runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe
+          test $(stat -c %s runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.exe) -gt 5000
+
+      - name: Apply stable Charoite Core feature overlay
+        run: python3 runtime-preview/overlay.py upstream
+
+      - name: Install separate Charoite Next app identity and engine inventory
+        run: python3 next-generation/prepare_next.py upstream
+
+      # Persist the one debug signing key used by Gradle for future APK
+      # upgrades. actions/cache does not save nonexistent files, so create
+      # the key BEFORE invoking Gradle (previous builds missed this step).
+      # This cannot retroactively match earlier ephemeral APK certificates.
+      - name: Restore Charoite Next APK signing identity
+        id: signing-keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/charoite-next.keystore
+          key: charoite-next-debug-signing-v1
+
+      - name: Create signing key on first build only
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/charoite-next.keystore" ]; then
+            keytool -genkeypair -noprompt \
+              -keystore "$HOME/.android/charoite-next.keystore" \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass android -keypass android \
+              -dname "CN=Charoite Next Debug,O=Charoite Games,C=US"
+          fi
+          test -s "$HOME/.android/charoite-next.keystore"
+          keytool -list -keystore "$HOME/.android/charoite-next.keystore" \
+            -alias androiddebugkey -storepass android > /dev/null
+          echo "Signing key present before Android build."
+
+
+      - name: Build integrated Windows runtime preview
+        working-directory: upstream
+        run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify APK signing matches persisted Charoite key
+        run: |
+          set -euo pipefail
+          APK=upstream/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          ACTUAL=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" |
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 |
+            tr '[:upper:]' '[:lower:]')
+          KEY=$(keytool -exportcert -keystore "$HOME/.android/charoite-next.keystore" \
+            -alias androiddebugkey -storepass android |
+            sha256sum | awk '{print $1}')
+          echo "APK cert fingerprint: $ACTUAL"
+          echo "Persisted key fingerprint: $KEY"
+          test -n "$ACTUAL" && test "$ACTUAL" = "$KEY"
+          echo "APK signing certificate matches cached signing key."
+
+      - name: Verify Charoite Next adaptive icon and approved artwork
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as archive:
+              files = set(archive.namelist())
+              expected = {
+                  "res/drawable-nodpi-v4/charoite_portal_icon.jpg",
+                  "res/mipmap-anydpi-v26/ic_launcher.xml",
+                  "res/mipmap-anydpi-v26/ic_launcher_round.xml",
+              }
+              missing = expected - files
+              assert not missing, f"Required Android launcher icon resources missing: {missing}"
+              image = archive.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
+              digest = hashlib.sha256(image).hexdigest()
+              assert digest == "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5", (
+                  "Charoite Portal icon artwork was damaged during build: " + digest)
+              assert any(p.endswith("/charoite_portal_foreground.xml") for p in files)
+              print("Valid approved artwork; modern adaptive and round icon assets packaged")
+          PY
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            upstream/app/build/outputs/apk/debug/app-debug.apk | \
+            grep -F "application-label:'Charoite Next'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            upstream/app/build/outputs/apk/debug/app-debug.apk | \
+            grep -F "package: name='com.charoitx'"
+
+      - name: Verify APK JNI native cache paths
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              checked = 0
+              for path in z.namelist():
+                  if path.startswith("lib/") and path.endswith(".so"):
+                      checked += 1
+                      content = z.read(path)
+                      for outdated in (b"/data/data/com.winlator", b"/data/data/com.touhoudr", b"/data/data/com.charoite/"):
+                          if outdated in content:
+                              raise AssertionError(f"Native library contains outdated application path: {path}")
+              assert checked > 0, "No JNI binaries found in APK"
+              print("Verified", checked, "native libraries have no stale Winlator app-data path")
+          PY
+
+      - name: Verify Japanese fonts and locale shipped in APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              assert "assets/japanese/japanese-support.tzst" in z.namelist()
+              assert "assets/licenses/NotoSansCJK-OFL.txt" in z.namelist()
+              assert "assets/licenses/IPA-Font-License-1.0.txt" in z.namelist()
+              assert len(z.read("assets/japanese/japanese-support.tzst")) > 12000000
+              print("Japanese locale and SIL OFL font license included")
+          PY
+
+      - name: Verify read-only installer probe is included
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              name = "assets/japanese/touhou_probe.exe"
+              assert name in z.namelist(), "Missing Wine path probe"
+              probe = z.read(name)
+              assert probe.startswith(b"MZ"), "Probe is not a Windows executable"
+              assert len(probe) > 10000
+              print("Win32 Japanese diagnostic included:", len(probe), "bytes")
+              for arch in ("32", "64"):
+                  for name,signature in ((f"touhou_font_helper{arch}.exe",b"MZ"),(f"touhou_font_hook{arch}.dll",b"MZ")):
+                      bundled = z.read("assets/japanese/" + name)
+                      assert bundled.startswith(signature) and len(bundled) > 5000
+                      print("Wine scoped font patch included:", name, len(bundled))
+          PY
+
+      - name: Verify Charoite Core general GDI diagnostic is packaged
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk = next(Path("upstream/app/build/outputs/apk/debug").glob("*.apk"))
+          with zipfile.ZipFile(apk) as z:
+              name = "assets/rendering/charoite_gdi_probe32.exe"
+              content = z.read(name)
+              assert content.startswith(b"MZ") and len(content) > 10000, "Missing Win32 GDI test"
+              assert "charoite_gdi_render.log".encode("utf-16le") in content
+              print("Bundled reusable Charoite Core read-only GDI test:", len(content), "bytes")
+              owner = z.read("assets/rendering/charoite_ownerdraw_probe32.exe")
+              assert owner.startswith(b"MZ") and len(owner) > 10000
+              assert "charoite_ownerdraw_render.log".encode("utf-16le") in owner
+              print("Bundled reusable read-only owner-draw comparison:", len(owner), "bytes")
+          PY
+
+      - name: Verify scan-code keyboard bridge is packaged
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("upstream/app/build/outputs/apk/debug/app-debug.apk") as z:
+              exe=z.read("assets/input/charoite_keyscan.exe")
+              assert exe[:2] == b"MZ" and len(exe) > 5000
+              print("Windows scan-code helper packaged", len(exe))
+          PY
+
+      - name: Archive LGPL source and derivative patch
+        run: |
+          mkdir -p upstream/app/src/main/assets/licenses
+          cp upstream/LICENSE upstream/app/src/main/assets/licenses/Winlator-LGPL-2.1.txt
+          mkdir -p legal-bundle
+          cp upstream/LICENSE legal-bundle/Winlator-LGPL-2.1.txt
+          cp runtime-preview/NOTICE.md legal-bundle/NOTICE.md
+          cp next-generation/engine-reference.json legal-bundle/engine-reference.json
+          cp next-generation/prepare_next.py legal-bundle/prepare_next.py
+          cp next-generation/rewrite_prefix_next.py legal-bundle/rewrite_prefix_next.py
+          cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
+          cp runtime-preview/charoite-core/input/charoite_keyscan.c legal-bundle/charoite_keyscan.c
+          cp runtime-preview/overlay.py legal-bundle/overlay.py
+          cp runtime-preview/rewrite_prefix.py legal-bundle/rewrite_prefix.py
+          cp runtime-preview/charoite-core/japanese/build_japanese_support.py legal-bundle/build_japanese_support.py
+          cp runtime-preview/charoite-core/japanese/touhou_probe.c legal-bundle/touhou_probe.c
+          cp runtime-preview/charoite-core/japanese/touhou_font_hook.c legal-bundle/touhou_font_hook.c
+          cp runtime-preview/charoite-core/japanese/touhou_font_helper.c legal-bundle/touhou_font_helper.c
+          cp upstream/app/src/main/assets/licenses/NotoSansCJK-OFL.txt legal-bundle/NotoSansCJK-OFL.txt
+          cp upstream/app/src/main/assets/licenses/IPA-Font-License-1.0.txt legal-bundle/IPA-Font-License-1.0.txt
+
+      - name: Publish Charoite Next APK
+        run: |
+          cp upstream/app/build/outputs/apk/debug/app-debug.apk \
+            upstream/app/build/outputs/apk/debug/Charoite-Next-Android.apk
+          test -s upstream/app/build/outputs/apk/debug/Charoite-Next-Android.apk
+
+      - name: Upload Charoite Next APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Core-Next-Android-APK
+          path: upstream/app/build/outputs/apk/debug/Charoite-Next-Android.apk
+          if-no-files-found: error
+
+      - name: Publish Charoite Next source attribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Core-Next-Licenses
+          path: legal-bundle/
+          if-no-files-found: error
+

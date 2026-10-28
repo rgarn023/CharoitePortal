@@ -261,3 +261,25 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-foundation/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Cross-build audited Windows ARM64EC PE API expansion (experimental)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-pe-expansion.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-dependency-inventory/runtime-dependency-inventory.json" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-foundation" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-expansion"
+          python3 next-generation/charoite-wine/verify-pe-expansion.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-expansion" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-foundation"
+
+      - name: Publish ARM64EC PE API expansion (experimental, not runnable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-PE-Expansion-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-expansion/
+          retention-days: 14
+          if-no-files-found: error

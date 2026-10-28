@@ -15,6 +15,7 @@
 #include <winhttp.h>
 #include <tlhelp32.h>
 #include <winsvc.h>
+#include <iphlpapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +29,10 @@ typedef struct {
     int rpcss;
     int services;
     int client_children;
+    // Process IDs are held only in memory to correlate read-only TCP rows.
+    // Neither PIDs nor unfiltered network tables are written to reports.
+    DWORD agent_pids[16];
+    int agent_pid_count;
     DWORD error;
 } ProcessCounts;
 
@@ -63,7 +68,11 @@ static ProcessCounts get_process_counts(void) {
                     }
                 }
             }
-            if (!_wcsicmp(proc.szExeFile, L"Agent.exe")) counts.agents++;
+            if (!_wcsicmp(proc.szExeFile, L"Agent.exe")) {
+                counts.agents++;
+                if (counts.agent_pid_count < 16)
+                    counts.agent_pids[counts.agent_pid_count++]=proc.th32ProcessID;
+            }
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net.exe")) counts.clients++;
             else if (!_wcsicmp(proc.szExeFile, L"Battle.net Launcher.exe"))
                 counts.launchers++;
@@ -139,6 +148,73 @@ static int probe_agent_loopback_1120(DWORD *lastError) {
     closesocket(sock);
     WSACleanup();
     return connected;
+}
+
+/*
+ * Read-only owner-PID lookup via Wine's iphlpapi, not a port scanner.
+ * Only count TCP_LISTEN rows owned by the Agent.exe processes we observed
+ * in the same ToolHelp snapshot. Never report foreign process ports, PIDs,
+ * addresses, connection endpoints or network payloads.
+ * An Agent may use named pipes, Unix sockets, or IPv6 -- zero IPv4 listeners
+ * is never proof that Agent IPC is unhealthy.
+ */
+static int inspect_agent_owned_ipv4_listeners(const ProcessCounts *counts,
+        DWORD *error, int *total, int *loopback, DWORD *examplePort) {
+    *error=0;
+    *total=0;
+    *loopback=0;
+    *examplePort=0;
+    DWORD required=0;
+    DWORD status=GetExtendedTcpTable(NULL,&required,FALSE,
+            AF_INET,TCP_TABLE_OWNER_PID_LISTENER,0);
+    if (status!=ERROR_INSUFFICIENT_BUFFER && status!=NO_ERROR) {
+        *error=status;
+        return 0;
+    }
+    if (required<sizeof(DWORD) || required>512*1024) {
+        *error=ERROR_BAD_LENGTH;
+        return 0;
+    }
+    MIB_TCPTABLE_OWNER_PID *table=(MIB_TCPTABLE_OWNER_PID*)malloc(required);
+    if (!table) {
+        *error=ERROR_NOT_ENOUGH_MEMORY;
+        return 0;
+    }
+    status=GetExtendedTcpTable(table,&required,FALSE,
+            AF_INET,TCP_TABLE_OWNER_PID_LISTENER,0);
+    if (status!=NO_ERROR) {
+        *error=status;
+        free(table);
+        return 0;
+    }
+    // Bound reads even if Wine unexpectedly returns a malformed table.
+    if (table->dwNumEntries >
+            (required-sizeof(DWORD))/sizeof(MIB_TCPROW_OWNER_PID)) {
+        *error=ERROR_BAD_LENGTH;
+        free(table);
+        return 0;
+    }
+    for (DWORD row=0;row<table->dwNumEntries;row++) {
+        MIB_TCPROW_OWNER_PID *entry=&table->table[row];
+        if (entry->dwState!=MIB_TCP_STATE_LISTEN) continue;
+        int owned=0;
+        for (int a=0;a<counts->agent_pid_count;a++) {
+            if (entry->dwOwningPid==counts->agent_pids[a]) {
+                owned=1;
+                break;
+            }
+        }
+        if (!owned) continue;
+        (*total)++;
+        if (entry->dwLocalAddr==htonl(INADDR_LOOPBACK) ||
+                entry->dwLocalAddr==htonl(INADDR_ANY)) {
+            (*loopback)++;
+            if (!*examplePort)
+                *examplePort=ntohs((u_short)entry->dwLocalPort);
+        }
+    }
+    free(table);
+    return 1;
 }
 
 /* Query the Wine service manager without starting, stopping, or changing a
@@ -445,6 +521,10 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
     int clientChildPresentSamples=0, maxClientChildren=0;
     int localAgentTests=0, localAgentConnectOk=0;
     DWORD localAgentLastError=0;
+    int agentTcpTableQueries=0, agentTcpTableSuccess=0;
+    int agentTcpListenerPresentSamples=0, agentTcpListenerMax=0;
+    int agentTcpLoopbackMax=0;
+    DWORD agentTcpExampleLoopbackPort=0,agentTcpLastError=0;
     RpcServiceStatus lastRpc;
     ZeroMemory(&lastRpc, sizeof(lastRpc));
     fprintf(report,"monitor_same_session=1\n");
@@ -473,6 +553,19 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
             localAgentTests++;
             if (probe_agent_loopback_1120(&localAgentLastError))
                 localAgentConnectOk++;
+            agentTcpTableQueries++;
+            int totalListeners=0, loopbackListeners=0;
+            DWORD examplePort=0;
+            if (inspect_agent_owned_ipv4_listeners(&c,&agentTcpLastError,
+                    &totalListeners,&loopbackListeners,&examplePort)) {
+                agentTcpTableSuccess++;
+                if (totalListeners>0) agentTcpListenerPresentSamples++;
+                if (totalListeners>agentTcpListenerMax)
+                    agentTcpListenerMax=totalListeners;
+                if (loopbackListeners>agentTcpLoopbackMax)
+                    agentTcpLoopbackMax=loopbackListeners;
+                if (examplePort) agentTcpExampleLoopbackPort=examplePort;
+            }
         }
         if (c.agents > maxAgent) maxAgent = c.agents;
         if (c.clients > maxClient) maxClient = c.clients;
@@ -506,6 +599,20 @@ static void monitor_battlenet(FILE *report, int allowRpcStart) {
             localAgentConnectOk);
     fprintf(report,"monitor_agent_loopback_1120_last_winsock_error=%lu\n",
             (unsigned long)localAgentLastError);
+    fprintf(report,"monitor_agent_tcp_ipv4_owner_queries=%d\n",
+            agentTcpTableQueries);
+    fprintf(report,"monitor_agent_tcp_ipv4_owner_query_success=%d\n",
+            agentTcpTableSuccess);
+    fprintf(report,"monitor_agent_tcp_ipv4_listener_present_samples=%d\n",
+            agentTcpListenerPresentSamples);
+    fprintf(report,"monitor_agent_tcp_ipv4_max_listeners=%d\n",
+            agentTcpListenerMax);
+    fprintf(report,"monitor_agent_tcp_ipv4_max_loopback_listeners=%d\n",
+            agentTcpLoopbackMax);
+    fprintf(report,"monitor_agent_tcp_ipv4_example_loopback_port=%lu\n",
+            (unsigned long)agentTcpExampleLoopbackPort);
+    fprintf(report,"monitor_agent_tcp_ipv4_last_query_error=%lu\n",
+            (unsigned long)agentTcpLastError);
     fprintf(report,"monitor_max_launcher=%d\n",maxLauncher);
     fprintf(report,"monitor_rpcss_present_samples=%d\n",seenRpcss);
     fprintf(report,"monitor_services_present_samples=%d\n",seenServices);

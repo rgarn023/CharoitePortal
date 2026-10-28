@@ -24,12 +24,13 @@
 ## 2. Current verified GitHub/APK state (October 27, 2026)
 
 **Latest verified Android runtime APK (source code):**
-- **Runtime code SHA:** `4d006f1d769b32dedda7bceef596177135164e34`.
-- **GitHub Actions run `40621810208` — SUCCESS:** https://github.com/rgarn023/CharoitePortal/actions/runs/40621810208
-- **APK artifact:** `Charoite-Portal-Android-APK`, artifact **12787088516**, uploaded/non-expired; ZIP archive **231,401,093 bytes**.
-- **Tests:** **133 regression tests passed** (verified full GitHub Actions log). Win32 diagnostic helper, full Android APK, signing and packaging verification, artifact upload succeeded.
-- **Phone status:** User verified **before-client RpcSs preflight** succeeds, original startup configuration restored, and client actually launched on their Galaxy using PREVIOUS successful APK run `40591957435`. Whether login showed this time was NOT explicitly stated in latest report; previous conversations confirmed spinner even after RpcSs started post-window. Latest APK adds only read-only diagnostics to examine CEF subprocess relationships, historical Agent loopback port 1120, and sanitized error categories.
-- **Preserve:** application ID `com.charoite`, installed games, saves, Wine prefixes and environment data. No Wine version replacement or Blizzard cache reset. Handoff-only `[skip ci]` commits advance main without rebuilding the code.
+- **Runtime code SHA:** `6ec4310caa2b35eccdaf094e465121450e70bdf5`.
+- **GitHub Actions run `40622918379` — SUCCESS:** https://github.com/rgarn023/CharoitePortal/actions/runs/40622918379
+- **APK artifact:** `Charoite-Portal-Android-APK`, artifact **12788137725**, uploaded/non-expired; ZIP archive **231,401,681 bytes**.
+- **Tests:** **134 regression tests passed**, verified in final Actions logs. Native Win32 helper, Android APK, signing/packaging verification, and artifact upload completed.
+- **Phone findings from previous APK `40621810208`:** RPC before-client preflight ready and verified restored (`RpcSs` RUNNING in 16/16); Battle.net client present 16/16; Agent present 15/16; maximum 4 child processes seen in 13 samples; four TCP connects to **historical** local port `127.0.0.1:1120` all refused with Winsock 10061. **This does NOT establish Agent IPC failure** because the port may no longer be used. Six sampled logs include 62 error-like lines, but zero matches in narrow CEF subprocess-exit, TLS, or empty URL categories. Actual newest login UI outcome was NOT explicitly stated.
+- **New APK adds read-only Agent-owned IPv4 TCP listener discovery** via Wine 10.10's `iphlpapi.GetExtendedTcpTable`, not a broad port scanner. On-device verification pending.
+- **Preserve:** application ID `com.charoite`; existing private app data, games, saves, and Wine prefixes. No Wine replacement, no browser/Agent cache deletion or restart policy changes. Handoff-only `[skip ci]` commits advance main without rebuilding.
 
 **Documentation housekeeping in this chat:** This canonical living handoff was added to the repository as a separate, easy-to-paste file; the root `README.md` now links here and retains a link to the historical handoff. These are documentation-only changes with `[skip ci]`; they do **not** require a new APK or replace the verified runtime build above. Always check `main` HEAD before development.
 
@@ -136,7 +137,7 @@ The application is **Charoite Portal** (Android frontend) plus a common **Charoi
 5. On **handoff-only** edits, put `[skip ci]` in the commit message to avoid redundant APK compilation. If a documentation commit advances `main` beyond last successful runtime commit, state so explicitly rather than claiming CI built that doc commit.
 6. Provide user the canonical [current handoff](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md) whenever context becomes long, so they can copy the raw Markdown into a new conversation. The old `docs/HANDOFF.md` is useful only as historical provenance.
 
-**Current priority (October 27):** Latest Galaxy pre-client RpcSs report from 22:29 EDT verifies `preflight_rpc_ready=1`, `preflight_launch_ready=1`, service RUNNING 16/16 and original Disabled startup type safely restored. Thus neither missing nor late-started RpcSs plausibly explains the continuing launch problem. The user did not expressly say whether login appeared THIS run; older report explicitly said spinner persisted after post-window service startup. Latest successful **`40621810208`** APK adds read-only Agent loopback 1120 TCP connect (historical port, not proof of IPC) and Battle.net child-process relationship counts and focused log error categories. Ask user to update without clearing data, run Battle.net Gaming → Setup → TRY BATTLE.NET (START WINE RPC SERVICE), and share VIEW BATTLE.NET LOGIN / CEF REPORT and whether login appeared. If spinner persists despite pre-client readiness, investigate CEF software rendering, current logs, Agent IPC, and optional existing reversible cache backup/reset—not more RPC service changes.
+**Current priority (October 27):** User report at 22:41 EDT confirms `RpcSs` running, correct BEFORE-client startup, successful rollback, Battle.net and Agent processes, and 4 Battle.net child processes; 127.0.0.1:1120 TCP connection refused 0/4 with 10061. That is a *historical* port, so its failure does not establish Agent IPC failure. New APK `40622918379` (source `6ec4310...`) adds read-only enumeration of local IPv4 listening sockets **owned by observed Agent.exe PIDs**, reporting bounded counts, one example loopback/wildcard local port, error code. Does NOT read traffic or try arbitrary ports; Wine may not support ownership lookups and Agent may use IPv6 or named pipes. Update existing APK without uninstall or clearing data; test Battle.net Gaming → Setup → TRY BATTLE.NET (START WINE RPC SERVICE), then share VIEW BATTLE.NET LOGIN / CEF REPORT and explicit whether login screen or spinner. If spinner persists, prioritize the existing optional **BACK UP + RESET BATTLE.NET BROWSER CACHE** with confirmation (backups, no destructive cache deletion), CEF graphics and IPC investigation—not more RPC changes.
 
 ## 8. October 27, 2026 — Windows 11 compatibility / next Battle.net engineering plan (research only)
 
@@ -356,6 +357,37 @@ The initial before-client RPC experiment at code SHA `294f63667c5c8570521bf3b717
 **Final verified APK:** GitHub Actions run https://github.com/rgarn023/CharoitePortal/actions/runs/40621810208 **SUCCESS**, code SHA `4d006f1d769b32dedda7bceef596177135164e34`, `Charoite-Portal-Android-APK` artifact **12787088516** compressed **231,401,093 bytes**, unexpired. **133 Python regression tests passed**, Win32 native diagnostic and Android APK successfully compiled and signed. Handoff docs-only commit uses `[skip ci]`, so may be newer than APK code SHA. NO on-device test yet of this newest focused Agent/CEF diagnostic.
 
 **Next user/device test:** Update existing `com.charoite` APK without uninstalling or clearing data; close old Battle.net session; launch the same **Battle.net Gaming → Setup → TRY BATTLE.NET (START WINE RPC SERVICE)**. Allow ~30 seconds, then go to **VIEW BATTLE.NET LOGIN / CEF REPORT** → Copy. Look for `preflight_rpc_ready=1`, `preflight_launch_ready=1`, the new child process and historical Agent localhost 1120 counts, new CEF error signatures, and actual login window/spinner observation. If local port is closed, *do not* conclude Agent is broken (port not guaranteed). If child process count high or CEF error signatures appear, consider focused Wine/Staging CEF compatibility measures. If still spinning, existing **BACK UP + RESET BATTLE.NET BROWSER CACHE** is an optional user-approved reversible cache-folder rename; close Battle.net first, keep Agent and game data untouched. Do not automatically delete `ProgramData/Battle.net`, reset the entire prefix, upgrade Wine or uninstall games.
+
+## 18. October 27, 2026 — Historical Agent port 1120 refused; new owner-scoped TCP listener diagnostic built
+
+**User's actual 22:41 EDT Galaxy findings using APK run `40621810208`:**
+```
+preflight_rpc_ready=1
+preflight_client_spawn_error=0
+preflight_launch_ready=1
+monitor_rpc_start_after_state=4
+monitor_rpc_restore_confirmed=1
+monitor_rpc_service_running_samples=16
+monitor_agent_present_samples=15
+monitor_client_present_samples=16
+monitor_max_client_children=4
+monitor_client_child_present_samples=13
+monitor_agent_loopback_1120_tests=4
+monitor_agent_loopback_1120_connect_success=0
+monitor_agent_loopback_1120_last_winsock_error=10061
+```
+WinSock `10061` is **connection refused** at `127.0.0.1:1120`. It does NOT prove that the Agent IPC transport fails: the port was only historically documented and may be obsolete. `Agent.exe` lives in the Wine session; four Battle.net child processes were present, but process ancestry alone cannot identify which are Chromium browser/GPU helpers. One browser config reports acceleration OFF. Logs: 6 files (2 modified since preflight), 62 error-like lines, 20 rendering refs, 8 GPU/compositor, 5 GPU-process, 3 CEF, 3 Agent/IPC, 6 network, 3 login/auth; zero narrow CEF subprocess exits, empty login URL, certificate errors, or counted crashes. Counts may overlap or include older content. User has not expressly confirmed UI outcome for this *latest* launch; earlier reported spinner.
+
+**Public technical verification:** Microsoft's `GetExtendedTcpTable` supports `TCP_TABLE_OWNER_PID_LISTENER` for IPv4, and the pinned Wine 10.10 source contains the implementation. This is a read-only way to discover listener ownership without guessing a port. https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedtcptable . `lutris/docs/Battle.Net.md` describes spinning login symptoms and optionally resetting browser caches after acceleration is disabled; do not delete Blizzard data automatically. https://github.com/lutris/docs/blob/master/Battle.Net.md
+
+**Real GitHub `main` changes:**
+- `c806cdc65a3f9f63e5e47b4be9514e50c184a6a4` updates `runtime-preview/charoite-core/diagnostics/charoite_bnet_network_probe.c`. Keeps *in-memory only* up to 16 PIDs for `Agent.exe` observed through ToolHelp; on the 4 existing staggered samples calls `GetExtendedTcpTable` `TCP_TABLE_OWNER_PID_LISTENER` (IPv4) with a bounded 512 KiB table, counts only `LISTEN` rows with PID matching Agent and counts loopback/wildcard owned listeners. Outputs `monitor_agent_tcp_ipv4_owner_queries`, `monitor_agent_tcp_ipv4_owner_query_success`, `monitor_agent_tcp_ipv4_listener_present_samples`, `monitor_agent_tcp_ipv4_max_listeners`, `monitor_agent_tcp_ipv4_max_loopback_listeners`, `monitor_agent_tcp_ipv4_example_loopback_port`, and `monitor_agent_tcp_ipv4_last_query_error`. No port scanning, arbitrary process information, IP addresses, commands, credentials or packet data, and no new connects to discovered ports. **If count=0 or error, may reflect Wine API limitations, named pipes, Unix sockets or IPv6—not proof of Agent failure.**
+- `647e2390727e9763650539f050c7d6d482bde8ef` links `-liphlpapi` in `.github/workflows/runtime-preview.yml` for 32-bit native helper.
+- `5a30f2f64ac0f382696eb8424b8681262ef47858` extends the read-only `CharoiteBattleNetSupport.inspectInSessionAgentMonitor()` output, including a clear warning against over-interpreting missing IPv4 owned listeners.
+- `6ec4310caa2b35eccdaf094e465121450e70bdf5` strengthens `runtime-preview/tests/test_battlenet_cef_agent_ipc_contract.py` for owner-PID matching, privacy, bounded queries, linking and report wording.
+- **Successful verified APK build:** GitHub Actions `40622918379`, source SHA **`6ec4310caa2b35eccdaf094e465121450e70bdf5`**, artifact `Charoite-Portal-Android-APK` ID **12788137725**, 231,401,681-byte compressed archive, uploaded/not expired. **134 regression tests PASS**, native and Android builds/signing PASS. No on-device validation of the latest listener query yet.
+
+**Next phone test:** Install APK over existing `com.charoite` (never uninstall/clear app data). Close old Battle.net session and launch via **Battle.net Gaming → Setup → TRY BATTLE.NET (START WINE RPC SERVICE)**, then copy **VIEW BATTLE.NET LOGIN / CEF REPORT** after ~30 sec. Focus on new `monitor_agent_tcp_ipv4_* ` fields, old port 1120 results, `preflight_rpc_ready`/`preflight_launch_ready`, and whether login appears. If the spinner persists, consider the already implemented **BACK UP + RESET BATTLE.NET BROWSER CACHE** opt-in control with cleanly closed client (renames selected cache folders to backups; preserve Agent, games and account settings), then compare outcomes rather than blindly changing Wine. Prioritize controlled CEF/IPC diagnostics over broad destructive resets.
 
 ---
 **End of current Charoite Portal handoff.**

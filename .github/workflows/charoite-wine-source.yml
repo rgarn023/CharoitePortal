@@ -183,3 +183,22 @@ jobs:
             ${{ runner.temp }}/charoite-wine-prepared/charoite-runtime-slice/manifest.json
           retention-days: 14
           if-no-files-found: error
+
+      - name: Cross-build core Windows ARM64EC kernel modules
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-kernel-bridge.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-kernel-bridge"
+          python3 next-generation/charoite-wine/verify-kernel-bridge.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-kernel-bridge"
+
+      - name: Publish source-built ARM64EC kernelbase and kernel32 for independent review
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-Kernel-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-kernel-bridge/
+          retention-days: 14
+          if-no-files-found: error

@@ -296,12 +296,9 @@ jobs:
           apk = Path("upstream/app/build/outputs/apk/debug/app-debug.apk")
           with zipfile.ZipFile(apk) as z:
               icon = z.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
-              art = z.read("res/drawable-nodpi-v4/charoite_next_boot_art.png")
-              assert art[:8] == bytes.fromhex("89504e470d0a1a0a")
-              import struct
-              assert struct.unpack(">II",art[16:24]) == (768,768)
-              assert len(art) > 40000
-              print("CHAROITE_NEXT_HIGH_RES_CRYSTAL_ART=PASS")
+              assert "res/drawable-nodpi-v4/charoite_next_boot_art.png" not in z.namelist()
+              assert icon[:2] == b"\xff\xd8"
+              print("CHAROITE_NEXT_BOOT_USES_APPROVED_LAUNCHER_ART=PASS")
               assert hashlib.sha256(icon).hexdigest() == "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5"
               audio_files=[p for p in z.namelist()
                            if p.endswith("/charoite_crystal_startup.wav")]
@@ -359,7 +356,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='39' versionName='11.2-next.0.8'"
+            grep -F "package: name='com.charoitx' versionCode='40' versionName='11.2-next.0.9'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

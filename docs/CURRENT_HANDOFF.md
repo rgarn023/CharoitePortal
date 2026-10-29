@@ -805,5 +805,22 @@ Artifacts at this run:
 
 **Next technical milestone:** bridge the already-verified native loader/wineserver/ntdll/kernel/PE DLL slices into a complete signed, versioned com.charoitx-only Wine runtime in a new isolated runtime slot, fill remaining PE/Unix/NLS dependencies, add FEX CPU bridge and Vulkan/DXVK/VKD3D graphics, then execute Wineboot in a brand new Next-only prefix to get an actual modified-Wine runtime test APK. A build of PE DLL assets by itself is not proof that Proton Wine is runnable, nor that anti-cheat or Windows 11 game compatibility works. The user specifically asked how close: **a diagnostic APK is ready today; an APK running the new Wine engine remains several major integration milestones away**, with no reliable time estimate from component CI alone.
 
+
+## 41. October 28/29, 2026 — Coherent Charoite Wine 14-component bootstrap archive SUCCESS
+
+**Verified latest Wine build:** [GitHub Actions run 40800995354](https://github.com/rgarn023/CharoitePortal/actions/runs/40800995354), code SHA **84ca0cd7b3ed27bf2e24d1051b8e7b51a99c8702**, all four jobs **SUCCESS**. Source validation tests, Linux host wineserver, Android ARM64 wineserver and ARM64EC cross-build passed. New **Charoite-Wine-Coherent-Bootstrap-Experimental** artifact ID **12865782311** (4,597,457-byte GitHub artifact ZIP) was published.
+
+**New source-controlled code:**
+- b6efde1b59ebbf2f1931e9729e8ced7c215050f3: `next-generation/charoite-wine/assemble-bootstrap-bundle.py`, deterministically assembles 14 exact same-build ELF/PE components and pinned source/license delta into a gzip tar archive. Reads the previously independently validated base, kernel, seven DLLs, wineboot and source build tree; checks SHA equality with artifacts from same build. Performs original `llvm-readobj --coff-imports` and `llvm-readelf` inspections and writes exact import-gap evidence. No wine execution or prefix.
+- a0b24f2c2e3eaaf5a98bdcef09b51e109072ebdf: `verify-bootstrap-bundle.py` independently examines tar manifest, exact 14 component count, ELF AArch64, PE ARM64EC/ARM64, hashes, LGPL/attributed source and dependency gap consistency. Hard-disabled `launch_ready=false`, `installable=false`, `prefix_created=false`, `device_tested=false`.
+- dbd094e5a16a07b6ae3b8dcc01686972204675de: test_bootstrap_bundle.py with synthetic valid/tampered binaries, false readiness, false closure, duplicate tar members, ELF/PE machine safety and data-preservation tests.
+- 84ca0cd7b3ed27bf2e24d1051b8e7b51a99c8702: source workflow step and independent experimental archive artifact publication.
+
+**Exact new CI log proof:** `CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS 14`, `CHAROITE_WINE_BOOTSTRAP_ARCHIVE_VERIFIED=PASS`, `COMPONENTS=14`, `LAUNCH_READY=false`. **24 imported Windows DLL names not yet inside assembled bundle:** bcrypt.dll, cabinet.dll, combase.dll, comdlg32.dll, cryptnet.dll, dnsapi.dll, gdi32.dll, imm32.dll, iphlpapi.dll, mlang.dll, mpr.dll, msvcrt.dll, newdev.dll, ole32.dll, oleaut32.dll, rpcrt4.dll, sechost.dll, shcore.dll, shell32.dll, ucrtbase.dll, urlmon.dll, win32u.dll, winmm.dll, wintrust.dll. These are imports of the current 14 sampled components; do not claim they constitute the whole future dependency graph, or that all are missing from Android or upstream Wine.
+
+**Actual product state:** Next v0.2 independent package com.charoitx from [APK run 40793135040](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), artifact ID 12862243976, remains the latest verified APK and still only contains seven new PE files as non-executable read-only diagnostics. The new 14-component archive was built and verified in **separate CI only**; NOT installed, not embedded into a new APK, no FEX/native executable launch, no fresh prefix and no device test. Stable Portal com.charoite, separate com.charoitx and every existing game/data folder untouched.
+
+**Next:** bundle source-matched Wine NLS tables including Japanese CP932 and implement the measured Windows API import gap (prioritize win32u, gdi32, shell32, ucrtbase and startup dependencies). Once dependency closure plus Android native library, translator and graphics requirements are actually satisfied, stage versioned isolated com.charoitx runtime and run a safe fresh-prefix wineboot/device smoke test. No Battle.net/Steam/anti-cheat compatibility claims.
+
 ---
 **End of current Charoite Portal handoff.**

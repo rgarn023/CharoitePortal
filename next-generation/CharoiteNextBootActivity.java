@@ -81,10 +81,14 @@ public final class CharoiteNextBootActivity extends Activity {
                     // Only treat the stop as app background if no other
                     // Charoite activity (game, installer, etc.) is visible.
                     boolean appBackground = started.isEmpty();
-                    REENTRY_NEEDED.set(appBackground);
+                    // IMPORTANT: Home can relaunch before Android dispatches
+                    // onStop, or BootActivity can still be in the started set.
+                    // Never overwrite the prior onUserLeaveHint/onPause signal
+                    // with false. Internal navigation clears it in onStart.
+                    if (appBackground) REENTRY_NEEDED.set(true);
                     lastLifecycleEvent = appBackground
                             ? "Portal stopped; app backgrounded"
-                            : "Portal stopped for internal Charoite activity";
+                            : "Portal stopped; preserving pending user leave";
                     saveReport(a);
                 }
                 if (a instanceof com.winlator.TouhouEntryActivity

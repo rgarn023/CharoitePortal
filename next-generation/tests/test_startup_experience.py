@@ -85,7 +85,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("generate_boot_icon", PREP)
         source = (ROOT/"recreate_crystal_portal.py").read_text(encoding="utf-8")
         self.assertIn("SIZE = 1536",source)
-        self.assertIn("exact artwork",source)
+        self.assertIn("exact colors",source)
         self.assertIn("SOURCE_SIZE = (128, 128)",source)
         self.assertIn("Image.Resampling.LANCZOS",source)
         self.assertIn("ImageFilter.UnsharpMask",source)

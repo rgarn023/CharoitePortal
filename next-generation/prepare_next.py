@@ -6,7 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
-from generate_high_res_boot_icon import generate as generate_boot_icon
+from recreate_crystal_portal import render as render_crystal_portal
 import re
 import shutil
 import sys
@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.10"')
-text = text.replace("versionCode 33", "versionCode 41")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.11"')
+text = text.replace("versionCode 33", "versionCode 42")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -121,12 +121,11 @@ chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
 assert generate_crystal_chime(chime) == round(44100 * 4.2)
 
-# Create an enhanced 768px boot-only presentation from the ORIGINAL approved
-# image, after stable overlay.py has verified its hash and staged the source.
-# No edits to the original launcher resource, stable app or approved icon.
-icon = app / "res/drawable-nodpi/charoite_portal_icon.jpg"
-boot_png = app / "res/drawable-nodpi/charoite_next_boot_icon_hd.png"
-assert generate_boot_icon(icon, boot_png) == (768, 768)
+# Dedicated original 1536px crystal scene is rendered from reproducible layers,
+# not enlarged from the low-resolution approved launcher JPEG. Boot-only asset.
+# Neither this generator nor its output touches stable Portal or user app data.
+boot_png = app / "res/drawable-nodpi/charoite_next_boot_scene.png"
+assert render_crystal_portal(boot_png) == (1536, 1536)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")

@@ -14,11 +14,12 @@ import struct
 import sys
 import tarfile
 
-SOURCE_RUN = 40806958409
-SOURCE_ARTIFACT = 12868478872
-SOURCE_SHA = "13a33686c3f93e0ac68b65fe7766d129ac0e6c99"
+SOURCE_RUN = 40898982875
+SOURCE_ARTIFACT = 0
+SOURCE_SHA = "5d07e29fdba6552033d5f1a1a50ff1cc2fffe420"
 WINE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
 LIB = "libcharoite_wine_loader.so"
+NTDLL_LIB = "libcharoite_wine_ntdll.so"
 ASSET = "charoite-next/wine-native-probe.json"
 
 def digest(data):
@@ -59,8 +60,17 @@ def stage(artifact, upstream):
     loader=manifest["components"]["wine"]
     if loader.get("path")!="runtime/bin/wine" or loader.get("format")!="ELF":
         raise ValueError("Source component is not Android Wine executable")
+    ntdll=manifest["components"]["ntdll_unix"]
+    if ntdll.get("path")!="runtime/lib/ntdll.so" or ntdll.get("format")!="ELF":
+        raise ValueError("Bundled native Wine ntdll is missing")
     with tarfile.open(artifact,"r:gz") as tar:
         raw=tar.extractfile("runtime/bin/wine").read()
+        ntdll_raw=tar.extractfile("runtime/lib/ntdll.so").read()
+    validate_loader(ntdll_raw)
+    if ntdll.get("size")!=len(ntdll_raw) or ntdll.get("sha256")!=digest(ntdll_raw):
+        raise ValueError("Native ntdll differs from independently audited build")
+    if b"CHAROITE_NTDLL_NATIVE_DIR" not in raw:
+        raise ValueError("APK Wine loader lacks source-patched Android ntdll fallback")
     validate_loader(raw)
     if loader.get("size")!=len(raw) or loader.get("sha256")!=digest(raw):
         raise ValueError("Wine loader differs from independently audited build")
@@ -69,13 +79,16 @@ def stage(artifact, upstream):
     if "libwine.so" in loader["needed"]:
         raise ValueError("Additional native Wine library required before isolated probe")
     dest=app/"jniLibs/arm64-v8a"/LIB
+    ntdll_dest=app/"jniLibs/arm64-v8a"/NTDLL_LIB
     info=app/"assets"/ASSET
-    if dest.exists() or info.exists():
+    if dest.exists() or ntdll_dest.exists() or info.exists():
         raise ValueError("Refusing to overwrite existing native smoke payload")
     dest.parent.mkdir(parents=True,exist_ok=True)
     info.parent.mkdir(parents=True,exist_ok=True)
     dest.write_bytes(raw)
     dest.chmod(0o755)
+    ntdll_dest.write_bytes(ntdll_raw)
+    ntdll_dest.chmod(0o755)
     evidence={
         "schema_version":1,
         "purpose":"User-initiated source-built Android Wine ELF --version probe only",
@@ -85,6 +98,10 @@ def stage(artifact, upstream):
         "wine_source_sha":WINE_SHA,
         "android_package":"com.charoitx",
         "native_library_filename":LIB,
+        "ntdll_native_library_filename":NTDLL_LIB,
+        "ntdll_sha256":digest(ntdll_raw),
+        "ntdll_size":len(ntdll_raw),
+        "ntdll_needed":ntdll["needed"],
         "version_arg":"--version",
         "elf_machine":"AArch64",
         "elf_type":"ET_DYN",
@@ -101,14 +118,16 @@ def stage(artifact, upstream):
     # Gradle must preserve the attested native code, not strip/alter its hash.
     gradle=upstream/"app/build.gradle"
     content=gradle.read_text(encoding="utf-8")
-    if "charoite_wine_loader.so" in content:
+    if "charoite_wine_loader.so" in content or "charoite_wine_ntdll.so" in content:
         raise ValueError("Native loader Gradle packaging configured twice")
     gradle.write_text(
         content+"\nandroid {\n    packagingOptions {\n"
         '        doNotStrip "**/libcharoite_wine_loader.so"\n'
+        '        doNotStrip "**/libcharoite_wine_ntdll.so"\n'
         "    }\n}\n",encoding="utf-8")
     print("CHAROITE_NEXT_WINE_LOADER_PROBE_STAGED=PASS")
     print("WINE_LOADER_SHA256="+digest(raw))
+    print("WINE_NTDLL_SHA256="+digest(ntdll_raw))
     print("WINE_LOADER_NEEDED="+",".join(loader["needed"]))
     print("MODERN_LAUNCH_READY=false")
     return evidence

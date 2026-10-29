@@ -18,6 +18,7 @@ WINE_BASE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
 FOUNDATION_ARTIFACT = 12861682823
 EXPANSION_ARTIFACT = 12861074729
 FOUNDATION_MANIFEST_SHA = "1a795a07b9a803c66e8ccba47d20b70ab97e54741e24376cb863a9ba0fb3b33d"
+EXPANSION_MANIFEST_SHA = "3af80951c6192c10b885228071ed27c29b3009035497bc6c05d5d640a071f065"
 
 def load(name, path):
     spec = importlib.util.spec_from_file_location(name, str(ROOT / "charoite-wine" / path))
@@ -46,6 +47,8 @@ def stage(foundation, expansion, upstream):
     ev.verify(expansion, foundation)
     if hash_file(foundation / "pe-foundation-manifest.json") != FOUNDATION_MANIFEST_SHA:
         raise ValueError("Artifact differs from exact verified GitHub foundation")
+    if hash_file(expansion / "pe-expansion-manifest.json") != EXPANSION_MANIFEST_SHA:
+        raise ValueError("Artifact differs from exact verified GitHub expansion")
     # Nothing is staged before all validation above has completed.
     dest.mkdir()
     manifest = {

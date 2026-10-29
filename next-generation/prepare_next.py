@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.6"')
-text = text.replace("versionCode 33", "versionCode 37")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.7"')
+text = text.replace("versionCode 33", "versionCode 38")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -108,6 +108,9 @@ shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
 native_probe_java = app / "java/com/charoitegames/core/CharoiteWineNativeProbe.java"
 assert not native_probe_java.exists()
 shutil.copy2(source_dir / "CharoiteWineNativeProbe.java", native_probe_java)
+server_probe_java = app / "java/com/charoitegames/core/CharoiteWineServerProbe.java"
+assert not server_probe_java.exists()
+shutil.copy2(source_dir / "CharoiteWineServerProbe.java", server_probe_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -187,6 +190,32 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWineNativeProbe").start();
         });
         nextCoreCard.addView(nativeWineProbe);
+        android.widget.Button serverVersionProbe = new android.widget.Button(this);
+        serverVersionProbe.setText("Test source-built wineserver --version");
+        serverVersionProbe.setAllCaps(false);
+        serverVersionProbe.setOnClickListener(v -> {
+            serverVersionProbe.setEnabled(false);
+            new Thread(() -> {
+                final String report = com.charoitegames.core.CharoiteWineServerProbe.run(this);
+                runOnUiThread(() -> {
+                    serverVersionProbe.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Wineserver Version Test")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wineserver Native Probe", report));
+                        })
+                        .setNegativeButton("Close", null)
+                        .show();
+                });
+            }, "CharoiteWineServerProbe").start();
+        });
+        nextCoreCard.addView(serverVersionProbe);
 """)
 # Play once only after main Portal content has been built, never during boot.
 home_render = "        render();\n        refreshReadyState();\n        initializeEngineOnFirstLaunch();"

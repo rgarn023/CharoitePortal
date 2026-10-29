@@ -175,7 +175,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int mode = audio == null ? -1 : audio.getRingerMode();
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
-                + "Splash art: 768px enhanced copy of approved launcher artwork\n"
+                + "Splash art: newly recreated 1536px crystal-world scene\n"
                 + "Replay: pending until Portal window regains focus\n"
                 + "Boot duration: 5000 ms\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
@@ -195,8 +195,8 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** A high-resolution original crystal portal, crisp text, and a real
-     * five-second presentation progress bar. Same view for cold/re-entry. */
+    /** Original 1536px crystal portal with a real five-second progress bar.
+     * Same presentation for cold launch and warm return from the launcher. */
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
         boot.setBackgroundColor(Color.rgb(13, 8, 30));
@@ -208,9 +208,9 @@ public final class CharoiteNextBootActivity extends Activity {
                 density(activity, 20), density(activity, 24));
 
         ImageView icon = new ImageView(activity);
-        // A sharper 768px presentation upscale of the *same* approved JPEG,
-        // not the unrelated procedurally generated ring graphic.
-        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_icon_hd);
+        // A 1536px originally recreated Charoite crystal world, with a
+        // crystal vortex and reflected lake. NOT scaled from the tiny JPEG.
+        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
         emblem.addView(icon, new LinearLayout.LayoutParams(

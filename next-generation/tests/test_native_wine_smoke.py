@@ -25,7 +25,7 @@ class NativeVersionProbeTest(unittest.TestCase):
         for bad in (b"MZ"+bytes(120),elf(machine=62),elf(kind=2),bytes(128)):
             with self.assertRaises(ValueError):mod.validate_loader(bad)
     def test_pin_source_artifact_and_manifest(self):
-        for value in ("40898982875","0",
+        for value in ("40898982875","12908731604",
                       "5d07e29fdba6552033d5f1a1a50ff1cc2fffe420",
                       "verify-bootstrap-bundle.py",
                       "wine10-arm64ec-bootstrap.0.4",
@@ -36,7 +36,8 @@ class NativeVersionProbeTest(unittest.TestCase):
             self.assertIn(value,STAGER)
         for value in ("40898982875","Charoite-Wine-Coherent-Bootstrap-22-Experimental",
                       "stage_native_wine_loader.py","libcharoite_wine_loader.so",
-                      "CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS"):
+                      "CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS",
+                      "CHAROITE_NEXT_WINE_APK_NTDLL_VERIFIED=PASS"):
             self.assertIn(value,WORKFLOW)
     def test_device_isolation_and_non_destructive_execution(self):
         for value in ('PACKAGE = "com.charoitx"',

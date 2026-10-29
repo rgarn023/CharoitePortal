@@ -822,5 +822,30 @@ Artifacts at this run:
 
 **Next:** bundle source-matched Wine NLS tables including Japanese CP932 and implement the measured Windows API import gap (prioritize win32u, gdi32, shell32, ucrtbase and startup dependencies). Once dependency closure plus Android native library, translator and graphics requirements are actually satisfied, stage versioned isolated com.charoitx runtime and run a safe fresh-prefix wineboot/device smoke test. No Battle.net/Steam/anti-cheat compatibility claims.
 
+
+## 42. October 28/29, 2026 — Coherent Wine bootstrap with all pinned NLS data SUCCESS
+
+**User request:** Continue Charoite Core Next development directly in GitHub main; keep stable Portal, Next APK, every prefix/game and stored data untouched. Source package now includes vital Wine locale/NLS tables as further preparation for a real isolated modern runner.
+
+**Latest VERIFIED source/Wine CI:** [run 40801756245](https://github.com/rgarn023/CharoitePortal/actions/runs/40801756245), exact compiled code SHA **8e078e0dd484167ad9f4d42a1ae789bf35c1e506**, **ALL FOUR JOBS SUCCESS**. Artifact **Charoite-Wine-Coherent-Bootstrap-NLS-Experimental**, ID **12866931158**, GitHub ZIP 7,303,060 bytes. This supersedes the initial 14-component-only run 40800995354, which also remains a fully verified fallback artifact ID 12865782311.
+
+**What was actually assembled and audited:** 14 verified same-source experimental binaries (Android ELF `wine`, `wineserver`, `ntdll.so`; Windows ARM64EC PE `ntdll`, `kernelbase`, `kernel32`, `advapi32`, `user32`, `ws2_32`, `crypt32`, `setupapi`, `shlwapi`, `version`; regular ARM64 PE `wineboot.exe`). Added **all 76 Wine NLS tables from exact upstream `nls/Makefile.in`**, including Japanese CP932 `c_932.nls`, Western CP1252, locale, and sorting tables. Each table has a pinned per-file SHA-256/size in the reproducible archive manifest and is covered by a separate independent verifier. Exact CI log markers:
+- `CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS 14`
+- `CHAROITE_WINE_BOOTSTRAP_ARCHIVE_VERIFIED=PASS`
+- `COMPONENTS=14`, `NLS_COUNT=76`, `LAUNCH_READY=false`.
+- `PE_IMPORTS_NOT_BUNDLED=bcrypt.dll,cabinet.dll,combase.dll,comdlg32.dll,cryptnet.dll,dnsapi.dll,gdi32.dll,imm32.dll,iphlpapi.dll,mlang.dll,mpr.dll,msvcrt.dll,newdev.dll,ole32.dll,oleaut32.dll,rpcrt4.dll,sechost.dll,shcore.dll,shell32.dll,ucrtbase.dll,urlmon.dll,win32u.dll,winmm.dll,wintrust.dll`. This is the measured import gap of the current 14-component sample, not full future dependency graph.
+
+**Source code commits following verified 14-component build:**
+- aaee525e23530ba2129b0218a6ae111ce8f5b397: `assemble-bootstrap-bundle.py` now inventories and packages all 76 upstream NLS tables plus Wine `nls/Makefile.in` source provenance; bundle manifest version 0.2.
+- 99f6fb46c26411b66e8715dfa6b6f37a02071712: `verify-bootstrap-bundle.py` checks exact NLS file count, required CP932/locale files, filename safety, per-file hashes and no extra archive entries.
+- f1f01fffa410a2f5f14756e346ce70fe9350c4a4: test_bootstrap_bundle.py adds 76-table synthetic fixtures, CP932 corruption and missing CP1252 rejection.
+- 8a1b6f34aa7fdf959a23c09e06daa25318c8e353: CI now checks NLS_COUNT=76 before publishing new experimental NLS artifact. Earlier intermediate source CI initially failed due a doubly escaped regular expression in NLS filename validation and Makefile parsing.
+- c38592434c4029711e98fa0af6dd4ee3af7bf5de and final **8e078e0dd484167ad9f4d42a1ae789bf35c1e506** fixed the two raw regex escapes; full rerun SUCCESS. Do not reintroduce `r"\\.nls"` or `r"\\b..."` where a single escaped dot or word boundary is required.
+- 34e0ab389cbb8d5fa5ae29de66fdb48327519d66: [skip ci] updates next-generation/charoite-wine/README.md with actual verified capabilities and gaps.
+
+**Still not done / guardrail:** Archive has no FEX translator, Android graphics driver/window integration, full PE+Unix API dependency closure, fresh dedicated prefix or any on-phone native loader/wineboot run. **No runtime installed, no new APK produced in this step, no game tested, `installable=false`, `launch_ready=false`, `device_tested=false`.** The verified Charoite Next v0.2 diagnostics APK remains [run 40793135040](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), artifact ID 12862243976, package **com.charoitx**, with only the original seven CI-built API DLLs in read-only APK assets. Stable Portal **com.charoite** remains intact. Do not uninstall or clear app data if update signing mismatch occurs.
+
+**Next engineering:** Use measured missing imports to prioritize compiling `win32u`, `gdi32`, `ucrtbase`, `shell32` and their dependencies into same build/manifest, then produce a real installable full Wine/Unix/NLS package with FEX and Android display/input/Vulkan. Make a versioned isolated `com.charoitx` runner slot and *fresh-only* prefix with read-only/protected old prefix behavior; first device run `wine --version` and new-prefix `wineboot` only once dependencies are actually present. After reliable boot, test simple Win32 app before Battle.net/Steam, and anti-cheat only with publisher-supported pathways. No delivery deadlines can be reliably stated from these CI compile proofs.
+
 ---
 **End of current Charoite Portal handoff.**

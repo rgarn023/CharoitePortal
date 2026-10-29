@@ -783,5 +783,27 @@ Artifacts at this run:
 
 **Watchpoints:** Verify gh run download of both exact successful Wine artifacts, stage_wine_probe.py binary/manifest checks, Java compilation of added dialog/probe, Android Gradle build, final APK ZIP PE signature checks, package com.charoitx, persistent debug certificate and final Charoite-Core-Next-Android-APK artifact. If the previous Next was installed with an old ephemeral signing cert, upgrading may conflict; **never recommend uninstalling or clearing any existing app data**. Preserve installed stable com.charoite and Next com.charoitx side-by-side. Even a green diagnostic APK will not yet boot modified Wine, support Steam/Battle.net/Diablo IV or bypass anti-cheat.
 
+
+## 40. October 28/29, 2026 — First modern Wine PE device-diagnostic Next APK BUILT and VERIFIED
+
+**SUCCESS:** [GitHub Actions 40793135040](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), source SHA **dec31cfd467a046faa0ec7628a99b418aea841df**, workflow **completed SUCCESS**. This is now the latest verified **side-by-side Charoite Next Android diagnostic APK**. The preceding run 40792923086 failed at Android Java compilation because the eleven-digit GitHub Actions run ID was written as a 32-bit integer; source commit 2f108a52cdba5a585506f4601606f67db9bef077 changed the comparison to evidence.getLong("source_run") != 40791083178L, and commit dec31cfd467a046faa0ec7628a99b418aea841df added a regression assertion. Do NOT revert this fix or use getInt on GitHub run IDs.
+
+**Downloadable built artifacts (verified from actual Actions results):**
+- **Charoite-Core-Next-Android-APK**, artifact **ID 12862243976**, ZIP **235,043,049 bytes**; contains signed Charoite-Next-Android.apk, package **com.charoitx**, versionName **11.2-next.0.2**, versionCode **33**, app label **Charoite Next**. Direct run: https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040 . Artifact page: https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040/artifacts/12862243976 .
+- **Charoite-Core-Next-Licenses**, artifact **ID 12861989894**, includes source/patch/license attribution and diagnostic evidence manifest.
+
+**CI log proofs** from the exact SUCCESS run:
+- CHAROITE_NEXT_WINE_PE_DIAGNOSTIC_STAGED=PASS components=7
+- BUILD SUCCESSFUL (Gradle Android assembleDebug)
+- CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS: actual APK contains seven Windows ARM64X/ARM64EC Wine diagnostic DLLs advapi32, user32, ws2_32, crypt32, setupapi, shlwapi, version, each with exact source-run-pinned CI manifest, SHA-256 and raw ARM64 carrier ABI checks. Their ARM64EC hybrid views had already passed source CI.
+- APK signing certificate matches cached signing key.
+- aapt verified application-label:'Charoite Next' and package: name='com.charoitx'.
+
+**What USER can test now on Galaxy S26 Ultra:** download ZIP from GitHub Actions; unzip and install Charoite-Next-Android.apk side-by-side with stable Charoite Portal. Open Next > **System > Run Core Next device diagnostics**, then tap **Copy report** and paste the text into chat. The diagnostic checks actual device model, Android API, 64-bit ABIs, kernel page size, Android Vulkan feature availability, free private storage, app isolation and seven embedded PE SHA-256/machine headers. It does NOT launch Wine or attempt modified ARM64EC/FEX execution; there are no fresh Next-only Wine prefix or Battle.net/Steam/Diablo IV game tests yet. The previously bundled legacy Wine/Box64 mode remains the only current executable runner. The modem engine is explicitly NOT READY and cannot be selected; no anti-cheat bypass or false compatibility claims.
+
+**Important signing/isolation guard:** The CI uses the pinned cached Charoite Next debug key. Earlier historical Charoite Next builds may have used a different ephemeral certificate. If installing this APK over an older com.charoitx instance fails with signature/update mismatch, **do NOT uninstall or clear its app data** or stable Portal; report the error so a safe non-destructive signing/side-by-side method can be designed. No user data, games, prefixes or installed apps were modified by Github CI. Stable com.charoite remains untouched.
+
+**Next technical milestone:** bridge the already-verified native loader/wineserver/ntdll/kernel/PE DLL slices into a complete signed, versioned com.charoitx-only Wine runtime in a new isolated runtime slot, fill remaining PE/Unix/NLS dependencies, add FEX CPU bridge and Vulkan/DXVK/VKD3D graphics, then execute Wineboot in a brand new Next-only prefix to get an actual modified-Wine runtime test APK. A build of PE DLL assets by itself is not proof that Proton Wine is runnable, nor that anti-cheat or Windows 11 game compatibility works. The user specifically asked how close: **a diagnostic APK is ready today; an APK running the new Wine engine remains several major integration milestones away**, with no reliable time estimate from component CI alone.
+
 ---
 **End of current Charoite Portal handoff.**

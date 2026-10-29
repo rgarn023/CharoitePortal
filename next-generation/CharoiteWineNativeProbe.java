@@ -26,6 +26,7 @@ public final class CharoiteWineNativeProbe {
     private static final String PACKAGE = "com.charoitx";
     private static final String ASSET = "charoite-next/wine-native-probe.json";
     private static final String NATIVE_FILE = "libcharoite_wine_loader.so";
+    private static final String NTDLL_FILE = "libcharoite_wine_ntdll.so";
     private static final long SOURCE_RUN = 40806958409L;
     private static final String SOURCE_SHA =
             "13a33686c3f93e0ac68b65fe7766d129ac0e6c99";
@@ -108,6 +109,14 @@ public final class CharoiteWineNativeProbe {
             if (!loader.isFile() || loader.length() != evidence.getLong("size")
                     || !sha256(loader).equals(evidence.getString("sha256")))
                 throw new SecurityException("Installed Wine loader differs from verified source");
+            File ntdll = new File(nativeDirectory, NTDLL_FILE);
+            if (!ntdll.getCanonicalFile().getParentFile().equals(nativeDirectory.getCanonicalFile())
+                    || !ntdll.isFile()
+                    || !NTDLL_FILE.equals(evidence.getString("ntdll_native_library_filename"))
+                    || ntdll.length() != evidence.getLong("ntdll_size")
+                    || !sha256(ntdll).equals(evidence.getString("ntdll_sha256")))
+                throw new SecurityException("APK-installed Wine ntdll differs from verified source");
+            report.append("APK-installed native ntdll hash: PASS\n");
             report.append("APK-installed ELF hash: PASS\n");
             report.append("Native path: APK-owned extracted library directory\n");
             report.append("ELF source run: ").append(SOURCE_RUN).append("\n");
@@ -120,6 +129,7 @@ public final class CharoiteWineNativeProbe {
             env.clear();
             env.put("PATH", "/system/bin:/system/xbin");
             env.put("WINEDEBUG", "-all");
+            env.put("CHAROITE_NTDLL_NATIVE_DIR", nativeDirectory.getCanonicalPath());
             process = command.start();
             boolean finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (!finished) {

@@ -41,7 +41,9 @@ SOURCES = {
     "LICENSE": "LICENSE",
     "charoite-source-delta.patch": "charoite-source-delta.patch",
     "WEHAVEPHONES-MIT.txt": "@vendor-license",
+    "Wine-NLS-Makefile.in": "nls/Makefile.in",
 }
+NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
 
 def regular(path: Path) -> bytes:
     s = path.lstat()
@@ -157,6 +159,17 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
         dest=f"source/{name}"
         payloads[dest]=data
         source[name]={"path":dest,"sha256":sha(data),"size":len(data)}
+    # Ship ALL 76 source-pinned Wine NLS tables, not a hand-picked locale guess.
+    nls_make=regular(build.parent/"nls/Makefile.in").decode("utf-8")
+    names=re.findall(r"\\b([a-z_0-9]+\\.nls)\\b",nls_make)
+    if len(names)!=76 or len(set(names))!=76 or not NLS_REQUIRED.issubset(names):
+        raise ValueError("Pinned Wine NLS table inventory changed; review before bundling")
+    nls_records={}
+    for name in sorted(names):
+        blob=regular(build.parent/"nls"/name)
+        bundled="runtime/nls/"+name
+        payloads[bundled]=blob
+        nls_records[name]={"path":bundled,"size":len(blob),"sha256":sha(blob)}
     available={f"{k}.dll" for k in PE}
     imported={v for e in records.values() for v in e.get("imports",[])}
     needed={v for e in records.values() for v in e.get("needed",[])}
@@ -172,12 +185,13 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     }
     payloads["dependency-review.json"]=(json.dumps(report,sort_keys=True,indent=2)+"\n").encode()
     manifest={
-        "schema_version":1,"version":"wine10-arm64ec-bootstrap.0.1",
+        "schema_version":1,"version":"wine10-arm64ec-bootstrap.0.2",
         "source_commit":SOURCE_SHA,"android_package":"com.charoitx",
         "status":"coherent-components-not-executed",
         "launch_ready":False,"installable":False,"prefix_created":False,
         "device_tested":False,"anti_cheat_supported":False,
         "component_count":len(records),"components":records,
+        "nls_count":len(nls_records),"nls_files":nls_records,
         "source_files":source,"dependency_review_sha256":sha(payloads["dependency-review.json"]),
         "window_imports_unresolved_count":len(gap),
         "missing_for_runtime":[
@@ -201,6 +215,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     (output/"bundle-report.txt").write_text(
         "CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS\n"
         f"COMPONENTS={len(records)}\n"
+        f"NLS_COUNT={len(nls_records)}\n"
         f"WINDOWS_IMPORTS_NOT_BUNDLED={len(gap)}\n"
         f"SHA256={sha(regular(archive))}\n"
         "LAUNCH_READY=false\nINSTALLABLE=false\nPREFIX_CREATED=false\n",encoding="utf-8")

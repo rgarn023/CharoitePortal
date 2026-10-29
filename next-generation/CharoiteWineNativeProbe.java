@@ -27,9 +27,9 @@ public final class CharoiteWineNativeProbe {
     private static final String ASSET = "charoite-next/wine-native-probe.json";
     private static final String NATIVE_FILE = "libcharoite_wine_loader.so";
     private static final String NTDLL_FILE = "libcharoite_wine_ntdll.so";
-    private static final long SOURCE_RUN = 40806958409L;
+    private static final long SOURCE_RUN = 40898982875L;
     private static final String SOURCE_SHA =
-            "13a33686c3f93e0ac68b65fe7766d129ac0e6c99";
+            "5d07e29fdba6552033d5f1a1a50ff1cc2fffe420";
     private static final long TIMEOUT_SECONDS = 7L;
     private CharoiteWineNativeProbe() {}
 

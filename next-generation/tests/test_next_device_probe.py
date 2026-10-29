@@ -32,7 +32,8 @@ class DeviceProbeContract(unittest.TestCase):
         for phrase in ("Os.sysconf(OsConstants._SC_PAGESIZE)",
                        "android.hardware.vulkan.version","getUsableSpace()",
                        "MessageDigest.getInstance(\"SHA-256\")",
-                       "PE_ARM64_CARRIER", "7", "MODERN ENGINE: NOT READY"):
+                       "PE_ARM64_CARRIER", 'evidence.getLong("source_run") != 40791083178L',
+                       "7", "MODERN ENGINE: NOT READY"):
             self.assertIn(phrase,JAVA)
 
     def test_diagnostic_is_user_initiated(self):

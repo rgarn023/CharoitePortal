@@ -119,7 +119,7 @@ public final class CharoiteNextDiagnostics {
                     || evidence.getBoolean("prefix_created")
                     || evidence.getBoolean("device_tested")
                     || evidence.getBoolean("anti_cheat_supported")
-                    || evidence.getInt("source_run") != 40791083178)
+                    || evidence.getLong("source_run") != 40791083178L)
                 throw new IllegalStateException("Unsupported runtime readiness or provenance claims");
             JSONObject components = evidence.getJSONObject("components");
             if (components.length() != 7) throw new IllegalStateException("Expected seven DLLs");

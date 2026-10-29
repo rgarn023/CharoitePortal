@@ -1,6 +1,6 @@
 # CHAROITE PORTAL / CHAROITE CORE — CURRENT PROJECT HANDOFF
 
-**Current handoff updated:** October 28, 2026  
+**Current handoff updated:** October 29, 2026  
 **Purpose:** Paste this entire file, or share its raw GitHub URL, in a new ChatGPT conversation to resume development.  
 **Canonical copy:** `https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md`  
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
@@ -1135,6 +1135,29 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Verbatim CI checks:** \`CHAROITE_NEXT_RECREATED_1536PX_CRYSTAL_SCENE=PASS\`, \`CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS\`, \`CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS\`, \`CHAROITE_NEXT_WINESERVER_NATIVE_APK_VERIFIED=PASS\`, \`package: name='com.charoitx' versionCode='42' versionName='11.2-next.0.11'\`, \`APK signing certificate matches cached signing key.\`, artifact successfully finalized with ID \`12933846973\`.
 
 **Physical device caveat and test:** Successful CI does NOT verify appearance/launch behavior on Samsung Galaxy S26 Ultra. Update **in place**, never uninstall/clear data. Verify new original art is detailed (not JPEG upscale) and instant Home→icon returns show 5-second boot, as well as switching apps and returning. Internal game/file-manager/picker returns should not replay splash. Startup audio remains 4.2s mysterious tone on media stream, subject to media volume >0. If still wrong, \`System → Startup / audio diagnostics → Copy report\` provides lifecycle/audio information. The modern Wine runner remains experimental: actual device previously passed source-built \`wine --version\` (wine-10.0, exit 0), but \`wineserver --version\`/wineboot/Windows EXE and FEX/graphics/game compatibility remain unverified.
+
+## 57. October 29, 2026 — Next v0.12 same-icon boot repair / fast warm-resume / VERIFIED SIGNED APK
+
+**Trigger/evidence:** The user supplied `173605.mp4` showing the Next 0.11 splash uses a visibly different crystal image from their app icon, with inconsistent fast re-entry. The video does not contain an audio track, so it cannot validate the startup sound.
+
+**Source-level root causes and changes committed DIRECTLY to `main`:**
+- `next-generation/CharoiteNextBootActivity.java`: `showOnBackgroundReentryIfNeeded()` no longer requires `activity.hasWindowFocus()` to show a splash. Warm Home→launcher/Recents return can resume without a second focus-gained callback. `onResume` now attempts the splash immediately when re-entry is pending, retains the focus callback as a fallback, prevents duplicate dialogs, and restores the pending flag if Android rejects a premature window token. It does **not** clear or migrate any prefix/game/app data. Cold-start still uses the dedicated five-second Activity.
+- The prior 1536px procedurally drawn portal was visually different from the approved launcher icon. `next-generation/recreate_crystal_portal.py` now produces an enhanced 1536×1536 boot asset from the **same approved 128×128 launcher JPEG**; no unrelated illustration. It reuses **exactly** the existing `runtime-preview/overlay.py` source-JPEG restoration (`bad_sha=7c5c8fdf...`, insert twelve `0x82` bytes at offset 108, verified final SHA-256 `28668d54...`) and leaves the approved packaged launcher artwork unchanged. Early failed trials used different quantizer repair bytes and were discarded; this final source matches the stable overlay bit-for-bit.
+- `next-generation/prepare_next.py`: stages icon-matched image for Next, confirms Next icon already matches the repaired canonical original, and upgrades **`com.charoitx` versionCode 43 / versionName `11.2-next.0.12`**. Neither `com.charoite` nor the stable runtime assets/prefixes are altered.
+- Next-only unit tests and GitHub APK artifact verification now enforce *visual similarity* between the final 1536px boot image and actual packaged launcher icon, validated JPEG source, five-second progress/4.2-second chime resource, re-entry logic, correct package identity and signing continuity.
+- **Quality limitation:** the approved icon master in the repository is only **128×128 JPEG**. Sharpening/upscaling the same image guarantees correct composition and better local contrast but **cannot genuinely restore missing high-resolution fine detail**. A newly drawn high-resolution faithful master would be required to remove all soft edges. Do not misreport the enhancement as an original high-res master.
+
+**VERIFIED FINAL CI / APK:**
+- Built **code commit:** `db09421a7fb141b5a11a1c1f234bffdcb5bb2c9a`.
+- GitHub Actions **run 40959286743, SUCCESS**, https://github.com/rgarn023/CharoitePortal/actions/runs/40959286743
+- Android APK artifact **Charoite-Core-Next-Android-APK**, ID **12934389052**, link https://github.com/rgarn023/CharoitePortal/actions/runs/40959286743/artifacts/12934389052
+- Artifact ZIP size **237,909,762 bytes**; ZIP SHA-256 **8b187c51af7a90b537dda4958f0cd68728776fb85c683995a8252b3993bf7645** (this is ZIP digest, not inner APK digest).
+- **25 Next regression tests passed**. CI output: `CHAROITE_NEXT_ICON_MATCHED_1536PX_SCENE=PASS`, `CHAROITE_NEXT_REPAIRED_APPROVED_ICON_IN_APK=PASS`, `CHAROITE_NEXT_BOOT_VISUALLY_MATCHES_LAUNCHER_ICON=PASS`, `CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS`. APK `com.charoitx`, version 43 / 11.2-next.0.12. `APK signing certificate matches cached signing key.` No failed steps.
+- Licenses artifact ID **12935985353**.
+- Intermediate **failed** runs for earlier source edits do **not** represent the final APK; final successful run is the one immediately above.
+
+**Must test physically:** Install Next 0.12 **in place** (do not uninstall or clear data). Tap Home→Next icon immediately (no 30-second wait), Home→Recents→Next, and switch to another app→Next. Confirm five-second splash and identical icon composition. Confirm popup keyboard, installers, system document pickers, and internal game windows do not display unwanted startup splash; verify crystal sound at non-zero MEDIA volume. **GitHub CI cannot prove these behaviors on a Galaxy S26 Ultra.** Startup sound not verifiable from the supplied silent MP4. If a behavior still fails, collect `System → Startup / audio diagnostics → Copy report` and review precise lifecycle reason.
+- Core Next native Wine remains experimental; this startup repair does not claim Battle.net/Diablo/Steam/anti-cheat/Wine game compatibility.
 
 ---
 **End of current Charoite Portal handoff.**

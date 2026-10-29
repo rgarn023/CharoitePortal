@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.13"')
-text = text.replace("versionCode 33", "versionCode 44")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.14"')
+text = text.replace("versionCode 33", "versionCode 45")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -278,9 +278,7 @@ assert ui.count(resume_anchor) == 1
 ui = ui.replace(resume_anchor, (
     "        super.onResume();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".showOnBackgroundReentryIfNeeded(this);\n"
-    "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".playArrivalChimeIfRequested(this);\n"
+    ".onPortalResumed(this);\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
 # Focus gain, not just onResume, makes rapid Home/Recents re-open reliable.
 # The splash request is not consumed until Android really displays Portal.

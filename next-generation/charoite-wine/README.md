@@ -1,8 +1,14 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28/29, 2026): 18 same-source Wine ELF/PE bootstrap components plus all 76 pinned Wine NLS tables, including CP932, have been built and verified in one coherent experimental archive by GitHub Actions run 40803635407. A dependency audit reports 23 imported PE DLL names not yet bundled. This is NOT an installed or runnable new Android Wine/Proton environment; FEX, graphics, complete dependency closure, prefix startup and device tests remain outstanding.**
+**Status (October 28/29, 2026): 22 same-source Wine ELF/PE bootstrap components plus all 76 pinned Wine NLS tables, including CP932, compiled and independently verified in one coherent experimental archive by GitHub Actions run 40806958409. The sampled import audit identifies 24 PE DLL names not yet bundled; this is NOT an installed or runnable Android Wine/Proton engine. FEX, Android display/graphics/input, complete PE/Unix dependency closure, isolated prefix startup and on-device execution remain outstanding.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
+
+## Latest 22-component RPC/COM bootstrap — VERIFIED
+
+[GitHub Actions run 40806958409](https://github.com/rgarn023/CharoitePortal/actions/runs/40806958409) **SUCCESS**, four jobs passed, code SHA `13a33686c3f93e0ac68b65fe7766d129ac0e6c99`. Artifact **Charoite-Wine-Coherent-Bootstrap-22-Experimental**, ID **12868478872**, adds source-built Windows ARM64X/ARM64EC `rpcrt4.dll`, `combase.dll`, `ole32.dll`, `comctl32.dll` to the previously source-verified 18-module archive and retains 76 Wine NLS tables. An independent verifier checks exact archive inventory, LLVM ARM64EC ABI evidence for the separately audited modules, file hashes, source reconstruction and startup/COM manifest digests, and verifies that no device/prefix/launch readiness is implied. CI also publishes standalone COM artifact ID **12868747669** and maintains 14-/18-component fallback archives.
+
+After adding COM libraries, **24 Windows PE import names remain unbundled in the measured sample**: `bcrypt`, `cabinet`, `comdlg32`, `coml2`, `cryptnet`, `dnsapi`, `gdiplus`, `imm32`, `iphlpapi`, `mlang`, `mpr`, `msvcrt`, `newdev`, `oleacc`, `oleaut32`, `sechost`, `secur32`, `shcore`, `shdocvw`, `urlmon`, `uxtheme`, `wininet`, `winmm`, `wintrust`. The number may increase again as DLLs are added; this is **not complete Wine runtime closure**. There is still no fresh on-device Wineboot, modern ARM64EC/FEX launch or publisher-supported anti-cheat compatibility test. The installable Charoite Next v0.2 APK still contains **only seven experimental PE libraries as read-only diagnostic assets**; it does **not** incorporate or execute this 22-component source archive.
 
 ## Latest 18-component build
 

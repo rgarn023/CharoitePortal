@@ -128,7 +128,7 @@ approved_art = source_dir / "assets/charoite_next_boot_reference.jpg"
 approved_sha = "2f368b7731f8ff96db03842e0f36b62bc9d22c48fcdb77ed864846d6be44b748"
 image_bytes = approved_art.read_bytes()
 assert hashlib.sha256(image_bytes).hexdigest() == approved_sha, "User-approved boot image changed"
-assert image_bytes[:3] == b"\\xff\\xd8\\xff" and image_bytes[-2:] == b"\\xff\\xd9"
+assert image_bytes[:3] == b"\xff\xd8\xff" and image_bytes[-2:] == b"\xff\xd9"
 boot_art = app / "res/drawable-nodpi/charoite_next_boot_scene.jpg"
 assert not boot_art.exists()
 boot_art.write_bytes(image_bytes)
@@ -250,14 +250,14 @@ ui = ui.replace(anchor, anchor + """
 """)
 # Explicit Activity restart tracking catches Samsung Home→icon relaunches
 # that do not deliver ACTION_MAIN to the existing Portal instance.
-restart_anchor = "    @Override public void onDestroy() {\\n"
+restart_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(restart_anchor) == 1
 ui = ui.replace(restart_anchor, (
-    "    @Override protected void onRestart() {\\n"
-    "        super.onRestart();\\n"
+    "    @Override protected void onRestart() {\n"
+    "        super.onRestart();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalRestart(this);\\n"
-    "    }\\n\\n" + restart_anchor), 1)
+    ".onPortalRestart(this);\n"
+    "    }\n\n" + restart_anchor), 1)
 
 # The first crystal chime must start after the Portal actually resumes, not
 # in onCreate before the Android window is focused (Samsung would skip audio).

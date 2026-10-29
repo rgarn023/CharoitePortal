@@ -6,6 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
+from generate_high_res_boot_icon import generate as generate_boot_icon
 import re
 import shutil
 import sys
@@ -27,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.9"')
-text = text.replace("versionCode 33", "versionCode 40")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.10"')
+text = text.replace("versionCode 33", "versionCode 41")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -118,10 +119,14 @@ shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
 # sound is played only after the actual Portal home view is displayed.
 chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
-assert generate_crystal_chime(chime) == round(44100 * 1.85)
+assert generate_crystal_chime(chime) == round(44100 * 4.2)
 
-# The splash uses the SAME @drawable/charoite_portal_icon resource as the
-# actual launcher foreground. Do not generate unrelated artwork for it.
+# Create an enhanced 768px boot-only presentation from the ORIGINAL approved
+# image, after stable overlay.py has verified its hash and staged the source.
+# No edits to the original launcher resource, stable app or approved icon.
+icon = app / "res/drawable-nodpi/charoite_portal_icon.jpg"
+boot_png = app / "res/drawable-nodpi/charoite_next_boot_icon_hd.png"
+assert generate_boot_icon(icon, boot_png) == (768, 768)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -258,6 +263,16 @@ ui = ui.replace(resume_anchor, (
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".playArrivalChimeIfRequested(this);\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
+# Focus gain, not just onResume, makes rapid Home/Recents re-open reliable.
+# The splash request is not consumed until Android really displays Portal.
+focus_anchor = "    @Override public void onDestroy() {\n"
+assert ui.count(focus_anchor) == 1
+ui = ui.replace(focus_anchor, (
+    "    @Override public void onWindowFocusChanged(boolean hasFocus) {\n"
+    "        super.onWindowFocusChanged(hasFocus);\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".onPortalWindowFocusChanged(this, hasFocus);\n"
+    "    }\n\n" + focus_anchor), 1)
 destroy_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(destroy_anchor) == 1
 ui = ui.replace(destroy_anchor, (

@@ -84,8 +84,11 @@ while IFS= read -r rel; do
   git apply --whitespace=error "$patch"
   count=$((count+1))
 done < "$script_dir/patches/SERIES"
-[[ "$count" -eq 7 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
+[[ "$count" -eq 8 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
 git diff --check
+grep -Fq 'CHAROITE_NTDLL_NATIVE_DIR' loader/main.c || {
+  echo "Android native ntdll fallback patch not present" >&2; exit 14;
+}
 printf 'Charoite Wine imported patches applied: %s\n' "$count"
 for symbol in 'syscall_dispatcher' 'RtlExitUserThread' 'security_unix_uid_to_sid'; do
   grep -R -F -q "$symbol" dlls/ntdll/thread.c dlls/ntdll/unix/signal_arm64.c server/token.c || {

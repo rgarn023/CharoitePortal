@@ -1033,5 +1033,23 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Protect:** stable `com.charoite` data and separate experimental `com.charoitx` data; never uninstall, delete game saves or migrate prefixes to troubleshoot. Continue direct GitHub `main` development and update this handoff after each significant step.
 
 
+## 51. October 29, 2026 — Next v0.8 real warm-app reentry lifecycle fix (device validation pending)
+
+**User-provided Galaxy S26 Ultra observation:** Next v0.7 5-second crystal boot displays when APK is first updated/cold launched, but **does not recur on subsequent app openings** when Android resumes an already-running app. This is a confirmed functional UX defect despite v0.7 compilation success.
+
+**Root cause:** Next v0.7 `CharoiteNextBootActivity` only set `REENTRY_NEEDED` in `noteAppVisibility` on `ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN`. Android **does not guarantee** this callback whenever the user taps Home and later resumes the app. A resumed task can bring `TouhouEntryActivity` to foreground without recreating `CharoiteNextBootActivity`.
+
+**Direct GitHub `main` source fix for v0.8**:
+- `next-generation/CharoiteNextBootActivity.java`: `installReentryTracker` registers `Application.ActivityLifecycleCallbacks` **once per process** from the Portal creation; it tracks started Charoite activities, records when the last started activity stops without configuration change, and marks boot splash pending when **Portal itself** later starts from the background. Internal Portal→game transitions are intended to retain a started app activity and not repeat the boot. The existing five-second full-screen modal replay and crystal one-shot sound are retained; active modal dismissed if Portal stops. `noteLauncherIntent` additionally handles explicit Android `ACTION_MAIN`+`CATEGORY_LAUNCHER` reentry (e.g. DeX warm relaunch).
+- `next-generation/prepare_next.py`: installs tracker in Portal `onCreate`; uses existing `onResume` to display pending boot, removes unreliable `onTrimMemory` UI-hidden wiring. Adds `onNewIntent` for explicit launcher warm intent, deferring UI display with `decorView.post` to avoid dialog before window readiness. **Only Charoite Next package `com.charoitx`, version `11.2-next.0.8`, versionCode `39`**; original stable `com.charoite` not modified.
+- `next-generation/tests/test_startup_experience.py` now expects Android ActivityLifecycleCallbacks, multi-activity and configuration isolation and rejects prior trim-memory dependence. Native-wine test/version contracts updated; `CharoiteNextRuntime` status updated.
+- `.github/workflows/charoite-next.yml` validates v0.8 identity; keeps exact 768px boot art, 5-second progress, crystal audio, same signing key and audited Wine loader/ntdll/wineserver.
+- Source changes: `9082825b6f5909102140de9d35bdf6089d34d70f` (lifecycle tracker); `01e08efbbdc885cf18cce77a9cacefb3d6ee568c` (Next integration); `856b16d7724373a8bd79bf97e8906858ae7a0608` (tests/workflow); `9d229e3bd531532ad84f24d54e59e36cf3588ccb` (safe onNewIntent dialog post).
+
+**Build tracking:** Earlier run `40944991755` was **canceled** under workflow concurrency by a newer `main` push; do not use its artifacts or misreport it as a successful APK. Replacement push build commit `9d229e3bd531532ad84f24d54e59e36cf3588ccb`, live run **40945036353**: https://github.com/rgarn023/CharoitePortal/actions/runs/40945036353 . At this handoff entry, tests had passed and build dependencies were underway; **no success/APK artifact had yet been verified**. Call `mcp__GitHub__fetch_workflow_run_jobs` for exact conclusion and `mcp__GitHub__fetch_workflow_run_artifacts` for precise APK ID. Report download URL only after successful conclusion. `mcp__GitHub__get_commit_combined_status` exposes this run URL as the `charoite-next-apk` status.
+
+**Phone tests after successful APK:** Upgrade `com.charoitx` in place; do NOT uninstall or clear data. Cold launch (5-second image/progress), Home→launcher icon (must repeat), Recent Apps→resume (must repeat), rotate while visible (should not repeat), Portal→internal game→Portal (should not repeat), crystal chime only after each actual boot. Verify Galaxy behavior separately from CI. `System → Test source-built wineserver --version` remains awaiting actual device test. Preserve installed prefixes/games/saves.
+
+
 ---
 **End of current Charoite Portal handoff.**

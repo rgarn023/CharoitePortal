@@ -378,3 +378,30 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-com/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Assemble and audit 22 source-matched Wine components with all NLS tables
+        run: |
+          set -euo pipefail
+          python3 next-generation/charoite-wine/assemble-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended" \
+            --include-com
+          python3 next-generation/charoite-wine/verify-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/charoite-wine-bootstrap-bundle.tar.gz"
+          grep -Fx 'COMPONENTS=22' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/bundle-report.txt"
+          grep -Fx 'NLS_COUNT=76' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/bundle-report.txt"
+          grep -Fx 'LAUNCH_READY=false' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/bundle-report.txt"
+
+      - name: Publish verified 22-component Wine/NLS bootstrap (NOT installable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Coherent-Bootstrap-22-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-com-extended/
+          retention-days: 14
+          if-no-files-found: error

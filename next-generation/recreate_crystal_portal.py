@@ -34,7 +34,10 @@ def repaired_jpeg(source):
             and data[89:93] == bytes.fromhex("ffdb0043")
             and data[146:148] == bytes.fromhex("ffc0")
             and data.endswith(bytes.fromhex("ffd9"))):
-        raise RuntimeError("Expected recoverable JPEG structure was not found")
+        raise RuntimeError("Expected recoverable JPEG structure was not found: "
+                           + f"length={len(data)} head={data[:20].hex()} "
+                           + f"at89={data[89:93].hex()} at146={data[146:148].hex()} "
+                           + f"tail={data[-4:].hex()} sha={hashlib.sha256(data).hexdigest()}")
     recovered = data[:146] + MISSING_QUANTIZER_BYTES + data[146:]
     with Image.open(BytesIO(recovered)) as image:
         image.load()

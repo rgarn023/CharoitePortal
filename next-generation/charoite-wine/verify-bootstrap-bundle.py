@@ -3,6 +3,7 @@
 from __future__ import annotations
 import hashlib
 import json
+import re
 from pathlib import Path, PurePosixPath
 import struct
 import sys
@@ -12,7 +13,9 @@ BASE="c74acb09d51b447f5d5ac56c87608d3ec565a767"
 ELF=("wine","wineserver","ntdll_unix")
 PE=("ntdll","kernelbase","kernel32","advapi32","user32","ws2_32",
     "crypt32","setupapi","shlwapi","version","wineboot")
-SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt")
+SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
+         "Wine-NLS-Makefile.in")
+NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
 EXPECTED={
     "wine":"runtime/bin/wine",
     "wineserver":"runtime/bin/wineserver",
@@ -43,7 +46,10 @@ def verify(archive: Path) -> tuple[dict,dict]:
     if archive.is_symlink() or not archive.is_file(): raise ValueError("No regular archive")
     with tarfile.open(archive,"r:gz") as tar:
         members=tar.getmembers()
-        if len(members)!=len(ALL) or {m.name for m in members}!=ALL:
+        actual={m.name for m in members}
+        nls_paths={name for name in actual if name.startswith("runtime/nls/")}
+        if (len(members)!=len(ALL)+len(nls_paths) or
+            actual!=ALL|nls_paths):
             raise ValueError("Wrong, repeated or missing bundle files")
         for m in members:
             path=PurePosixPath(m.name)
@@ -56,7 +62,7 @@ def verify(archive: Path) -> tuple[dict,dict]:
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
         if (manifest.get("schema_version")!=1 or
-            manifest.get("version")!="wine10-arm64ec-bootstrap.0.1" or
+            manifest.get("version")!="wine10-arm64ec-bootstrap.0.2" or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
@@ -68,6 +74,12 @@ def verify(archive: Path) -> tuple[dict,dict]:
             set(manifest.get("components",{}))!=set(EXPECTED) or
             set(manifest.get("source_files",{}))!=set(SOURCES)):
             raise ValueError("Unsafe/incomplete bootstrap manifest")
+        nls_files=manifest.get("nls_files")
+        if (not isinstance(nls_files,dict) or len(nls_files)!=76 or
+            manifest.get("nls_count")!=76 or
+            not NLS_REQUIRED.issubset(nls_files) or
+            nls_paths!={"runtime/nls/"+name for name in nls_files}):
+            raise ValueError("Missing or unexpected Wine NLS tables")
         for name,path in EXPECTED.items():
             entry=manifest["components"][name]
             if entry.get("path")!=path or entry.get("format")!=(
@@ -100,6 +112,14 @@ def verify(archive: Path) -> tuple[dict,dict]:
             if (entry.get("path")!="source/"+name or entry.get("size")!=len(data) or
                 entry.get("sha256")!=digest(data)):
                 raise ValueError("Corresponding Wine source/license tampered")
+        for name,entry in nls_files.items():
+            if not re.fullmatch(r"[a-z_0-9]+\\.nls",name):
+                raise ValueError("Unsafe NLS file name")
+            path="runtime/nls/"+name
+            data=read(path)
+            if (entry.get("path")!=path or entry.get("size")!=len(data) or
+                entry.get("sha256")!=digest(data)):
+                raise ValueError("Wine NLS file hash or size mismatch")
         imports={dll for info in manifest["components"].values() for dll in info.get("imports",[])}
         needed={dll for info in manifest["components"].values() for dll in info.get("needed",[])}
         bundled={name+".dll" for name in PE if name!="wineboot"}
@@ -117,5 +137,6 @@ if __name__=="__main__":
     m,r=verify(Path(sys.argv[1]))
     print("CHAROITE_WINE_BOOTSTRAP_ARCHIVE_VERIFIED=PASS")
     print("COMPONENTS="+str(m["component_count"]))
+    print("NLS_COUNT="+str(m["nls_count"]))
     print("PE_IMPORTS_NOT_BUNDLED="+",".join(r["windows_imports_not_bundled"]))
     print("LAUNCH_READY=false")

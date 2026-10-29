@@ -50,7 +50,7 @@ public final class CharoiteNextBootActivity extends Activity {
     private static volatile String lastAudioResult = "Not yet attempted";
 
     /**
-     * Unlike TRIM_MEMORY_UI_HIDDEN, onUserLeaveHint()/onPause()/onStop()
+     * Unlike unreliable memory-trim callbacks, onUserLeaveHint()/onPause()/onStop()
      * can detect a Home/recent-app transition on Samsung One UI.
      * Internal Charoite activity starts cancel pending replay; the game
      * process, prefixes, and installed software are never modified.

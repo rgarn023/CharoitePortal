@@ -4,6 +4,34 @@
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
 
+## Latest actual-device milestone and Proton audit (October 29, 2026)
+
+**Verified on Samsung Galaxy S26 Ultra:** Charoite Next v0.5 executed the
+source-built, hash-verified Android AArch64 Charoite Wine loader and native
+`ntdll` with exit code **0**, output **`wine-10.0`**.
+The Charoite-maintained Android native loader path patch 0700 therefore passed
+its first actual device test. This does **not** imply a functional Wine prefix,
+Windows PE execution, games, Steam, Battle.net or anti-cheat support.
+
+**Next v0.7 source (build and phone validation pending):** a new read-only,
+same-bundle-hash-verified Android `wineserver --version` device probe is
+packaged in Next only. It does not start a Wine server session or read existing
+game/prefix data. The remaining runtime dependency audit, Android native
+wineserver integration and isolated `wineboot` have not passed on device.
+
+**What Proton functionality is incorporated?** Charoite Wine currently comes
+from the pinned Proton-Wine fork plus 70 Android/ARM64EC prerequisites,
+10 applied GE-Proton game-fixes and eight Charoite patch-series changes.
+The pinned upstream GE script explicitly excludes its separate video rework.
+DXVK, VKD3D-Proton, FEX, graphics drivers, multimedia, compatibility data and
+the surrounding Proton environment are separately gated components, **not
+proof of functional integrations merely because the Wine base is modified**.
+
+See [PROTON_INTEGRATION_AUDIT.md](PROTON_INTEGRATION_AUDIT.md) for provenance,
+missing components and the verified step-by-step Android implementation plan.
+The comprehensive latest record remains
+[docs/CURRENT_HANDOFF.md](../../docs/CURRENT_HANDOFF.md).
+
 ## Latest 22-component RPC/COM bootstrap — VERIFIED
 
 [GitHub Actions run 40806958409](https://github.com/rgarn023/CharoitePortal/actions/runs/40806958409) **SUCCESS**, four jobs passed, code SHA `13a33686c3f93e0ac68b65fe7766d129ac0e6c99`. Artifact **Charoite-Wine-Coherent-Bootstrap-22-Experimental**, ID **12868478872**, adds source-built Windows ARM64X/ARM64EC `rpcrt4.dll`, `combase.dll`, `ole32.dll`, `comctl32.dll` to the previously source-verified 18-module archive and retains 76 Wine NLS tables. An independent verifier checks exact archive inventory, LLVM ARM64EC ABI evidence for the separately audited modules, file hashes, source reconstruction and startup/COM manifest digests, and verifies that no device/prefix/launch readiness is implied. CI also publishes standalone COM artifact ID **12868747669** and maintains 14-/18-component fallback archives.

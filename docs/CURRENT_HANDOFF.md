@@ -1010,5 +1010,28 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Next immediate engineering goals:** verify GitHub Actions v0.7 compilation/signing and packaged 3-ELF hashes; install Next APK in place; physically test new 5-sec progress/HiRes splash after cold start and background return, crystal chime; physically run `System → Test source-built wineserver --version`, copy output. Only then prepare full sealed Wine native/PE/NLS layout, complete dependencies (24 observed PE DLL gaps), dedicated executable wineserver path and **fresh isolated opt-in test prefix** before attempting `wineboot`. No changes to stable Portal data, existing prefixes, games or saves. Full Steam, Battle.net and anti-cheat remain unsupported/unproven.
 
 
+## 50. October 29, 2026 — v0.7 APK VERIFIED SUCCESS, direct GitHub run/asset links
+
+**Definitive outcome:** Charoite Next v0.7 **GitHub Actions SUCCESS**, job `build-runtime-preview` completed with conclusion **success**. Run **40912739309**: https://github.com/rgarn023/CharoitePortal/actions/runs/40912739309 . Built code commit `bae5056133ab58e6fd72f52a8721c29aa3d6c667` on `main`. Actual verified downloadable APK artifact **`Charoite-Core-Next-Android-APK` ID `12913074919`**: https://github.com/rgarn023/CharoitePortal/actions/runs/40912739309/artifacts/12913074919 . Artifact ZIP size **236,259,308 bytes**, GitHub lists unexpired. Licenses artifact ID `12915385394`.
+
+**Actual log markers verified from completed GitHub Actions job:**
+- `CHAROITE_NEXT_HIGH_RES_CRYSTAL_ART=PASS`
+- `CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS`
+- `CHAROITE_NEXT_WINESERVER_NATIVE_APK_VERIFIED=PASS`
+- `CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS`
+- `CHAROITE_NEXT_WINE_APK_NTDLL_VERIFIED=PASS`
+- Android aapt: `package: name='com.charoitx' versionCode='38' versionName='11.2-next.0.7'`
+- `APK signing certificate matches cached signing key.`
+- `Artifact Charoite-Core-Next-Android-APK.zip successfully finalized. Artifact ID 12913074919`
+
+**Prior failure discovered and fixed:** A previous workflow run **40911663904** (source commit `ecfadfb`) failed early in `Verify Next multi-engine isolation tests`: the Proton integration audit documentation lacked the precise `GE-Proton` phrase asserted by `test_proton_integration_audit.py`. Log confirmed only this test failed, before build/packaging. Corrected audit document on `main` in commit `d10bc78a9a8bc1e02b8c46a0996fb75cc9ac8b8a`. The corrected subsequent v0.7 run passed all tests, compiled, verified signing and uploaded APK.
+
+**Workflow transparency fixed:** Commit `bae5056133ab58e6fd72f52a8721c29aa3d6c667` adds `statuses: write`, a pending GitHub commit status `charoite-next-apk` with exact live run URL at job start, and success/failure status after artifact steps. This resolves the tool gap: `mcp__GitHub__get_commit_combined_status` now exposes the exact current run ID/URL for push workflows, allowing `mcp__GitHub__fetch_workflow_run_jobs` and `fetch_workflow_run_artifacts` to verify without guessing or requiring Gmail notifications. The status was independently checked as **success**, with target URL run 40912739309. Never again announce a build without verifying job conclusion and artifact ID.
+
+**Device steps after in-place upgrade (DO NOT uninstall or clear data):** Galaxy S26 Ultra: verify crisp new 768px image, 5-sec animated progress on cold launch and reopening after background, one-shot crystal sound; then **System → Test source-built wineserver --version** and paste copied report. Native `wine --version` was already independently confirmed on device at v0.5 as exit 0 / `wine-10.0` with both hashes PASS. The source-built wineserver `--version` in v0.7 has passed packaging/hash verification but not yet actual phone execution. Full Wine session/prefix/wineboot, FEX, DXVK/VKD3D-Proton, Steam/Battle.net/Diablo/anti-cheat remain unproven.
+
+**Protect:** stable `com.charoite` data and separate experimental `com.charoitx` data; never uninstall, delete game saves or migrate prefixes to troubleshoot. Continue direct GitHub `main` development and update this handoff after each significant step.
+
+
 ---
 **End of current Charoite Portal handoff.**

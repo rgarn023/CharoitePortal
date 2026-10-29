@@ -161,7 +161,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
         source[name]={"path":dest,"sha256":sha(data),"size":len(data)}
     # Ship ALL 76 source-pinned Wine NLS tables, not a hand-picked locale guess.
     nls_make=regular(build.parent/"nls/Makefile.in").decode("utf-8")
-    names=re.findall(r"\\b([a-z_0-9]+\\.nls)\\b",nls_make)
+    names=re.findall(r"\b([a-z_0-9]+\.nls)\b",nls_make)
     if len(names)!=76 or len(set(names))!=76 or not NLS_REQUIRED.issubset(names):
         raise ValueError("Pinned Wine NLS table inventory changed; review before bundling")
     nls_records={}

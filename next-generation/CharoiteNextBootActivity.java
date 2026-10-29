@@ -175,7 +175,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int mode = audio == null ? -1 : audio.getRingerMode();
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
-                + "Splash art: newly recreated 1536px crystal-world scene\n"
+                + "Splash art: icon-matched 1536px enhancement of approved launch icon\n"
                 + "Replay: pending until Portal window regains focus\n"
                 + "Boot duration: 5000 ms\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
@@ -195,7 +195,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** Original 1536px crystal portal with a real five-second progress bar.
+    /** Icon-matched 1536px artwork and a real five-second progress bar.
      * Same presentation for cold launch and warm return from the launcher. */
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
@@ -208,8 +208,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 density(activity, 20), density(activity, 24));
 
         ImageView icon = new ImageView(activity);
-        // A 1536px originally recreated Charoite crystal world, with a
-        // crystal vortex and reflected lake. NOT scaled from the tiny JPEG.
+        // Same approved artwork as the actual launcher icon, color and composition.
         icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
@@ -293,8 +292,10 @@ public final class CharoiteNextBootActivity extends Activity {
     public static void showOnBackgroundReentryIfNeeded(Activity activity) {
         // onResume can occur while Samsung is still transitioning the task:
         // keep the request pending until onWindowFocusChanged(true).
-        if (activity.isFinishing() || activity.isDestroyed()
-                || !activity.hasWindowFocus()) return;
+        // Android can resume a task without dispatching a new focus event
+        // (fast Home -> launcher tap). onResume is sufficient to show splash.
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        if (activeReentryDialog != null && activeReentryDialog.isShowing()) return;
         if (!REENTRY_NEEDED.compareAndSet(true, false)) return;
         lastLifecycleEvent = "Warm foreground focus acquired; splash presented";
         saveReport(activity);
@@ -304,8 +305,17 @@ public final class CharoiteNextBootActivity extends Activity {
                 android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         splash.setCancelable(false);
         splash.setContentView(createBootView(activity));
-        splash.show();
+        // Guard before show(): the Dialog may synchronously invoke focus callbacks.
         activeReentryDialog = splash;
+        try {
+            splash.show();
+        } catch (WindowManager.BadTokenException e) {
+            activeReentryDialog = null;
+            REENTRY_NEEDED.set(true);
+            lastLifecycleEvent = "Window not ready; replay still pending";
+            saveReport(activity);
+            return;
+        }
         if (splash.getWindow() != null) {
             splash.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
             splash.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));

@@ -65,7 +65,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("animation.setDuration(BOOT_DURATION_MS)",BOOT)
         self.assertIn("LinearInterpolator()",BOOT)
         self.assertIn("STARTING CHAROITE CORE",BOOT)
-        self.assertIn("charoite_next_boot_art",BOOT)
+        self.assertIn("charoite_portal_icon",BOOT)
 
     def test_splash_uses_exact_launch_icon_not_generated_art(self):
         self.assertIn(

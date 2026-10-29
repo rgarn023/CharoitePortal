@@ -1,8 +1,14 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28/29, 2026): 14 same-source Wine ELF/PE bootstrap components plus all 76 pinned Wine NLS tables, including CP932, have been built and verified as one coherent experimental archive in GitHub Actions run 40801756245. Dependency audit reports 24 PE import names not yet bundled. This is NOT an installed or runnable new Android Wine/Proton environment; FEX/graphics/complete DLL closure/prefix/device testing remain outstanding.**
+**Status (October 28/29, 2026): 18 same-source Wine ELF/PE bootstrap components plus all 76 pinned Wine NLS tables, including CP932, have been built and verified in one coherent experimental archive by GitHub Actions run 40803635407. A dependency audit reports 23 imported PE DLL names not yet bundled. This is NOT an installed or runnable new Android Wine/Proton environment; FEX, graphics, complete dependency closure, prefix startup and device tests remain outstanding.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
+
+## Latest 18-component build
+
+[Actions run 40803635407](https://github.com/rgarn023/CharoitePortal/actions/runs/40803635407) **SUCCESS** (code SHA `000fb2cb6c6bfe75f59967c4fd5913fe38a7ae2f`, four jobs green), artifact `Charoite-Wine-Coherent-Bootstrap-18-Experimental` ID **12867490929**. Adds source-built ARM64X/ARM64EC hybrid `win32u.dll`, `gdi32.dll`, `ucrtbase.dll`, `shell32.dll` to the previous 14 binaries, while retaining all 76 NLS tables including CP932. Independent ABI, SHA-256 and sampled-import gap verification passed. The prior 14-component bundle is still published separately.
+
+The **23 Windows PE DLL imports not in this sampled bundle** are: `bcrypt`, `cabinet`, `combase`, `comctl32`, `comdlg32`, `cryptnet`, `dnsapi`, `gdiplus`, `imm32`, `iphlpapi`, `mlang`, `mpr`, `msvcrt`, `newdev`, `ole32`, `oleaut32`, `rpcrt4`, `sechost`, `shcore`, `shdocvw`, `urlmon`, `winmm`, `wintrust`. Four prior imports are now supplied, while some newly built DLLs revealed additional imports; this is **not** full dependency closure. The latest phone-installable APK remains [Charoite Next v0.2 diagnostics](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), with its modern runtime still disabled. No source-built 18-component Wine runner is loaded or installed.
 
 ## Latest verified experimental bootstrap package
 

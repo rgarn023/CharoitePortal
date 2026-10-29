@@ -7,6 +7,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 STAGER=(ROOT/"stage_native_wine_loader.py").read_text(encoding="utf-8")
 JAVA=(ROOT/"CharoiteWineNativeProbe.java").read_text(encoding="utf-8")
+SERVER_JAVA=(ROOT/"CharoiteWineServerProbe.java").read_text(encoding="utf-8")
 PREP=(ROOT/"prepare_next.py").read_text(encoding="utf-8")
 WORKFLOW=(ROOT.parent/".github/workflows/charoite-next.yml").read_text(encoding="utf-8")
 spec=importlib.util.spec_from_file_location("native_wine_stage",ROOT/"stage_native_wine_loader.py")
@@ -55,8 +56,30 @@ class NativeVersionProbeTest(unittest.TestCase):
             self.assertNotIn(bad,JAVA)
         for bad in ("adb install","rm -rf","WINEPREFIX=","/data/data/com.charoite/files"):
             self.assertNotIn(bad,STAGER)
-    def test_apk_keeps_both_identity_and_modern_runtime_disabled(self):
-        for value in ('versionCode 37','11.2-next.0.6',
+    def test_verified_native_wineserver_probe_is_version_only(self):
+        for value in ("wineserver_native_library_filename", "wineserver_sha256",
+                      "wineserver_size", "wineserver_needed",
+                      "libcharoite_wineserver.so",
+                      'tar.extractfile("runtime/bin/wineserver")',
+                      'SERVER_LIB', "validate_loader(server_raw)",
+                      'doNotStrip "**/libcharoite_wineserver.so"'):
+            self.assertIn(value, STAGER)
+        for value in ("libcharoite_wineserver.so", "source_code_sha",
+                      "sha256", "hash(server)",
+                      'new ProcessBuilder(server.getAbsolutePath(), "--version")',
+                      "env.clear()", "waitFor(7, TimeUnit.SECONDS)",
+                      "Existing game/save/prefix data: NOT ACCESSED",
+                      "Wineserver session: NOT STARTED"):
+            self.assertIn(value, SERVER_JAVA)
+        for danger in ('"wineboot.exe"', 'new File(context.getFilesDir()',
+                       "clearApplicationUserData", "deleteRecursively",
+                       '"WINEPREFIX"', '"HOME"', "Runtime.getRuntime().exec"):
+            self.assertNotIn(danger, SERVER_JAVA)
+        self.assertIn("CharoiteWineServerProbe.java",PREP)
+        self.assertIn("Test source-built wineserver --version",PREP)
+
+
+        for value in ('versionCode 38','11.2-next.0.7',
                       "CharoiteWineNativeProbe.java",
                       "Test source-built Wine --version","Run Core Next device diagnostics",
                       "new Thread(() ->"):

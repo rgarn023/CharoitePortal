@@ -309,3 +309,24 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-bundle/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Cross-build four measured ARM64EC Windows startup APIs (non-runnable)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-pe-startup.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/dependency-review.json" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-startup"
+          python3 next-generation/charoite-wine/verify-pe-startup.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-startup" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/dependency-review.json"
+
+      - name: Publish experimental ARM64EC Windows startup API module bundle
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-PE-Startup-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-startup/
+          retention-days: 14
+          if-no-files-found: error

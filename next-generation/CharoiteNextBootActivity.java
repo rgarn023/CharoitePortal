@@ -113,8 +113,23 @@ public final class CharoiteNextBootActivity extends Activity {
      * Internal navigation is excluded when its destination starts. */
     public static void notePortalPaused(Activity portal) {
         REENTRY_NEEDED.set(true);
-        lastLifecycleEvent = "Portal paused";
+        lastLifecycleEvent = "Portal paused; waiting for regained window focus";
         saveReport(portal);
+    }
+
+    /** The focus callback is the final gate for quick Home/Recents returns,
+     * including when Android does not fully stop or destroy the activity.
+     * Never consume replay during onResume's pre-focus transition.
+     */
+    public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {
+        if (focused) {
+            lastLifecycleEvent = "Portal window focus regained";
+            saveReport(portal);
+            showOnBackgroundReentryIfNeeded(portal);
+        } else if (activeReentryDialog == null) {
+            lastLifecycleEvent = "Portal window lost focus";
+            saveReport(portal);
+        }
     }
 
     /** Document pickers are external activities, but returning from a picker
@@ -156,8 +171,8 @@ public final class CharoiteNextBootActivity extends Activity {
                 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int mode = audio == null ? -1 : audio.getRingerMode();
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
-                + "Splash art: actual Charoite launcher icon resource\n"
-                + "Replay: Portal pause/stop/user-leave + launcher intent\n"
+                + "Splash art: 768px enhanced copy of approved launcher artwork\n"
+                + "Replay: pending until Portal window regains focus\n"
                 + "Boot duration: 5000 ms\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
                 + "Pending replay: " + REENTRY_NEEDED.get() + "\n"
@@ -189,9 +204,9 @@ public final class CharoiteNextBootActivity extends Activity {
                 density(activity, 20), density(activity, 24));
 
         ImageView icon = new ImageView(activity);
-        // Same verified artwork that populates the launcher adaptive icon.
-        // Never show unrelated, procedurally generated portal artwork.
-        icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon);
+        // A sharper 768px presentation upscale of the *same* approved JPEG,
+        // not the unrelated procedurally generated ring graphic.
+        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_icon_hd);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
         emblem.addView(icon, new LinearLayout.LayoutParams(
@@ -272,9 +287,12 @@ public final class CharoiteNextBootActivity extends Activity {
      * LAUNCHER Activity again, show the same boot presentation as a modal
      * overlay. Preserve the live Portal Activity and its UI/process state. */
     public static void showOnBackgroundReentryIfNeeded(Activity activity) {
-        if (!REENTRY_NEEDED.getAndSet(false)
-                || activity.isFinishing() || activity.isDestroyed()) return;
-        lastLifecycleEvent = "Warm app reopening; splash presented";
+        // onResume can occur while Samsung is still transitioning the task:
+        // keep the request pending until onWindowFocusChanged(true).
+        if (activity.isFinishing() || activity.isDestroyed()
+                || !activity.hasWindowFocus()) return;
+        if (!REENTRY_NEEDED.compareAndSet(true, false)) return;
+        lastLifecycleEvent = "Warm foreground focus acquired; splash presented";
         saveReport(activity);
         if (activeReentryDialog != null && activeReentryDialog.isShowing())
             activeReentryDialog.dismiss();

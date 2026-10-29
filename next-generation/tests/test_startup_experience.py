@@ -31,8 +31,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.CENTER",BOOT)
         self.assertIn("CHAROITE CORE",BOOT)
         self.assertIn('com.charoitx',PREP)
-        self.assertIn('versionCode 37',PREP)
-        self.assertIn('11.2-next.0.6',PREP)
+        self.assertIn('versionCode 38',PREP)
+        self.assertIn('11.2-next.0.7',PREP)
 
     def test_reentry_requires_whole_application_background(self):
         self.assertIn("ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN",BOOT)

@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   actions: read
+  statuses: write
 
 concurrency:
   group: charoite-next-${{ github.ref }}
@@ -21,6 +22,19 @@ jobs:
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+
+      # Expose the real push run ID through GitHub commit status API.
+      # This makes the workflow run discoverable from the connected GitHub tools.
+      - name: Publish discoverable APK build run ID
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context=charoite-next-apk \
+            -f description="Charoite Next APK build in progress" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            || echo "::warning::Unable to publish build run status; APK CI still proceeds."
 
       - name: Verify game folder import never auto-launches
         run: python3 -m unittest discover -s runtime-preview/tests -p 'test_*.py' -v
@@ -526,4 +540,24 @@ jobs:
           name: Charoite-Core-Next-Licenses
           path: legal-bundle/
           if-no-files-found: error
+
+      - name: Publish connector-readable APK build result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RESULT: ${{ job.status }}
+        run: |
+          if [ "$BUILD_RESULT" = "success" ]; then
+            state=success
+            message="Charoite Next APK uploaded; inspect workflow artifacts"
+          else
+            state=failure
+            message="Charoite Next APK build failed; inspect job logs"
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" \
+            -f context=charoite-next-apk \
+            -f description="$message" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            || echo "::warning::Unable to publish result; inspect workflow directly."
 

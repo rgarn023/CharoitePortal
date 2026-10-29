@@ -130,6 +130,34 @@ class BootstrapBundleTest(unittest.TestCase):
         self.save()
         with self.assertRaisesRegex(ValueError,"Wrong, repeated|Unsafe"):
             ver.verify(self.path)
+    def test_22_component_bundle_and_com_tamper(self):
+        for name,path in {**ver.EXTRA_PATHS,**ver.COM_PATHS}.items():
+            data=pe()
+            self.payloads[path]=data
+            self.parts[name]={"path":path,"size":len(data),"sha256":ver.digest(data),
+                              "format":"PE","machine":"0xA641",
+                              "imports":["kernel32.dll","notbundled.dll"]}
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.4"
+        self.manifest["component_count"]=22
+        self.manifest["startup_dependency_manifest_sha256"]="a"*64
+        self.manifest["com_dependency_manifest_sha256"]="b"*64
+        self.report["bundled_windows_dlls"]=sorted(
+            k+".dll" for k in (*ver.PE,*ver.EXTRA_PE,*ver.COM_PE) if k!="wineboot")
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\n").encode()
+        self.manifest["dependency_review_sha256"]=ver.digest(
+            self.payloads["dependency-review.json"])
+        self.save()
+        manifest,review=ver.verify(self.path)
+        self.assertEqual(manifest["component_count"],22)
+        self.assertEqual(manifest["nls_count"],76)
+        self.assertEqual(review["windows_imports_not_bundled"],["notbundled.dll"])
+        self.payloads[ver.COM_PATHS["ole32"]]=pe()+b"unexpected"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"SHA-256"):ver.verify(self.path)
+    def test_22_bundle_rejects_unverified_com_provenance(self):
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.4"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"Wrong, repeated|Unsafe"):ver.verify(self.path)
     def test_dll_tamper_rejected(self):
         self.payloads[ver.EXPECTED["user32"]]=pe()+b"changed"
         self.save()

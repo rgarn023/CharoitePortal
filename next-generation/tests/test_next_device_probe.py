@@ -44,8 +44,11 @@ class DeviceProbeContract(unittest.TestCase):
         self.assertNotIn("startActivity",JAVA)
 
     def test_ci_fetches_pinned_artifacts_not_a_latest_mutable_run(self):
-        self.assertIn("12861682823",WORKFLOW)
-        self.assertIn("12861074729",WORKFLOW)
+        self.assertIn("12861682823",SCRIPT)
+        self.assertIn("12861074729",SCRIPT)
+        self.assertIn("40791083178",WORKFLOW)
+        self.assertIn("Charoite-Wine-ARM64EC-PE-Foundation-Experimental",WORKFLOW)
+        self.assertIn("Charoite-Wine-ARM64EC-PE-Expansion-Experimental",WORKFLOW)
         self.assertIn("GH_TOKEN",WORKFLOW)
         self.assertIn("stage_wine_probe.py",WORKFLOW)
         self.assertIn("wine-ci-evidence.json",WORKFLOW)

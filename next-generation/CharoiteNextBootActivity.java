@@ -43,7 +43,13 @@ public final class CharoiteNextBootActivity extends Activity {
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
     private static final AtomicBoolean REENTRY_NEEDED = new AtomicBoolean(false);
     private static final AtomicBoolean TRACKER_INSTALLED = new AtomicBoolean(false);
-    private static Dialog activeReentryDialog;
+    private static final AtomicBoolean SUPPRESS_NEXT_RESTART = new AtomicBoolean(false);
+    private static final Handler OVERLAY_HANDLER = new Handler(Looper.getMainLooper());
+    private static FrameLayout activeReentryOverlay;
+    private static Activity activeOverlayOwner;
+    private static Runnable activeOverlayTimeout;
+    private static int previousStatusBarColor;
+    private static int previousNavigationBarColor;
 
     private static final String STARTUP_PREFS = "charoite_next_startup_diagnostics";
     private static volatile String lastLifecycleEvent = "Not yet observed";
@@ -69,6 +75,7 @@ public final class CharoiteNextBootActivity extends Activity {
                         && !(a instanceof CharoiteNextBootActivity)) {
                     // Internal game, file manager, or installer: do NOT replay.
                     REENTRY_NEEDED.set(false);
+                    SUPPRESS_NEXT_RESTART.set(true);
                     lastLifecycleEvent = "Internal Charoite activity started";
                 }
             }
@@ -91,12 +98,8 @@ public final class CharoiteNextBootActivity extends Activity {
                             : "Portal stopped; preserving pending user leave";
                     saveReport(a);
                 }
-                if (a instanceof com.winlator.TouhouEntryActivity
-                        && activeReentryDialog != null) {
-                    if (activeReentryDialog.isShowing())
-                        activeReentryDialog.dismiss();
-                    activeReentryDialog = null;
-                }
+                if (a instanceof com.winlator.TouhouEntryActivity)
+                    removeWarmOverlay(a, false);
             }
             @Override public void onActivitySaveInstanceState(Activity a, Bundle state) {}
             @Override public void onActivityDestroyed(Activity a) {
@@ -116,8 +119,9 @@ public final class CharoiteNextBootActivity extends Activity {
     /** Fallback for split-screen or launcher paths that only pause the Portal.
      * Internal navigation is excluded when its destination starts. */
     public static void notePortalPaused(Activity portal) {
+        removeWarmOverlay(portal, false);
         REENTRY_NEEDED.set(true);
-        lastLifecycleEvent = "Portal paused; waiting for regained window focus";
+        lastLifecycleEvent = "Portal paused; next foreground entry will play boot";
         saveReport(portal);
     }
 
@@ -130,10 +134,24 @@ public final class CharoiteNextBootActivity extends Activity {
             lastLifecycleEvent = "Portal window focus regained";
             saveReport(portal);
             showOnBackgroundReentryIfNeeded(portal);
-        } else if (activeReentryDialog == null) {
+        } else if (activeReentryOverlay == null) {
             lastLifecycleEvent = "Portal window lost focus";
             saveReport(portal);
         }
+    }
+
+    /** Android can restart an existing Portal task from the launcher without
+     * sending a second ACTION_MAIN intent. The previous implementation only
+     * listened for focus and an onPause flag, which missed this case. */
+    public static void onPortalRestart(Activity portal) {
+        if (SUPPRESS_NEXT_RESTART.getAndSet(false)) {
+            REENTRY_NEEDED.set(false);
+            lastLifecycleEvent = "Internal Charoite activity returned; boot suppressed";
+        } else if (!portal.isChangingConfigurations()) {
+            REENTRY_NEEDED.set(true);
+            lastLifecycleEvent = "Portal restarted from background; boot scheduled";
+        }
+        saveReport(portal);
     }
 
     /** Document pickers are external activities, but returning from a picker
@@ -175,8 +193,8 @@ public final class CharoiteNextBootActivity extends Activity {
                 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int mode = audio == null ? -1 : audio.getRingerMode();
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
-                + "Splash art: icon-matched 1536px enhancement of approved launch icon\n"
-                + "Replay: pending until Portal window regains focus\n"
+                + "Splash art: exact user-supplied 1536px crystalline gateway\n"
+                + "Replay: foreground overlay on restart/resume or launcher intent\n"
                 + "Boot duration: 5000 ms\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
                 + "Pending replay: " + REENTRY_NEEDED.get() + "\n"
@@ -208,12 +226,12 @@ public final class CharoiteNextBootActivity extends Activity {
                 density(activity, 20), density(activity, 24));
 
         ImageView icon = new ImageView(activity);
-        // Same approved artwork as the actual launcher icon, color and composition.
+        // Exact full-resolution user-supplied asset; also installed as the launcher icon.
         icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
         emblem.addView(icon, new LinearLayout.LayoutParams(
-                density(activity, 228), density(activity, 228)));
+                density(activity, 278), density(activity, 278)));
 
         TextView title = new TextView(activity);
         title.setText("CHAROITE CORE");
@@ -286,52 +304,61 @@ public final class CharoiteNextBootActivity extends Activity {
         return Math.round(size * activity.getResources().getDisplayMetrics().density);
     }
 
-    /** If Android resumes an existing Portal task rather than launching the
-     * LAUNCHER Activity again, show the same boot presentation as a modal
-     * overlay. Preserve the live Portal Activity and its UI/process state. */
+    /** Remove a previous warm overlay before internal navigation, Home, or
+     * Activity teardown. The underlying Portal and Windows sessions survive. */
+    private static void removeWarmOverlay(Activity activity, boolean playChime) {
+        if (activeOverlayOwner != activity || activeReentryOverlay == null) return;
+        if (activeOverlayTimeout != null)
+            OVERLAY_HANDLER.removeCallbacks(activeOverlayTimeout);
+        FrameLayout overlay = activeReentryOverlay;
+        activeReentryOverlay = null;
+        activeOverlayOwner = null;
+        activeOverlayTimeout = null;
+        if (overlay.getParent() instanceof ViewGroup)
+            ((ViewGroup) overlay.getParent()).removeView(overlay);
+        if (!activity.isFinishing() && !activity.isDestroyed()) {
+            activity.getWindow().setStatusBarColor(previousStatusBarColor);
+            activity.getWindow().setNavigationBarColor(previousNavigationBarColor);
+            if (playChime) playCrystalChime(activity);
+        }
+    }
+
+    /** Foreground reuse uses an ordinary content overlay, NOT a new Dialog
+     * Window. Samsung may not give a Dialog a valid window token while
+     * onResume() is executing; a decor overlay has no such race. */
     public static void showOnBackgroundReentryIfNeeded(Activity activity) {
-        // onResume can occur while Samsung is still transitioning the task:
-        // keep the request pending until onWindowFocusChanged(true).
-        // Android can resume a task without dispatching a new focus event
-        // (fast Home -> launcher tap). onResume is sufficient to show splash.
         if (activity.isFinishing() || activity.isDestroyed()) return;
-        if (activeReentryDialog != null && activeReentryDialog.isShowing()) return;
-        if (!REENTRY_NEEDED.compareAndSet(true, false)) return;
-        lastLifecycleEvent = "Warm foreground focus acquired; splash presented";
-        saveReport(activity);
-        if (activeReentryDialog != null && activeReentryDialog.isShowing())
-            activeReentryDialog.dismiss();
-        Dialog splash = new Dialog(activity,
-                android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        splash.setCancelable(false);
-        splash.setContentView(createBootView(activity));
-        // Guard before show(): the Dialog may synchronously invoke focus callbacks.
-        activeReentryDialog = splash;
-        try {
-            splash.show();
-        } catch (WindowManager.BadTokenException e) {
-            activeReentryDialog = null;
-            REENTRY_NEEDED.set(true);
-            lastLifecycleEvent = "Window not ready; replay still pending";
+        activity.getWindow().getDecorView().post(() -> {
+            if (activity.isFinishing() || activity.isDestroyed()) return;
+            if (activeReentryOverlay != null && activeOverlayOwner == activity)
+                return;
+            if (!REENTRY_NEEDED.get()) return;
+            FrameLayout content = activity.findViewById(android.R.id.content);
+            if (content == null || !content.isAttachedToWindow()) {
+                lastLifecycleEvent = "Portal content not attached; replay still pending";
+                saveReport(activity);
+                return;
+            }
+            if (!REENTRY_NEEDED.compareAndSet(true, false)) return;
+            FrameLayout overlay = createBootView(activity);
+            overlay.setClickable(true);
+            overlay.setFocusable(true);
+            overlay.setElevation(density(activity, 64));
+            activeReentryOverlay = overlay;
+            activeOverlayOwner = activity;
+            previousStatusBarColor = activity.getWindow().getStatusBarColor();
+            previousNavigationBarColor = activity.getWindow().getNavigationBarColor();
+            activity.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
+            activity.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
+            content.addView(overlay, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            overlay.bringToFront();
+            lastLifecycleEvent = "Warm Portal launch; five-second overlay displayed";
             saveReport(activity);
-            return;
-        }
-        if (splash.getWindow() != null) {
-            splash.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
-            splash.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
-            splash.getWindow().setLayout(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT);
-        }
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            // If Home was pressed again or a newer splash replaced this one,
-            // do not play audio or dismiss a different window in background.
-            if (activeReentryDialog != splash || !splash.isShowing()) return;
-            splash.dismiss();
-            activeReentryDialog = null;
-            if (!activity.isFinishing() && !activity.isDestroyed())
-                playCrystalChime(activity);
-        }, BOOT_DURATION_MS);
+            activeOverlayTimeout = () -> removeWarmOverlay(activity, true);
+            OVERLAY_HANDLER.postDelayed(activeOverlayTimeout, BOOT_DURATION_MS);
+        });
     }
 
     @Override public void onCreate(Bundle savedState) {

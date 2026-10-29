@@ -191,6 +191,21 @@ jobs:
             "$RUNNER_TEMP/charoite-wine-phone-probe/expansion" \
             upstream
 
+      - name: Stage exact source-built Wine Android ELF for user-initiated --version smoke test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine-native-probe"
+          gh run download 40806958409 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-Coherent-Bootstrap-22-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine-native-probe"
+          python3 next-generation/stage_native_wine_loader.py \
+            "$RUNNER_TEMP/charoite-wine-native-probe/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/jniLibs/arm64-v8a/libcharoite_wine_loader.so
+          echo "Wine ELF staged ONLY for native Android --version, not as a gaming runtime."
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -252,6 +267,34 @@ jobs:
                   print(name,"APK hash and ARM64 carrier verified")
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
           PY
+
+      - name: Verify source-built Wine native loader is identical inside signed APK
+        run: |
+          python3 - <<'PY'
+          import json,hashlib,struct,zipfile
+          archive_path="upstream/app/build/outputs/apk/debug/app-debug.apk"
+          with zipfile.ZipFile(archive_path) as apk:
+              manifest=json.loads(apk.read("assets/charoite-next/wine-native-probe.json"))
+              native=apk.read("lib/arm64-v8a/libcharoite_wine_loader.so")
+              assert manifest["android_package"]=="com.charoitx"
+              assert manifest["source_run"]==40806958409
+              assert manifest["source_artifact"]==12868478872
+              assert manifest["source_code_sha"]=="13a33686c3f93e0ac68b65fe7766d129ac0e6c99"
+              assert manifest["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert len(native)==manifest["size"]
+              assert hashlib.sha256(native).hexdigest()==manifest["sha256"]
+              assert native[:6]==b"\\x7fELF\\x02\\x01"
+              assert struct.unpack_from("<H",native,16)[0]==3
+              assert struct.unpack_from("<H",native,18)[0]==183
+              for name in ("launch_ready","installable_as_runtime","prefix_created","device_tested","anti_cheat_supported"):
+                  assert manifest[name] is False
+              print("CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS")
+              print("WINE_LOADER_SHA256="+manifest["sha256"])
+              print("APK_WINE_VERSION_EXECUTION_NOT_TESTED_IN_CI")
+          PY
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
+            upstream/app/build/outputs/apk/debug/app-debug.apk | \
+            grep -F "package: name='com.charoitx' versionCode='34' versionName='11.2-next.0.3'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -393,6 +436,9 @@ jobs:
           cp next-generation/rewrite_prefix_next.py legal-bundle/rewrite_prefix_next.py
           cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
           cp next-generation/CharoiteNextDiagnostics.java legal-bundle/CharoiteNextDiagnostics.java
+          cp next-generation/CharoiteWineNativeProbe.java legal-bundle/CharoiteWineNativeProbe.java
+          cp next-generation/stage_native_wine_loader.py legal-bundle/stage_native_wine_loader.py
+          cp upstream/app/src/main/assets/charoite-next/wine-native-probe.json legal-bundle/wine-native-probe.json
           cp next-generation/stage_wine_probe.py legal-bundle/stage_wine_probe.py
           mkdir -p legal-bundle/charoite-wine-patches
           cp next-generation/charoite-wine/patches/*.patch legal-bundle/charoite-wine-patches/

@@ -5,8 +5,6 @@ import tempfile
 import unittest
 import wave
 import struct
-import zlib
-import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOT = (ROOT / "CharoiteNextBootActivity.java").read_text(encoding="utf-8")
@@ -15,10 +13,6 @@ OVERLAY = (ROOT.parent / "runtime-preview/overlay.py").read_text(encoding="utf-8
 spec=importlib.util.spec_from_file_location("charoite_crystal",ROOT/"generate_crystal_startup.py")
 sound=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sound)
-
-art_spec=importlib.util.spec_from_file_location("charoite_art",ROOT/"generate_boot_art.py")
-art=importlib.util.module_from_spec(art_spec)
-art_spec.loader.exec_module(art)
 
 class StartupExperienceTest(unittest.TestCase):
     def test_five_second_start_with_reentry_support(self):
@@ -31,41 +25,38 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.CENTER",BOOT)
         self.assertIn("CHAROITE CORE",BOOT)
         self.assertIn('com.charoitx',PREP)
-        self.assertIn('versionCode 39',PREP)
-        self.assertIn('11.2-next.0.8',PREP)
+        self.assertIn('versionCode 40',PREP)
+        self.assertIn('11.2-next.0.9',PREP)
 
-    def test_reentry_on_every_app_background_foreground_transition(self):
-        # Android's TRIM_MEMORY_UI_HIDDEN is not a reliable lifecycle signal.
-        self.assertNotIn("TRIM_MEMORY_UI_HIDDEN", BOOT)
-        self.assertNotIn("onTrimMemory", PREP)
+    def test_home_and_recents_reopen_with_internal_navigation_suppressed(self):
         self.assertIn("Application.ActivityLifecycleCallbacks", BOOT)
         self.assertIn("registerActivityLifecycleCallbacks", BOOT)
-        self.assertIn("onActivityStarted(Activity a)", BOOT)
         self.assertIn("onActivityStopped(Activity a)", BOOT)
-        self.assertIn("started.remove(a) && started.isEmpty()", BOOT)
-        self.assertIn("wentBackground", BOOT)
-        self.assertIn("a instanceof com.winlator.TouhouEntryActivity", BOOT)
-        self.assertIn("TRACKER_INSTALLED.compareAndSet(false, true)", BOOT)
-        self.assertIn("a.isChangingConfigurations()", BOOT)
+        self.assertIn("onActivityStarted(Activity a)", BOOT)
+        self.assertIn("onUserLeaveHint()", PREP)
+        self.assertIn("noteUserLeaving(this)", PREP)
+        self.assertIn("onPause()", PREP)
+        self.assertIn("notePortalPaused(this)", PREP)
         self.assertIn("REENTRY_NEEDED.getAndSet(false)", BOOT)
+        self.assertIn("onNewIntent(Intent intent)", PREP)
+        self.assertIn("noteLauncherIntent(intent)", PREP)
+        self.assertIn("Intent.ACTION_MAIN", BOOT)
+        self.assertIn("Intent.CATEGORY_LAUNCHER", BOOT)
+        self.assertIn("started.isEmpty()", BOOT)
+        self.assertIn("REENTRY_NEEDED.set(appBackground)", BOOT)
+        self.assertIn("!a.isChangingConfigurations()", BOOT)
+        self.assertIn("noteDocumentPickerReturn(this)", PREP)
+        self.assertIn("REENTRY_NEEDED.set(false)", BOOT)
+        self.assertNotIn("TRIM_MEMORY_UI_HIDDEN", BOOT)
+        self.assertNotIn("onTrimMemory(", PREP)
+
+    def test_no_unwanted_process_or_prefix_effects(self):
         self.assertIn("showOnBackgroundReentryIfNeeded(Activity activity)", BOOT)
         self.assertIn("createBootView(activity)", BOOT)
         self.assertIn("splash.dismiss()", BOOT)
-        self.assertIn("playCrystalChime(activity)", BOOT)
-        self.assertIn(".installReentryTracker(this)", PREP)
-        self.assertIn(".showOnBackgroundReentryIfNeeded(this)", PREP)
-        self.assertIn("onNewIntent(Intent intent)", PREP)
-        self.assertIn("Intent.CATEGORY_LAUNCHER", PREP)
-        self.assertIn("Intent.ACTION_MAIN", BOOT)
+        self.assertNotIn("ProcessBuilder", BOOT)
         self.assertNotIn("finishAffinity()", BOOT)
         self.assertNotIn("finishAndRemoveTask()", BOOT)
-
-    def test_splash_does_not_kill_ongoing_games_or_retrigger_on_rotation(self):
-        self.assertIn("!a.isChangingConfigurations()", BOOT)
-        self.assertIn("if (wentBackground && a instanceof com.winlator.TouhouEntryActivity)", BOOT)
-        self.assertIn("intent.removeExtra(EXTRA_PLAY_CHIME)", BOOT)
-        self.assertNotIn("ProcessBuilder", BOOT)
-        self.assertNotIn("onActivityStopped(Activity a) {\n                REENTRY_NEEDED.set(true)", BOOT)
 
     def test_crystal_progress_takes_five_seconds(self):
         self.assertIn("new ProgressBar(activity",BOOT)
@@ -76,38 +67,36 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("STARTING CHAROITE CORE",BOOT)
         self.assertIn("charoite_next_boot_art",BOOT)
 
-    def test_original_high_resolution_splash_is_valid_png(self):
-        with tempfile.TemporaryDirectory() as td:
-            image=Path(td)/"charoite_next_boot_art.png"
-            self.assertEqual(art.generate(image),(768,768))
-            raw=image.read_bytes()
-            self.assertEqual(raw[:8],b"\x89PNG\r\n\x1a\n")
-            self.assertEqual(struct.unpack(">II",raw[16:24]),(768,768))
-            self.assertGreater(len(raw),40000)
-            self.assertLess(len(raw),2000000)
-            with self.assertRaises(ValueError):
-                art.generate(image)
-            self.assertIn("generate_boot_art(boot_art)",PREP)
-            self.assertIn("drawable-nodpi/charoite_next_boot_art.png",PREP)
+    def test_splash_uses_exact_launch_icon_not_generated_art(self):
+        self.assertIn(
+            "icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon)", BOOT)
+        self.assertNotIn("charoite_next_boot_art", BOOT)
+        self.assertNotIn("generate_boot_art", PREP)
+        self.assertIn("charoite_portal_icon.jpg", OVERLAY)
+        self.assertIn("sha256(image_bytes).hexdigest() == good_sha", OVERLAY)
 
-    def test_main_screen_sound_only_and_silent_mode(self):
-        self.assertIn('main.putExtra(EXTRA_PLAY_CHIME, true)',BOOT)
-        self.assertIn("playArrivalChimeIfRequested(Activity activity)",BOOT)
-        self.assertIn("intent.removeExtra(EXTRA_PLAY_CHIME)",BOOT)
-        self.assertIn("activity.hasWindowFocus()",BOOT)
-        self.assertIn("AudioManager.RINGER_MODE_SILENT",BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_crystal_startup", BOOT)
-        self.assertIn("player.setOnCompletionListener(MediaPlayer::release)",BOOT)
-        self.assertIn("playArrivalChimeIfRequested(this)",PREP)
-        self.assertIn("generate_crystal_chime(chime)",PREP)
-        self.assertIn("android.intent.category.LAUNCHER",PREP)
-        self.assertIn('entry.remove(filters)',PREP)
-        self.assertIn('boot.append(filters)',PREP)
-        # Neither Wine, games nor installed prefixes are part of splash/audio.
-        for bad in ("WINEPREFIX", "ProcessBuilder", "Runtime.getRuntime()", "deleteRecursively",
-                    "wineboot", "clearApplicationUserData", "startGame", "loadLibrary"):
-            self.assertNotIn(bad,BOOT)
-        self.assertIn("charoite_portal_icon.jpg",OVERLAY)
+    def test_sound_after_resume_on_media_stream_and_diagnostics(self):
+        self.assertIn('main.putExtra(EXTRA_PLAY_CHIME, true)', BOOT)
+        self.assertIn("playArrivalChimeIfRequested(Activity activity)", BOOT)
+        self.assertIn("intent.removeExtra(EXTRA_PLAY_CHIME)", BOOT)
+        self.assertIn("playArrivalChimeIfRequested(this)", PREP)
+        self.assertIn("AudioAttributes.USAGE_MEDIA", BOOT)
+        self.assertIn("AudioManager.STREAM_MUSIC", BOOT)
+        self.assertNotIn("AudioManager.RINGER_MODE_SILENT", BOOT)
+        self.assertNotIn("activity.hasWindowFocus()", BOOT)
+        self.assertIn("player.setOnCompletionListener", BOOT)
+        self.assertIn("playCrystalChime(activity)", BOOT)
+        self.assertIn("startupReport(Context ctx)", BOOT)
+        self.assertIn("Startup / audio diagnostics", PREP)
+        self.assertIn("charoite_crystal_startup", BOOT)
+        self.assertIn("generate_crystal_chime(chime)", PREP)
+        self.assertIn("android.intent.category.LAUNCHER", PREP)
+        self.assertIn("entry.remove(filters)", PREP)
+        self.assertIn("boot.append(filters)", PREP)
+        for bad in ("WINEPREFIX", "ProcessBuilder", "Runtime.getRuntime()",
+                    "deleteRecursively", "wineboot", "clearApplicationUserData",
+                    "startGame", "loadLibrary"):
+            self.assertNotIn(bad, BOOT)
 
     def test_original_wav_is_valid_small_pcm(self):
         with tempfile.TemporaryDirectory() as td:

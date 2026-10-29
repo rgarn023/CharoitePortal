@@ -357,3 +357,24 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-extended/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Cross-build audited ARM64EC RPC COM and common control APIs (non-runnable)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-pe-com.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-extended/dependency-review.json" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-com"
+          python3 next-generation/charoite-wine/verify-pe-com.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-com" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-extended/dependency-review.json"
+
+      - name: Publish experimental ARM64EC RPC COM and controls bundle
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-PE-COM-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-com/
+          retention-days: 14
+          if-no-files-found: error

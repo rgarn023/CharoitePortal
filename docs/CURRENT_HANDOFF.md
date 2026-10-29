@@ -1159,5 +1159,29 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Must test physically:** Install Next 0.12 **in place** (do not uninstall or clear data). Tap Home→Next icon immediately (no 30-second wait), Home→Recents→Next, and switch to another app→Next. Confirm five-second splash and identical icon composition. Confirm popup keyboard, installers, system document pickers, and internal game windows do not display unwanted startup splash; verify crystal sound at non-zero MEDIA volume. **GitHub CI cannot prove these behaviors on a Galaxy S26 Ultra.** Startup sound not verifiable from the supplied silent MP4. If a behavior still fails, collect `System → Startup / audio diagnostics → Copy report` and review precise lifecycle reason.
 - Core Next native Wine remains experimental; this startup repair does not claim Battle.net/Diablo/Steam/anti-cheat/Wine game compatibility.
 
+## 58. October 29, 2026 — Next v0.13 exact user-supplied artwork + reliable repeated Home launches (verified APK)
+
+**Explicit user request:** Previous images failed to match the app icon, and the five-second boot only displayed immediately after upgrade, not on the second/third/fourth Home→icon launch. The user provided the authoritative full-resolution screenshot/art `173612.png`, a **1536×1536 JPEG-encoded image** despite the `.png` filename, depicting a faceted violet crystal crescent gateway, floating distant islands/castles, planet and small moon, stars and nebula, and a glossy descending walkway. Stop generating unrelated portal illustrations.
+
+**Artwork change committed directly on `main`:**
+- Original supplied bytes added to GitHub at `next-generation/assets/charoite_next_boot_reference.jpg` in commit `23bad1f5d510188957e8a19a86d501433f4a60d7` (Git blob `9b221205c4050b11e0943bcd4b45e4cd89f6babd`). SHA-256 `2f368b7731f8ff96db03842e0f36b62bc9d22c48fcdb77ed864846d6be44b748`; dimensions 1536×1536; image/jpeg; **exact user artwork**. No regenerated/upscaled interpretation.
+- In Next's `prepare_next.py`, the *same image bytes* are staged into both `res/drawable-nodpi/charoite_next_boot_scene.jpg` and `res/drawable-nodpi/charoite_portal_icon.jpg`. Existing stable Portal source/icon/prefixes are untouched. The prior 128px-enhancement generator is no longer used in the Next workflow.
+- The Java boot presentation uses `R.drawable.charoite_next_boot_scene` at 278dp (was 228dp), retaining the five-second animated progress bar, Charoite Core/Next title and 4.2-second dark crystalline arrival sound. App ID stays `com.charoitx`.
+
+**Repeated-start code correction (source, not yet hardware proven):**
+- `next-generation/CharoiteNextBootActivity.java`: replaced unreliable `new Dialog(activity)` warm-boot path (race with Samsung window token / focus) with a full-screen `FrameLayout` overlay on the existing Portal `android.R.id.content`, posted on the main UI thread. The overlay is shown for exactly `BOOT_DURATION_MS = 5000` and removed without destroying the Portal/game session.
+- Explicit `onPortalRestart()` handles Android reusing the existing task when Home icon is pressed (with a suppression flag for returning from other internal Charoite activities). The existing `onPause()`, `onUserLeaveHint()`, `onNewIntent()`, and focus callbacks remain as complementary signals. The activity overlay is cleaned up on pause/stop and no second window/dialog token is needed.
+- `next-generation/prepare_next.py` installs `onRestart()` into the Portal, bumps **versionCode 44**, versionName **`11.2-next.0.13`**, preserves signature, all user data and stable `com.charoite`.
+- `next-generation/tests/test_startup_experience.py` revised to enforce exact 1536px JPEG SHA, same launcher & splash bytes, lifecycle/re-entry hooks and absence of warm Dialog path. Native Wine regression version contract also updated; `.github/workflows/charoite-next.yml` verifies the final APK contains exact bytes for both icon & splash.
+
+**Final verified CI:**
+- Exact built code commit **`17a2e1c2c52556573ae25ef797565e007a734f94`** (subsequent docs-only `[skip ci]` commit does not affect APK).
+- **GitHub Actions 40967148063 — SUCCESS**, https://github.com/rgarn023/CharoitePortal/actions/runs/40967148063
+- **APK artifact** `Charoite-Core-Next-Android-APK`, ID **12939230463**, downloadable at https://github.com/rgarn023/CharoitePortal/actions/runs/40967148063/artifacts/12939230463
+- Artifact ZIP size **237,283,524 bytes**; SHA-256 **b1e7e6dbff68148f0c2bdf2e56d0daedc430f0f0142843a2d5f5c85994a38944** (ZIP digest, not extracted APK digest). Licenses artifact 12938412280.
+- **23 Next tests passed**, full Android Gradle build SUCCESS, APK signed with cached original Next key. CI exactly reported `CHAROITE_NEXT_USER_APPROVED_1536PX_ARTWORK_EXACT_MATCH=PASS`, `CHAROITE_NEXT_BOOT_AND_LAUNCHER_IDENTICAL_PIXELS=PASS`, `CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS`, `CHAROITE_NEXT_LAUNCHER_ASSET_EXACT_USER_REFERENCE=PASS`.
+
+**Mandatory hardware verification:** Update existing `com.charoitx` in place (never uninstall/clear data). Launch 2nd/3rd/4th times via Home→Charoite icon immediately, plus Home→Recents and app switching. Each should show full 5s exact art overlay. Document picker/internal game return should *not* show accidental boot. Confirm audio with media volume and the `System → Startup / audio diagnostics` report. **These behaviors have NOT yet been tested on user's Galaxy S26 Ultra; CI only demonstrates code, packaging, and test contracts.** If it still fails, inspect the report and revise the Android lifecycle based on device events, not another image modification.
+
 ---
 **End of current Charoite Portal handoff.**

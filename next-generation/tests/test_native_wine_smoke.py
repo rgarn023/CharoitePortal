@@ -1,4 +1,4 @@
-"""Native-only, user-initiated Wine --version smoke guardrails for Next v0.3."""
+"""Native-only, user-initiated Wine --version smoke guardrails for Next v0.4."""
 import importlib.util
 from pathlib import Path
 import struct
@@ -25,14 +25,16 @@ class NativeVersionProbeTest(unittest.TestCase):
         for bad in (b"MZ"+bytes(120),elf(machine=62),elf(kind=2),bytes(128)):
             with self.assertRaises(ValueError):mod.validate_loader(bad)
     def test_pin_source_artifact_and_manifest(self):
-        for value in ("40806958409","12868478872",
-                      "13a33686c3f93e0ac68b65fe7766d129ac0e6c99",
+        for value in ("40898982875","0",
+                      "5d07e29fdba6552033d5f1a1a50ff1cc2fffe420",
                       "verify-bootstrap-bundle.py",
                       "wine10-arm64ec-bootstrap.0.4",
                       "component_count","nls_count", "22","76",
-                      "Refusing to overwrite existing native smoke payload"):
+                      "Refusing to overwrite existing native smoke payload",
+                      "libcharoite_wine_ntdll.so","ntdll_sha256","ntdll_size",
+                      "CHAROITE_NTDLL_NATIVE_DIR"):
             self.assertIn(value,STAGER)
-        for value in ("40806958409","Charoite-Wine-Coherent-Bootstrap-22-Experimental",
+        for value in ("40898982875","Charoite-Wine-Coherent-Bootstrap-22-Experimental",
                       "stage_native_wine_loader.py","libcharoite_wine_loader.so",
                       "CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS"):
             self.assertIn(value,WORKFLOW)
@@ -41,6 +43,7 @@ class NativeVersionProbeTest(unittest.TestCase):
                       'NATIVE_FILE = "libcharoite_wine_loader.so"',
                       'new ProcessBuilder(loader.getAbsolutePath(), "--version")',
                       "nativeLibraryDir", "sha256(loader)",
+                      "sha256(ntdll)", "CHAROITE_NTDLL_NATIVE_DIR",
                       "env.clear()", "TIMEOUT_SECONDS = 7L",
                       "WINEPREFIX", "NO prefix"[:2], "source_run"):
             self.assertIn(value,JAVA)
@@ -52,7 +55,7 @@ class NativeVersionProbeTest(unittest.TestCase):
         for bad in ("adb install","rm -rf","WINEPREFIX=","/data/data/com.charoite/files"):
             self.assertNotIn(bad,STAGER)
     def test_apk_keeps_both_identity_and_modern_runtime_disabled(self):
-        for value in ('versionCode 34','11.2-next.0.3',
+        for value in ('versionCode 35','11.2-next.0.4',
                       "CharoiteWineNativeProbe.java",
                       "Test source-built Wine --version","Run Core Next device diagnostics",
                       "new Thread(() ->"):

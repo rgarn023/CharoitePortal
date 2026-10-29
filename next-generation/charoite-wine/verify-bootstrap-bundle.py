@@ -113,7 +113,7 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 entry.get("sha256")!=digest(data)):
                 raise ValueError("Corresponding Wine source/license tampered")
         for name,entry in nls_files.items():
-            if not re.fullmatch(r"[a-z_0-9]+\\.nls",name):
+            if not re.fullmatch(r"[a-z_0-9]+\.nls",name):
                 raise ValueError("Unsafe NLS file name")
             path="runtime/nls/"+name
             data=read(path)

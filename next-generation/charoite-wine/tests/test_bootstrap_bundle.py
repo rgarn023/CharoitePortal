@@ -54,6 +54,14 @@ class BootstrapBundleTest(unittest.TestCase):
             data=(name+" license source content").encode()
             self.payloads["source/"+name]=data
             sources[name]={"path":"source/"+name,"size":len(data),"sha256":ver.digest(data)}
+        self.nls={}
+        nls_names=set(ver.NLS_REQUIRED)|{f"c_{30000+i}.nls" for i in range(71)}
+        self.assertEqual(len(nls_names),76)
+        for name in sorted(nls_names):
+            contents=(name+" pinned Wine NLS bytes").encode()
+            archive_path="runtime/nls/"+name
+            self.payloads[archive_path]=contents
+            self.nls[name]={"path":archive_path,"sha256":ver.digest(contents),"size":len(contents)}
         imported=["kernel32.dll","notbundled.dll"]
         self.report={"schema_version":1,
                      "bundled_windows_dlls":sorted(k+".dll" for k in ver.PE if k!="wineboot"),
@@ -62,11 +70,12 @@ class BootstrapBundleTest(unittest.TestCase):
                      "android_elf_needed":["libc.so"]}
         self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\n").encode()
         self.manifest={
-            "schema_version":1,"version":"wine10-arm64ec-bootstrap.0.1",
+            "schema_version":1,"version":"wine10-arm64ec-bootstrap.0.2",
             "source_commit":ver.BASE,"android_package":"com.charoitx",
             "status":"coherent-components-not-executed",
             "component_count":len(ver.EXPECTED),"components":self.parts,
-            "source_files":sources,"dependency_review_sha256":ver.digest(
+            "source_files":sources,"nls_count":len(self.nls),"nls_files":self.nls,
+            "dependency_review_sha256":ver.digest(
                 self.payloads["dependency-review.json"]),
             "window_imports_unresolved_count":1,
             "launch_ready":False,"installable":False,"prefix_created":False,
@@ -89,11 +98,21 @@ class BootstrapBundleTest(unittest.TestCase):
     def test_verified_inventory(self):
         m,r=ver.verify(self.path)
         self.assertEqual(m["component_count"],14)
+        self.assertEqual(m["nls_count"],76)
+        self.assertIn("c_932.nls",m["nls_files"])
         self.assertEqual(r["windows_imports_not_bundled"],["notbundled.dll"])
     def test_dll_tamper_rejected(self):
         self.payloads[ver.EXPECTED["user32"]]=pe()+b"changed"
         self.save()
         with self.assertRaisesRegex(ValueError,"SHA-256"):ver.verify(self.path)
+    def test_nls_tamper_rejected(self):
+        self.payloads["runtime/nls/c_932.nls"]=b"wrong Japanese CP932 table"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"NLS file hash"):ver.verify(self.path)
+    def test_missing_nls_rejected(self):
+        self.payloads.pop("runtime/nls/c_1252.nls")
+        self.save()
+        with self.assertRaisesRegex(ValueError,"Missing or unexpected Wine NLS"):ver.verify(self.path)
     def test_forged_readiness_rejected(self):
         self.manifest["launch_ready"]=True
         self.save()

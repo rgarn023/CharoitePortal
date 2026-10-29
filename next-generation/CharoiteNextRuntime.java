@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "0.5 (five-second crystal startup screen)";
+    public static final String VERSION = "0.7 (crystal boot and source-built wineserver diagnostic)";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";
@@ -71,6 +71,7 @@ public final class CharoiteNextRuntime {
                 + "CI Wine PE libraries: bundled as read-only diagnostic assets; not runnable.\n"
                 + "Use System > Run Core Next device diagnostics to verify phone and PE hashes.\n"
                 + "Use Test source-built Wine --version for the isolated Android-native loader smoke test.\n"
+                + "Use Test source-built wineserver --version to verify native server ELF separately.\n"
                 + "A --version pass does NOT establish a working Wine prefix, ARM64EC or FEX runtime.\n"
                 + legacy.label + ": bundled (existing compatibility engine)\n"
                 + proton.label + ": NOT READY\n" + proton.detail + "\n"

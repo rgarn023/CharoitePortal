@@ -101,6 +101,35 @@ class BootstrapBundleTest(unittest.TestCase):
         self.assertEqual(m["nls_count"],76)
         self.assertIn("c_932.nls",m["nls_files"])
         self.assertEqual(r["windows_imports_not_bundled"],["notbundled.dll"])
+    def test_extended_18_component_bundle(self):
+        for name,path in ver.EXTRA_PATHS.items():
+            data=pe()
+            self.payloads[path]=data
+            self.parts[name]={"path":path,"size":len(data),"sha256":ver.digest(data),
+                              "format":"PE","machine":"0xA641",
+                              "imports":["kernel32.dll","notbundled.dll"]}
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.3"
+        self.manifest["component_count"]=18
+        self.manifest["startup_dependency_manifest_sha256"]="a"*64
+        self.report["bundled_windows_dlls"]=sorted(
+            k+".dll" for k in (*ver.PE,*ver.EXTRA_PE) if k!="wineboot")
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\n").encode()
+        self.manifest["dependency_review_sha256"]=ver.digest(
+            self.payloads["dependency-review.json"])
+        self.save()
+        m,r=ver.verify(self.path)
+        self.assertEqual(m["component_count"],18)
+        self.assertEqual(m["nls_count"],76)
+        self.assertEqual(r["windows_imports_not_bundled"],["notbundled.dll"])
+        self.payloads[ver.EXTRA_PATHS["win32u"]]=pe()+b"damaged"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"SHA-256"):
+            ver.verify(self.path)
+    def test_extended_archive_rejects_missing_provenance(self):
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.3"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"Wrong, repeated|Unsafe"):
+            ver.verify(self.path)
     def test_dll_tamper_rejected(self):
         self.payloads[ver.EXPECTED["user32"]]=pe()+b"changed"
         self.save()

@@ -20,7 +20,7 @@ SIZE = 1536
 SOURCE_SIZE = (128, 128)
 APPROVED_SOURCE_SHA256 = "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5"
 # The JPEG has an incomplete 67-byte second quantization table. It is 12
-# bytes short before its subsequent valid SOF marker.
+# bytes short before its subsequent valid progressive SOF2 marker.
 MISSING_QUANTIZER_BYTES = bytes([24] * 12)
 
 
@@ -32,7 +32,7 @@ def repaired_jpeg(source):
         raise RuntimeError("Unexpected launcher icon length; inspect artwork")
     if not (data.startswith(bytes.fromhex("ffd8ffe0"))
             and data[89:93] == bytes.fromhex("ffdb0043")
-            and data[146:148] == bytes.fromhex("ffc0")
+            and data[146:148] == bytes.fromhex("ffc2")
             and data.endswith(bytes.fromhex("ffd9"))):
         raise RuntimeError("Expected recoverable JPEG structure was not found: "
                            + f"length={len(data)} head={data[:20].hex()} "

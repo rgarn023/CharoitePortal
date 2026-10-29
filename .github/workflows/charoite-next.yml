@@ -299,29 +299,19 @@ jobs:
           apk = Path("upstream/app/build/outputs/apk/debug/app-debug.apk")
           with zipfile.ZipFile(apk) as z:
               icon = z.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
-              assert "res/drawable-nodpi-v4/charoite_next_boot_art.png" not in z.namelist()
-              assert icon[:2] == b"\xff\xd8"
-              scene=z.read("res/drawable-nodpi-v4/charoite_next_boot_scene.png")
-              import struct
-              assert scene[:8]==bytes.fromhex("89504e470d0a1a0a")
-              assert struct.unpack(">II",scene[16:24])==(1536,1536)
-              assert len(scene)>100000
-              assert not any(p.endswith("charoite_next_boot_icon_hd.png") for p in z.namelist())
-              print("CHAROITE_NEXT_ICON_MATCHED_1536PX_SCENE=PASS")
-              print("CHAROITE_NEXT_BOOT_USES_APPROVED_LAUNCHER_ART=PASS")
-              from importlib.util import spec_from_file_location, module_from_spec
-              source_spec = spec_from_file_location("approved_icon_repair", "next-generation/recreate_crystal_portal.py")
-              source_module = module_from_spec(source_spec)
-              source_spec.loader.exec_module(source_module)
-              assert icon == source_module.repaired_jpeg(Path("runtime-preview/charoite_portal_icon.jpg"))
-              print("CHAROITE_NEXT_REPAIRED_APPROVED_ICON_IN_APK=PASS")
-              from PIL import Image, ImageChops, ImageStat
-              approved=Image.open(io.BytesIO(icon)).convert("RGB")
-              enhanced=Image.open(io.BytesIO(scene)).convert("RGB")
-              sampled=enhanced.resize(approved.size, Image.Resampling.LANCZOS)
-              delta=ImageStat.Stat(ImageChops.difference(sampled,approved))
-              assert max(delta.mean)<22, "Splash must preserve launcher icon composition"
-              print("CHAROITE_NEXT_BOOT_VISUALLY_MATCHES_LAUNCHER_ICON=PASS")
+              scene = z.read("res/drawable-nodpi-v4/charoite_next_boot_scene.jpg")
+              master = Path("next-generation/assets/charoite_next_boot_reference.jpg").read_bytes()
+              expected = "2f368b7731f8ff96db03842e0f36b62bc9d22c48fcdb77ed864846d6be44b748"
+              assert hashlib.sha256(master).hexdigest() == expected
+              assert icon == scene == master, "Boot artwork and launcher icon MUST be identical to user reference"
+              from PIL import Image
+              with Image.open(io.BytesIO(scene)) as picture:
+                  picture.load()
+                  assert picture.size == (1536, 1536)
+                  assert picture.format == "JPEG"
+              assert "res/drawable-nodpi-v4/charoite_next_boot_scene.png" not in z.namelist()
+              print("CHAROITE_NEXT_USER_APPROVED_1536PX_ARTWORK_EXACT_MATCH=PASS")
+              print("CHAROITE_NEXT_BOOT_AND_LAUNCHER_IDENTICAL_PIXELS=PASS")
               audio_files=[p for p in z.namelist()
                            if p.endswith("/charoite_crystal_startup.wav")]
               assert len(audio_files)==1, "Missing or duplicate original startup chime"
@@ -378,7 +368,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='43' versionName='11.2-next.0.12'"
+            grep -F "package: name='com.charoitx' versionCode='44' versionName='11.2-next.0.13'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -414,13 +404,9 @@ jobs:
               missing = expected - files
               assert not missing, f"Required Android launcher icon resources missing: {missing}"
               image = archive.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
-              digest = hashlib.sha256(image).hexdigest()
-              from importlib.util import spec_from_file_location, module_from_spec
-              spec = spec_from_file_location("approved_next_icon", "next-generation/recreate_crystal_portal.py")
-              mod = module_from_spec(spec)
-              spec.loader.exec_module(mod)
-              assert image == mod.repaired_jpeg(Path("runtime-preview/charoite_portal_icon.jpg")), (
-                  "Next APK must include same readable, approved icon used by the splash: " + digest)
+              approved = Path("next-generation/assets/charoite_next_boot_reference.jpg").read_bytes()
+              assert image == approved, "Launcher must display the exact user-supplied 1536px artwork"
+              print("CHAROITE_NEXT_LAUNCHER_ASSET_EXACT_USER_REFERENCE=PASS")
               assert any(p.endswith("/charoite_portal_foreground.xml") for p in files)
               print("Valid approved artwork; modern adaptive and round icon assets packaged")
           PY

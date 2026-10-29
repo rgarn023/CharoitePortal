@@ -292,8 +292,11 @@ public final class CharoiteNextBootActivity extends Activity {
                     WindowManager.LayoutParams.MATCH_PARENT);
         }
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (splash.isShowing()) splash.dismiss();
-            if (activeReentryDialog == splash) activeReentryDialog = null;
+            // If Home was pressed again or a newer splash replaced this one,
+            // do not play audio or dismiss a different window in background.
+            if (activeReentryDialog != splash || !splash.isShowing()) return;
+            splash.dismiss();
+            activeReentryDialog = null;
             if (!activity.isFinishing() && !activity.isDestroyed())
                 playCrystalChime(activity);
         }, BOOT_DURATION_MS);

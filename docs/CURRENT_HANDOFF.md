@@ -1081,5 +1081,23 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 
 **Next:** Verify final v0.9 GitHub build/signing and artifact on `main`. Install in place only after success (no uninstall/clear data); test Home and Recents return, first launch, game-return suppression, icon artwork match, and audible chime with **media volume >0**. If any defect remains, use System startup/audio diagnostics to pinpoint lifecycle/audio failure and patch. Separately, first native Wine `wine --version` passed on phone at v0.5; native wineserver `--version` untested; no Wineboot/Windows EXE/FEX/DXVK/Steam/Battle.net/anti-cheat success claimed.
 
+## 54. October 29, 2026 — Charoite Next v0.9 fully verified signed APK SUCCESS
+
+**Confirmed GitHub Actions:** [run 40948189767](https://github.com/rgarn023/CharoitePortal/actions/runs/40948189767), built source commit `1c8a2fcbb4b01ed6d3c5dcbb73d4e0f912621a2d`, job `build-runtime-preview` **completed conclusion SUCCESS**, no failed steps, GitHub commit status `charoite-next-apk=success`. Final APK artifact **`Charoite-Core-Next-Android-APK` ID `12929718817`**, exact link https://github.com/rgarn023/CharoitePortal/actions/runs/40948189767/artifacts/12929718817 ; ZIP size 235,843,492 bytes; GitHub API shows artifact unexpired, archive SHA-256 `5de226607f426333319421023370b2f1e73e5d609b8f30faa9a16169b769c233`. Licenses artifact 12931030562. ZIP is GitHub Actions artifact container; extracted APK has its own checksum and is not the archive hash.
+
+**Verbatim successful job-log markers:**
+- `CHAROITE_NEXT_BOOT_USES_APPROVED_LAUNCHER_ART=PASS` (same approved launcher JPEG in boot)
+- `CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS` (WAV and launch activity packaged)
+- `CHAROITE_NEXT_WINESERVER_NATIVE_APK_VERIFIED=PASS`
+- `CHAROITE_NEXT_WINE_NATIVE_APK_LOADER_VERIFIED=PASS`
+- `CHAROITE_NEXT_WINE_APK_NTDLL_VERIFIED=PASS`
+- `package: name='com.charoitx' versionCode='40' versionName='11.2-next.0.9'`
+- `APK signing certificate matches cached signing key.`
+- `Artifact Charoite-Core-Next-Android-APK.zip successfully finalized. Artifact ID 12929718817`
+
+**Source modifications implemented and compiled:** splash uses actual `charoite_portal_icon` (no procedural image), Home/onPause/onStop/launcher warm reentry detection, game/picker suppression, chime moved to Portal onResume and uses media stream (not blocked by silent/vibrate ringer), copyable System → Startup / audio diagnostics containing last lifecycle/audio result and media volume, no background chime after splash dismissal. Source/test and actual APK build verified; actual Samsung runtime behavior **NOT** yet verified. The approved launcher image is a small JPEG, so reusing the exact pixels can remain soft when enlarged. Do not falsely promise new detail if high-resolution matching source is unavailable.
+
+**Install/test steps:** Install the v0.9 APK in place over existing `com.charoitx`, never uninstall/clear storage or touch games/prefixes. Test initial opening, Home→icon return, Recents→return, orientation change, game→Portal internal return. Check crystal audio with **media volume above zero** (silent/vibrate ringer no longer blocks the media stream). If no sound or splash, open **System → Startup / audio diagnostics → Copy report** and share; it records whether lifecycle events occurred, media volume and MediaPlayer result. Android CI proves build/packaging only, not these on-device behaviors. Stable `com.charoite` unaffected. Next native Wine `wineserver --version` user probe remains available and untested.
+
 ---
 **End of current Charoite Portal handoff.**

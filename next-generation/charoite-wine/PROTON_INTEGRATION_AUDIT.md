@@ -5,22 +5,22 @@ Status: 2026-10-29 · Source/audit specification, not runtime readiness
 
 Our derivative is **not Wine authored from scratch**. It is built from pinned
 [The412Banner/proton-wine](https://github.com/The412Banner/proton-wine)
-commit \`c74acb09d51b447f5d5ac56c87608d3ec565a767\`.
-\`prepare-source.sh\` applies, in order:
+commit `c74acb09d51b447f5d5ac56c87608d3ec565a767`.
+`prepare-source.sh` applies, in order:
 
 1. The upstream Android/Bionic/ARM64EC/FEX prerequisite patch list parsed
    from the pinned ARM64EC build script (70 patches in the verified source run).
-2. The pinned upstream \`build-scripts/apply-ge-patches.sh\`
-   \`android/ge-patches/game-fixes\` tier (10 in the verified source run).
-   Its own script explicitly excludes the separate \`ge-video-rework\` port.
+2. The pinned upstream `build-scripts/apply-ge-patches.sh`
+   `android/ge-patches/game-fixes` tier (10 in the verified source run).
+   Its own script explicitly excludes the separate `ge-video-rework` port.
 3. Eight active Charoite-maintained/attributed Wine patches in
-   \`patches/SERIES\` (0100, 0002, 0200, 0300, 0400, 0500, 0600, 0700).
+   `patches/SERIES` (0100, 0002, 0200, 0300, 0400, 0500, 0600, 0700).
 
 Keep original authorship/attribution. Never infer all features from patch count.
 Source-build evidence is separate from actual on-phone behavior. On 2026-10-29
-the Samsung S26 Ultra reported \`APK-installed ELF hash: PASS\`,
-\`APK-installed native ntdll hash: PASS\`, exit code 0 and \`wine-10.0\`
-for the native Charoite Wine \`--version\` probe. That proves the native loader
+the Samsung S26 Ultra reported `APK-installed ELF hash: PASS`,
+`APK-installed native ntdll hash: PASS`, exit code 0 and `wine-10.0`
+for the native Charoite Wine `--version` probe. That proves the native loader
 and its ntdll fallback worked on Android. It does **not** create a prefix or
 demonstrate Windows PE execution, a running wineserver session or gaming support.
 
@@ -57,17 +57,17 @@ demonstrated by the current native version probe. Never bypass vendor controls.
 
 ## Ordered engineering checks
 
-1. **Native loader done**: on-device \`wine --version\` yields \`wine-10.0\`.
+1. **Native loader done**: on-device `wine --version` yields `wine-10.0`.
 2. **Native server version probe (v0.7 code)**: stage the exact same source
-   bundle's verified AArch64 \`wineserver\` as APK-managed native library code.
-   Hash-check it in a user-triggered \`--version\`-only command with no prefix,
+   bundle's verified AArch64 `wineserver` as APK-managed native library code.
+   Hash-check it in a user-triggered `--version`-only command with no prefix,
    HOME, inherited Wine variables or existing game data. The fact that a
    binary prints its version does not mean a server session started.
 3. Complete a sealed Next-only versioned **native/PE/NLS/Windows dependency**
-   layout; audit all imported DLLs and \`DT_NEEDED\` entries and ABI versions.
+   layout; audit all imported DLLs and `DT_NEEDED` entries and ABI versions.
    The current 22-component, 76-NLS archive has 24 sampled Windows PE
    import names not bundled; it is not complete.
-4. Add explicit opt-in \`wineboot\` smoke test with a **new, strictly isolated
+4. Add explicit opt-in `wineboot` smoke test with a **new, strictly isolated
    Next test prefix**, dedicated verified wineserver path and local logs.
    Never touch existing prefixes, installers, games or saves. No automatic
    wineboot on install.
@@ -82,5 +82,5 @@ demonstrated by the current native version probe. Never bypass vendor controls.
 Packaging, CI cross-compilation and source-level tests do not prove Android
 device success. Publish the exact CI run, source commit, signing provenance and
 APK artifact only after a successful job; otherwise keep status "unverified".
-Do not make \`proton-arm64ec-fex\` selectable until on-device readiness criteria
-are met. The stable \`com.charoite\` package and data are out of scope.
+Do not make `proton-arm64ec-fex` selectable until on-device readiness criteria
+are met. The stable `com.charoite` package and data are out of scope.

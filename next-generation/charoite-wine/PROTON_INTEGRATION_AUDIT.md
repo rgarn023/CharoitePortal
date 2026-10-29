@@ -10,7 +10,7 @@ commit `c74acb09d51b447f5d5ac56c87608d3ec565a767`.
 
 1. The upstream Android/Bionic/ARM64EC/FEX prerequisite patch list parsed
    from the pinned ARM64EC build script (70 patches in the verified source run).
-2. The pinned upstream `build-scripts/apply-ge-patches.sh`
+2. The **GE-Proton** game-fixes tier from pinned upstream `build-scripts/apply-ge-patches.sh`
    `android/ge-patches/game-fixes` tier (10 in the verified source run).
    Its own script explicitly excludes the separate `ge-video-rework` port.
 3. Eight active Charoite-maintained/attributed Wine patches in

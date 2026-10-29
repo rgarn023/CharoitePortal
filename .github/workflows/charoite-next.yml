@@ -269,6 +269,30 @@ jobs:
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
           PY
 
+      - name: Verify five-second Charoite Core icon boot and original crystal sound
+        run: |
+          set -euo pipefail
+          APK=upstream/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" |
+            grep -F "launchable-activity: name='com.charoitegames.core.CharoiteNextBootActivity'"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, io, wave, zipfile
+          apk = Path("upstream/app/build/outputs/apk/debug/app-debug.apk")
+          with zipfile.ZipFile(apk) as z:
+              icon = z.read("res/drawable-nodpi-v4/charoite_portal_icon.jpg")
+              assert hashlib.sha256(icon).hexdigest() == "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5"
+              audio_files=[p for p in z.namelist()
+                           if p.endswith("/charoite_crystal_startup.wav")]
+              assert len(audio_files)==1, "Missing or duplicate original startup chime"
+              with wave.open(io.BytesIO(z.read(audio_files[0])),"rb") as sound:
+                  assert sound.getnchannels()==1
+                  assert sound.getsampwidth()==2
+                  assert sound.getframerate()==44100
+                  assert sound.getnframes()==round(44100*1.85)
+              print("CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS")
+          PY
+
       - name: Verify source-built Wine native loader is identical inside signed APK
         run: |
           python3 - <<'PY'

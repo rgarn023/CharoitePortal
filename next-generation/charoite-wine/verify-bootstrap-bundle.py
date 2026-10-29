@@ -14,6 +14,7 @@ ELF=("wine","wineserver","ntdll_unix")
 PE=("ntdll","kernelbase","kernel32","advapi32","user32","ws2_32",
     "crypt32","setupapi","shlwapi","version","wineboot")
 EXTRA_PE=("win32u","gdi32","ucrtbase","shell32")
+COM_PE=("rpcrt4","combase","ole32","comctl32")
 SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
          "Wine-NLS-Makefile.in")
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
@@ -25,6 +26,7 @@ EXPECTED={
     "wineboot":"runtime/pe/arm64/wineboot.exe",
 }
 EXTRA_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in EXTRA_PE}
+COM_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in COM_PE}
 ALL=set(EXPECTED.values())|{f"source/{k}" for k in SOURCES}|{
     "dependency-review.json","manifest.json",
 }
@@ -60,14 +62,19 @@ def verify(archive: Path) -> tuple[dict,dict]:
         manifest=json.loads(read("manifest.json"))
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
-        extended=manifest.get("version")=="wine10-arm64ec-bootstrap.0.3"
-        expected={**EXPECTED,**EXTRA_PATHS} if extended else EXPECTED
-        allowed=ALL | (set(EXTRA_PATHS.values()) if extended else set())
+        version=manifest.get("version")
+        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4")
+        com=version=="wine10-arm64ec-bootstrap.0.4"
+        expected={**EXPECTED,**(EXTRA_PATHS if extended else {}),
+                  **(COM_PATHS if com else {})}
+        allowed=ALL | (set(EXTRA_PATHS.values()) if extended else set()) | (
+            set(COM_PATHS.values()) if com else set())
         if (len(members)!=len(allowed)+len(nls_paths) or actual!=allowed|nls_paths):
             raise ValueError("Wrong, repeated or missing bundle files")
         if (manifest.get("schema_version")!=1 or
             manifest.get("version") not in (
-                "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3") or
+                "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3",
+                "wine10-arm64ec-bootstrap.0.4") or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
@@ -91,6 +98,12 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 raise ValueError("Missing startup DLL source audit linkage")
         elif startup_hash is not None:
             raise ValueError("Unexpected startup provenance in base archive")
+        com_hash=manifest.get("com_dependency_manifest_sha256")
+        if com:
+            if not isinstance(com_hash,str) or not re.fullmatch(r"[0-9a-f]{64}",com_hash):
+                raise ValueError("Missing COM/RPC source provenance")
+        elif com_hash is not None:
+            raise ValueError("Unexpected COM/RPC provenance in older archive")
         for name,path in expected.items():
             entry=manifest["components"][name]
             if entry.get("path")!=path or entry.get("format")!=(

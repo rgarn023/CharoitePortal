@@ -870,5 +870,29 @@ Artifacts at this run:
 
 **Next:** prioritize source-building `ole32`, `combase`, `comctl32`, `shdocvw`, `gdiplus`, or the most critical import groups; use fresh exact source evidence per new module. Continue complete PE/Unix/NLS and ARM64EC/FEX + Android integration and produce a versioned, rollback-safe **Next-only** runtime with fresh-prefix startup smoke tests before any Battle.net/Steam claim.
 
+## 44. October 28/29, 2026 — Source-built ARM64EC RPC/COM/control DLLs and coherent 22-component Wine/NLS archive SUCCESS
+
+**Verified completion:** [GitHub Actions run 40806958409](https://github.com/rgarn023/CharoitePortal/actions/runs/40806958409) at exact source SHA **13a33686c3f93e0ac68b65fe7766d129ac0e6c99** — all FOUR jobs **SUCCESS** (source-validation tests, Android ARM64 wineserver, host ABI smoke build, Android ARM64EC compiler). **Charoite-Wine-Coherent-Bootstrap-22-Experimental** artifact **12868478872** (GitHub artifact ZIP 15,515,694 bytes). Includes the prior 18 ELF/PE components, four same-tree newly built Windows ARM64X/ARM64EC modules `rpcrt4.dll`, `combase.dll`, `ole32.dll`, `comctl32.dll`, and all **76** source-pinned Wine NLS tables including `c_932.nls` and CP1252. Contains exact source delta, attributions, hashes, distinct COM/startup evidence, and recomputed Windows PE imports. The 18- and 14-component archives remain separately built/verified as fallbacks.
+
+**Separate component artifact** from the same run: `Charoite-Wine-ARM64EC-PE-COM-Experimental` artifact **12868747669**. Earlier stand-alone COM DLL run [40806218247](https://github.com/rgarn023/CharoitePortal/actions/runs/40806218247) was also ALL FOUR JOBS SUCCESS, COM artifact **12868412754**.
+
+**New source commits:**
+- `d373dd9bdbb3dc0973c905c9993075f0589a3173` — `build-pe-com.sh`, builds precisely `rpcrt4`, `combase`, `ole32`, `comctl32` from the exact pinned ARM64EC Wine build using its own Makefile graph, requires 18-library dependency audit input, refuses existing output/app data/prefix modification, writes hash/source-linked fail-closed manifest.
+- `6164d9eeec1bbf8f9925a281e270b1f80f9b5b34` — `verify-pe-com.py`, independently verifies PE raw carrier `0xAA64`, LLVM ARM64X+ARM64EC hybrid header reports, per-file SHA-256, previous audit digest, exact file inventory, and `launch_ready=false`.
+- `d1984ab1dc66158fb449a0b8ff936c94ec0acb72` — `test_pe_com.py` rejects binary tampering, wrong PE architecture, lost ARM64EC view, forged readiness, missing dependency audit/import files and destructive operations.
+- `8b32a1765449921b8a605402ea9779fa4883749c` — source workflow separate COM build and experimental artifact; run 40806218247 proved compilation.
+- `e209ceef35c25e587d423b759e5cfbb0ebb3d4d5` — `assemble-bootstrap-bundle.py` supports source-linked **22** (v0.4) bundle using `--include-com`, preserving v0.2 14 and v0.3 18 standalone paths; all 22 exact same-run binaries, 76 NLS with fresh import review. COM dependency manifest SHA required.
+- `03703a8ac69a4a793bb2bd0c591922c472c74d09` — `verify-bootstrap-bundle.py` validates 22 exact paths/ABI/checksums and startup + COM source provenance, still validating earlier 14 and 18 archives; rejects tampering and false install/launch readiness.
+- `36e36a5593ec127710e4fc0125eb22ae9bba33e2` — synthetic unit tests for 22-component archive, false provenance and COM binary tampering.
+- **`13a33686c3f93e0ac68b65fe7766d129ac0e6c99`** — CI publishes verified 22-component experimental bundle, independent from 14/18 fallbacks.
+
+**Exact CI log proof:** `CHAROITE_PE_COM_AUDIT_INPUT_VERIFIED=PASS`, `CHAROITE_PE_COM_MANIFEST_VERIFIED=PASS`, `CHAROITE_PE_COM_COMPILED_NOT_EXECUTED`, `CHAROITE_WINE_BOOTSTRAP_ARCHIVE_VERIFIED=PASS`, `COMPONENTS=22`, `NLS_COUNT=76`, `LAUNCH_READY=false`.
+
+**Measured remaining unbundled Windows PE imports (24 different names):** `bcrypt.dll`, `cabinet.dll`, `comdlg32.dll`, `coml2.dll`, `cryptnet.dll`, `dnsapi.dll`, `gdiplus.dll`, `imm32.dll`, `iphlpapi.dll`, `mlang.dll`, `mpr.dll`, `msvcrt.dll`, `newdev.dll`, `oleacc.dll`, `oleaut32.dll`, `sechost.dll`, `secur32.dll`, `shcore.dll`, `shdocvw.dll`, `urlmon.dll`, `uxtheme.dll`, `wininet.dll`, `winmm.dll`, `wintrust.dll`. An exact sampled PE-import graph is not the entire complete runtime or proof every dependency must be bundled identically. Some missing imports disappeared, other new COM dependencies surfaced.
+
+**User-facing actual functionality unchanged:** No new Android APK or functional ARM64EC/FEX runner created this iteration. Latest successfully built installable Android package remains **Charoite Next v0.2 read-only diagnostic APK** [run 40793135040](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), package `com.charoitx`, artifact **12862243976**. The source-built 22-component archive is **NOT** installed into Next or stable `com.charoite`; no new Wine prefix, wineboot execution, Galaxy phone test, Battle.net/Steam game launch or anti-cheat test occurred. No user data or apps modified. Do not suggest uninstalling/clearing data to resolve app signing mismatches.
+
+**Next engineering choice:** Prioritize deeper boot-relevant Windows import groups (`msvcrt`, `sechost`, `oleaut32`, `coml2`, `uxtheme`, `bcrypt`, etc.), verify Android native ELF/Unix dependencies and dynamic loader layout, build a versioned and rollback-safe **Next-only** runtime stage with FEX and Android display/Vulkan/input, and perform fresh-prefix Wineboot and simple program smoke test on Galaxy S26 Ultra before aiming at Steam/Battle.net. Modern engine stays disabled until real complete runtime on-device startup succeeds; anti-cheat requires publisher-supported compatibility rather than bypass.
+
 ---
 **End of current Charoite Portal handoff.**

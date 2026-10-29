@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: charoite-next-${{ github.ref }}
@@ -173,6 +174,23 @@ jobs:
       - name: Install separate Charoite Next app identity and engine inventory
         run: python3 next-generation/prepare_next.py upstream
 
+      - name: Stage exact verified Wine PE binaries for read-only device diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine-phone-probe/foundation" "$RUNNER_TEMP/charoite-wine-phone-probe/expansion"
+          gh run download 40791083178 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-ARM64EC-PE-Foundation-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine-phone-probe/foundation"
+          gh run download 40791083178 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-ARM64EC-PE-Expansion-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine-phone-probe/expansion"
+          python3 next-generation/stage_wine_probe.py \
+            "$RUNNER_TEMP/charoite-wine-phone-probe/foundation" \
+            "$RUNNER_TEMP/charoite-wine-phone-probe/expansion" \
+            upstream
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -204,6 +222,36 @@ jobs:
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify seven source-built PE diagnostic DLLs in final APK
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile, json, hashlib, struct
+          apk=Path("upstream/app/build/outputs/apk/debug/app-debug.apk")
+          prefix="assets/charoite-next/wine-ci/"
+          with zipfile.ZipFile(apk) as archive:
+              index=json.loads(archive.read(prefix+"wine-ci-evidence.json"))
+              assert index["android_package"]=="com.charoitx"
+              assert index["source_run"]==40791083178
+              assert index["source_code_sha"]=="c1658e2d20260ff413e6ba6c47f460e2d5e7cec1"
+              assert index["launch_ready"] is False
+              assert index["installable_as_runtime"] is False
+              assert index["anti_cheat_supported"] is False
+              assert set(index["components"])=={
+                  "advapi32","user32","ws2_32","crypt32","setupapi","shlwapi","version"}
+              for name,info in index["components"].items():
+                  archive_path="assets/"+info["asset"]
+                  data=archive.read(archive_path)
+                  assert len(data)==info["size"]
+                  assert hashlib.sha256(data).hexdigest()==info["sha256"]
+                  assert data[:2]==b"MZ"
+                  pe=struct.unpack_from("<I",data,0x3c)[0]
+                  assert data[pe:pe+4]==b"PE\\0\\0"
+                  assert struct.unpack_from("<H",data,pe+4)[0]==0xAA64
+                  print(name,"APK hash and ARM64 carrier verified")
+              print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
+          PY
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -344,6 +392,12 @@ jobs:
           cp next-generation/prepare_next.py legal-bundle/prepare_next.py
           cp next-generation/rewrite_prefix_next.py legal-bundle/rewrite_prefix_next.py
           cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
+          cp next-generation/CharoiteNextDiagnostics.java legal-bundle/CharoiteNextDiagnostics.java
+          cp next-generation/stage_wine_probe.py legal-bundle/stage_wine_probe.py
+          mkdir -p legal-bundle/charoite-wine-patches
+          cp next-generation/charoite-wine/patches/*.patch legal-bundle/charoite-wine-patches/
+          cp next-generation/charoite-wine/patches/SERIES legal-bundle/charoite-wine-patches/
+          cp upstream/app/src/main/assets/charoite-next/wine-ci/wine-ci-evidence.json legal-bundle/wine-ci-evidence.json
           cp next-generation/charoite-wine/UPSTREAM-WEHAVEPHONES-LICENSE.txt legal-bundle/UPSTREAM-WEHAVEPHONES-LICENSE.txt
           cp next-generation/charoite-wine/README.md legal-bundle/Charoite-Wine-README.md
           cp runtime-preview/charoite-core/input/charoite_keyscan.c legal-bundle/charoite_keyscan.c

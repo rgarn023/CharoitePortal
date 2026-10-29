@@ -283,3 +283,27 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-expansion/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Assemble and audit one coherent Wine bootstrap archive (non-runnable)
+        run: |
+          set -euo pipefail
+          python3 next-generation/charoite-wine/assemble-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle"
+          python3 next-generation/charoite-wine/verify-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/charoite-wine-bootstrap-bundle.tar.gz"
+          grep -Fx 'CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/bundle-report.txt"
+          grep -Fx 'LAUNCH_READY=false' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/bundle-report.txt"
+
+      - name: Publish coherent Wine bootstrap and import-gap report (NOT installable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Coherent-Bootstrap-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-bundle/
+          retention-days: 14
+          if-no-files-found: error

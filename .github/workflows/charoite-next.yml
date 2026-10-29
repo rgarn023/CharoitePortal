@@ -247,7 +247,7 @@ jobs:
                   assert hashlib.sha256(data).hexdigest()==info["sha256"]
                   assert data[:2]==b"MZ"
                   pe=struct.unpack_from("<I",data,0x3c)[0]
-                  assert data[pe:pe+4]==b"PE\\0\\0"
+                  assert data[pe:pe+4]==b"PE\x00\x00"
                   assert struct.unpack_from("<H",data,pe+4)[0]==0xAA64
                   print(name,"APK hash and ARM64 carrier verified")
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")

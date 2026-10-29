@@ -955,5 +955,41 @@ Implementation, **Next ONLY**:
 
 **Workflow:** `.github/workflows/charoite-next.yml` → Next APK; `.github/workflows/charoite-wine-source.yml` → audited Wine sources/artifacts. On the next chat turn, read latest section 46 and this section 47 before making changes. This note intentionally updates handoff only with `[skip ci]` to avoid needless CI/rebuild. Do not ask the user to re-explain the current state.
 
+## 48. October 29, 2026 — PHYSICAL GALAXY PASS for Wine --version; Charoite Next v0.6 splash fixes committed
+
+**New user-provided, actual Samsung Galaxy S26 Ultra device report from Next v0.5 — definitive native milestone:**
+
+\`\`\`
+CHAROITE NEXT — FIRST NATIVE WINE STARTUP PROBE
+Package: com.charoitx
+APK-installed native ntdll hash: PASS
+APK-installed ELF hash: PASS
+ELF source run: 40898982875
+Native exit code: 0
+Output: wine-10.0
+RESULT: PASS — Android Wine --version executed
+\`\`\`
+
+This **confirms** the opt-in Android APK native ntdll loader fix operates on physical Android 17 hardware. Wine executable's native \`--version\` exits successfully. It **does not** prove wineserver, isolated prefix, Windows PE programs, FEX/ARM64EC translation, graphics, Steam, Battle.net, anti-cheat or games. Existing Windows software/games and prefixes were untouched by this probe.
+
+**User-provided screenshot of Next v0.5 boot on device:** Five-second splash image is visibly soft/blurry when displayed large; there is no progress bar, and Android reopens a still-running task without repeating splash after returning to the app. Startup art was sourced from a tiny approved JPEG launcher icon (only a few KB), scaled to 236 dp. User requested all three fixes.
+
+**Next-only v0.6 source changes committed directly to GitHub \`main\` (no new branch, stable Portal untouched):**
+
+- Source \`next-generation/generate_boot_art.py\`: deterministic **768×768 original high-resolution crystal portal splash image** generated as PNG using Python standard library only (no network/assets). This artwork is boot-screen-specific; original approved launcher icon and stable app icon are not modified. Generation refuses to overwrite an existing file.
+- Source \`next-generation/CharoiteNextBootActivity.java\`: same original crystal presentation with 768px art instead of tiny JPEG (fallback retains approved icon), 250dp horizontal purple gradient determinate progress bar animated smoothly from 0 to 1000 over five seconds, original crystal chime preserved, centered title/Next.
+- Re-entry: Next-only \`TouhouEntryActivity\` injection in \`next-generation/prepare_next.py\` handles \`onTrimMemory(TRIM_MEMORY_UI_HIDDEN)\` and \`onResume()\`; when Android returns to a **backgrounded** live Portal task, a full-screen non-cancelable five-second splash dialog overlays the existing activity rather than destroying/restarting it, then plays the same one-shot crystal sound. Internal game return normally leaves app UI visible and should not replay the splash; confirm behavior on device. No Wine/game/prefix operations in the splash.
+- \`prepare_next.py\` stages generated PNG into \`res/drawable-nodpi/charoite_next_boot_art.png\`; increments ONLY Next to **package com.charoitx**, \`versionName 11.2-next.0.6\`, \`versionCode 37\` (same persisted signing key expectation). Stable \`com.charoite\` unchanged.
+- \`next-generation/tests/test_startup_experience.py\` adds regression checks for lifecycle reentry, 5-second progress, 768px PNG validity; \`test_native_wine_smoke.py\` updates Next-only version contract. \`.github/workflows/charoite-next.yml\` checks next version and verifies 768×768 PNG in the signed APK.
+- Source commits include \`006782d12e9a46cd00a57eb31752611a51cdb3ff\` (PNG generator), \`d1d3ce5494e73df479771b13a6c2854355af05fd\` (boot UI), \`955deced3d5f3817b037d3fa8da848ea6e3304af\` (reentry/identity), \`d00ab3050c418967315d8a73b17eedb45a5d4ed5\` (tests), and \`3be4010a6ab09fccdecb784dfd36c58cf35b5dfa\` (CI assertions). The workflow triggers automatically on Next-only source/CI changes.
+
+**BUILD / VALIDATION STATUS:** These are committed v0.6 source changes. The current GitHub connector only exposes workflow jobs/artifacts when a run ID is already known, and its commit-workflow lookup filters to PR-triggered runs. At this handoff update, **a v0.6 Actions run ID, green outcome and APK artifact have not been independently obtained**. Do NOT assert a v0.6 successful build, signed APK, or physical-device success without checking. Last independently confirmed successful artifact remains Next v0.5 build 40902416931 / artifact 12909419332.
+
+**NEXT PRIORITIES:**
+1. Verify the new \`.github/workflows/charoite-next.yml\` run completes and APK artifact exists. If CI failure, fix on \`main\` and rebuild. Preserve signing identity for in-place upgrades.
+2. User updates Next to v0.6 without uninstall/clearing data, observes sharper art + five-second progress cold launch + replay after app Home/re-enter, and whether chime plays once and does not play on internal game navigation.
+3. Now that Wine native \`--version\` succeeded on Android, build **versioned, Next-only complete native+PE+NLS/wineserver layout**, with no installed game/prefix accessed. Progress to **new isolated prefix-only \`wineboot\` diagnostic** after dependency checks, then single basic Windows executable, later translation/graphics. Do not claim gaming support.
+
+
 ---
 **End of current Charoite Portal handoff.**

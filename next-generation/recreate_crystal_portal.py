@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Recover and enhance the *same* approved art used by Next's launcher icon.
 
-The repository's 128x128 approved JPEG has a damaged second DQT segment:
-12 quantizer bytes are missing immediately before the SOF0 marker. A narrow,
-strictly structure-guarded in-memory repair makes it decodable without substituting a
-different illustration. The fixed JPEG is staged only into Charoite Next;
-the stable app and original tracked file are not modified.
+The repository's 128x128 JPEG has a known 12-byte transfer defect.
+The stable overlay.py already restores the exact approved launcher bytes.
+Next now uses that identical, SHA-256 verified restoration for the boot art.
+Neither the stable app nor the original tracked file is modified.
 
 Upscaling is source-faithful and cannot recreate fine details that did not
 survive the original 128-pixel JPEG. A true high-resolution source master
@@ -25,36 +24,39 @@ MISSING_QUANTIZER_BYTES = bytes([24] * 12)
 
 
 def repaired_jpeg(source):
+    # Match the existing, long-standing overlay.py restoration byte for byte.
+    # The broken *repository* JPG differs from the intact launcher icon
+    # already shipped by Charoite; do not invent replacement quantizers.
     data = Path(source).read_bytes()
-    # Validate the damaged JPEG's exact segment layout rather than rely on
-    # an APK digest from the earlier, separate stable packaging step.
-    if len(data) < 1000 or len(data) > 10000:
-        raise RuntimeError("Unexpected launcher icon length; inspect artwork")
-    if not (data.startswith(bytes.fromhex("ffd8ffe0"))
-            and data[89:93] == bytes.fromhex("ffdb0043")
-            and data[146:148] == bytes.fromhex("ffc2")
-            and data.endswith(bytes.fromhex("ffd9"))):
-        raise RuntimeError("Expected recoverable JPEG structure was not found: "
-                           + f"length={len(data)} head={data[:20].hex()} "
-                           + f"at89={data[89:93].hex()} at146={data[146:148].hex()} "
-                           + f"tail={data[-4:].hex()} sha={hashlib.sha256(data).hexdigest()}")
-    recovered = data[:146] + MISSING_QUANTIZER_BYTES + data[146:]
-    with Image.open(BytesIO(recovered)) as image:
-        image.load()
-        if image.format != "JPEG" or image.size != SOURCE_SIZE:
-            raise RuntimeError("Approved icon recovery failed validation")
-    return recovered
+    bad_sha = "7c5c8fdf88b71fd23fb01740f516b866108edbf57af962aa50bca599bdd1b338"
+    good_sha = APPROVED_SOURCE_SHA256
+    digest = hashlib.sha256(data).hexdigest()
+    if digest == bad_sha:
+        data = data[:108] + bytes([0x82]) * 12 + data[108:]
+    elif digest != good_sha:
+        raise RuntimeError("Unknown launcher JPEG source; refuse artwork substitution")
+    if hashlib.sha256(data).hexdigest() != good_sha:
+        raise RuntimeError("Launcher JPEG restoration does not match approved image")
+    with Image.open(BytesIO(data)) as verified:
+        verified.load()
+        if verified.format != "JPEG" or verified.size != SOURCE_SIZE:
+            raise RuntimeError("Approved icon is not a complete 128px JPEG")
+    return data
 
 
 def stage_launcher_icon(source, destination):
     dest = Path(destination)
     if not dest.is_file() or dest.suffix != ".jpg":
         raise RuntimeError("Expected Next-only icon resource not present")
-    # Never alter the repository's tracked source. This is called only after
-    # stable overlay.py copied the original resource into Next's build tree.
-    if dest.read_bytes() != Path(source).read_bytes():
-        raise RuntimeError("Icon resource changed before Next-specific staging")
-    dest.write_bytes(repaired_jpeg(source))
+    original = Path(source).read_bytes()
+    approved = repaired_jpeg(source)
+    current = dest.read_bytes()
+    if current not in (original, approved):
+        raise RuntimeError("Icon resource changed unexpectedly before Next staging")
+    # In real Actions, overlay.py already wrote these *exact* approved bytes.
+    # Next leaves that same launcher artwork intact, never invents a new icon.
+    if current != approved:
+        dest.write_bytes(approved)
     return SOURCE_SIZE
 
 

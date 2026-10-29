@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
+import android.content.Context;
+import android.util.Log;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioAttributes;
@@ -43,17 +45,15 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final AtomicBoolean TRACKER_INSTALLED = new AtomicBoolean(false);
     private static Dialog activeReentryDialog;
 
+    private static final String STARTUP_PREFS = "charoite_next_startup_diagnostics";
+    private static volatile String lastLifecycleEvent = "Not yet observed";
+    private static volatile String lastAudioResult = "Not yet attempted";
+
     /**
-     * Memory trim notifications are NOT a reliable way of detecting Home /
-     * task-switching on Android 17. ActivityLifecycleCallbacks report each
-     * Activity stop/start regardless of process caching or memory pressure.
-     *
-     * Register once from the Portal's onCreate. When all app activities have
-     * stopped, the process has actually gone into the background. On a warm
-     * return to the Portal we present the same five-second splash, without
-     * recreating the Portal or touching installed games and Wine prefixes.
-     * Navigation into Charoite's in-app game/setup activities is deliberately
-     * excluded because they count as app-visible activities.
+     * Unlike TRIM_MEMORY_UI_HIDDEN, onUserLeaveHint()/onPause()/onStop()
+     * can detect a Home/recent-app transition on Samsung One UI.
+     * Internal Charoite activity starts cancel pending replay; the game
+     * process, prefixes, and installed software are never modified.
      */
     public static void installReentryTracker(Activity portal) {
         if (!TRACKER_INSTALLED.compareAndSet(false, true)) return;
@@ -61,23 +61,31 @@ public final class CharoiteNextBootActivity extends Activity {
                 new Application.ActivityLifecycleCallbacks() {
             private final Set<Activity> started =
                     Collections.newSetFromMap(new WeakHashMap<Activity, Boolean>());
-            private boolean wentBackground;
 
             @Override public void onActivityCreated(Activity a, Bundle state) {}
             @Override public void onActivityStarted(Activity a) {
-                if (wentBackground && a instanceof com.winlator.TouhouEntryActivity)
-                    REENTRY_NEEDED.set(true);
                 started.add(a);
-                wentBackground = false;
+                if (!(a instanceof com.winlator.TouhouEntryActivity)
+                        && !(a instanceof CharoiteNextBootActivity)) {
+                    // Internal game, file manager, or installer: do NOT replay.
+                    REENTRY_NEEDED.set(false);
+                    lastLifecycleEvent = "Internal Charoite activity started";
+                }
             }
             @Override public void onActivityResumed(Activity a) {}
             @Override public void onActivityPaused(Activity a) {}
             @Override public void onActivityStopped(Activity a) {
-                if (started.remove(a) && started.isEmpty() && !a.isChangingConfigurations())
-                    wentBackground = true;
+                started.remove(a);
+                if (a instanceof com.winlator.TouhouEntryActivity
+                        && !a.isChangingConfigurations()) {
+                    // The Portal has truly left the visible foreground.
+                    REENTRY_NEEDED.set(true);
+                    lastLifecycleEvent = "Portal stopped; reentry pending";
+                }
                 if (a instanceof com.winlator.TouhouEntryActivity
                         && activeReentryDialog != null) {
-                    if (activeReentryDialog.isShowing()) activeReentryDialog.dismiss();
+                    if (activeReentryDialog.isShowing())
+                        activeReentryDialog.dismiss();
                     activeReentryDialog = null;
                 }
             }
@@ -88,15 +96,72 @@ public final class CharoiteNextBootActivity extends Activity {
         });
     }
 
-    /** Some launchers deliver an explicit warm ACTION_MAIN/LAUNCHER intent
-     * rather than stopping/starting the visible task (notably multi-window).
-     * Avoid treating internal game or installer intents as launcher openings. */
+    /** A reliable signal on Home or user-selected app switching even when
+     * Android chooses not to stop the existing task. */
+    public static void noteUserLeaving(Activity portal) {
+        REENTRY_NEEDED.set(true);
+        lastLifecycleEvent = "User leave hint received";
+        saveReport(portal);
+    }
+
+    /** Fallback for split-screen or launcher paths that only pause the Portal.
+     * Internal navigation is excluded when its destination starts. */
+    public static void notePortalPaused(Activity portal) {
+        REENTRY_NEEDED.set(true);
+        lastLifecycleEvent = "Portal paused";
+        saveReport(portal);
+    }
+
+    /** Document pickers are external activities, but returning from a picker
+     * is NOT a new Portal launch. */
+    public static void noteDocumentPickerReturn(Activity portal) {
+        REENTRY_NEEDED.set(false);
+        lastLifecycleEvent = "Document picker returned (startup suppressed)";
+        saveReport(portal);
+    }
+
+    /** Samsung may deliver an explicit warm launcher intent instead of
+     * stopping/starting the visible task. */
     public static void noteLauncherIntent(Intent intent) {
         if (intent != null
                 && Intent.ACTION_MAIN.equals(intent.getAction())
-                && intent.hasCategory(Intent.CATEGORY_LAUNCHER))
+                && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) {
             REENTRY_NEEDED.set(true);
+            lastLifecycleEvent = "New launcher intent received";
+        }
     }
+
+    private static void saveReport(Context ctx) {
+        ctx.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE).edit()
+                .putString("last_event", lastLifecycleEvent)
+                .putString("last_audio", lastAudioResult).apply();
+        Log.i("CharoiteNextStartup", lastLifecycleEvent + "; " + lastAudioResult);
+    }
+
+    /** Read-only, copyable diagnostics if a Samsung build suppresses re-entry
+     * or cannot produce audible media output. No private game data is read. */
+    public static String startupReport(Context ctx) {
+        android.content.SharedPreferences prefs =
+                ctx.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE);
+        AudioManager audio = (AudioManager)
+                ctx.getSystemService(Context.AUDIO_SERVICE);
+        int current = audio == null ? -1
+                : audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int maximum = audio == null ? -1
+                : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int mode = audio == null ? -1 : audio.getRingerMode();
+        return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
+                + "Splash art: actual Charoite launcher icon resource\n"
+                + "Replay: Portal pause/stop/user-leave + launcher intent\n"
+                + "Boot duration: 5000 ms\n"
+                + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
+                + "Pending replay: " + REENTRY_NEEDED.get() + "\n"
+                + "Last audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
+                + "Media volume: " + current + " / " + maximum + "\n"
+                + "Ringer mode: " + mode + " (does not mute media chime)\n"
+                + "Games / prefixes / saves: untouched\n";
+    }
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable openMain;
     private boolean completed;
@@ -119,17 +184,13 @@ public final class CharoiteNextBootActivity extends Activity {
                 density(activity, 20), density(activity, 24));
 
         ImageView icon = new ImageView(activity);
-        // Unlike the tiny launcher JPEG, the splash-only original is generated
-        // at 768 x 768 pixels. Keep the approved launcher image as fallback.
-        try {
-            icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_art);
-        } catch (RuntimeException error) {
-            icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon);
-        }
+        // Same verified artwork that populates the launcher adaptive icon.
+        // Never show unrelated, procedurally generated portal artwork.
+        icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
         emblem.addView(icon, new LinearLayout.LayoutParams(
-                density(activity, 248), density(activity, 248)));
+                density(activity, 228), density(activity, 228)));
 
         TextView title = new TextView(activity);
         title.setText("CHAROITE CORE");
@@ -208,6 +269,8 @@ public final class CharoiteNextBootActivity extends Activity {
     public static void showOnBackgroundReentryIfNeeded(Activity activity) {
         if (!REENTRY_NEEDED.getAndSet(false)
                 || activity.isFinishing() || activity.isDestroyed()) return;
+        lastLifecycleEvent = "Warm app reopening; splash presented";
+        saveReport(activity);
         if (activeReentryDialog != null && activeReentryDialog.isShowing())
             activeReentryDialog.dismiss();
         Dialog splash = new Dialog(activity,
@@ -226,8 +289,13 @@ public final class CharoiteNextBootActivity extends Activity {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (splash.isShowing()) splash.dismiss();
             if (activeReentryDialog == splash) activeReentryDialog = null;
-            if (!activity.isFinishing() && !activity.isDestroyed())
+            if (!activity.isFinishing() && !activity.isDestroyed()
+                    && activity.hasWindowFocus())
                 playCrystalChime(activity);
+            else {
+                lastLifecycleEvent = "Warm splash finished while Portal was not visible";
+                saveReport(activity);
+            }
         }, BOOT_DURATION_MS);
     }
 
@@ -266,29 +334,52 @@ public final class CharoiteNextBootActivity extends Activity {
 
     private static void playCrystalChime(Activity activity) {
         activity.getWindow().getDecorView().postDelayed(() -> {
-            if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus())
+            if (activity.isFinishing() || activity.isDestroyed()) {
+                lastAudioResult = "Suppressed: Portal activity destroyed before audio";
+                saveReport(activity);
                 return;
+            }
+            // Media is the intended stream. The ringer being silent/vibrate
+            // should not disable a user-requested startup sound. Respect
+            // music-stream volume and avoid hard-coding elevated output.
             AudioManager audio = (AudioManager)
-                    activity.getSystemService(Activity.AUDIO_SERVICE);
-            if (audio != null && audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT)
+                    activity.getSystemService(Context.AUDIO_SERVICE);
+            if (audio != null && audio.getStreamVolume(AudioManager.STREAM_MUSIC) <= 0) {
+                lastAudioResult = "Muted: media volume is zero";
+                saveReport(activity);
                 return;
+            }
             try {
                 AudioAttributes attributes = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build();
-                MediaPlayer player = MediaPlayer.create(activity,
+                final MediaPlayer player = MediaPlayer.create(activity,
                         com.winlator.R.raw.charoite_crystal_startup, attributes, 0);
-                if (player == null) return;
-                player.setOnCompletionListener(MediaPlayer::release);
+                if (player == null) {
+                    lastAudioResult = "FAILED: MediaPlayer.create returned null";
+                    saveReport(activity);
+                    return;
+                }
+                player.setOnCompletionListener(mp -> {
+                    mp.release();
+                    lastAudioResult = "PASS: startup crystal chime completed";
+                    saveReport(activity);
+                });
                 player.setOnErrorListener((mp, what, extra) -> {
                     mp.release();
+                    lastAudioResult = "FAILED: MediaPlayer code " + what + "/" + extra;
+                    saveReport(activity);
                     return true;
                 });
                 player.start();
-            } catch (RuntimeException ignored) {
-                // No startup-audio error should crash the app.
+                lastAudioResult = "STARTED: crystal chime on media stream";
+                saveReport(activity);
+            } catch (RuntimeException error) {
+                lastAudioResult = "FAILED: " + error.getClass().getSimpleName()
+                        + ": " + error.getMessage();
+                saveReport(activity);
             }
-        }, 220L);
+        }, 300L);
     }
 }

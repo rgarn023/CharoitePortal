@@ -31,8 +31,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("render_crystal_portal(",PREP)
         self.assertIn("R.drawable.charoite_next_boot_scene",BOOT)
         self.assertIn("com.charoitx",PREP)
-        self.assertIn("versionCode 44",PREP)
-        self.assertIn("11.2-next.0.13",PREP)
+        self.assertIn("versionCode 45",PREP)
+        self.assertIn("11.2-next.0.14",PREP)
 
     def test_five_seconds_on_initial_open_and_each_foreground_return(self):
         self.assertIn("BOOT_DURATION_MS = 5000L",BOOT)
@@ -41,6 +41,14 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("animation.setDuration(BOOT_DURATION_MS)",BOOT)
         self.assertIn("new Intent(this, com.winlator.TouhouEntryActivity.class)",BOOT)
         self.assertIn("onPortalRestart(Activity portal)",BOOT)
+        self.assertIn("onPortalResumed(Activity portal)",BOOT)
+        self.assertIn(".onPortalResumed(this)",PREP)
+        self.assertNotIn(".playArrivalChimeIfRequested(this)",PREP)
+        self.assertIn("Last-resort onResume replay",BOOT)
+        # onRestart is no longer permitted to cancel a later external resume.
+        restart=BOOT.split("public static void onPortalRestart(Activity portal) {")[1].split("    /** Every actual Portal resume")[0]
+        self.assertNotIn("REENTRY_NEEDED.set(false)",restart)
+        self.assertNotIn("SUPPRESS_NEXT_RESTART.getAndSet(false)",restart)
         self.assertIn("onRestart()",PREP)
         self.assertIn(".onPortalRestart(this)",PREP)
         self.assertIn("onNewIntent(Intent intent)",PREP)
@@ -61,6 +69,10 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("WindowManager.BadTokenException",BOOT)
         self.assertNotIn("|| !activity.hasWindowFocus()",BOOT)
         self.assertIn("SUPPRESS_NEXT_RESTART.set(true)",BOOT)
+        self.assertIn("SUPPRESS_NEXT_RESTART.getAndSet(false)",BOOT)
+        self.assertIn("REENTRY_NEEDED.set(true)",BOOT)
+        self.assertIn("if (internalReturn && !explicitHomeOrLauncher)",BOOT)
+        self.assertIn("portal.isChangingConfigurations()",BOOT)
         self.assertIn("noteDocumentPickerReturn(this)",PREP)
         self.assertIn("REENTRY_NEEDED.set(false)",BOOT)
 
@@ -73,6 +85,15 @@ class StartupExperienceTest(unittest.TestCase):
 
     def test_original_slow_crystal_arrival_sound(self):
         self.assertIn("playCrystalChime(activity)",BOOT)
+        self.assertIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)
+        self.assertIn("playPendingColdArrivalIfReady", BOOT)
+        self.assertIn("postDelayed(", BOOT)
+        self.assertIn("new android.media.AudioTrack.Builder()", BOOT)
+        self.assertIn("android.media.AudioTrack.MODE_STATIC", BOOT)
+        self.assertIn("activeCrystalAudioTrack = track", BOOT)
+        self.assertIn("MediaPlayer.create(activity", BOOT)
+        self.assertIn("STARTED: direct PCM crystal sound", BOOT)
+        self.assertIn("QUEUED: cold arrival sound waiting", BOOT)
         self.assertIn("charoite_crystal_startup",BOOT)
         self.assertIn("AudioAttributes.USAGE_MEDIA",BOOT)
         self.assertIn("AudioManager.STREAM_MUSIC",BOOT)

@@ -78,9 +78,14 @@ public final class CharoiteNextBootActivity extends Activity {
                 started.remove(a);
                 if (a instanceof com.winlator.TouhouEntryActivity
                         && !a.isChangingConfigurations()) {
-                    // The Portal has truly left the visible foreground.
-                    REENTRY_NEEDED.set(true);
-                    lastLifecycleEvent = "Portal stopped; reentry pending";
+                    // Only treat the stop as app background if no other
+                    // Charoite activity (game, installer, etc.) is visible.
+                    boolean appBackground = started.isEmpty();
+                    REENTRY_NEEDED.set(appBackground);
+                    lastLifecycleEvent = appBackground
+                            ? "Portal stopped; app backgrounded"
+                            : "Portal stopped for internal Charoite activity";
+                    saveReport(a);
                 }
                 if (a instanceof com.winlator.TouhouEntryActivity
                         && activeReentryDialog != null) {
@@ -289,13 +294,8 @@ public final class CharoiteNextBootActivity extends Activity {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (splash.isShowing()) splash.dismiss();
             if (activeReentryDialog == splash) activeReentryDialog = null;
-            if (!activity.isFinishing() && !activity.isDestroyed()
-                    && activity.hasWindowFocus())
+            if (!activity.isFinishing() && !activity.isDestroyed())
                 playCrystalChime(activity);
-            else {
-                lastLifecycleEvent = "Warm splash finished while Portal was not visible";
-                saveReport(activity);
-            }
         }, BOOT_DURATION_MS);
     }
 

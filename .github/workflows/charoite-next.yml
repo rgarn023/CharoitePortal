@@ -307,9 +307,16 @@ jobs:
               assert struct.unpack(">II",scene[16:24])==(1536,1536)
               assert len(scene)>100000
               assert not any(p.endswith("charoite_next_boot_icon_hd.png") for p in z.namelist())
-              print("CHAROITE_NEXT_RECREATED_1536PX_CRYSTAL_SCENE=PASS")
+              print("CHAROITE_NEXT_ICON_MATCHED_1536PX_SCENE=PASS")
               print("CHAROITE_NEXT_BOOT_USES_APPROVED_LAUNCHER_ART=PASS")
               assert hashlib.sha256(icon).hexdigest() == "28668d5426e7d7977880b6e8406c14a47972565a7f637a8c16fcd1cde2788aa5"
+              from PIL import Image, ImageChops, ImageStat
+              approved=Image.open(io.BytesIO(icon)).convert("RGB")
+              enhanced=Image.open(io.BytesIO(scene)).convert("RGB")
+              sampled=enhanced.resize(approved.size, Image.Resampling.LANCZOS)
+              delta=ImageStat.Stat(ImageChops.difference(sampled,approved))
+              assert max(delta.mean)<22, "Splash must preserve launcher icon composition"
+              print("CHAROITE_NEXT_BOOT_VISUALLY_MATCHES_LAUNCHER_ICON=PASS")
               audio_files=[p for p in z.namelist()
                            if p.endswith("/charoite_crystal_startup.wav")]
               assert len(audio_files)==1, "Missing or duplicate original startup chime"
@@ -366,7 +373,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='42' versionName='11.2-next.0.11'"
+            grep -F "package: name='com.charoitx' versionCode='43' versionName='11.2-next.0.12'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

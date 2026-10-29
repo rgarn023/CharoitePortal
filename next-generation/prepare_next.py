@@ -253,8 +253,11 @@ ui = ui.replace(destroy_anchor, (
     ".noteLauncherIntent(intent);\n"
     "        if (intent != null && android.content.Intent.ACTION_MAIN.equals(intent.getAction())"
     " && intent.hasCategory(android.content.Intent.CATEGORY_LAUNCHER))\n"
-    "            com.charoitegames.core.CharoiteNextBootActivity"
+    "            getWindow().getDecorView().post(() -> {\n"
+    "                if (!isFinishing() && !isDestroyed())\n"
+    "                    com.charoitegames.core.CharoiteNextBootActivity"
     ".showOnBackgroundReentryIfNeeded(this);\n"
+    "            });\n"
     "    }\n\n" + destroy_anchor), 1)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")

@@ -1,8 +1,16 @@
 # Charoite Wine — source-controlled fork baseline
 
-**Status (October 28, 2026): Wine 10.0 Android ARM64 loader + wineserver and the ARM64EC/Android `ntdll` pair now compile together into an ABI- and SHA-256-verified, source-attributed experimental slice. This is NOT yet a complete Android Windows compatibility runtime or an installable APK; FEX/graphics/prefix/device testing remains outstanding.**
+**Status (October 28/29, 2026): 14 same-source Wine ELF/PE bootstrap components plus all 76 pinned Wine NLS tables, including CP932, have been built and verified as one coherent experimental archive in GitHub Actions run 40801756245. Dependency audit reports 24 PE import names not yet bundled. This is NOT an installed or runnable new Android Wine/Proton environment; FEX/graphics/complete DLL closure/prefix/device testing remain outstanding.**
 
 This is the beginning of **our modified Wine implementation** for Charoite Core Next. We are building an independently maintained **derivative** of Wine/Proton Wine, not claiming to have written Wine from scratch. The final runner will be paired with FEX (for compatible x86/x64 execution on ARM64), DXVK, VKD3D-Proton, Mesa/Turnip, a Wine prefix manager and Charoite's Android display/input subsystem.
+
+## Latest verified experimental bootstrap package
+
+[GitHub Actions run 40801756245](https://github.com/rgarn023/CharoitePortal/actions/runs/40801756245) **SUCCESS** (code SHA `8e078e0dd484167ad9f4d42a1ae789bf35c1e506`, four jobs green). GitHub artifact `Charoite-Wine-Coherent-Bootstrap-NLS-Experimental`, ID `12866931158`, packages the same-built Android `wine` and `wineserver`, Unix `ntdll.so`, Windows ARM64EC `ntdll`, `kernelbase`, `kernel32`, seven API DLLs (`advapi32`, `user32`, `ws2_32`, `crypt32`, `setupapi`, `shlwapi`, `version`) and regular ARM64 `wineboot.exe`. Also includes all **76** Wine NLS tables from the exact pinned upstream `nls/Makefile.in`, including `c_932.nls`; every table is hash-checked and a missing/altered one fails verification. The archive is reproducible, source-attributed and **non-installable**, with `launch_ready=false` and `prefix_created=false`.
+
+Independent `llvm-readobj`/ `llvm-readelf` inspection identified **24 PE imports not bundled** by this 14-component sample: `bcrypt`, `cabinet`, `combase`, `comdlg32`, `cryptnet`, `dnsapi`, `gdi32`, `imm32`, `iphlpapi`, `mlang`, `mpr`, `msvcrt`, `newdev`, `ole32`, `oleaut32`, `rpcrt4`, `sechost`, `shcore`, `shell32`, `ucrtbase`, `urlmon`, `win32u`, `winmm` and `wintrust`. An import inventory is not exhaustive dependency closure, and the archive has not been executed on Android.
+
+The verified installable APK is still the **separate Next v0.2 diagnostic APK**, [run 40793135040](https://github.com/rgarn023/CharoitePortal/actions/runs/40793135040), package `com.charoitx`, artifact `12862243976`. It contains only seven new PE DLLs as read-only phone diagnostics and still uses the older Wine/Box64 runner. The new 14-component NLS archive is **CI output only**, not part of that APK. Do not replace installed prefixes, engines or saves.
 
 ## Source baseline
 

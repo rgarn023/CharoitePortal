@@ -1,6 +1,17 @@
 package com.charoitegames.core;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.animation.ObjectAnimator;
+import android.content.ComponentCallbacks2;
+import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.Drawable;
+import android.view.animation.LinearInterpolator;
+import android.widget.ProgressBar;
+import android.view.WindowManager;
+import java.util.concurrent.atomic.AtomicBoolean;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioAttributes;
@@ -25,6 +36,7 @@ public final class CharoiteNextBootActivity extends Activity {
     public static final long BOOT_DURATION_MS = 5000L;
     private static final String EXTRA_PLAY_CHIME =
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
+    private static final AtomicBoolean REENTRY_NEEDED = new AtomicBoolean(false);
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable openMain;
     private boolean completed;
@@ -33,25 +45,33 @@ public final class CharoiteNextBootActivity extends Activity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    @Override public void onCreate(Bundle savedState) {
-        super.onCreate(savedState);
-        getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
-        getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
-        FrameLayout boot = new FrameLayout(this);
+
+    /** A high-resolution original crystal portal, crisp text, and a real
+     * five-second presentation progress bar. Same view for cold/re-entry. */
+    private static FrameLayout createBootView(Activity activity) {
+        FrameLayout boot = new FrameLayout(activity);
         boot.setBackgroundColor(Color.rgb(13, 8, 30));
         boot.setContentDescription("Charoite Core starting");
-        LinearLayout emblem = new LinearLayout(this);
+        LinearLayout emblem = new LinearLayout(activity);
         emblem.setOrientation(LinearLayout.VERTICAL);
         emblem.setGravity(Gravity.CENTER);
-        emblem.setPadding(dp(20), dp(24), dp(20), dp(24));
+        emblem.setPadding(density(activity, 20), density(activity, 24),
+                density(activity, 20), density(activity, 24));
 
-        ImageView icon = new ImageView(this);
-        icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon);
+        ImageView icon = new ImageView(activity);
+        // Unlike the tiny launcher JPEG, the splash-only original is generated
+        // at 768 x 768 pixels. Keep the approved launcher image as fallback.
+        try {
+            icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_art);
+        } catch (RuntimeException error) {
+            icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon);
+        }
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        icon.setContentDescription("Charoite Core icon");
-        emblem.addView(icon, new LinearLayout.LayoutParams(dp(236), dp(236)));
+        icon.setContentDescription("Charoite crystal portal");
+        emblem.addView(icon, new LinearLayout.LayoutParams(
+                density(activity, 248), density(activity, 248)));
 
-        TextView title = new TextView(this);
+        TextView title = new TextView(activity);
         title.setText("CHAROITE CORE");
         title.setGravity(Gravity.CENTER);
         title.setTextColor(Color.WHITE);
@@ -60,10 +80,10 @@ public final class CharoiteNextBootActivity extends Activity {
         title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         LinearLayout.LayoutParams titleParams =
                 new LinearLayout.LayoutParams(-2, -2);
-        titleParams.topMargin = dp(20);
+        titleParams.topMargin = density(activity, 20);
         emblem.addView(title, titleParams);
 
-        TextView subtitle = new TextView(this);
+        TextView subtitle = new TextView(activity);
         subtitle.setText("NEXT");
         subtitle.setGravity(Gravity.CENTER);
         subtitle.setTextColor(Color.rgb(198, 180, 240));
@@ -71,14 +91,94 @@ public final class CharoiteNextBootActivity extends Activity {
         subtitle.setLetterSpacing(0.34f);
         LinearLayout.LayoutParams subtitleParams =
                 new LinearLayout.LayoutParams(-2, -2);
-        subtitleParams.topMargin = dp(6);
+        subtitleParams.topMargin = density(activity, 6);
         emblem.addView(subtitle, subtitleParams);
+
+        ProgressBar progress = new ProgressBar(activity, null,
+                android.R.attr.progressBarStyleHorizontal);
+        progress.setIndeterminate(false);
+        progress.setMax(1000);
+        progress.setProgress(0);
+        GradientDrawable track = new GradientDrawable();
+        track.setColor(Color.rgb(31, 19, 55));
+        track.setCornerRadius(density(activity, 8));
+        track.setStroke(density(activity, 1), Color.rgb(126, 77, 198));
+        GradientDrawable fill = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{0xff6332C3, 0xffA45DF4, 0xffF5DDFF});
+        fill.setCornerRadius(density(activity, 8));
+        LayerDrawable layers = new LayerDrawable(new Drawable[]{
+                track, new ClipDrawable(fill, Gravity.LEFT, ClipDrawable.HORIZONTAL)});
+        layers.setId(0, android.R.id.background);
+        layers.setId(1, android.R.id.progress);
+        progress.setProgressDrawable(layers);
+        LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(
+                density(activity, 250), density(activity, 9));
+        barParams.topMargin = density(activity, 29);
+        emblem.addView(progress, barParams);
+        ObjectAnimator animation = ObjectAnimator.ofInt(progress, "progress", 0, 1000);
+        animation.setDuration(BOOT_DURATION_MS);
+        animation.setInterpolator(new LinearInterpolator());
+        animation.start();
+
+        TextView hint = new TextView(activity);
+        hint.setText("STARTING CHAROITE CORE");
+        hint.setTextSize(10);
+        hint.setTextColor(0xffCAB4ED);
+        hint.setLetterSpacing(.16f);
+        hint.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(-2, -2);
+        hintParams.topMargin = density(activity, 14);
+        emblem.addView(hint, hintParams);
 
         FrameLayout.LayoutParams emblemParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
         boot.addView(emblem, emblemParams);
-        setContentView(boot);
+        return boot;
+    }
+
+    private static int density(Activity activity, int size) {
+        return Math.round(size * activity.getResources().getDisplayMetrics().density);
+    }
+
+    /** Called when Android reports that ALL app UI is hidden. Returning from
+     * a Charoite game doesn't trigger this, so game launches stay uninterrupted. */
+    public static void noteAppVisibility(int trimLevel) {
+        if (trimLevel == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN)
+            REENTRY_NEEDED.set(true);
+    }
+
+    /** If Android resumes an existing Portal task rather than launching the
+     * LAUNCHER Activity again, show the same boot presentation as a modal
+     * overlay. Preserve the live Portal Activity and its UI/process state. */
+    public static void showOnBackgroundReentryIfNeeded(Activity activity) {
+        if (!REENTRY_NEEDED.getAndSet(false)
+                || activity.isFinishing() || activity.isDestroyed()) return;
+        Dialog splash = new Dialog(activity,
+                android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        splash.setCancelable(false);
+        splash.setContentView(createBootView(activity));
+        splash.show();
+        if (splash.getWindow() != null) {
+            splash.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
+            splash.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
+            splash.getWindow().setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT);
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (splash.isShowing()) splash.dismiss();
+            if (!activity.isFinishing() && !activity.isDestroyed())
+                playCrystalChime(activity);
+        }, BOOT_DURATION_MS);
+    }
+
+    @Override public void onCreate(Bundle savedState) {
+        super.onCreate(savedState);
+        getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
+        getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
+        setContentView(createBootView(this));
 
         // Single cold-launch delay, not a blocking sleep or a Wine startup delay.
         openMain = () -> {
@@ -103,14 +203,18 @@ public final class CharoiteNextBootActivity extends Activity {
         Intent intent = activity.getIntent();
         if (intent == null || !intent.getBooleanExtra(EXTRA_PLAY_CHIME, false))
             return;
-        intent.removeExtra(EXTRA_PLAY_CHIME); // never repeat after rotation/resume
+        intent.removeExtra(EXTRA_PLAY_CHIME); // never repeat after rotation
+        playCrystalChime(activity);
+    }
+
+    private static void playCrystalChime(Activity activity) {
         activity.getWindow().getDecorView().postDelayed(() -> {
             if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus())
                 return;
             AudioManager audio = (AudioManager)
                     activity.getSystemService(Activity.AUDIO_SERVICE);
             if (audio != null && audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT)
-                return; // respect phone silent setting
+                return;
             try {
                 AudioAttributes attributes = new AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
@@ -126,7 +230,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 });
                 player.start();
             } catch (RuntimeException ignored) {
-                // Never crash the launcher merely because audio is unavailable.
+                // No startup-audio error should crash the app.
             }
         }, 220L);
     }

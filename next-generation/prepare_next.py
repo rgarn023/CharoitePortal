@@ -6,7 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
-from recreate_crystal_portal import render as render_crystal_portal, stage_launcher_icon
+import hashlib
 import re
 import shutil
 import sys
@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.12"')
-text = text.replace("versionCode 33", "versionCode 43")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.13"')
+text = text.replace("versionCode 33", "versionCode 44")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -121,16 +121,20 @@ chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
 assert generate_crystal_chime(chime) == round(44100 * 4.2)
 
-# Exactly the same image content as the launcher icon, not a separately
-# invented image. Preserve the original icon and the stable app unchanged.
-boot_png = app / "res/drawable-nodpi/charoite_next_boot_scene.png"
-approved_icon = source_dir.parent / "runtime-preview/charoite_portal_icon.jpg"
-assert render_crystal_portal(boot_png, approved_icon) == (1536, 1536)
-# The original tracked JPEG contains a short quantization table. Correct
-# Next's built-in launcher copy with the exact same repaired JPEG used above.
-# Do not touch stable Charoite Portal's source tree or APK.
+# The exact 1536x1536 image personally provided as the required reference.
+# Do not generate, upsample, redesign, crop, or alter it. Reuse identical bytes
+# in Charoite Next's launcher and boot resources; stable Portal is unaffected.
+approved_art = source_dir / "assets/charoite_next_boot_reference.jpg"
+approved_sha = "2f368b7731f8ff96db03842e0f36b62bc9d22c48fcdb77ed864846d6be44b748"
+image_bytes = approved_art.read_bytes()
+assert hashlib.sha256(image_bytes).hexdigest() == approved_sha, "User-approved boot image changed"
+assert image_bytes[:3] == b"\\xff\\xd8\\xff" and image_bytes[-2:] == b"\\xff\\xd9"
+boot_art = app / "res/drawable-nodpi/charoite_next_boot_scene.jpg"
+assert not boot_art.exists()
+boot_art.write_bytes(image_bytes)
 next_launcher_icon = app / "res/drawable-nodpi/charoite_portal_icon.jpg"
-assert stage_launcher_icon(approved_icon, next_launcher_icon) == (128, 128)
+assert next_launcher_icon.exists()
+next_launcher_icon.write_bytes(image_bytes)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -244,6 +248,17 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(startupDiagnostics);
 """)
+# Explicit Activity restart tracking catches Samsung Home→icon relaunches
+# that do not deliver ACTION_MAIN to the existing Portal instance.
+restart_anchor = "    @Override public void onDestroy() {\\n"
+assert ui.count(restart_anchor) == 1
+ui = ui.replace(restart_anchor, (
+    "    @Override protected void onRestart() {\\n"
+    "        super.onRestart();\\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".onPortalRestart(this);\\n"
+    "    }\\n\\n" + restart_anchor), 1)
+
 # The first crystal chime must start after the Portal actually resumes, not
 # in onCreate before the Android window is focused (Samsung would skip audio).
 # The pending launch extra is consumed once; in-app navigation cannot replay it.

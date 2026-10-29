@@ -184,13 +184,14 @@ ui = ui.replace(anchor, anchor + """
 """)
 # Play once only after main Portal content has been built, never during boot.
 home_render = "        render();\n        refreshReadyState();\n        initializeEngineOnFirstLaunch();"
-assert ui.count(home_render) == 1, "Main-screen bootstrap contract changed"
+assert ui.count(home_render) >= 1, "Main-screen bootstrap contract changed"
+# This sequence also runs on environment switches; inject into onCreate only.
 ui = ui.replace(home_render,
                 "        render();\n" +
                 "        com.charoitegames.core.CharoiteNextBootActivity" +
                 ".playArrivalChimeIfRequested(this);\n" +
                 "        refreshReadyState();\n" +
-                "        initializeEngineOnFirstLaunch();")
+                "        initializeEngineOnFirstLaunch();", 1)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
 

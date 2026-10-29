@@ -26,7 +26,7 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 text = text.replace('versionName "11.2"',
-                    'versionName "11.2-next.0.1"')
+                    'versionName "11.2-next.0.2"')
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -74,6 +74,10 @@ assert native_changed > 0, "No Java/native private paths rebased to Next package
 next_java = app / "java/com/charoitegames/core/CharoiteNextRuntime.java"
 assert not next_java.exists()
 shutil.copy2(source_dir / "CharoiteNextRuntime.java", next_java)
+next_diagnostics = app / "java/com/charoitegames/core/CharoiteNextDiagnostics.java"
+assert not next_diagnostics.exists()
+shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
+
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
 anchor = "        systemScreen.addView(runtimeCard);"
@@ -91,6 +95,27 @@ ui = ui.replace(anchor, anchor + """
                 "isolated prefixes and device smoke tests exist. No game-specific " +
                 "anti-cheat bypasses are provided.", 12, SECONDARY, false));
         systemScreen.addView(nextCoreCard);
+        android.widget.Button nextDiagnostics = new android.widget.Button(this);
+        nextDiagnostics.setText("Run Core Next device diagnostics");
+        nextDiagnostics.setAllCaps(false);
+        nextDiagnostics.setOnClickListener(v -> {
+            final String diagnosticReport =
+                com.charoitegames.core.CharoiteNextDiagnostics.deviceReport(this);
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Charoite Core Next — Device Diagnostics")
+                .setMessage(diagnosticReport)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    android.content.ClipboardManager clipboard =
+                        (android.content.ClipboardManager)
+                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    if (clipboard != null)
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                            "Charoite Next Device Diagnostics", diagnosticReport));
+                })
+                .setNegativeButton("Close", null)
+                .show();
+        });
+        nextCoreCard.addView(nextDiagnostics);
 """)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
@@ -103,5 +128,5 @@ destination = app / "assets/charoite-next"
 destination.mkdir(parents=True, exist_ok=True)
 shutil.copy2(reference, destination / reference.name)
 
-print("Charoite Next identity and engine inventory staged (no Proton binaries installed).")
+print("Charoite Next identity, engine inventory and read-only device diagnostics staged.")
 print("Rebased Java/C++ absolute paths:", native_changed)

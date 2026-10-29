@@ -56,7 +56,7 @@ class NativeVersionProbeTest(unittest.TestCase):
         for bad in ("adb install","rm -rf","WINEPREFIX=","/data/data/com.charoite/files"):
             self.assertNotIn(bad,STAGER)
     def test_apk_keeps_both_identity_and_modern_runtime_disabled(self):
-        for value in ('versionCode 36','11.2-next.0.5',
+        for value in ('versionCode 37','11.2-next.0.6',
                       "CharoiteWineNativeProbe.java",
                       "Test source-built Wine --version","Run Core Next device diagnostics",
                       "new Thread(() ->"):

@@ -6,7 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
-from recreate_crystal_portal import render as render_crystal_portal
+from recreate_crystal_portal import render as render_crystal_portal, stage_launcher_icon
 import re
 import shutil
 import sys
@@ -126,6 +126,11 @@ assert generate_crystal_chime(chime) == round(44100 * 4.2)
 boot_png = app / "res/drawable-nodpi/charoite_next_boot_scene.png"
 approved_icon = source_dir.parent / "runtime-preview/charoite_portal_icon.jpg"
 assert render_crystal_portal(boot_png, approved_icon) == (1536, 1536)
+# The original tracked JPEG contains a short quantization table. Correct
+# Next's built-in launcher copy with the exact same repaired JPEG used above.
+# Do not touch stable Charoite Portal's source tree or APK.
+next_launcher_icon = app / "res/drawable-nodpi/charoite_portal_icon.jpg"
+assert stage_launcher_icon(approved_icon, next_launcher_icon) == (128, 128)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")

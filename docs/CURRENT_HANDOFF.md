@@ -744,5 +744,20 @@ Artifacts at this run:
 **Next engineering milestone:** compile and validate more measured but unsampled Windows import DLLs (crypt32, newdev, setupapi, shell32, shlwapi, ucrtbase, version), then produce a **single** versioned, source-attributed, verified Wine PE/Unix/NLS dependency bundle. After complete dependency closure, integrate FEX CPU translation, DXVK/VKD3D graphics, display/input and safe independent com.charoitx runner slot, followed by **fresh Next-only prefix and real Galaxy smoke tests**. Stable Portal com.charoite, Next com.charoitx installs, existing prefixes, games and saves have NOT been modified by these source CI steps. No Battle.net, Steam, Diablo IV or third-party anti-cheat compatibility has been verified; no bypass is attempted.
 
 
+
+## 38. October 28, 2026 — Audited ARM64EC Windows API expansion implemented, validation pending
+
+**Starting verified baseline:** [run 40787307623](https://github.com/rgarn023/CharoitePortal/actions/runs/40787307623), compiled commit 46abcde04a9394c69a3b00fe86aead7a972eb41f, all four jobs SUCCESS and artifact Charoite-Wine-ARM64EC-PE-Foundation-Experimental ID 12860081971 (advapi32, user32, ws2_32). The following work does not overwrite that proven build, change Android package IDs, create prefixes, or access installed game/data folders.
+
+**Next-generation source commits on main:**
+- bdb19987439e0f1aadcb3097dc220ab37a548379: new `next-generation/charoite-wine/build-pe-expansion.sh` builds **crypt32.dll, setupapi.dll, shlwapi.dll, version.dll** from the SAME pinned ARM64EC Wine build tree. Requires original bootstrap DLLs, a verified prior PE foundation artifact, the previous JSON dependency audit (those four imports were actually observed) and isolated fresh CI output. Never runs Wine or touches phone/app-private data.
+- dfd1a6d4013603e25c7fefd4da695d22f2698dd0: `verify-pe-expansion.py` independently checks exact output, per-binary SHA-256, ARM64X 0xAA64 PE carrier and llvm-readobj ARM64X 0xA64E plus ARM64EC 0xA641 hybrid views, source pin, Foundation manifest SHA dependency, and hard-disabled install/launch/prefix/anti-cheat flags.
+- 5fac73908672a31b72ff7077f766f0e1c28aadb9: synthetic independent tests for valid expansion, corrupt hashes, wrong machine/dual-view, readiness misuse, unexpected file and altered foundation.
+- c1658e2d20260ff413e6ba6c47f460e2d5e7cec1: appends to existing `.github/workflows/charoite-wine-source.yml` a separate second-stage compile+verify and upload named **Charoite-Wine-ARM64EC-PE-Expansion-Experimental**. Previous verified foundation is built/published first and remains an independent artifact.
+
+**Status when written:** source CI [run 40791083178](https://github.com/rgarn023/CharoitePortal/actions/runs/40791083178) for code SHA c1658e2d20260ff413e6ba6c47f460e2d5e7cec1 was **PENDING**, with no confirmed native linking, artifact, or failure result. An older workflow from intermediate commits was still occupying a runner; do not claim that the new four DLLs are proven built until the FINAL workflow and artifact succeed. Documentation commit uses [skip ci] and is not part of the code build.
+
+**Next concrete action:** inspect run 40791083178 and final job logs, fix any reproducible source or verifier errors directly on main, then record actual SHA/artifact ID. After these four modules, still to source/build/verify are at least **newdev, shell32 and ucrtbase** from initial sampled imports, plus full dependency-closure and NLS/Unix libraries. Do not confuse sampled names with complete closure. Full FEX + Proton Wine, Vulkan/DXVK/VKD3D, phone execution and fresh Next-only prefix are still unfinished. Stable com.charoite and Next com.charoitx APKs and user data remain unchanged. Battle.net, Steam, Diablo IV and third-party anti-cheat remain unverified.
+
 ---
 **End of current Charoite Portal handoff.**

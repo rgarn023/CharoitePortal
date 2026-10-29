@@ -5,6 +5,7 @@ import tempfile
 import unittest
 import wave
 import struct
+import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOT = (ROOT / "CharoiteNextBootActivity.java").read_text(encoding="utf-8")
@@ -13,6 +14,9 @@ OVERLAY = (ROOT.parent / "runtime-preview/overlay.py").read_text(encoding="utf-8
 spec=importlib.util.spec_from_file_location("charoite_crystal",ROOT/"generate_crystal_startup.py")
 sound=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sound)
+art_spec=importlib.util.spec_from_file_location('charoite_icon_upscale',ROOT/'generate_high_res_boot_icon.py')
+art=importlib.util.module_from_spec(art_spec)
+art_spec.loader.exec_module(art)
 
 class StartupExperienceTest(unittest.TestCase):
     def test_five_second_start_with_reentry_support(self):
@@ -25,8 +29,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.CENTER",BOOT)
         self.assertIn("CHAROITE CORE",BOOT)
         self.assertIn('com.charoitx',PREP)
-        self.assertIn('versionCode 40',PREP)
-        self.assertIn('11.2-next.0.9',PREP)
+        self.assertIn('versionCode 41',PREP)
+        self.assertIn('11.2-next.0.10',PREP)
 
     def test_home_and_recents_reopen_with_internal_navigation_suppressed(self):
         self.assertIn("Application.ActivityLifecycleCallbacks", BOOT)
@@ -37,7 +41,11 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("noteUserLeaving(this)", PREP)
         self.assertIn("onPause()", PREP)
         self.assertIn("notePortalPaused(this)", PREP)
-        self.assertIn("REENTRY_NEEDED.getAndSet(false)", BOOT)
+        self.assertIn("REENTRY_NEEDED.compareAndSet(true, false)", BOOT)
+        self.assertIn("!activity.hasWindowFocus()", BOOT)
+        self.assertIn("onWindowFocusChanged(boolean hasFocus)", PREP)
+        self.assertIn(".onPortalWindowFocusChanged(this, hasFocus)", PREP)
+        self.assertIn("onPortalWindowFocusChanged(Activity portal, boolean focused)", BOOT)
         self.assertIn("onNewIntent(Intent intent)", PREP)
         self.assertIn("noteLauncherIntent(intent)", PREP)
         self.assertIn("Intent.ACTION_MAIN", BOOT)
@@ -65,17 +73,34 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("animation.setDuration(BOOT_DURATION_MS)",BOOT)
         self.assertIn("LinearInterpolator()",BOOT)
         self.assertIn("STARTING CHAROITE CORE",BOOT)
-        self.assertIn("charoite_portal_icon",BOOT)
+        self.assertIn("charoite_next_boot_icon_hd",BOOT)
 
-    def test_splash_uses_exact_launch_icon_not_generated_art(self):
-        self.assertIn(
-            "icon.setImageResource(com.winlator.R.drawable.charoite_portal_icon)", BOOT)
-        self.assertNotIn("charoite_next_boot_art", BOOT)
-        self.assertNotIn("generate_boot_art", PREP)
+    def test_splash_uses_upscaled_original_verified_icon(self):
+        self.assertIn("icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_icon_hd)", BOOT)
+        self.assertIn("generate_boot_icon(icon, boot_png)", PREP)
         self.assertIn("charoite_portal_icon.jpg", OVERLAY)
         self.assertIn("sha256(image_bytes).hexdigest() == good_sha", OVERLAY)
+        self.assertIn("EXPECTED_SHA256", (ROOT/"generate_high_res_boot_icon.py").read_text())
+        from PIL import Image
+        source = (ROOT.parent/"runtime-preview/charoite_portal_icon.jpg").read_bytes()
+        bad = hashlib.sha256(source).hexdigest()
+        if bad == "7c5c8fdf88b71fd23fb01740f516b866108edbf57af962aa50bca599bdd1b338":
+            source = source[:108] + bytes([0x82])*12 + source[108:]
+        self.assertEqual(hashlib.sha256(source).hexdigest(), art.EXPECTED_SHA256)
+        with tempfile.TemporaryDirectory() as td:
+            inp = Path(td)/"approved.jpg"
+            inp.write_bytes(source)
+            dest = Path(td)/"boot.png"
+            self.assertEqual(art.generate(inp,dest),(768,768))
+            with Image.open(dest) as image:
+                self.assertEqual(image.size,(768,768))
+                self.assertEqual(image.format,"PNG")
+            self.assertGreater(dest.stat().st_size, 20000)
+            self.assertEqual(inp.read_bytes(),source)
+            with self.assertRaises(ValueError):
+                art.generate(inp,dest)
 
-    def test_sound_after_resume_on_media_stream_and_diagnostics(self):
+    def test_slow_mysterious_sound_after_resume_and_diagnostics(self):
         self.assertIn('main.putExtra(EXTRA_PLAY_CHIME, true)', BOOT)
         self.assertIn("playArrivalChimeIfRequested(Activity activity)", BOOT)
         self.assertIn("intent.removeExtra(EXTRA_PLAY_CHIME)", BOOT)
@@ -90,6 +115,10 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Startup / audio diagnostics", PREP)
         self.assertIn("charoite_crystal_startup", BOOT)
         self.assertIn("generate_crystal_chime(chime)", PREP)
+        self.assertEqual(sound.DURATION_SECONDS,4.2)
+        self.assertLess(max(f for (_, f, _, _, _) in sound.VOICES),500)
+        self.assertGreater(min(attack for (_, _, _, attack, _) in sound.VOICES),0.35)
+        self.assertIn("mysterious", sound.__doc__.lower())
         self.assertIn("android.intent.category.LAUNCHER", PREP)
         self.assertIn("entry.remove(filters)", PREP)
         self.assertIn("boot.append(filters)", PREP)

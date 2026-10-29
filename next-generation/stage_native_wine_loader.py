@@ -15,7 +15,7 @@ import sys
 import tarfile
 
 SOURCE_RUN = 40898982875
-SOURCE_ARTIFACT = 0
+SOURCE_ARTIFACT = 12908731604
 SOURCE_SHA = "5d07e29fdba6552033d5f1a1a50ff1cc2fffe420"
 WINE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
 LIB = "libcharoite_wine_loader.so"

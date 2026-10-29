@@ -30,6 +30,8 @@ PE = {
     "shlwapi": "dlls/shlwapi/aarch64-windows/shlwapi.dll",
     "version": "dlls/version/aarch64-windows/version.dll",
 }
+PE_STARTUP = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
+              for name in ("win32u","gdi32","ucrtbase","shell32")}
 ELF = {
     "wine": "loader/wine",
     "wineserver": "server/wineserver",
@@ -104,7 +106,8 @@ def check_pe(path: Path, readobj: Path, architecture: str) -> dict:
         r"^\s*Name:\s*([A-Za-z0-9_.+-]+\.dll)\s*$",imports,re.M)))
     return {"machine":id,"imports":dlls}
 
-def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict:
+def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
+                include_startup: bool = False) -> dict:
     for p in (build,readelf,readobj,output):
         if not p.is_absolute(): raise ValueError("Expected absolute CI-only paths")
     if output.exists() or not output.parent.is_dir():
@@ -115,6 +118,11 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     if not (build.parent/"charoite-source-validation.txt").is_file():
         raise ValueError("Missing pinned source validation")
     verify_previous(build)
+    if include_startup:
+        load_validator("next_startup","verify-pe-startup.py").verify(
+            build.parent/"charoite-pe-startup",
+            build.parent/"charoite-bootstrap-bundle"/"dependency-review.json")
+    selected_pe={**PE,**PE_STARTUP} if include_startup else PE
     payloads={}
     records={}
     for name,rel in ELF.items():
@@ -125,7 +133,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
         payloads[dest]=data
         records[name]={"path":dest,"format":"ELF","sha256":sha(data),"size":len(data),
                        **check_elf(src,readelf)}
-    for name,rel in PE.items():
+    for name,rel in selected_pe.items():
         src=build/rel
         data=regular(src)
         dest=f"runtime/pe/arm64ec/{name}.dll"
@@ -148,6 +156,9 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     for group,names in (("charoite-pe-foundation",("advapi32","user32","ws2_32")),
                         ("charoite-pe-expansion",("crypt32","setupapi","shlwapi","version"))):
         for name in names: prior[name]=build.parent/group/f"{name}-arm64ec.dll"
+    if include_startup:
+        for name in PE_STARTUP:
+            prior[name]=build.parent/"charoite-pe-startup"/f"{name}-arm64ec.dll"
     for name,path in prior.items():
         if sha(regular(path))!=records[name]["sha256"]:
             raise ValueError("Same-tree Wine binary differs from audited component: "+name)
@@ -170,7 +181,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
         bundled="runtime/nls/"+name
         payloads[bundled]=blob
         nls_records[name]={"path":bundled,"size":len(blob),"sha256":sha(blob)}
-    available={f"{k}.dll" for k in PE}
+    available={f"{k}.dll" for k in selected_pe}
     imported={v for e in records.values() for v in e.get("imports",[])}
     needed={v for e in records.values() for v in e.get("needed",[])}
     gap=sorted(imported-available)
@@ -185,13 +196,17 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     }
     payloads["dependency-review.json"]=(json.dumps(report,sort_keys=True,indent=2)+"\n").encode()
     manifest={
-        "schema_version":1,"version":"wine10-arm64ec-bootstrap.0.2",
+        "schema_version":1,"version":("wine10-arm64ec-bootstrap.0.3" if include_startup
+                               else "wine10-arm64ec-bootstrap.0.2"),
         "source_commit":SOURCE_SHA,"android_package":"com.charoitx",
         "status":"coherent-components-not-executed",
         "launch_ready":False,"installable":False,"prefix_created":False,
         "device_tested":False,"anti_cheat_supported":False,
         "component_count":len(records),"components":records,
         "nls_count":len(nls_records),"nls_files":nls_records,
+        "startup_dependency_manifest_sha256":(
+            sha(regular(build.parent/"charoite-pe-startup"/"pe-startup-manifest.json"))
+            if include_startup else None),
         "source_files":source,"dependency_review_sha256":sha(payloads["dependency-review.json"]),
         "window_imports_unresolved_count":len(gap),
         "missing_for_runtime":[
@@ -222,8 +237,8 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path) -> dict
     return manifest
 
 if __name__=="__main__":
-    if len(sys.argv)!=5:
-        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR")
-    manifest=make_bundle(*map(Path,sys.argv[1:]))
+    if len(sys.argv) not in (5,6) or (len(sys.argv)==6 and sys.argv[5]!="--include-startup"):
+        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup]")
+    manifest=make_bundle(*map(Path,sys.argv[1:5]),include_startup=(len(sys.argv)==6))
     print("CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS",manifest["component_count"])
     print("LAUNCH_READY=false")

@@ -14,7 +14,7 @@ OVERLAY = (ROOT.parent / "runtime-preview/overlay.py").read_text(encoding="utf-8
 spec=importlib.util.spec_from_file_location("charoite_crystal",ROOT/"generate_crystal_startup.py")
 sound=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sound)
-art_spec=importlib.util.spec_from_file_location('charoite_icon_upscale',ROOT/'generate_high_res_boot_icon.py')
+art_spec=importlib.util.spec_from_file_location('charoite_icon_upscale',ROOT/'recreate_crystal_portal.py')
 art=importlib.util.module_from_spec(art_spec)
 art_spec.loader.exec_module(art)
 
@@ -25,12 +25,12 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("handler.removeCallbacksAndMessages(null)",BOOT)
         self.assertIn("new Intent(this, com.winlator.TouhouEntryActivity.class)",BOOT)
         self.assertIn("finish();",BOOT)
-        self.assertIn('com.winlator.R.drawable.charoite_next_boot_icon_hd',BOOT)
+        self.assertIn('com.winlator.R.drawable.charoite_next_boot_scene',BOOT)
         self.assertIn("Gravity.CENTER",BOOT)
         self.assertIn("CHAROITE CORE",BOOT)
         self.assertIn('com.charoitx',PREP)
-        self.assertIn('versionCode 41',PREP)
-        self.assertIn('11.2-next.0.10',PREP)
+        self.assertIn('versionCode 42',PREP)
+        self.assertIn('11.2-next.0.11',PREP)
 
     def test_home_and_recents_reopen_with_internal_navigation_suppressed(self):
         self.assertIn("Application.ActivityLifecycleCallbacks", BOOT)
@@ -51,7 +51,9 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Intent.ACTION_MAIN", BOOT)
         self.assertIn("Intent.CATEGORY_LAUNCHER", BOOT)
         self.assertIn("started.isEmpty()", BOOT)
-        self.assertIn("REENTRY_NEEDED.set(appBackground)", BOOT)
+        self.assertIn("if (appBackground) REENTRY_NEEDED.set(true)", BOOT)
+        self.assertIn("Portal stopped; preserving pending user leave", BOOT)
+        self.assertNotIn("REENTRY_NEEDED.set(appBackground)", BOOT)
         self.assertIn("!a.isChangingConfigurations()", BOOT)
         self.assertIn("noteDocumentPickerReturn(this)", PREP)
         self.assertIn("REENTRY_NEEDED.set(false)", BOOT)
@@ -73,32 +75,28 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("animation.setDuration(BOOT_DURATION_MS)",BOOT)
         self.assertIn("LinearInterpolator()",BOOT)
         self.assertIn("STARTING CHAROITE CORE",BOOT)
-        self.assertIn("charoite_next_boot_icon_hd",BOOT)
+        self.assertIn("charoite_next_boot_scene",BOOT)
 
-    def test_splash_uses_upscaled_original_verified_icon(self):
-        self.assertIn("icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_icon_hd)", BOOT)
-        self.assertIn("generate_boot_icon(icon, boot_png)", PREP)
-        self.assertIn("charoite_portal_icon.jpg", OVERLAY)
-        self.assertIn("sha256(image_bytes).hexdigest() == good_sha", OVERLAY)
-        self.assertIn("EXPECTED_SHA256", (ROOT/"generate_high_res_boot_icon.py").read_text())
+    def test_boot_uses_original_recreated_crystal_scene_not_tiny_jpeg(self):
+        self.assertIn("icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene)",BOOT)
+        self.assertIn("render_crystal_portal(boot_png)",PREP)
+        self.assertIn("recreate_crystal_portal", PREP)
+        self.assertNotIn("generate_boot_icon", PREP)
+        source = (ROOT/"recreate_crystal_portal.py").read_text(encoding="utf-8")
+        self.assertIn("SIZE = 1536",source)
+        self.assertIn("crystalline gateway",source)
+        self.assertIn("Mystic lake",source)
+        self.assertNotIn("charoite_portal_icon.jpg",source)
         from PIL import Image
-        source = (ROOT.parent/"runtime-preview/charoite_portal_icon.jpg").read_bytes()
-        bad = hashlib.sha256(source).hexdigest()
-        if bad == "7c5c8fdf88b71fd23fb01740f516b866108edbf57af962aa50bca599bdd1b338":
-            source = source[:108] + bytes([0x82])*12 + source[108:]
-        self.assertEqual(hashlib.sha256(source).hexdigest(), art.EXPECTED_SHA256)
         with tempfile.TemporaryDirectory() as td:
-            inp = Path(td)/"approved.jpg"
-            inp.write_bytes(source)
-            dest = Path(td)/"boot.png"
-            self.assertEqual(art.generate(inp,dest),(768,768))
+            dest=Path(td)/"crystal.png"
+            self.assertEqual(art.render(dest),(1536,1536))
             with Image.open(dest) as image:
-                self.assertEqual(image.size,(768,768))
+                self.assertEqual(image.size,(1536,1536))
                 self.assertEqual(image.format,"PNG")
-            self.assertGreater(dest.stat().st_size, 20000)
-            self.assertEqual(inp.read_bytes(),source)
+            self.assertGreater(dest.stat().st_size,100000)
             with self.assertRaises(ValueError):
-                art.generate(inp,dest)
+                art.render(dest)
 
     def test_slow_mysterious_sound_after_resume_and_diagnostics(self):
         self.assertIn('main.putExtra(EXTRA_PLAY_CHIME, true)', BOOT)

@@ -25,8 +25,9 @@ text = text.replace("applicationId 'com.charoite'",
 assert text.count("/.android/debug.keystore") == 1, "Original signing identity path changed"
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
-text = text.replace('versionName "11.2"',
-                    'versionName "11.2-next.0.2"')
+assert text.count("versionCode 33") == 1
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.3"')
+text = text.replace("versionCode 33", "versionCode 34")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -77,6 +78,9 @@ shutil.copy2(source_dir / "CharoiteNextRuntime.java", next_java)
 next_diagnostics = app / "java/com/charoitegames/core/CharoiteNextDiagnostics.java"
 assert not next_diagnostics.exists()
 shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
+native_probe_java = app / "java/com/charoitegames/core/CharoiteWineNativeProbe.java"
+assert not native_probe_java.exists()
+shutil.copy2(source_dir / "CharoiteWineNativeProbe.java", native_probe_java)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -116,6 +120,32 @@ ui = ui.replace(anchor, anchor + """
                 .show();
         });
         nextCoreCard.addView(nextDiagnostics);
+        android.widget.Button nativeWineProbe = new android.widget.Button(this);
+        nativeWineProbe.setText("Test source-built Wine --version");
+        nativeWineProbe.setAllCaps(false);
+        nativeWineProbe.setOnClickListener(v -> {
+            nativeWineProbe.setEnabled(false);
+            new Thread(() -> {
+                final String report = com.charoitegames.core.CharoiteWineNativeProbe.run(this);
+                runOnUiThread(() -> {
+                    nativeWineProbe.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Native Wine Startup Test")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Native Wine Startup", report));
+                        })
+                        .setNegativeButton("Close", null)
+                        .show();
+                });
+            }, "CharoiteWineNativeProbe").start();
+        });
+        nextCoreCard.addView(nativeWineProbe);
 """)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")

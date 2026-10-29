@@ -6,7 +6,6 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
-from generate_boot_art import generate as generate_boot_art
 import re
 import shutil
 import sys
@@ -28,8 +27,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.8"')
-text = text.replace("versionCode 33", "versionCode 39")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.9"')
+text = text.replace("versionCode 33", "versionCode 40")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -121,10 +120,8 @@ chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
 assert generate_crystal_chime(chime) == round(44100 * 1.85)
 
-# Boot-only original 768px crystal art replaces the small JPEG on the splash.
-# Existing package launcher icons are unchanged; generation needs no Pillow.
-boot_art = app / "res/drawable-nodpi/charoite_next_boot_art.png"
-assert generate_boot_art(boot_art) == (768, 768)
+# The splash uses the SAME @drawable/charoite_portal_icon resource as the
+# actual launcher foreground. Do not generate unrelated artwork for it.
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -216,17 +213,32 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWineServerProbe").start();
         });
         nextCoreCard.addView(serverVersionProbe);
+        android.widget.Button startupDiagnostics = new android.widget.Button(this);
+        startupDiagnostics.setText("Startup / audio diagnostics");
+        startupDiagnostics.setAllCaps(false);
+        startupDiagnostics.setOnClickListener(v -> {
+            final String report = com.charoitegames.core.CharoiteNextBootActivity
+                    .startupReport(this);
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Charoite Next — Startup diagnostics")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    android.content.ClipboardManager cb =
+                        (android.content.ClipboardManager)
+                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    if (cb != null)
+                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                            "Charoite Next Startup Diagnostics", report));
+                })
+                .setNegativeButton("Close", null)
+                .show();
+        });
+        nextCoreCard.addView(startupDiagnostics);
 """)
-# Play once only after main Portal content has been built, never during boot.
-home_render = "        render();\n        refreshReadyState();\n        initializeEngineOnFirstLaunch();"
-assert ui.count(home_render) >= 1, "Main-screen bootstrap contract changed"
-# This sequence also runs on environment switches; inject into onCreate only.
-ui = ui.replace(home_render,
-                "        render();\n" +
-                "        com.charoitegames.core.CharoiteNextBootActivity" +
-                ".playArrivalChimeIfRequested(this);\n" +
-                "        refreshReadyState();\n" +
-                "        initializeEngineOnFirstLaunch();", 1)
+# The first crystal chime must start after the Portal actually resumes, not
+# in onCreate before the Android window is focused (Samsung would skip audio).
+# The pending launch extra is consumed once; in-app navigation cannot replay it.
+
 # Android's TRIM_MEMORY_UI_HIDDEN is NOT guaranteed on Home/task switching.
 # Track the complete app Activity lifecycle, including other Charoite windows:
 # warm return from Home triggers splash; Portal <-> game does not.
@@ -243,10 +255,22 @@ ui = ui.replace(resume_anchor, (
     "        super.onResume();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".showOnBackgroundReentryIfNeeded(this);\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".playArrivalChimeIfRequested(this);\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
 destroy_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(destroy_anchor) == 1
 ui = ui.replace(destroy_anchor, (
+    "    @Override protected void onUserLeaveHint() {\n"
+    "        super.onUserLeaveHint();\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".noteUserLeaving(this);\n"
+    "    }\n\n"
+    "    @Override protected void onPause() {\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".notePortalPaused(this);\n"
+    "        super.onPause();\n"
+    "    }\n\n"
     "    @Override protected void onNewIntent(Intent intent) {\n"
     "        super.onNewIntent(intent);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
@@ -259,6 +283,11 @@ ui = ui.replace(destroy_anchor, (
     ".showOnBackgroundReentryIfNeeded(this);\n"
     "            });\n"
     "    }\n\n" + destroy_anchor), 1)
+activity_result_anchor = "        super.onActivityResult(requestCode, resultCode, data);"
+assert ui.count(activity_result_anchor) == 1
+ui = ui.replace(activity_result_anchor, (
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".noteDocumentPickerReturn(this);\n" + activity_result_anchor), 1)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
 

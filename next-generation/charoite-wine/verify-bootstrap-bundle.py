@@ -13,6 +13,7 @@ BASE="c74acb09d51b447f5d5ac56c87608d3ec565a767"
 ELF=("wine","wineserver","ntdll_unix")
 PE=("ntdll","kernelbase","kernel32","advapi32","user32","ws2_32",
     "crypt32","setupapi","shlwapi","version","wineboot")
+EXTRA_PE=("win32u","gdi32","ucrtbase","shell32")
 SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
          "Wine-NLS-Makefile.in")
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
@@ -23,6 +24,7 @@ EXPECTED={
     **{k:f"runtime/pe/arm64ec/{k}.dll" for k in PE if k!="wineboot"},
     "wineboot":"runtime/pe/arm64/wineboot.exe",
 }
+EXTRA_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in EXTRA_PE}
 ALL=set(EXPECTED.values())|{f"source/{k}" for k in SOURCES}|{
     "dependency-review.json","manifest.json",
 }
@@ -48,9 +50,6 @@ def verify(archive: Path) -> tuple[dict,dict]:
         members=tar.getmembers()
         actual={m.name for m in members}
         nls_paths={name for name in actual if name.startswith("runtime/nls/")}
-        if (len(members)!=len(ALL)+len(nls_paths) or
-            actual!=ALL|nls_paths):
-            raise ValueError("Wrong, repeated or missing bundle files")
         for m in members:
             path=PurePosixPath(m.name)
             if (not m.isfile() or m.name.startswith("/") or ".." in path.parts or
@@ -61,17 +60,23 @@ def verify(archive: Path) -> tuple[dict,dict]:
         manifest=json.loads(read("manifest.json"))
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
+        extended=manifest.get("version")=="wine10-arm64ec-bootstrap.0.3"
+        expected={**EXPECTED,**EXTRA_PATHS} if extended else EXPECTED
+        allowed=ALL | (set(EXTRA_PATHS.values()) if extended else set())
+        if (len(members)!=len(allowed)+len(nls_paths) or actual!=allowed|nls_paths):
+            raise ValueError("Wrong, repeated or missing bundle files")
         if (manifest.get("schema_version")!=1 or
-            manifest.get("version")!="wine10-arm64ec-bootstrap.0.2" or
+            manifest.get("version") not in (
+                "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3") or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
-            manifest.get("component_count")!=len(EXPECTED) or
+            manifest.get("component_count")!=len(expected) or
             any(manifest.get(x) is not False for x in (
                 "launch_ready","installable","prefix_created","device_tested",
                 "anti_cheat_supported")) or
             manifest.get("dependency_review_sha256")!=digest(report_raw) or
-            set(manifest.get("components",{}))!=set(EXPECTED) or
+            set(manifest.get("components",{}))!=set(expected) or
             set(manifest.get("source_files",{}))!=set(SOURCES)):
             raise ValueError("Unsafe/incomplete bootstrap manifest")
         nls_files=manifest.get("nls_files")
@@ -80,7 +85,13 @@ def verify(archive: Path) -> tuple[dict,dict]:
             not NLS_REQUIRED.issubset(nls_files) or
             nls_paths!={"runtime/nls/"+name for name in nls_files}):
             raise ValueError("Missing or unexpected Wine NLS tables")
-        for name,path in EXPECTED.items():
+        startup_hash=manifest.get("startup_dependency_manifest_sha256")
+        if extended:
+            if not isinstance(startup_hash,str) or not re.fullmatch(r"[0-9a-f]{64}",startup_hash):
+                raise ValueError("Missing startup DLL source audit linkage")
+        elif startup_hash is not None:
+            raise ValueError("Unexpected startup provenance in base archive")
+        for name,path in expected.items():
             entry=manifest["components"][name]
             if entry.get("path")!=path or entry.get("format")!=(
                 "ELF" if name in ELF else "PE"):
@@ -122,7 +133,7 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 raise ValueError("Wine NLS file hash or size mismatch")
         imports={dll for info in manifest["components"].values() for dll in info.get("imports",[])}
         needed={dll for info in manifest["components"].values() for dll in info.get("needed",[])}
-        bundled={name+".dll" for name in PE if name!="wineboot"}
+        bundled={name+".dll" for name in expected if name not in ELF and name!="wineboot"}
         gap=sorted(imports-bundled)
         if (report.get("schema_version")!=1 or report.get("bundled_windows_dlls")!=sorted(bundled)
             or report.get("observed_windows_imports")!=sorted(imports)

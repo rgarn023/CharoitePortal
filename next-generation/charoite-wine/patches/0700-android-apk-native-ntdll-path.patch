@@ -1,0 +1,21 @@
+diff --git a/loader/main.c b/loader/main.c
+--- a/loader/main.c
++++ b/loader/main.c
+@@ -230,6 +230,17 @@ static void *load_ntdll( char *argv0 )
+         free( path );
+     }
+ 
++#if defined(__ANDROID__) && defined(__aarch64__)
++    /* Android PackageManager extracts only lib*.so entries into the
++     * executable nativeLibraryDir.  Charoite Next supplies ntdll from the
++     * same verified, APK-owned directory; never use writable app storage.
++     * This path is set only by the explicit --version probe after hashing
++     * both installed files against their pinned CI source manifest. */
++    if (!handle && (path = getenv( "CHAROITE_NTDLL_NATIVE_DIR" )))
++        if (*path == '/' && !strstr( path, ".." ) && !strchr( path, ':' ))
++            handle = try_dlopen( path, "libcharoite_wine_ntdll.so" );
++#endif
++
+     if (!handle && (path = getenv( "WINEDLLPATH" )))
+     {
+         path = strdup( path );

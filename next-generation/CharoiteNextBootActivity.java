@@ -1,9 +1,9 @@
 package com.charoitegames.core;
 
 import android.app.Activity;
+import android.app.Application;
 import android.app.Dialog;
 import android.animation.ObjectAnimator;
-import android.content.ComponentCallbacks2;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
@@ -12,6 +12,9 @@ import android.view.animation.LinearInterpolator;
 import android.widget.ProgressBar;
 import android.view.WindowManager;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioAttributes;
@@ -37,6 +40,63 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final String EXTRA_PLAY_CHIME =
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
     private static final AtomicBoolean REENTRY_NEEDED = new AtomicBoolean(false);
+    private static final AtomicBoolean TRACKER_INSTALLED = new AtomicBoolean(false);
+    private static Dialog activeReentryDialog;
+
+    /**
+     * Memory trim notifications are NOT a reliable way of detecting Home /
+     * task-switching on Android 17. ActivityLifecycleCallbacks report each
+     * Activity stop/start regardless of process caching or memory pressure.
+     *
+     * Register once from the Portal's onCreate. When all app activities have
+     * stopped, the process has actually gone into the background. On a warm
+     * return to the Portal we present the same five-second splash, without
+     * recreating the Portal or touching installed games and Wine prefixes.
+     * Navigation into Charoite's in-app game/setup activities is deliberately
+     * excluded because they count as app-visible activities.
+     */
+    public static void installReentryTracker(Activity portal) {
+        if (!TRACKER_INSTALLED.compareAndSet(false, true)) return;
+        portal.getApplication().registerActivityLifecycleCallbacks(
+                new Application.ActivityLifecycleCallbacks() {
+            private final Set<Activity> started =
+                    Collections.newSetFromMap(new WeakHashMap<Activity, Boolean>());
+            private boolean wentBackground;
+
+            @Override public void onActivityCreated(Activity a, Bundle state) {}
+            @Override public void onActivityStarted(Activity a) {
+                if (wentBackground && a instanceof com.winlator.TouhouEntryActivity)
+                    REENTRY_NEEDED.set(true);
+                started.add(a);
+                wentBackground = false;
+            }
+            @Override public void onActivityResumed(Activity a) {}
+            @Override public void onActivityPaused(Activity a) {}
+            @Override public void onActivityStopped(Activity a) {
+                if (started.remove(a) && started.isEmpty() && !a.isChangingConfigurations())
+                    wentBackground = true;
+                if (a instanceof com.winlator.TouhouEntryActivity
+                        && activeReentryDialog != null) {
+                    if (activeReentryDialog.isShowing()) activeReentryDialog.dismiss();
+                    activeReentryDialog = null;
+                }
+            }
+            @Override public void onActivitySaveInstanceState(Activity a, Bundle state) {}
+            @Override public void onActivityDestroyed(Activity a) {
+                started.remove(a);
+            }
+        });
+    }
+
+    /** Some launchers deliver an explicit warm ACTION_MAIN/LAUNCHER intent
+     * rather than stopping/starting the visible task (notably multi-window).
+     * Avoid treating internal game or installer intents as launcher openings. */
+    public static void noteLauncherIntent(Intent intent) {
+        if (intent != null
+                && Intent.ACTION_MAIN.equals(intent.getAction())
+                && intent.hasCategory(Intent.CATEGORY_LAUNCHER))
+            REENTRY_NEEDED.set(true);
+    }
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable openMain;
     private boolean completed;
@@ -142,24 +202,20 @@ public final class CharoiteNextBootActivity extends Activity {
         return Math.round(size * activity.getResources().getDisplayMetrics().density);
     }
 
-    /** Called when Android reports that ALL app UI is hidden. Returning from
-     * a Charoite game doesn't trigger this, so game launches stay uninterrupted. */
-    public static void noteAppVisibility(int trimLevel) {
-        if (trimLevel == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN)
-            REENTRY_NEEDED.set(true);
-    }
-
     /** If Android resumes an existing Portal task rather than launching the
      * LAUNCHER Activity again, show the same boot presentation as a modal
      * overlay. Preserve the live Portal Activity and its UI/process state. */
     public static void showOnBackgroundReentryIfNeeded(Activity activity) {
         if (!REENTRY_NEEDED.getAndSet(false)
                 || activity.isFinishing() || activity.isDestroyed()) return;
+        if (activeReentryDialog != null && activeReentryDialog.isShowing())
+            activeReentryDialog.dismiss();
         Dialog splash = new Dialog(activity,
                 android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         splash.setCancelable(false);
         splash.setContentView(createBootView(activity));
         splash.show();
+        activeReentryDialog = splash;
         if (splash.getWindow() != null) {
             splash.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
             splash.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
@@ -169,6 +225,7 @@ public final class CharoiteNextBootActivity extends Activity {
         }
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (splash.isShowing()) splash.dismiss();
+            if (activeReentryDialog == splash) activeReentryDialog = null;
             if (!activity.isFinishing() && !activity.isDestroyed())
                 playCrystalChime(activity);
         }, BOOT_DURATION_MS);

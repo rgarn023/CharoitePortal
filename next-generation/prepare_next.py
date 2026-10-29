@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.11"')
-text = text.replace("versionCode 33", "versionCode 42")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.12"')
+text = text.replace("versionCode 33", "versionCode 43")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -121,11 +121,11 @@ chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
 assert generate_crystal_chime(chime) == round(44100 * 4.2)
 
-# Dedicated original 1536px crystal scene is rendered from reproducible layers,
-# not enlarged from the low-resolution approved launcher JPEG. Boot-only asset.
-# Neither this generator nor its output touches stable Portal or user app data.
+# Exactly the same image content as the launcher icon, not a separately
+# invented image. Preserve the original icon and the stable app unchanged.
 boot_png = app / "res/drawable-nodpi/charoite_next_boot_scene.png"
-assert render_crystal_portal(boot_png) == (1536, 1536)
+approved_icon = source_dir.parent / "runtime-preview/charoite_portal_icon.jpg"
+assert render_crystal_portal(boot_png, approved_icon) == (1536, 1536)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")

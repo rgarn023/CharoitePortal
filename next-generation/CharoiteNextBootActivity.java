@@ -44,6 +44,7 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final AtomicBoolean REENTRY_NEEDED = new AtomicBoolean(false);
     private static final AtomicBoolean TRACKER_INSTALLED = new AtomicBoolean(false);
     private static final AtomicBoolean SUPPRESS_NEXT_RESTART = new AtomicBoolean(false);
+    private static final AtomicBoolean COLD_ARRIVAL_SOUND_PENDING = new AtomicBoolean(false);
     private static final Handler OVERLAY_HANDLER = new Handler(Looper.getMainLooper());
     private static FrameLayout activeReentryOverlay;
     private static Activity activeOverlayOwner;
@@ -111,6 +112,7 @@ public final class CharoiteNextBootActivity extends Activity {
     /** A reliable signal on Home or user-selected app switching even when
      * Android chooses not to stop the existing task. */
     public static void noteUserLeaving(Activity portal) {
+        SUPPRESS_NEXT_RESTART.set(false);
         REENTRY_NEEDED.set(true);
         lastLifecycleEvent = "User leave hint received";
         saveReport(portal);
@@ -120,8 +122,14 @@ public final class CharoiteNextBootActivity extends Activity {
      * Internal navigation is excluded when its destination starts. */
     public static void notePortalPaused(Activity portal) {
         removeWarmOverlay(portal, false);
-        REENTRY_NEEDED.set(true);
-        lastLifecycleEvent = "Portal paused; next foreground entry will play boot";
+        if (portal.isChangingConfigurations()) {
+            SUPPRESS_NEXT_RESTART.set(true);
+            REENTRY_NEEDED.set(false);
+            lastLifecycleEvent = "Configuration transition; suppress boot replay";
+        } else {
+            REENTRY_NEEDED.set(true);
+            lastLifecycleEvent = "Portal paused; next foreground entry will play boot";
+        }
         saveReport(portal);
     }
 
@@ -134,6 +142,7 @@ public final class CharoiteNextBootActivity extends Activity {
             lastLifecycleEvent = "Portal window focus regained";
             saveReport(portal);
             showOnBackgroundReentryIfNeeded(portal);
+            playPendingColdArrivalIfReady(portal);
         } else if (activeReentryOverlay == null) {
             lastLifecycleEvent = "Portal window lost focus";
             saveReport(portal);
@@ -144,19 +153,48 @@ public final class CharoiteNextBootActivity extends Activity {
      * sending a second ACTION_MAIN intent. The previous implementation only
      * listened for focus and an onPause flag, which missed this case. */
     public static void onPortalRestart(Activity portal) {
-        if (SUPPRESS_NEXT_RESTART.getAndSet(false)) {
-            REENTRY_NEEDED.set(false);
-            lastLifecycleEvent = "Internal Charoite activity returned; boot suppressed";
-        } else if (!portal.isChangingConfigurations()) {
-            REENTRY_NEEDED.set(true);
-            lastLifecycleEvent = "Portal restarted from background; boot scheduled";
-        }
+        // Lifecycle onRestart is informational. Never consume or clear a
+        // pending Home-return request here: that previously suppressed boot
+        // after the first launch on Samsung One UI.
+        lastLifecycleEvent = "Portal onRestart; awaiting foreground onResume";
         saveReport(portal);
+    }
+
+    /** Every actual Portal resume is a potential user launch. Android may
+     * bring an existing task to the front without sending ACTION_MAIN,
+     * onRestart, or a new focus callback. The one-shot cold-start marker
+     * prevents double boot on the first entry; internal Charoite windows and
+     * configuration changes use a suppression token consumed here, exactly
+     * once, rather than leaving it stuck for future Home launches. */
+    public static void onPortalResumed(Activity portal) {
+        Intent intent = portal.getIntent();
+        if (intent != null && intent.getBooleanExtra(EXTRA_PLAY_CHIME, false)) {
+            REENTRY_NEEDED.set(false);
+            SUPPRESS_NEXT_RESTART.set(false);
+            lastLifecycleEvent = "First Portal arrival after five-second cold boot";
+            saveReport(portal);
+            playArrivalChimeIfRequested(portal);
+            return;
+        }
+        boolean internalReturn = SUPPRESS_NEXT_RESTART.getAndSet(false);
+        boolean explicitHomeOrLauncher = REENTRY_NEEDED.get();
+        if (internalReturn && !explicitHomeOrLauncher) {
+            lastLifecycleEvent = "Internal activity/configuration return: boot not repeated";
+            saveReport(portal);
+            return;
+        }
+        // Last-resort onResume replay deliberately covers Samsung task
+        // restoration even if onPause/onStop/onNewIntent did not signal it.
+        REENTRY_NEEDED.set(true);
+        lastLifecycleEvent = "Portal resumed from launcher/background; boot requested";
+        saveReport(portal);
+        showOnBackgroundReentryIfNeeded(portal);
     }
 
     /** Document pickers are external activities, but returning from a picker
      * is NOT a new Portal launch. */
     public static void noteDocumentPickerReturn(Activity portal) {
+        SUPPRESS_NEXT_RESTART.set(true);
         REENTRY_NEEDED.set(false);
         lastLifecycleEvent = "Document picker returned (startup suppressed)";
         saveReport(portal);
@@ -385,25 +423,43 @@ public final class CharoiteNextBootActivity extends Activity {
         super.onDestroy();
     }
 
-    /** Called only after Next's actual main Portal view has been rendered. */
+    /** The cold boot finishes before the Portal starts, but Android may not
+     * grant the new Portal window audio playback immediately in onResume.
+     * Queue the first crystal arrival until the window is visible. The
+     * fallback post also handles Samsung builds which omit focus callbacks. */
     public static void playArrivalChimeIfRequested(Activity activity) {
         Intent intent = activity.getIntent();
         if (intent == null || !intent.getBooleanExtra(EXTRA_PLAY_CHIME, false))
             return;
-        intent.removeExtra(EXTRA_PLAY_CHIME); // never repeat after rotation
+        intent.removeExtra(EXTRA_PLAY_CHIME);
+        COLD_ARRIVAL_SOUND_PENDING.set(true);
+        lastAudioResult = "QUEUED: cold arrival sound waiting for visible Portal";
+        saveReport(activity);
+        activity.getWindow().getDecorView().postDelayed(
+                () -> playPendingColdArrivalIfReady(activity), 900L);
+    }
+
+    private static void playPendingColdArrivalIfReady(Activity activity) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        if (!COLD_ARRIVAL_SOUND_PENDING.compareAndSet(true, false)) return;
+        lastAudioResult = "Portal visible: starting first-launch crystal sound";
+        saveReport(activity);
         playCrystalChime(activity);
     }
+
+    /** Play directly using the generated PCM WAV. This avoids depending on
+     * MediaPlayer's first-use decoder readiness after APK installation.
+     * Existing MediaPlayer support is the fallback if AudioTrack fails. */
+    private static android.media.AudioTrack activeCrystalAudioTrack;
+    private static android.media.MediaPlayer activeCrystalMediaPlayer;
 
     private static void playCrystalChime(Activity activity) {
         activity.getWindow().getDecorView().postDelayed(() -> {
             if (activity.isFinishing() || activity.isDestroyed()) {
-                lastAudioResult = "Suppressed: Portal activity destroyed before audio";
+                lastAudioResult = "Suppressed: Portal destroyed before startup audio";
                 saveReport(activity);
                 return;
             }
-            // Media is the intended stream. The ringer being silent/vibrate
-            // should not disable a user-requested startup sound. Respect
-            // music-stream volume and avoid hard-coding elevated output.
             AudioManager audio = (AudioManager)
                     activity.getSystemService(Context.AUDIO_SERVICE);
             if (audio != null && audio.getStreamVolume(AudioManager.STREAM_MUSIC) <= 0) {
@@ -411,37 +467,106 @@ public final class CharoiteNextBootActivity extends Activity {
                 saveReport(activity);
                 return;
             }
+            AudioAttributes attributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build();
             try {
-                AudioAttributes attributes = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build();
-                final MediaPlayer player = MediaPlayer.create(activity,
-                        com.winlator.R.raw.charoite_crystal_startup, attributes, 0);
-                if (player == null) {
-                    lastAudioResult = "FAILED: MediaPlayer.create returned null";
-                    saveReport(activity);
-                    return;
+                if (activeCrystalAudioTrack != null) {
+                    activeCrystalAudioTrack.pause();
+                    activeCrystalAudioTrack.flush();
+                    activeCrystalAudioTrack.release();
+                    activeCrystalAudioTrack = null;
                 }
-                player.setOnCompletionListener(mp -> {
-                    mp.release();
-                    lastAudioResult = "PASS: startup crystal chime completed";
-                    saveReport(activity);
-                });
-                player.setOnErrorListener((mp, what, extra) -> {
-                    mp.release();
-                    lastAudioResult = "FAILED: MediaPlayer code " + what + "/" + extra;
-                    saveReport(activity);
-                    return true;
-                });
-                player.start();
-                lastAudioResult = "STARTED: crystal chime on media stream";
+                // The generated audio is PCM 44.1kHz, mono, 16-bit in a
+                // standard 44-byte RIFF WAV header (validated by CI).
+                byte[] wav;
+                try (java.io.InputStream input = activity.getResources()
+                        .openRawResource(com.winlator.R.raw.charoite_crystal_startup);
+                     java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+                    byte[] block = new byte[8192];
+                    int count;
+                    while ((count = input.read(block)) != -1)
+                        output.write(block, 0, count);
+                    wav = output.toByteArray();
+                }
+                if (wav.length < 48 || wav[0] != 'R' || wav[1] != 'I'
+                        || wav[2] != 'F' || wav[3] != 'F'
+                        || wav[8] != 'W' || wav[9] != 'A'
+                        || wav[10] != 'V' || wav[11] != 'E'
+                        || wav[36] != 'd' || wav[37] != 'a'
+                        || wav[38] != 't' || wav[39] != 'a')
+                    throw new IllegalStateException("Invalid PCM WAV startup resource");
+                int length = wav.length - 44;
+                android.media.AudioFormat format = new android.media.AudioFormat.Builder()
+                        .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(44100)
+                        .setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO)
+                        .build();
+                android.media.AudioTrack track = new android.media.AudioTrack.Builder()
+                        .setAudioAttributes(attributes)
+                        .setAudioFormat(format)
+                        .setBufferSizeInBytes(length)
+                        .setTransferMode(android.media.AudioTrack.MODE_STATIC)
+                        .build();
+                if (track.getState() != android.media.AudioTrack.STATE_INITIALIZED) {
+                    track.release();
+                    throw new IllegalStateException("AudioTrack not initialized");
+                }
+                int written = track.write(wav, 44, length);
+                if (written != length) {
+                    track.release();
+                    throw new IllegalStateException("PCM write incomplete: " + written);
+                }
+                activeCrystalAudioTrack = track;
+                track.play();
+                lastAudioResult = "STARTED: direct PCM crystal sound (" + written + " bytes)";
                 saveReport(activity);
-            } catch (RuntimeException error) {
-                lastAudioResult = "FAILED: " + error.getClass().getSimpleName()
-                        + ": " + error.getMessage();
+                OVERLAY_HANDLER.postDelayed(() -> {
+                    if (activeCrystalAudioTrack == track) {
+                        track.stop();
+                        track.release();
+                        activeCrystalAudioTrack = null;
+                        lastAudioResult = "PASS: direct PCM crystal sound completed";
+                        saveReport(activity);
+                    }
+                }, 4600L);
+            } catch (Exception pcmFailure) {
+                lastAudioResult = "PCM failed: " + pcmFailure.getClass().getSimpleName()
+                        + "; trying MediaPlayer";
                 saveReport(activity);
+                try {
+                    if (activeCrystalMediaPlayer != null) {
+                        activeCrystalMediaPlayer.release();
+                        activeCrystalMediaPlayer = null;
+                    }
+                    android.media.MediaPlayer player = android.media.MediaPlayer.create(activity,
+                            com.winlator.R.raw.charoite_crystal_startup, attributes, 0);
+                    if (player == null) throw new IllegalStateException("MediaPlayer.create null");
+                    activeCrystalMediaPlayer = player;
+                    player.setOnCompletionListener(mp -> {
+                        mp.release();
+                        if (activeCrystalMediaPlayer == mp) activeCrystalMediaPlayer = null;
+                        lastAudioResult = "PASS: MediaPlayer crystal sound completed";
+                        saveReport(activity);
+                    });
+                    player.setOnErrorListener((mp, what, extra) -> {
+                        mp.release();
+                        if (activeCrystalMediaPlayer == mp) activeCrystalMediaPlayer = null;
+                        lastAudioResult = "FAILED: MediaPlayer " + what + "/" + extra;
+                        saveReport(activity);
+                        return true;
+                    });
+                    player.start();
+                    lastAudioResult = "STARTED: fallback MediaPlayer crystal sound";
+                    saveReport(activity);
+                } catch (Exception fallbackFailure) {
+                    lastAudioResult = "FAILED: PCM " + pcmFailure.getClass().getSimpleName()
+                            + ", MediaPlayer " + fallbackFailure.getClass().getSimpleName();
+                    saveReport(activity);
+                }
             }
         }, 300L);
     }
+
 }

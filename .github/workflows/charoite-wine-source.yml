@@ -296,6 +296,8 @@ jobs:
             "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/charoite-wine-bootstrap-bundle.tar.gz"
           grep -Fx 'CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS' \
             "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/bundle-report.txt"
+          grep -Fx 'NLS_COUNT=76' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/bundle-report.txt"
           grep -Fx 'LAUNCH_READY=false' \
             "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-bundle/bundle-report.txt"
 
@@ -303,7 +305,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Charoite-Wine-Coherent-Bootstrap-Experimental
+          name: Charoite-Wine-Coherent-Bootstrap-NLS-Experimental
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-bundle/
           retention-days: 14
           if-no-files-found: error

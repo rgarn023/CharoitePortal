@@ -29,8 +29,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.CENTER",BOOT)
         self.assertIn("CHAROITE CORE",BOOT)
         self.assertIn('com.charoitx',PREP)
-        self.assertIn('versionCode 42',PREP)
-        self.assertIn('11.2-next.0.11',PREP)
+        self.assertIn('versionCode 43',PREP)
+        self.assertIn('11.2-next.0.12',PREP)
 
     def test_home_and_recents_reopen_with_internal_navigation_suppressed(self):
         self.assertIn("Application.ActivityLifecycleCallbacks", BOOT)
@@ -42,7 +42,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("onPause()", PREP)
         self.assertIn("notePortalPaused(this)", PREP)
         self.assertIn("REENTRY_NEEDED.compareAndSet(true, false)", BOOT)
-        self.assertIn("!activity.hasWindowFocus()", BOOT)
+        self.assertNotIn("|| !activity.hasWindowFocus()) return;", BOOT)
+        self.assertIn("Window not ready; replay still pending", BOOT)
         self.assertIn("onWindowFocusChanged(boolean hasFocus)", PREP)
         self.assertIn(".onPortalWindowFocusChanged(this, hasFocus)", PREP)
         self.assertIn("onPortalWindowFocusChanged(Activity portal, boolean focused)", BOOT)
@@ -79,24 +80,33 @@ class StartupExperienceTest(unittest.TestCase):
 
     def test_boot_uses_original_recreated_crystal_scene_not_tiny_jpeg(self):
         self.assertIn("icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene)",BOOT)
-        self.assertIn("render_crystal_portal(boot_png)",PREP)
+        self.assertIn("render_crystal_portal(boot_png, approved_icon)",PREP)
         self.assertIn("recreate_crystal_portal", PREP)
         self.assertNotIn("generate_boot_icon", PREP)
         source = (ROOT/"recreate_crystal_portal.py").read_text(encoding="utf-8")
         self.assertIn("SIZE = 1536",source)
-        self.assertIn("crystalline gateway",source)
-        self.assertIn("Mystic lake",source)
-        self.assertNotIn("charoite_portal_icon.jpg",source)
+        self.assertIn("exact artwork",source)
+        self.assertIn("SOURCE_SIZE = (128, 128)",source)
+        self.assertIn("Image.Resampling.LANCZOS",source)
+        self.assertIn("ImageFilter.UnsharpMask",source)
+        self.assertIn('source_dir.parent / "runtime-preview/charoite_portal_icon.jpg"',PREP)
         from PIL import Image
         with tempfile.TemporaryDirectory() as td:
             dest=Path(td)/"crystal.png"
-            self.assertEqual(art.render(dest),(1536,1536))
+            icon_source=ROOT.parent / "runtime-preview/charoite_portal_icon.jpg"
+            self.assertEqual(art.render(dest,icon_source),(1536,1536))
             with Image.open(dest) as image:
                 self.assertEqual(image.size,(1536,1536))
                 self.assertEqual(image.format,"PNG")
             self.assertGreater(dest.stat().st_size,100000)
+            # A visually different scene must fail this source-equivalence test.
+            from PIL import Image, ImageChops, ImageStat
+            with Image.open(dest) as enhanced, Image.open(icon_source) as original:
+                preview=enhanced.convert("RGB").resize((128,128),Image.Resampling.LANCZOS)
+                diff=ImageStat.Stat(ImageChops.difference(preview,original.convert("RGB")))
+                self.assertLess(max(diff.mean),22, "Boot artwork must match the icon")
             with self.assertRaises(ValueError):
-                art.render(dest)
+                art.render(dest,icon_source)
 
     def test_slow_mysterious_sound_after_resume_and_diagnostics(self):
         self.assertIn('main.putExtra(EXTRA_PLAY_CHIME, true)', BOOT)

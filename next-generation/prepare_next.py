@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.7"')
-text = text.replace("versionCode 33", "versionCode 38")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.8"')
+text = text.replace("versionCode 33", "versionCode 39")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -227,10 +227,16 @@ ui = ui.replace(home_render,
                 ".playArrivalChimeIfRequested(this);\n" +
                 "        refreshReadyState();\n" +
                 "        initializeEngineOnFirstLaunch();", 1)
-# On an already-running Android task, tapping the launcher may simply resume
-# the Portal rather than recreate the boot launcher. Only show the full boot
-# overlay when Android declares the entire app UI hidden (Home/app switch).
-# No re-entry splash when navigating internally to a game or installer.
+# Android's TRIM_MEMORY_UI_HIDDEN is NOT guaranteed on Home/task switching.
+# Track the complete app Activity lifecycle, including other Charoite windows:
+# warm return from Home triggers splash; Portal <-> game does not.
+create_anchor = "        super.onCreate(savedInstanceState);\n        CharoiteEnvironments.initialize(this);"
+assert ui.count(create_anchor) == 1
+ui = ui.replace(create_anchor, (
+    "        super.onCreate(savedInstanceState);\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".installReentryTracker(this);\n"
+    "        CharoiteEnvironments.initialize(this);"), 1)
 resume_anchor = "        super.onResume();\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
 assert ui.count(resume_anchor) == 1
 ui = ui.replace(resume_anchor, (
@@ -241,10 +247,14 @@ ui = ui.replace(resume_anchor, (
 destroy_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(destroy_anchor) == 1
 ui = ui.replace(destroy_anchor, (
-    "    @Override public void onTrimMemory(int level) {\n"
-    "        super.onTrimMemory(level);\n"
+    "    @Override protected void onNewIntent(Intent intent) {\n"
+    "        super.onNewIntent(intent);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".noteAppVisibility(level);\n"
+    ".noteLauncherIntent(intent);\n"
+    "        if (intent != null && android.content.Intent.ACTION_MAIN.equals(intent.getAction())"
+    " && intent.hasCategory(android.content.Intent.CATEGORY_LAUNCHER))\n"
+    "            com.charoitegames.core.CharoiteNextBootActivity"
+    ".showOnBackgroundReentryIfNeeded(this);\n"
     "    }\n\n" + destroy_anchor), 1)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")

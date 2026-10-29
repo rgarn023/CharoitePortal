@@ -5,6 +5,7 @@ This runs ONLY inside a fresh CI checkout after overlay.py. The original
 Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
+from generate_crystal_startup import generate as generate_crystal_chime
 import re
 import shutil
 import sys
@@ -26,8 +27,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.4"')
-text = text.replace("versionCode 33", "versionCode 35")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.5"')
+text = text.replace("versionCode 33", "versionCode 36")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -40,6 +41,31 @@ tree = ET.parse(manifest_path)
 for node in tree.getroot().iter("provider"):
     if node.get(ns + "authorities") == "com.charoite.FileProvider":
         node.set(ns + "authorities", "com.charoitx.FileProvider")
+# Route cold-start HOME/LAUNCHER through a five-second Charoite Core screen.
+# Existing direct/internal game launch activities and intent contracts are retained.
+application = tree.getroot().find("application")
+assert application is not None
+launcher = [activity for activity in application.findall("activity")
+            if activity.get(ns + "name") == "com.winlator.TouhouEntryActivity"]
+assert len(launcher) == 1
+entry = launcher[0]
+launcher_intents = [node for node in entry.findall("intent-filter")
+                    if any(child.get(ns + "name") == "android.intent.action.MAIN"
+                           for child in node.findall("action"))]
+assert len(launcher_intents) == 1, "Expected exactly one original launcher intent"
+filters = launcher_intents[0]
+assert any(cat.get(ns + "name") == "android.intent.category.LAUNCHER"
+           for cat in filters.findall("category"))
+entry.remove(filters)
+boot = ET.Element("activity", {
+    ns + "name": "com.charoitegames.core.CharoiteNextBootActivity",
+    ns + "exported": "true",
+    ns + "screenOrientation": "fullSensor",
+    ns + "configChanges": "keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation|uiMode",
+    ns + "theme": "@style/AppThemeDark",
+})
+boot.append(filters)
+application.insert(0, boot)
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
 for p in (app / "res").glob("values*/strings.xml"):
@@ -81,6 +107,15 @@ shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
 native_probe_java = app / "java/com/charoitegames/core/CharoiteWineNativeProbe.java"
 assert not native_probe_java.exists()
 shutil.copy2(source_dir / "CharoiteWineNativeProbe.java", native_probe_java)
+boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
+assert not boot_java.exists()
+shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
+
+# Generate the original crystal-chime sound as an Android raw resource. The
+# sound is played only after the actual Portal home view is displayed.
+chime = app / "res/raw/charoite_crystal_startup.wav"
+assert not chime.exists()
+assert generate_crystal_chime(chime) == round(44100 * 1.85)
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -147,6 +182,15 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(nativeWineProbe);
 """)
+# Play once only after main Portal content has been built, never during boot.
+home_render = "        render();\n        refreshReadyState();\n        initializeEngineOnFirstLaunch();"
+assert ui.count(home_render) == 1, "Main-screen bootstrap contract changed"
+ui = ui.replace(home_render,
+                "        render();\n" +
+                "        com.charoitegames.core.CharoiteNextBootActivity" +
+                ".playArrivalChimeIfRequested(this);\n" +
+                "        refreshReadyState();\n" +
+                "        initializeEngineOnFirstLaunch();")
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
 

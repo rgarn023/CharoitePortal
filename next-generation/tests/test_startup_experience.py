@@ -89,6 +89,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("SOURCE_SIZE = (128, 128)",source)
         self.assertIn("Image.Resampling.LANCZOS",source)
         self.assertIn("ImageFilter.UnsharpMask",source)
+        self.assertIn("stage_launcher_icon",PREP)
+        self.assertIn("repaired_jpeg(source)",source)
         self.assertIn('source_dir.parent / "runtime-preview/charoite_portal_icon.jpg"',PREP)
         from PIL import Image
         with tempfile.TemporaryDirectory() as td:
@@ -99,9 +101,16 @@ class StartupExperienceTest(unittest.TestCase):
                 self.assertEqual(image.size,(1536,1536))
                 self.assertEqual(image.format,"PNG")
             self.assertGreater(dest.stat().st_size,100000)
+            next_icon = Path(td)/"charoite_portal_icon.jpg"
+            next_icon.write_bytes(icon_source.read_bytes())
+            self.assertEqual(art.stage_launcher_icon(icon_source,next_icon),(128,128))
+            with Image.open(next_icon) as repaired:
+                repaired.load()
+                self.assertEqual(repaired.size,(128,128))
             # A visually different scene must fail this source-equivalence test.
             from PIL import Image, ImageChops, ImageStat
-            with Image.open(dest) as enhanced, Image.open(icon_source) as original:
+            from io import BytesIO
+            with Image.open(dest) as enhanced, Image.open(BytesIO(art.repaired_jpeg(icon_source))) as original:
                 preview=enhanced.convert("RGB").resize((128,128),Image.Resampling.LANCZOS)
                 diff=ImageStat.Stat(ImageChops.difference(preview,original.convert("RGB")))
                 self.assertLess(max(diff.mean),22, "Boot artwork must match the icon")
@@ -117,7 +126,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("AudioManager.STREAM_MUSIC", BOOT)
         self.assertNotIn("AudioManager.RINGER_MODE_SILENT", BOOT)
         self.assertIn("if (activity.isFinishing() || activity.isDestroyed()", BOOT)
-        self.assertIn("!activity.hasWindowFocus()", BOOT)
+        self.assertNotIn("|| !activity.hasWindowFocus()) return;", BOOT)
         self.assertNotIn("activity.hasWindowFocus()", BOOT.split("private static void playCrystalChime(Activity activity) {")[1])
         self.assertIn("player.setOnCompletionListener", BOOT)
         self.assertIn("playCrystalChime(activity)", BOOT)

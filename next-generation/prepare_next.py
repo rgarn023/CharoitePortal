@@ -6,6 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
+from generate_boot_art import generate as generate_boot_art
 import re
 import shutil
 import sys
@@ -27,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.5"')
-text = text.replace("versionCode 33", "versionCode 36")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.6"')
+text = text.replace("versionCode 33", "versionCode 37")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -117,6 +118,11 @@ chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
 assert generate_crystal_chime(chime) == round(44100 * 1.85)
 
+# Boot-only original 768px crystal art replaces the small JPEG on the splash.
+# Existing package launcher icons are unchanged; generation needs no Pillow.
+boot_art = app / "res/drawable-nodpi/charoite_next_boot_art.png"
+assert generate_boot_art(boot_art) == (768, 768)
+
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
 anchor = "        systemScreen.addView(runtimeCard);"
@@ -192,6 +198,25 @@ ui = ui.replace(home_render,
                 ".playArrivalChimeIfRequested(this);\n" +
                 "        refreshReadyState();\n" +
                 "        initializeEngineOnFirstLaunch();", 1)
+# On an already-running Android task, tapping the launcher may simply resume
+# the Portal rather than recreate the boot launcher. Only show the full boot
+# overlay when Android declares the entire app UI hidden (Home/app switch).
+# No re-entry splash when navigating internally to a game or installer.
+resume_anchor = "        super.onResume();\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
+assert ui.count(resume_anchor) == 1
+ui = ui.replace(resume_anchor, (
+    "        super.onResume();\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".showOnBackgroundReentryIfNeeded(this);\n"
+    "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
+destroy_anchor = "    @Override public void onDestroy() {\n"
+assert ui.count(destroy_anchor) == 1
+ui = ui.replace(destroy_anchor, (
+    "    @Override public void onTrimMemory(int level) {\n"
+    "        super.onTrimMemory(level);\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".noteAppVisibility(level);\n"
+    "    }\n\n" + destroy_anchor), 1)
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
 

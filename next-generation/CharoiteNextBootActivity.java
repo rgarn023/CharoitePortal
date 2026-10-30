@@ -41,174 +41,41 @@ public final class CharoiteNextBootActivity extends Activity {
     public static final long BOOT_DURATION_MS = 5000L;
     private static final String EXTRA_PLAY_CHIME =
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
-    private static final AtomicBoolean REENTRY_NEEDED = new AtomicBoolean(false);
-    private static final AtomicBoolean TRACKER_INSTALLED = new AtomicBoolean(false);
-    private static final AtomicBoolean SUPPRESS_NEXT_RESTART = new AtomicBoolean(false);
-    private static final AtomicBoolean COLD_ARRIVAL_SOUND_PENDING = new AtomicBoolean(false);
+    // The live Portal is the session: Home/Recents do not destroy it.
+    // A genuine Activity finish or a killed process permits boot again.
+    private static volatile java.lang.ref.WeakReference<Activity> currentPortal =
+            new java.lang.ref.WeakReference<>(null);
+    private static final AtomicBoolean COLD_ARRIVAL_SOUND_PENDING =
+            new AtomicBoolean(false);
     private static final Handler OVERLAY_HANDLER = new Handler(Looper.getMainLooper());
-    private static FrameLayout activeReentryOverlay;
-    private static Activity activeOverlayOwner;
-    private static Runnable activeOverlayTimeout;
-    private static int previousStatusBarColor;
-    private static int previousNavigationBarColor;
 
     private static final String STARTUP_PREFS = "charoite_next_startup_diagnostics";
     private static volatile String lastLifecycleEvent = "Not yet observed";
     private static volatile String lastAudioResult = "Not yet attempted";
 
-    /**
-     * Unlike unreliable memory-trim callbacks, onUserLeaveHint()/onPause()/onStop()
-     * can detect a Home/recent-app transition on Samsung One UI.
-     * Internal Charoite activity starts cancel pending replay; the game
-     * process, prefixes, and installed software are never modified.
-     */
+    /** First Portal creation, not a foreground-resume event. */
     public static void installReentryTracker(Activity portal) {
-        if (!TRACKER_INSTALLED.compareAndSet(false, true)) return;
-        portal.getApplication().registerActivityLifecycleCallbacks(
-                new Application.ActivityLifecycleCallbacks() {
-            private final Set<Activity> started =
-                    Collections.newSetFromMap(new WeakHashMap<Activity, Boolean>());
-
-            @Override public void onActivityCreated(Activity a, Bundle state) {}
-            @Override public void onActivityStarted(Activity a) {
-                started.add(a);
-                if (!(a instanceof com.winlator.TouhouEntryActivity)
-                        && !(a instanceof CharoiteNextBootActivity)) {
-                    // Internal game, file manager, or installer: do NOT replay.
-                    REENTRY_NEEDED.set(false);
-                    SUPPRESS_NEXT_RESTART.set(true);
-                    lastLifecycleEvent = "Internal Charoite activity started";
-                }
-            }
-            @Override public void onActivityResumed(Activity a) {}
-            @Override public void onActivityPaused(Activity a) {}
-            @Override public void onActivityStopped(Activity a) {
-                started.remove(a);
-                if (a instanceof com.winlator.TouhouEntryActivity
-                        && !a.isChangingConfigurations()) {
-                    // Only treat the stop as app background if no other
-                    // Charoite activity (game, installer, etc.) is visible.
-                    boolean appBackground = started.isEmpty();
-                    // IMPORTANT: Home can relaunch before Android dispatches
-                    // onStop, or BootActivity can still be in the started set.
-                    // Never overwrite the prior onUserLeaveHint/onPause signal
-                    // with false. Internal navigation clears it in onStart.
-                    if (appBackground) REENTRY_NEEDED.set(true);
-                    lastLifecycleEvent = appBackground
-                            ? "Portal stopped; app backgrounded"
-                            : "Portal stopped; preserving pending user leave";
-                    saveReport(a);
-                }
-                if (a instanceof com.winlator.TouhouEntryActivity)
-                    removeWarmOverlay(a, false);
-            }
-            @Override public void onActivitySaveInstanceState(Activity a, Bundle state) {}
-            @Override public void onActivityDestroyed(Activity a) {
-                started.remove(a);
-            }
-        });
+        currentPortal = new java.lang.ref.WeakReference<>(portal);
     }
-
-    /** A reliable signal on Home or user-selected app switching even when
-     * Android chooses not to stop the existing task. */
-    public static void noteUserLeaving(Activity portal) {
-        SUPPRESS_NEXT_RESTART.set(false);
-        REENTRY_NEEDED.set(true);
-        lastLifecycleEvent = "User leave hint received";
-        saveReport(portal);
+    private static boolean hasLivePortalSession() {
+        Activity portal = currentPortal.get();
+        return portal != null && !portal.isFinishing() && !portal.isDestroyed();
     }
-
-    /** Fallback for split-screen or launcher paths that only pause the Portal.
-     * Internal navigation is excluded when its destination starts. */
-    public static void notePortalPaused(Activity portal) {
-        removeWarmOverlay(portal, false);
-        if (portal.isChangingConfigurations()) {
-            SUPPRESS_NEXT_RESTART.set(true);
-            REENTRY_NEEDED.set(false);
-            lastLifecycleEvent = "Configuration transition; suppress boot replay";
-        } else {
-            REENTRY_NEEDED.set(true);
-            lastLifecycleEvent = "Portal paused; next foreground entry will play boot";
-        }
-        saveReport(portal);
-    }
-
-    /** The focus callback is the final gate for quick Home/Recents returns,
-     * including when Android does not fully stop or destroy the activity.
-     * Never consume replay during onResume's pre-focus transition.
-     */
-    public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {
-        if (focused) {
-            lastLifecycleEvent = "Portal window focus regained";
-            saveReport(portal);
-            showOnBackgroundReentryIfNeeded(portal);
-            playPendingColdArrivalIfReady(portal);
-        } else if (activeReentryOverlay == null) {
-            lastLifecycleEvent = "Portal window lost focus";
+    public static void notePortalDestroyed(Activity portal) {
+        if (currentPortal.get() == portal) {
+            currentPortal.clear();
+            lastLifecycleEvent = "Portal destroyed; new launch can boot";
             saveReport(portal);
         }
     }
-
-    /** Android can restart an existing Portal task from the launcher without
-     * sending a second ACTION_MAIN intent. The previous implementation only
-     * listened for focus and an onPause flag, which missed this case. */
-    public static void onPortalRestart(Activity portal) {
-        // Lifecycle onRestart is informational. Never consume or clear a
-        // pending Home-return request here: that previously suppressed boot
-        // after the first launch on Samsung One UI.
-        lastLifecycleEvent = "Portal onRestart; awaiting foreground onResume";
-        saveReport(portal);
-    }
-
-    /** Every actual Portal resume is a potential user launch. Android may
-     * bring an existing task to the front without sending ACTION_MAIN,
-     * onRestart, or a new focus callback. The one-shot cold-start marker
-     * prevents double boot on the first entry; internal Charoite windows and
-     * configuration changes use a suppression token consumed here, exactly
-     * once, rather than leaving it stuck for future Home launches. */
+    /** Never display a splash on an existing Portal's onResume. */
     public static void onPortalResumed(Activity portal) {
-        Intent intent = portal.getIntent();
-        if (intent != null && intent.getBooleanExtra(EXTRA_PLAY_CHIME, false)) {
-            REENTRY_NEEDED.set(false);
-            SUPPRESS_NEXT_RESTART.set(false);
-            lastLifecycleEvent = "First Portal arrival after five-second cold boot";
-            saveReport(portal);
-            playArrivalChimeIfRequested(portal);
-            return;
-        }
-        boolean internalReturn = SUPPRESS_NEXT_RESTART.getAndSet(false);
-        boolean explicitHomeOrLauncher = REENTRY_NEEDED.get();
-        if (internalReturn && !explicitHomeOrLauncher) {
-            lastLifecycleEvent = "Internal activity/configuration return: boot not repeated";
-            saveReport(portal);
-            return;
-        }
-        // Last-resort onResume replay deliberately covers Samsung task
-        // restoration even if onPause/onStop/onNewIntent did not signal it.
-        REENTRY_NEEDED.set(true);
-        lastLifecycleEvent = "Portal resumed from launcher/background; boot requested";
-        saveReport(portal);
-        showOnBackgroundReentryIfNeeded(portal);
+        currentPortal = new java.lang.ref.WeakReference<>(portal);
+        playArrivalChimeIfRequested(portal);
     }
-
-    /** Document pickers are external activities, but returning from a picker
-     * is NOT a new Portal launch. */
-    public static void noteDocumentPickerReturn(Activity portal) {
-        SUPPRESS_NEXT_RESTART.set(true);
-        REENTRY_NEEDED.set(false);
-        lastLifecycleEvent = "Document picker returned (startup suppressed)";
-        saveReport(portal);
-    }
-
-    /** Samsung may deliver an explicit warm launcher intent instead of
-     * stopping/starting the visible task. */
-    public static void noteLauncherIntent(Intent intent) {
-        if (intent != null
-                && Intent.ACTION_MAIN.equals(intent.getAction())
-                && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) {
-            REENTRY_NEEDED.set(true);
-            lastLifecycleEvent = "New launcher intent received";
-        }
+    /** First cold-arrival audio is allowed to wait for window focus. */
+    public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {
+        if (focused) playPendingColdArrivalIfReady(portal);
     }
 
     private static void saveReport(Context ctx) {
@@ -231,11 +98,11 @@ public final class CharoiteNextBootActivity extends Activity {
                 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int mode = audio == null ? -1 : audio.getRingerMode();
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
-                + "Splash art: exact user-supplied 1536px crystalline gateway\n"
-                + "Replay: foreground overlay on restart/resume or launcher intent\n"
+                + "Splash art: approved gateway with black outside corners removed\n"
+                + "Boot: once per genuine launch, never on app switching\n"
                 + "Boot duration: 5000 ms\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
-                + "Pending replay: " + REENTRY_NEEDED.get() + "\n"
+                + "Portal session live: " + hasLivePortalSession() + "\n"
                 + "Last audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
                 + "Media volume: " + current + " / " + maximum + "\n"
                 + "Ringer mode: " + mode + " (does not mute media chime)\n"
@@ -251,12 +118,18 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** Icon-matched 1536px artwork and a real five-second progress bar.
-     * Same presentation for cold launch and warm return from the launcher. */
+    /** Source-faithful art with transparent corners and a full-screen
+     * violet continuation, never a black square around the icon. */
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
-        boot.setBackgroundColor(Color.rgb(13, 8, 30));
+        boot.setBackgroundColor(Color.rgb(43, 18, 83));
         boot.setContentDescription("Charoite Core starting");
+        ImageView backdrop = new ImageView(activity);
+        backdrop.setImageResource(com.winlator.R.drawable.charoite_next_boot_backdrop);
+        backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        boot.addView(backdrop, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         LinearLayout emblem = new LinearLayout(activity);
         emblem.setOrientation(LinearLayout.VERTICAL);
         emblem.setGravity(Gravity.CENTER);
@@ -265,7 +138,7 @@ public final class CharoiteNextBootActivity extends Activity {
 
         ImageView icon = new ImageView(activity);
         // Exact full-resolution user-supplied asset; also installed as the launcher icon.
-        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_scene);
+        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setContentDescription("Charoite crystal portal");
         emblem.addView(icon, new LinearLayout.LayoutParams(
@@ -342,67 +215,18 @@ public final class CharoiteNextBootActivity extends Activity {
         return Math.round(size * activity.getResources().getDisplayMetrics().density);
     }
 
-    /** Remove a previous warm overlay before internal navigation, Home, or
-     * Activity teardown. The underlying Portal and Windows sessions survive. */
-    private static void removeWarmOverlay(Activity activity, boolean playChime) {
-        if (activeOverlayOwner != activity || activeReentryOverlay == null) return;
-        if (activeOverlayTimeout != null)
-            OVERLAY_HANDLER.removeCallbacks(activeOverlayTimeout);
-        FrameLayout overlay = activeReentryOverlay;
-        activeReentryOverlay = null;
-        activeOverlayOwner = null;
-        activeOverlayTimeout = null;
-        if (overlay.getParent() instanceof ViewGroup)
-            ((ViewGroup) overlay.getParent()).removeView(overlay);
-        if (!activity.isFinishing() && !activity.isDestroyed()) {
-            activity.getWindow().setStatusBarColor(previousStatusBarColor);
-            activity.getWindow().setNavigationBarColor(previousNavigationBarColor);
-            if (playChime) playCrystalChime(activity);
-        }
-    }
-
-    /** Foreground reuse uses an ordinary content overlay, NOT a new Dialog
-     * Window. Samsung may not give a Dialog a valid window token while
-     * onResume() is executing; a decor overlay has no such race. */
-    public static void showOnBackgroundReentryIfNeeded(Activity activity) {
-        if (activity.isFinishing() || activity.isDestroyed()) return;
-        activity.getWindow().getDecorView().post(() -> {
-            if (activity.isFinishing() || activity.isDestroyed()) return;
-            if (activeReentryOverlay != null && activeOverlayOwner == activity)
-                return;
-            if (!REENTRY_NEEDED.get()) return;
-            FrameLayout content = activity.findViewById(android.R.id.content);
-            if (content == null || !content.isAttachedToWindow()) {
-                lastLifecycleEvent = "Portal content not attached; replay still pending";
-                saveReport(activity);
-                return;
-            }
-            if (!REENTRY_NEEDED.compareAndSet(true, false)) return;
-            FrameLayout overlay = createBootView(activity);
-            overlay.setClickable(true);
-            overlay.setFocusable(true);
-            overlay.setElevation(density(activity, 64));
-            activeReentryOverlay = overlay;
-            activeOverlayOwner = activity;
-            previousStatusBarColor = activity.getWindow().getStatusBarColor();
-            previousNavigationBarColor = activity.getWindow().getNavigationBarColor();
-            activity.getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
-            activity.getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
-            content.addView(overlay, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
-            overlay.bringToFront();
-            lastLifecycleEvent = "Warm Portal launch; five-second overlay displayed";
-            saveReport(activity);
-            activeOverlayTimeout = () -> removeWarmOverlay(activity, true);
-            OVERLAY_HANDLER.postDelayed(activeOverlayTimeout, BOOT_DURATION_MS);
-        });
-    }
-
     @Override public void onCreate(Bundle savedState) {
         super.onCreate(savedState);
-        getWindow().setStatusBarColor(Color.rgb(13, 8, 30));
-        getWindow().setNavigationBarColor(Color.rgb(13, 8, 30));
+        // If the Portal already exists, launcher/Recents must not restart
+        // the visual sequence or crystal sound just for task switching.
+        if (hasLivePortalSession()) {
+            lastLifecycleEvent = "Already running; boot intentionally skipped";
+            saveReport(this);
+            finish();
+            return;
+        }
+        getWindow().setStatusBarColor(Color.rgb(43, 18, 83));
+        getWindow().setNavigationBarColor(Color.rgb(43, 18, 83));
         setContentView(createBootView(this));
 
         // Single cold-launch delay, not a blocking sleep or a Wine startup delay.

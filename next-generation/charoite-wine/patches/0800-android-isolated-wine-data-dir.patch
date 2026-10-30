@@ -24,3 +24,18 @@ diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
          data_dir = build_relative_path( bin_dir, BINDIR, DATADIR "/wine" );
          wineloader = build_path( bin_dir, basename );
      }
+
+@@ -244,3 +244,13 @@ static void *load_ntdll( char *argv0 )
+ #endif
+ 
++#if defined(__ANDROID__) && defined(__aarch64__)
++    /* Charoite Next new source cohort: require a distinct verified ntdll.
++     * If explicitly requested and missing, never fall back to Wine22. */
++    if (!handle && (path = getenv( "CHAROITE_WINE27_NATIVE_DIR" )))
++    {
++        if (path[0] != '/' || strstr( path, ".." ) || strchr( path, ':' )) return NULL;
++        if (!(handle = try_dlopen( path, "libcharoite_wine27_ntdll.so" ))) return NULL;
++    }
++#endif
++
+     if (!handle && (path = getenv( "WINEDLLPATH" )))

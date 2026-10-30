@@ -113,3 +113,47 @@ wineboot, FEX or GPU initialization occurs as part of this gate.
 FEX/ARM64EC bridge, display/graphics/input, first fresh prefix, and
 real application launch remain separate milestones. Stable Portal and
 approved boot animation are unaffected.
+
+## Next v0.39 — verified full Wine26 archive, isolated PE/NLS data generation
+
+**Source milestone verified:** [Charoite Wine source Actions run
+41121328663](https://github.com/rgarn023/CharoitePortal/actions/runs/41121328663)
+COMPLETED SUCCESS. The full coherent archive is artifact
+`13009171257`, `Charoite-Wine-Coherent-Bootstrap-26-Experimental`.
+The native source-built Wine10 loader and wineserver already passed
+user device `--version` tests on the Galaxy S26 Ultra.
+
+The new coherent archive contains **26 source-built components
+(23 Windows PE, 3 native ELF)** and **76 Wine NLS** tables.
+The source workflow independently verified all hashes, ARM64EC ABI,
+the exact patched Wine source and per-PE import inventory. Observed PE
+import gaps fell from **24 to 20**, but the import graph is not closed,
+and Windows app execution is NOT READY.
+
+**Important cohort isolation:** a rebuild of the same pinned Wine
+source need not create binary-identical files. v0.39 deliberately
+retains the full existing Wine22 APK archive, its native executable
+probe libraries, the original 95-file staging slot and all on-device
+data; it NEVER intermixes rebuilt Windows DLLs with previously verified
+native Wine executables. The CI step `stage_wine26.py` verifies the
+separately source-built 26-component archive, confirms original source
+provenance matches the bundled Wine22 source, and bundles the full new
+archive as an inert APK asset plus **99 individually SHA-256 verified
+Windows module assets (23 PE + 76 NLS)**. It does not extract or install
+the three native ELF files.
+
+System → **Stage expanded Wine 26-module data** requires explicit
+approval. It verifies the immutable complete new archive SHA-256,
+checks all 99 per-module source paths/hashes and data sizes and copies
+only the Windows PE/NLS files to a **new separate versioned staging
+slot** under Next's private `getNoBackupFilesDir`. The old 0.4 slot
+is never accessed, overwritten or deleted. Incomplete staging stays
+quarantined; rechecks are read-only for already finalized slots.
+No Windows PE execution, wineboot, new prefix, FEX, graphics or
+anti-cheat support is implied.
+
+The new user-actionable device test is this single opt-in staging
+report. **Do not run Wineboot using these data files** until native
+ELF/PE cohort compatibility and all required modules are independently
+validated for the same generation in a future build. The stable
+Charoite Portal and existing 7-second crystal energy boot are unchanged.

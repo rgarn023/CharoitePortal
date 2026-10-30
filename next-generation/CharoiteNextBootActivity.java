@@ -43,8 +43,8 @@ import android.widget.TextView;
 
 /**
  * Charoite Next-only launch screen: approved crystal art with a silent, 10-second
- * cloud-only Mystic C movie. No Wine/prefix work occurs
- * here and no audio plays while the boot image is onscreen.
+ * cloud-only Mystic C movie and a synchronized ten-second crystal sound.
+ * No Wine/prefix work occurs and no chime plays after Portal appears.
  */
 public final class CharoiteNextBootActivity extends Activity {
     public static final long BOOT_DURATION_MS = 10000L;
@@ -54,8 +54,9 @@ public final class CharoiteNextBootActivity extends Activity {
     // A genuine Activity finish or a killed process permits boot again.
     private static volatile java.lang.ref.WeakReference<Activity> currentPortal =
             new java.lang.ref.WeakReference<>(null);
-    private static final AtomicBoolean COLD_ARRIVAL_SOUND_PENDING =
-            new AtomicBoolean(false);
+    // Sound belongs to the visible boot only, never to Portal arrival.
+    private static java.lang.ref.WeakReference<Activity> bootSoundOwner =
+            new java.lang.ref.WeakReference<>(null);
     private static final Handler OVERLAY_HANDLER = new Handler(Looper.getMainLooper());
     private static final String LAST_BOOT_VERSION = "last_boot_version";
     private static FrameLayout activeColdFallback;
@@ -151,19 +152,20 @@ public final class CharoiteNextBootActivity extends Activity {
         markBootShown(portal);
         lastLifecycleEvent = "Cold fallback present before first Portal draw";
         saveReport(portal);
+        playCrystalChime(portal);
         OVERLAY_HANDLER.postDelayed(() -> {
             if (coldFallbackOwner != portal || activeColdFallback != splash) return;
+            stopBootSound(portal);
             activeColdFallback = null;
             coldFallbackOwner = null;
             if (splash.getParent() instanceof ViewGroup)
                 ((ViewGroup) splash.getParent()).removeView(splash);
-            if (!portal.isFinishing() && !portal.isDestroyed())
-                playCrystalChime(portal);
         }, BOOT_DURATION_MS);
     }
     public static void notePortalDestroyed(Activity portal) {
         if (pendingColdFallbackOwner == portal) pendingColdFallbackOwner = null;
         if (coldFallbackOwner == portal) {
+            stopBootSound(portal);
             if (activeColdFallback != null
                     && activeColdFallback.getParent() instanceof ViewGroup)
                 ((ViewGroup) activeColdFallback.getParent()).removeView(activeColdFallback);
@@ -176,14 +178,14 @@ public final class CharoiteNextBootActivity extends Activity {
             saveReport(portal);
         }
     }
-    /** Never display a splash on an existing Portal's onResume. */
+    /** Neither boot animation nor audio replays during Home/Recents return. */
     public static void onPortalResumed(Activity portal) {
         currentPortal = new java.lang.ref.WeakReference<>(portal);
         playArrivalChimeIfRequested(portal);
     }
-    /** First cold-arrival audio is allowed to wait for window focus. */
+    /** Existing integration hook: Portal focus must NEVER replay the boot sound. */
     public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {
-        if (focused) playPendingColdArrivalIfReady(portal);
+        // No-op. The ten-second atmosphere starts only on a genuine boot.
     }
 
     private static void saveReport(Context ctx) {
@@ -211,7 +213,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 + "Boot duration: 10000 ms (cloud-only Mystic C)\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
                 + "Portal session live: " + hasLivePortalSession() + "\n"
-                + "Last audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
+                + "Last boot audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
                 + "Media volume: " + current + " / " + maximum + "\n"
                 + "Ringer mode: " + mode + " (does not mute media chime)\n"
                 + "Games / prefixes / saves: untouched\n";
@@ -668,13 +670,16 @@ public final class CharoiteNextBootActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(43, 18, 83));
         getWindow().setNavigationBarColor(Color.rgb(43, 18, 83));
         setContentView(createBootView(this));
+        // Begin the crystal resonance with the visible ten-second splash,
+        // rather than waiting to play after the main screen opens.
+        playCrystalChime(this);
 
         // Single cold-launch delay, not a blocking sleep or a Wine startup delay.
         openMain = () -> {
             if (completed || isFinishing() || isDestroyed()) return;
             completed = true;
+            stopBootSound(this);
             Intent main = new Intent(this, com.winlator.TouhouEntryActivity.class);
-            main.putExtra(EXTRA_PLAY_CHIME, true);
             startActivity(main);
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             // Keep this completed launcher beneath Portal as the task root.
@@ -695,31 +700,42 @@ public final class CharoiteNextBootActivity extends Activity {
 
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        stopBootSound(this);
         super.onDestroy();
     }
 
-    /** The cold boot finishes before the Portal starts, but Android may not
-     * grant the new Portal window audio playback immediately in onResume.
-     * Queue the first crystal arrival until the window is visible. The
-     * fallback post also handles Samsung builds which omit focus callbacks. */
+    /** Kept for the existing Portal integration; deliberately silent.
+     * A fresh boot owns the crystal sound, not Portal.onResume/onFocus. */
     public static void playArrivalChimeIfRequested(Activity activity) {
-        Intent intent = activity.getIntent();
-        if (intent == null || !intent.getBooleanExtra(EXTRA_PLAY_CHIME, false))
-            return;
-        intent.removeExtra(EXTRA_PLAY_CHIME);
-        COLD_ARRIVAL_SOUND_PENDING.set(true);
-        lastAudioResult = "QUEUED: cold arrival sound waiting for visible Portal";
-        saveReport(activity);
-        activity.getWindow().getDecorView().postDelayed(
-                () -> playPendingColdArrivalIfReady(activity), 900L);
+        // No arrival sound. Returning to the app must not restart audio.
     }
 
-    private static void playPendingColdArrivalIfReady(Activity activity) {
-        if (activity.isFinishing() || activity.isDestroyed()) return;
-        if (!COLD_ARRIVAL_SOUND_PENDING.compareAndSet(true, false)) return;
-        lastAudioResult = "Portal visible: starting first-launch crystal sound";
-        saveReport(activity);
-        playCrystalChime(activity);
+    private static boolean isBootVisible(Activity activity) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed())
+            return false;
+        if (activity instanceof CharoiteNextBootActivity)
+            return !((CharoiteNextBootActivity) activity).completed;
+        return coldFallbackOwner == activity && activeColdFallback != null;
+    }
+
+    /** Terminate any sound owned by the given boot, including fallback audio.
+     * Ownership prevents a stale Activity from stopping a newer cold boot. */
+    private static void stopBootSound(Activity owner) {
+        Activity actual = bootSoundOwner.get();
+        if (owner != null && actual != owner) return;
+        bootSoundOwner.clear();
+        if (activeCrystalAudioTrack != null) {
+            android.media.AudioTrack track = activeCrystalAudioTrack;
+            activeCrystalAudioTrack = null;
+            try { track.stop(); } catch (IllegalStateException ignored) {}
+            track.release();
+        }
+        if (activeCrystalMediaPlayer != null) {
+            android.media.MediaPlayer player = activeCrystalMediaPlayer;
+            activeCrystalMediaPlayer = null;
+            try { player.stop(); } catch (IllegalStateException ignored) {}
+            player.release();
+        }
     }
 
     /** Play directly using the generated PCM WAV. This avoids depending on
@@ -729,9 +745,11 @@ public final class CharoiteNextBootActivity extends Activity {
     private static android.media.MediaPlayer activeCrystalMediaPlayer;
 
     private static void playCrystalChime(Activity activity) {
-        activity.getWindow().getDecorView().postDelayed(() -> {
-            if (activity.isFinishing() || activity.isDestroyed()) {
-                lastAudioResult = "Suppressed: Portal destroyed before startup audio";
+        // Schedule immediately after the boot view is attached, never a
+        // 300 ms arrival delay. Skip if a stale activity loses its splash.
+        activity.getWindow().getDecorView().post(() -> {
+            if (!isBootVisible(activity)) {
+                lastAudioResult = "Suppressed: boot view no longer visible";
                 saveReport(activity);
                 return;
             }
@@ -747,12 +765,8 @@ public final class CharoiteNextBootActivity extends Activity {
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build();
             try {
-                if (activeCrystalAudioTrack != null) {
-                    activeCrystalAudioTrack.pause();
-                    activeCrystalAudioTrack.flush();
-                    activeCrystalAudioTrack.release();
-                    activeCrystalAudioTrack = null;
-                }
+                stopBootSound(null);
+                bootSoundOwner = new java.lang.ref.WeakReference<>(activity);
                 // The generated audio is PCM 44.1kHz, mono, 16-bit in a
                 // standard 44-byte RIFF WAV header (validated by CI).
                 byte[] wav;
@@ -795,17 +809,15 @@ public final class CharoiteNextBootActivity extends Activity {
                 }
                 activeCrystalAudioTrack = track;
                 track.play();
-                lastAudioResult = "STARTED: direct PCM crystal sound (" + written + " bytes)";
+                lastAudioResult = "STARTED: ten-second boot crystal ambience (" + written + " bytes)";
                 saveReport(activity);
                 OVERLAY_HANDLER.postDelayed(() -> {
                     if (activeCrystalAudioTrack == track) {
-                        track.stop();
-                        track.release();
-                        activeCrystalAudioTrack = null;
-                        lastAudioResult = "PASS: direct PCM crystal sound completed";
+                        stopBootSound(activity);
+                        lastAudioResult = "PASS: ten-second crystal boot sound completed";
                         saveReport(activity);
                     }
-                }, 4600L);
+                }, BOOT_DURATION_MS + 200L);
             } catch (Exception pcmFailure) {
                 lastAudioResult = "PCM failed: " + pcmFailure.getClass().getSimpleName()
                         + "; trying MediaPlayer";
@@ -820,20 +832,22 @@ public final class CharoiteNextBootActivity extends Activity {
                     if (player == null) throw new IllegalStateException("MediaPlayer.create null");
                     activeCrystalMediaPlayer = player;
                     player.setOnCompletionListener(mp -> {
-                        mp.release();
-                        if (activeCrystalMediaPlayer == mp) activeCrystalMediaPlayer = null;
-                        lastAudioResult = "PASS: MediaPlayer crystal sound completed";
-                        saveReport(activity);
+                        if (activeCrystalMediaPlayer == mp) {
+                            stopBootSound(activity);
+                            lastAudioResult = "PASS: fallback ten-second boot sound completed";
+                            saveReport(activity);
+                        }
                     });
                     player.setOnErrorListener((mp, what, extra) -> {
-                        mp.release();
-                        if (activeCrystalMediaPlayer == mp) activeCrystalMediaPlayer = null;
-                        lastAudioResult = "FAILED: MediaPlayer " + what + "/" + extra;
-                        saveReport(activity);
+                        if (activeCrystalMediaPlayer == mp) {
+                            stopBootSound(activity);
+                            lastAudioResult = "FAILED: MediaPlayer " + what + "/" + extra;
+                            saveReport(activity);
+                        }
                         return true;
                     });
                     player.start();
-                    lastAudioResult = "STARTED: fallback MediaPlayer crystal sound";
+                    lastAudioResult = "STARTED: fallback MediaPlayer ten-second boot sound";
                     saveReport(activity);
                 } catch (Exception fallbackFailure) {
                     lastAudioResult = "FAILED: PCM " + pcmFailure.getClass().getSimpleName()
@@ -841,7 +855,7 @@ public final class CharoiteNextBootActivity extends Activity {
                     saveReport(activity);
                 }
             }
-        }, 300L);
+        });
     }
 
 }

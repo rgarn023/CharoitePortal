@@ -27,7 +27,7 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 10)
+        self.assertEqual(len(patched), 11)
         active = (WINE / "patches/SERIES").read_text()
         active_patches = [line.strip() for line in active.splitlines()
                           if line.strip() and not line.lstrip().startswith("#")]

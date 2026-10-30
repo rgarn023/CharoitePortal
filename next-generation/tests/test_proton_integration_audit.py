@@ -35,7 +35,7 @@ class ProtonIntegrationAuditTest(unittest.TestCase):
                        "0400-arm64ec-atomic-operations.patch",
                        "0200-android-machine-id-fallback.patch"):
             self.assertIn(needle, patches)
-        self.assertIn('[[ "$count" -eq 8 ]]', PREP)
+        self.assertIn('[[ "$count" -eq 9 ]]', PREP)
         self.assertIn("git apply --check", PREP)
         self.assertIn("git diff --check", PREP)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ten-second Charoite v0.24 CLOUD-AND-LIGHTNING CONCEPT preview; never changes app assets.
+"""Ten-second Charoite v0.24 CLOUD-ONLY CONCEPT preview; never changes app assets.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Mystic_C_Cloud_and_Lightning_10s.mp4"
+OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_10s.mp4"
 WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 10
 
 
@@ -118,56 +118,6 @@ def make_cloud_sources(paths):
     return fine,broad,cloud_noise(814,(24,13)),cloud_noise(191,(53,31))
 
 
-def electrify(t, paths, mask, index):
-    """Branching lavender lightning periodically crackles along the C.
-
-    Reuses a stable C-shaped skeleton; each event has a jittered main bolt,
-    two side branches, thin white-violet filament and a soft purple halo.
-    All drawn in a separate light field; source image pixels never move.
-    """
-    strokes=np.zeros((HEIGHT,WIDTH),dtype=np.uint8)
-    fine=np.zeros_like(strokes)
-    events=(.95,1.65,2.31,2.97,3.62,4.26,4.91,5.58,6.22,6.87,7.52,8.15,8.77,9.4)
-    for k,when in enumerate(events):
-        delta=t-when
-        if not (-.10<=delta<=.38):
-            continue
-        weight=math.sin(math.pi*np.clip((delta+.10)/.48,0,1))**.65
-        if weight<.08:
-            continue
-        path,norm=paths[k%2]
-        rng=np.random.default_rng(5010+k)
-        center=(.06+k*.17)%0.76+.12
-        start=max(.005,center-.15)
-        stop=min(.995,center+.18)
-        units=np.linspace(start,stop,43)
-        ix=np.clip((units*(len(path)-1)).astype(int),0,len(path)-1)
-        jag=rng.normal(0,8.2,len(ix)).astype(np.float32)
-        jag += np.sin(np.arange(len(ix))*2.8+t*21+k)*2.4
-        pts=path[ix]+norm[ix]*(jag+(-7 if k%2 else 8))[:,None]
-        line=np.rint(pts).astype(np.int32).reshape(-1,1,2)
-        cv2.polylines(strokes,[line],False,int(255*weight),4,cv2.LINE_AA)
-        cv2.polylines(fine,[line],False,int(255*weight),2,cv2.LINE_AA)
-        for m in (7,15,27,35):
-            p=pts[m]
-            vec=norm[ix[m]]
-            branch=np.stack([
-                p,
-                p+vec*rng.uniform(9,17)+np.array([rng.uniform(-3,3),rng.uniform(-3,3)]),
-                p+vec*rng.uniform(29,53)+np.array([rng.uniform(-9,9),rng.uniform(-7,7)])
-            ])
-            cv2.polylines(strokes,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
-                          False,int(170*weight),2,cv2.LINE_AA)
-            cv2.polylines(fine,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
-                          False,int(220*weight),1,cv2.LINE_AA)
-    glow=cv2.GaussianBlur(strokes,(0,0),13).astype(np.float32)/255
-    mid=cv2.GaussianBlur(strokes,(0,0),4).astype(np.float32)/255
-    core=fine.astype(np.float32)/255
-    light=(glow[:,:,None]*np.array([115,20,183],dtype=np.float32)
-           +mid[:,:,None]*np.array([164,81,236],dtype=np.float32)
-           +core[:,:,None]*np.array([206,188,250],dtype=np.float32))
-    return light*(.4+.6*mask[:,:,None])
-
 
 def overlay(t, xx, yy, paths, sources):
     fine,broad,noise_a,noise_b=sources
@@ -206,14 +156,12 @@ def overlay(t, xx, yy, paths, sources):
         cloud_mass+=patch*cloud
     cloudy+=np.clip(cloud_mass*envelope,0,1)[:,:,None]*np.array([44,17,98],dtype=np.float32)
 
-    # Cloud-illuminated rim shines from within as electricity travels.
+    # Crystal edge glow responds gently to the drifting, magical cloud.
     illumination=(fine*.35+broad*.12)*envelope
     cloudy+=illumination[:,:,None]*np.array([29,12,56],dtype=np.float32)
 
-    # Thin, branching, intermittent electric filaments. This remains
-    # a *second layer of light*, never a warp of any source pixels.
-    arc=electrify(t,paths,np.clip(broad*.8+fine*.6,0,1),int(t*FPS))
-    return cloudy+arc
+    # No electrical discharges, bolts, filaments, flashes, or image warping.
+    return cloudy
 
 
 def main():
@@ -249,9 +197,9 @@ def main():
         sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
         for j,still in enumerate(stills):
             sheet.paste(still,(j*240,0))
-        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_and_Lightning_10s_Storyboard.jpg",
+        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_10s_Storyboard.jpg",
                    quality=90)
-    print(f"CHAROITE_MYSTIC_C_CLOUD_LIGHTNING_10_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
+    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_10_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

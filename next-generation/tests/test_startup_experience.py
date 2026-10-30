@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 53", PREP)
-        self.assertIn("11.2-next.0.22", PREP)
+        self.assertIn("versionCode 54", PREP)
+        self.assertIn("11.2-next.0.23", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -76,8 +76,28 @@ class StartupExperienceTest(unittest.TestCase):
                     self.assertGreater(max(image.getpixel(xy)), 20)
                 # The approved art stays in the central source region.
                 self.assertGreater(max(image.getpixel((480,930))), 40)
+                # The upper and lower extensions are content-rich source
+                # textures, not large featureless painted bands.
+                from PIL import ImageStat
+                for box in ((80, 30, 880, 350), (80, 1390, 880, 1800)):
+                    stats = ImageStat.Stat(image.crop(box))
+                    self.assertGreater(max(stats.stddev), 13)
+
         self.assertIn("generate_portrait_boot(approved_art, boot_portrait)", PREP)
         self.assertIn("make_portrait_boot", PREP)
+        # Prevent recreating the visibly rectangular inset: a single,
+        # uninterrupted source image must fill the portrait canvas.
+        generator_source = (ROOT / "make_portrait_boot.py").read_text(encoding="utf-8")
+        self.assertIn("SOURCE_X = (114, 1422)", generator_source)
+        self.assertIn("SOURCE_Y = (113, 360, 1160, 1434)", generator_source)
+        self.assertIn("DEST_Y = (0, 385, 1230, 1840)", generator_source)
+        self.assertIn("for band in range(len(SOURCE_Y)-1)", generator_source)
+        self.assertIn("Image.blend(", generator_source)
+        self.assertNotIn("Image.alpha_composite", generator_source)
+        self.assertNotIn("GaussianBlur", generator_source)
+        self.assertNotIn("core_top = ", generator_source)
+        self.assertNotIn("ImageOps.flip", generator_source)
+
 
     def test_crystal_title_has_contrasting_dark_faceted_plaque(self):
         view = BOOT.split("private static final class CrystalWordmark extends View {",1)[1].split("private static final class CrystalShimmer",1)[0]
@@ -179,8 +199,13 @@ class StartupExperienceTest(unittest.TestCase):
         # generated 960x1840 image rather than the old square icon.
         self.assertIn("PORTRAIT_ART_WIDTH", effect)
         self.assertIn("PORTRAIT_ART_HEIGHT", effect)
-        self.assertIn("sourceScale = viewportScale * 1020f / 1406f", effect)
-        self.assertIn("398f - 72f * 1020f / 1406f", effect)
+        self.assertIn("crystalX(.505f, w, h)", effect)
+        self.assertIn("crystalY(.46f, w, h)", effect)
+        self.assertIn("crystalX(CRYSTAL_TIPS[i][0], w, h)", effect)
+        self.assertIn("crystalY(CRYSTAL_TIPS[i][1], w, h)", effect)
+        self.assertIn("float sy = fraction * 1536f", effect)
+        self.assertIn("385f + (sy - 360f) * (845f / 800f)", effect)
+        self.assertNotIn("1020f / 1406f", effect)
         self.assertIn("artWidth * CRYSTAL_TIPS[i][0]", effect)
         self.assertIn("artHeight * CRYSTAL_TIPS[i][1]", effect)
         self.assertIn("postInvalidateOnAnimation()", effect)

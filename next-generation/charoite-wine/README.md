@@ -185,3 +185,17 @@ remains **not launch ready**.
 
 No data is installed to a phone, no prefix is created, and no game/anti-cheat
 behavior is claimed by this source-build experiment.
+
+
+### ARM64EC bcrypt build correction (October 30)
+
+First source CI extension [run 41116591592](https://github.com/rgarn023/CharoitePortal/actions/runs/41116591592)
+**failed** in `bcrypt` compilation, not source validation or native `wine`.
+The compiler error was `tomcrypt_macros.h:261/269: invalid input constraint 'c' in asm`:
+LibTomCrypt chose an x86 rotate implementation under ARM64EC's x64 ABI
+compatibility defines. The source build now passes
+`CROSSCFLAGS="-O2 -g0 -DLTC_NO_ASM"` **only when cross-building bcrypt**,
+enabling LibTomCrypt's supported portable rotate code. The pinned Wine source,
+security API implementation, architecture checks, and binary hash verification
+are unchanged. The correction needs a fresh GitHub source build to establish
+actual 26-module success; no APK is changed by this experiment.

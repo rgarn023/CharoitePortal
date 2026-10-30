@@ -312,20 +312,53 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("showColdPortalFallback(", BOOT)
         self.assertIn("pendingColdFallbackOwner = null", BOOT)
 
-    def test_first_cold_launch_keeps_the_clean_crystal_sound(self):
-        self.assertIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)
-        self.assertIn("playPendingColdArrivalIfReady", BOOT)
+    def test_ten_second_audio_starts_under_splash_and_ends_before_portal(self):
+        from array import array
+        import math
+        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
+        self.assertIn("playCrystalChime(this);", BOOT)
+        self.assertIn("playCrystalChime(portal);", BOOT)
+        self.assertIn("stopBootSound(this);", BOOT)
+        self.assertIn("stopBootSound(portal);", BOOT)
         self.assertIn("new android.media.AudioTrack.Builder()", BOOT)
         self.assertIn("android.media.AudioTrack.MODE_STATIC", BOOT)
         self.assertIn("MediaPlayer.create(activity", BOOT)
         self.assertIn("R.raw.charoite_crystal_startup", BOOT)
         self.assertIn("AudioAttributes.USAGE_MEDIA", BOOT)
+        self.assertIn("activity.getWindow().getDecorView().post(() ->", BOOT)
+        self.assertNotIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)
+        self.assertNotIn("playPendingColdArrivalIfReady", BOOT)
+        self.assertNotIn("main.putExtra(EXTRA_PLAY_CHIME, true)", BOOT)
+        main_launch = BOOT.split("openMain = () -> {",1)[1].split("handler.postDelayed(openMain",1)[0]
+        self.assertIn("stopBootSound(this);", main_launch)
+        self.assertNotIn("playCrystalChime(", main_launch)
+
+        arrival = BOOT.split("public static void playArrivalChimeIfRequested(Activity activity) {",1)[1].split("\n    }",1)[0]
+        self.assertNotIn("playCrystalChime(", arrival)
+        self.assertNotIn("postDelayed", arrival)
+        focus = BOOT.split("public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {",1)[1].split("\n    }",1)[0]
+        self.assertNotIn("playCrystalChime(", focus)
+        self.assertNotIn("postDelayed", focus)
+        self.assertIn("stopBootSound(portal);", BOOT)
+
         with tempfile.TemporaryDirectory() as td:
             wav = Path(td)/"startup.wav"
-            audio.generate(wav)
+            self.assertEqual(audio.generate(wav),441000)
             with wave.open(str(wav),"rb") as tone:
+                self.assertEqual(tone.getnchannels(),1)
+                self.assertEqual(tone.getsampwidth(),2)
                 self.assertEqual(tone.getframerate(),44100)
-                self.assertEqual(tone.getnframes(),185220)
+                self.assertEqual(tone.getnframes(),441000)
+                decoded = array("h")
+                decoded.frombytes(tone.readframes(tone.getnframes()))
+                def rms(a,b):
+                    subset=decoded[round(a*44100):round(b*44100):60]
+                    return math.sqrt(sum(x*x for x in subset)/len(subset))/32768
+                self.assertGreater(rms(.5,2.5), .015)
+                self.assertGreater(rms(5.0,7.5), .008,
+                                   "Extended crystal sound must not become silent halfway")
+                self.assertLess(rms(9.9,10), rms(8.1,8.6)*.18,
+                                "Crystal ambience must fade cleanly at boot end")
 
     def test_no_access_to_saved_games(self):
         for forbidden in ("ProcessBuilder", "deleteRecursively", "finishAffinity()",

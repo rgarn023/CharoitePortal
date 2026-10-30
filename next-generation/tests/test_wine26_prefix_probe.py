@@ -21,7 +21,7 @@ class Wine26FirstPrefixTests(unittest.TestCase):
         self.assertIn("never existing data", PROBE.lower())
 
     def test_one_shot_scratch_data_boundary_and_copy_hashes(self):
-        for token in ('getNoBackupFilesDir()', 'charoite-next-wine26-first-prefix-v1',
+        for token in ('getNoBackupFilesDir()', 'charoite-next-wine26-first-prefix-v2',
                       'charoite-next-isolated-wine/wine10-arm64ec-bootstrap-0.5-staged',
                       'if (scratch.exists() || !scratch.mkdir())',
                       'copyVerified(origin,destination', 'MessageDigest.getInstance("SHA-256")',
@@ -36,6 +36,8 @@ class Wine26FirstPrefixTests(unittest.TestCase):
                            'new File("/storage/', '"WINEPREFIX", "/data/'):
             self.assertNotIn(prohibited, PROBE)
         self.assertIn("Disposable probe data retained for inspection; NEVER auto-deleted",PROBE)
+        self.assertIn('Earlier failed Wine26 v1 scratch: NOT ACCESSED', PROBE)
+        self.assertNotIn('private static final String SCRATCH = "charoite-next-wine26-first-prefix-v1"', PROBE)
 
     def test_only_new_prefix_and_existing_source_matched_native_components(self):
         for token in ('"WINEPREFIX", prefix.getCanonicalPath()', 'env.clear()',
@@ -49,14 +51,17 @@ class Wine26FirstPrefixTests(unittest.TestCase):
             self.assertIn(token, PROBE)
         self.assertNotIn("RESULT: PASS — Windows games ready", PROBE)
         self.assertIn("20 unbundled PE import names remain", PROBE)
+        self.assertIn('env.put("WINELOADERNOEXEC", "1")', PROBE)
+        self.assertIn('Native loader re-exec diagnostic: WINELOADERNOEXEC=1 (v2 only)', PROBE)
+        self.assertIn('new v2 scratch', PREP)
         self.assertIn("Wineboot", ENGINE)
 
     def test_build_release_contains_only_experimental_code_and_version(self):
-        self.assertIn('versionCode 72', PREP)
-        self.assertIn('11.2-next.0.41', PREP)
-        self.assertIn('0.41 (isolated first-prefix Wine26 probe', ENGINE)
+        self.assertIn('versionCode 73', PREP)
+        self.assertIn('11.2-next.0.42', PREP)
+        self.assertIn('0.42 (Wine26 native loader re-exec diagnostic', ENGINE)
         self.assertIn("CharoiteWine26PrefixProbe.java", WORKFLOW)
-        self.assertIn("versionCode='72' versionName='11.2-next.0.41'", WORKFLOW)
+        self.assertIn("versionCode='72' versionName='11.2-next.0.42'", WORKFLOW)
         self.assertNotIn("com.charoite.FileProvider", PROBE)
 
 if __name__ == "__main__":

@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.41"')
-text = text.replace("versionCode 33", "versionCode 72")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.42"')
+text = text.replace("versionCode 33", "versionCode 73")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -508,7 +508,9 @@ ui = ui.replace(anchor, anchor + """
                     "wineserver. It may use extra storage, can fail or time out, " +
                     "and RETAINS diagnostic files rather than automatically " +
                     "deleting them. Never touches existing prefixes, Wine22, " +
-                    "games or saves. Does NOT test FEX, graphics, or gaming.")
+                    "games or saves. Uses a new v2 scratch and bypasses the " +
+                    "loader re-exec attempt that failed in v0.41. FEX, " +
+                    "graphics and gaming remain untested.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Run isolated Wineboot probe", (dialog, which) -> {
                     wine26Prefix.setEnabled(false);

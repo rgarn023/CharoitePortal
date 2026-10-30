@@ -25,7 +25,7 @@ import org.json.JSONObject;
 public final class CharoiteWine26PrefixProbe {
     private static final String PACKAGE = "com.charoitx";
     private static final String STAGE_ROOT = "charoite-next-isolated-wine/wine10-arm64ec-bootstrap-0.5-staged";
-    private static final String SCRATCH = "charoite-next-wine26-first-prefix-v1";
+    private static final String SCRATCH = "charoite-next-wine26-first-prefix-v2";
     private static final String INDEX = "charoite-next/wine-bootstrap-26-index.json";
     private static final String NATIVE_LOADER = "libcharoite_wine26_loader.so";
     private static final String NATIVE_SERVER = "libcharoite_wine26_wineserver.so";
@@ -98,6 +98,9 @@ public final class CharoiteWine26PrefixProbe {
         env.put("WINEPREFIX", prefix.getCanonicalPath());
         env.put("WINEARCH", "win64");
         env.put("WINEDEBUG", "-all,err+all");
+        // Wine 10 ntdll can re-exec an unavailable Wine bin-directory loader.
+        // Disable that secondary handoff only in this dedicated v2 diagnostic.
+        env.put("WINELOADERNOEXEC", "1");
         env.put("WINESERVER", server.getCanonicalPath());
         env.put("WINEDLLPATH", library.getCanonicalPath()
                 + ":" + child(scratch,"runtime/lib/wine/arm64-windows").getCanonicalPath());
@@ -122,7 +125,7 @@ public final class CharoiteWine26PrefixProbe {
     public static String run(Context context) {
         StringBuilder out = new StringBuilder();
         out.append("CHAROITE NEXT — FIRST ISOLATED WINE26 PREFIX BOOTSTRAP\n");
-        out.append("One-shot opt-in: dedicated new private scratch; never existing data\n");
+        out.append("One-shot opt-in: NEW v2 private scratch; v1 failure retained untouched\n");
         out.append("Wine22, games, saves, user prefixes, rootfs: NOT ACCESSED\n");
         out.append("FEX, graphics, Steam, Battle.net, anti-cheat: NOT ATTEMPTED\n");
         out.append("A new Wine26 Wineboot and prefix MAY be created inside scratch ONLY\n\n");
@@ -207,6 +210,7 @@ public final class CharoiteWine26PrefixProbe {
                 throw new SecurityException("Wine26 scratch inventory incomplete");
             out.append("Scratch copy: 22 ARM64EC DLL + 1 ARM64 wineboot.exe + 76 NLS SHA-256 PASS\n");
             out.append("20 unbundled PE import names remain; not proven fatal\n");
+            out.append("Native loader re-exec diagnostic: WINELOADERNOEXEC=1 (v2 only)\n");
             for (String dir:new String[]{"home","tmp","cache","config","xdg-runtime"})
                 mkdir(child(scratch,dir));
             File log=child(scratch,"wineboot.log");
@@ -250,6 +254,7 @@ public final class CharoiteWine26PrefixProbe {
                 }
             }
             out.append("Wineboot command: APK native Wine26 loader + staged ARM64 wineboot.exe -i\n");
+            out.append("Earlier failed Wine26 v1 scratch: NOT ACCESSED\n");
             out.append("Wineboot completed within 25s: ").append(finished).append('\n');
             out.append("Wineboot exit code: ").append(finished?Integer.toString(exit):"TIMEOUT").append('\n');
             out.append("New private prefix directory created: ").append(prefix.isDirectory()).append('\n');

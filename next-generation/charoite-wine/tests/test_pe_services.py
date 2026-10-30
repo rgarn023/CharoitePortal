@@ -80,10 +80,10 @@ class ServicesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"review"):v.verify(self.out,self.review)
     def test_portable_wrapper_rewrite_is_executable_and_source_is_untouched(self):
         start = BUILD.index('python3 - "$wrapper" <<\'PY\'')
-        program = BUILD[start:].split("\\n",1)[1].split("\\nPY\\n",1)[0]
+        program = BUILD[start:].split("\n",1)[1].split("\nPY\n",1)[0]
         with tempfile.TemporaryDirectory() as directory:
             wrapper = Path(directory)/"arm64ec-w64-mingw32-clang"
-            original = '#!/usr/bin/env bash\\nexec "/tmp/clang" --target=arm64ec-w64-windows-gnu --sysroot="/tmp" "$@"\\n'
+            original = '#!/usr/bin/env bash\nexec "/tmp/clang" --target=arm64ec-w64-windows-gnu --sysroot="/tmp" "$@"\n'
             wrapper.write_text(original)
             subprocess.run([sys.executable, "-c", program, str(wrapper)],
                            check=True, capture_output=True, text=True)

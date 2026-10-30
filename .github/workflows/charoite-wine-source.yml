@@ -405,3 +405,51 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-com-extended/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Compile four missing ARM64EC security and C runtime Wine PE modules (CI only)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-pe-services.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/dependency-review.json" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-services"
+          python3 next-generation/charoite-wine/verify-pe-services.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-pe-services" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-com-extended/dependency-review.json"
+
+      - name: Publish source-audited PE services (not installable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-ARM64EC-PE-Security-Services-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-pe-services/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Assemble 26-component Wine/bootstrap security gap inventory (not runnable)
+        run: |
+          set -euo pipefail
+          python3 next-generation/charoite-wine/assemble-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-services-extended" \
+            --include-services
+          python3 next-generation/charoite-wine/verify-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-services-extended/charoite-wine-bootstrap-bundle.tar.gz"
+          grep -Fx 'COMPONENTS=26' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-services-extended/bundle-report.txt"
+          grep -Fx 'NLS_COUNT=76' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-services-extended/bundle-report.txt"
+          grep -Fx 'LAUNCH_READY=false' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-services-extended/bundle-report.txt"
+
+      - name: Publish source-audited 26-component Wine/NLS archive (NOT installable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Coherent-Bootstrap-26-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-services-extended/
+          retention-days: 14
+          if-no-files-found: error

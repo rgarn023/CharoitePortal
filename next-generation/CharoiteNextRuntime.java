@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "0.35 (read-only bootstrap audit; modern engine blocked)";
+    public static final String VERSION = "0.36 (coherent Wine archive packaged; modern engine blocked)";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";
@@ -74,6 +74,7 @@ public final class CharoiteNextRuntime {
                 + "Use Test source-built wineserver --version to verify native server ELF separately.\n"
                 + "A --version pass does NOT establish a working Wine prefix, ARM64EC or FEX runtime.\n"
                 + "Use Audit modern Wine bootstrap prerequisites to see attested import gaps.\n"
+                + "Use Verify packaged modern Wine modules to SHA-check the 22-component archive and 76 NLS tables.\n"
                 + legacy.label + ": bundled (existing compatibility engine)\n"
                 + proton.label + ": NOT READY\n" + proton.detail + "\n"
                 + staging.label + ": NOT READY\n" + staging.detail + "\n"

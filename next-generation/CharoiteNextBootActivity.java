@@ -6,6 +6,9 @@ import android.app.Dialog;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.SurfaceTexture;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.LinearGradient;
 import android.graphics.Typeface;
 import android.graphics.Paint;
@@ -13,6 +16,8 @@ import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.os.SystemClock;
 import android.view.View;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.WindowManager;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,12 +42,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * Charoite Next-only launch screen: original approved app artwork, exactly five
- * seconds before the main Portal activity is shown. No Wine/prefix work occurs
+ * Charoite Next-only launch screen: approved crystal art with a silent, 10-second
+ * cloud-only Mystic C movie. No Wine/prefix work occurs
  * here and no audio plays while the boot image is onscreen.
  */
 public final class CharoiteNextBootActivity extends Activity {
-    public static final long BOOT_DURATION_MS = 5000L;
+    public static final long BOOT_DURATION_MS = 10000L;
     private static final String EXTRA_PLAY_CHIME =
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
     // The live Portal is the session: Home/Recents do not destroy it.
@@ -203,7 +208,7 @@ public final class CharoiteNextBootActivity extends Activity {
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
                 + "Splash art: approved gateway with black outside corners removed\n"
                 + "Boot: once per genuine launch, never on app switching\n"
-                + "Boot duration: 5000 ms\n"
+                + "Boot duration: 10000 ms (cloud-only Mystic C)\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
                 + "Portal session live: " + hasLivePortalSession() + "\n"
                 + "Last audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
@@ -253,6 +258,17 @@ public final class CharoiteNextBootActivity extends Activity {
         boot.addView(title, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Full-frame silent preview approved by user, with a static-image
+        // fallback underneath. TextureView stays transparent until Android
+        // actually renders its first video frame: no black video flash.
+        // Portrait video is NOT stretched over landscape orientation.
+        CrystalCloudMovie clouds = new CrystalCloudMovie(activity);
+        clouds.setClickable(false);
+        clouds.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        boot.addView(clouds, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         return boot;
     }
 
@@ -270,6 +286,137 @@ public final class CharoiteNextBootActivity extends Activity {
             setImageResource(w <= h
                     ? com.winlator.R.drawable.charoite_next_boot_portrait
                     : com.winlator.R.drawable.charoite_next_boot_unframed);
+        }
+    }
+
+    /**
+     * Plays the EXACT silent 10-second approved cloud-only Mystic C video.
+     * The native artwork, shimmer and crystal wordmark remain underneath as a
+     * fallback if the decoder is slow or unavailable. TextureView prevents
+     * SurfaceView from showing a blank/black overlay during preparation.
+     *
+     * No lightning, image warping, altered launcher icon or video soundtrack.
+     * Player and Surface are released when the splash detaches (including
+     * Samsung direct-root cold-fallback), never when simply resuming Portal.
+     */
+    private static final class CrystalCloudMovie extends TextureView
+            implements TextureView.SurfaceTextureListener {
+        private static final float MOVIE_W = 480f;
+        private static final float MOVIE_H = 920f;
+        private MediaPlayer movie;
+        private Surface movieSurface;
+        private boolean playingRequested;
+
+        CrystalCloudMovie(Context context) {
+            super(context);
+            setSurfaceTextureListener(this);
+            setOpaque(true);
+            setAlpha(0f);
+        }
+
+        private void coverWithoutStretching(int w, int h) {
+            if (w <= 0 || h <= 0) return;
+            float scale = Math.max(w / MOVIE_W, h / MOVIE_H);
+            float sx = MOVIE_W * scale / w;
+            float sy = MOVIE_H * scale / h;
+            Matrix matrix = new Matrix();
+            matrix.setScale(sx, sy, w / 2f, h / 2f);
+            setTransform(matrix);
+        }
+
+        private void startMovie(SurfaceTexture texture, int w, int h) {
+            if (texture == null || w <= 0 || h <= 0 || w > h ||
+                    playingRequested || !isAttachedToWindow()) return;
+            playingRequested = true;
+            coverWithoutStretching(w, h);
+            try {
+                movieSurface = new Surface(texture);
+                MediaPlayer player = new MediaPlayer();
+                movie = player;
+                AssetFileDescriptor afd = getResources().openRawResourceFd(
+                        com.winlator.R.raw.charoite_mystic_c_cloud_10s);
+                try {
+                    player.setDataSource(afd.getFileDescriptor(),
+                            afd.getStartOffset(), afd.getLength());
+                } finally {
+                    afd.close();
+                }
+                player.setSurface(movieSurface);
+                player.setVolume(0f, 0f);
+                player.setLooping(false);
+                player.setOnInfoListener((mp, what, extra) -> {
+                    if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                        if (isAttachedToWindow() && getWidth() <= getHeight())
+                            setAlpha(1f);
+                    }
+                    return false;
+                });
+                player.setOnPreparedListener(mp -> {
+                    if (isAttachedToWindow() && getWidth() <= getHeight()) mp.start();
+                });
+                player.setOnCompletionListener(mp -> {
+                    setAlpha(0f);
+                    releaseMovie();
+                });
+                player.setOnErrorListener((mp, what, extra) -> {
+                    Log.w("CharoiteNextStartup",
+                            "Mystic C decoder failed; keeping original artwork");
+                    setAlpha(0f);
+                    releaseMovie();
+                    return true;
+                });
+                player.prepareAsync();
+            } catch (Exception e) {
+                Log.w("CharoiteNextStartup",
+                        "Mystic C unavailable; keeping original artwork", e);
+                setAlpha(0f);
+                releaseMovie();
+            }
+        }
+
+        private void releaseMovie() {
+            MediaPlayer oldPlayer = movie;
+            movie = null;
+            if (oldPlayer != null) {
+                oldPlayer.setOnInfoListener(null);
+                oldPlayer.setOnCompletionListener(null);
+                oldPlayer.setOnPreparedListener(null);
+                oldPlayer.setOnErrorListener(null);
+                oldPlayer.release();
+            }
+            Surface oldSurface = movieSurface;
+            movieSurface = null;
+            if (oldSurface != null) oldSurface.release();
+        }
+
+        @Override public void onSurfaceTextureAvailable(
+                SurfaceTexture surface, int w, int h) {
+            startMovie(surface, w, h);
+        }
+        @Override public void onSurfaceTextureSizeChanged(
+                SurfaceTexture surface, int w, int h) {
+            if (w > h) {
+                setAlpha(0f);
+                releaseMovie();
+                playingRequested = false;
+                return;
+            }
+            coverWithoutStretching(w, h);
+            startMovie(surface, w, h);
+        }
+        @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            setAlpha(0f);
+            releaseMovie();
+            playingRequested = false;
+            return true;
+        }
+        @Override public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+            // The decoder handles its own frames. No canvas warping or drawing.
+        }
+        @Override protected void onDetachedFromWindow() {
+            releaseMovie();
+            playingRequested = false;
+            super.onDetachedFromWindow();
         }
     }
 

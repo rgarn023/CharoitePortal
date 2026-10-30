@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.25"')
-text = text.replace("versionCode 33", "versionCode 56")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.26"')
+text = text.replace("versionCode 33", "versionCode 57")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -45,7 +45,7 @@ tree = ET.parse(manifest_path)
 for node in tree.getroot().iter("provider"):
     if node.get(ns + "authorities") == "com.charoite.FileProvider":
         node.set(ns + "authorities", "com.charoitx.FileProvider")
-# Route cold-start HOME/LAUNCHER through a five-second Charoite Core screen.
+# Route cold-start HOME/LAUNCHER through a ten-second Charoite Core screen.
 # Existing direct/internal game launch activities and intent contracts are retained.
 application = tree.getroot().find("application")
 assert application is not None
@@ -118,11 +118,12 @@ boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
 
-# Generate the original crystal-chime sound as an Android raw resource. The
-# sound is played only after the actual Portal home view is displayed.
+# Generate the longer version of the original crystal resonance as a
+# 10-second PCM WAV. It plays ONLY while the cloud-only splash is visible,
+# and fades to silence before the main Portal is revealed.
 chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
-assert generate_crystal_chime(chime) == round(44100 * 4.2)
+assert generate_crystal_chime(chime) == round(44100 * 10.0)
 
 # The exact 1536x1536 image personally provided as the required reference.
 # Do not generate, upsample, redesign, crop, or alter it. Reuse identical bytes

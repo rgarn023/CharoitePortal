@@ -89,3 +89,27 @@ wineboot remain blocked and unverified. The approved energy boot is unchanged.
 Next: resolve missing PE/ABI modules, create a separate native loader
 layout, and attempt an isolated disposable-prefix Wineboot only after
 the new staging and on-device prerequisites are verified.
+
+
+## Next v0.38 — on-device native Wine bootstrap version gate
+
+The S26 Ultra user reported `RESULT: PASS` for v0.37's **19/19 PE
+plus 76/76 NLS** staged-data integrity, with no pre-existing Wine
+prefix, save or rootfs access. This is independent of native Wine startup.
+
+Next v0.38 adds **System → Test native Wine startup prerequisites**
+with explicit confirmation. The gate first runs read-only SHA-256 checks
+on the already-staged 95 PE/NLS files. If they are intact, it runs only
+the **APK-owned, independently source-verified** native ARM64 `wine
+--version`, then the pinned `wineserver --version`, in sequence.
+The probes sanitize all inherited environment variables, set no
+`WINEPREFIX` or `HOME`, time out, and cannot launch arbitrary code
+paths. Failed staging/loader/server blocks later tests and yields a
+copyable report. No staging writes, Windows PE execution, server session,
+wineboot, FEX or GPU initialization occurs as part of this gate.
+
+**Do not infer Wineboot readiness** from passing version probes. The
+24 observed missing Windows PE imports, native Unix module layout,
+FEX/ARM64EC bridge, display/graphics/input, first fresh prefix, and
+real application launch remain separate milestones. Stable Portal and
+approved boot animation are unaffected.

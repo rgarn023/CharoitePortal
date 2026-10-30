@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.34"')
-text = text.replace("versionCode 33", "versionCode 65")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.35"')
+text = text.replace("versionCode 33", "versionCode 66")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -114,6 +114,9 @@ shutil.copy2(source_dir / "CharoiteWineNativeProbe.java", native_probe_java)
 server_probe_java = app / "java/com/charoitegames/core/CharoiteWineServerProbe.java"
 assert not server_probe_java.exists()
 shutil.copy2(source_dir / "CharoiteWineServerProbe.java", server_probe_java)
+preflight_java = app / "java/com/charoitegames/core/CharoiteWineBootstrapPreflight.java"
+assert not preflight_java.exists()
+shutil.copy2(source_dir / "CharoiteWineBootstrapPreflight.java", preflight_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -284,6 +287,25 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWineServerProbe").start();
         });
         nextCoreCard.addView(serverVersionProbe);
+        android.widget.Button bootAudit = new android.widget.Button(this);
+        bootAudit.setText("Audit modern Wine bootstrap prerequisites");
+        bootAudit.setAllCaps(false);
+        bootAudit.setOnClickListener(v -> {
+            final String report = com.charoitegames.core.CharoiteWineBootstrapPreflight.report(this);
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Charoite Next — Bootstrap Preflight")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    android.content.ClipboardManager clipboard =
+                        (android.content.ClipboardManager)
+                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    if (clipboard != null)
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                            "Charoite Next Bootstrap Preflight", report));
+                })
+                .setNegativeButton("Close", null).show();
+        });
+        nextCoreCard.addView(bootAudit);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

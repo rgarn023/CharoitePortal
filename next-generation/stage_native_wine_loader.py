@@ -22,6 +22,7 @@ LIB = "libcharoite_wine_loader.so"
 NTDLL_LIB = "libcharoite_wine_ntdll.so"
 SERVER_LIB = "libcharoite_wineserver.so"
 ASSET = "charoite-next/wine-native-probe.json"
+PREFLIGHT_ASSET = "charoite-next/wine-bootstrap-preflight.json"
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -34,6 +35,38 @@ def validate_loader(data):
     if struct.unpack_from("<H",data,18)[0] != 183:
         raise ValueError("Loader is not Linux/Android AArch64")
     return True
+
+def make_preflight(manifest, report, raw_manifest, raw_report):
+    """Attested source archive gap inventory, NEVER an installation plan."""
+    required=("launch_ready","installable","prefix_created","device_tested","anti_cheat_supported")
+    if (manifest.get("version")!="wine10-arm64ec-bootstrap.0.4"
+            or manifest.get("source_commit")!=WINE_SHA
+            or manifest.get("android_package")!="com.charoitx"
+            or manifest.get("component_count")!=22
+            or manifest.get("nls_count")!=76
+            or any(manifest.get(k) is not False for k in required)):
+        raise ValueError("Unsafe Wine bootstrap source/readiness claim")
+    missing=report.get("windows_imports_not_bundled")
+    needed=report.get("android_elf_needed")
+    if (not isinstance(missing,list) or not isinstance(needed,list)
+            or any(not isinstance(x,str) or len(x)>128 for x in missing+needed)
+            or missing!=sorted(set(missing)) or needed!=sorted(set(needed))
+            or manifest.get("window_imports_unresolved_count")!=len(missing)):
+        raise ValueError("Malformed dependency audit")
+    return {
+        "schema_version":1,"android_package":"com.charoitx",
+        "wine_source_sha":WINE_SHA,"source_run":SOURCE_RUN,
+        "source_artifact":SOURCE_ARTIFACT,"component_count":22,"nls_count":76,
+        "bundle_manifest_sha256":digest(raw_manifest),
+        "dependency_review_sha256":digest(raw_report),
+        "pe_imports_not_bundled":missing,"android_needed_libraries":needed,
+        "launch_ready":False,"installable_as_runtime":False,
+        "prefix_created":False,"fex_installed":False,
+        "graphics_verified":False,"device_boot_tested":False,
+        "anti_cheat_supported":False,
+        "scope":"Attested CI source inventory only; on-device module loading NOT tested",
+    }
+
 
 def stage(artifact, upstream):
     artifact=Path(artifact).resolve()
@@ -71,6 +104,9 @@ def stage(artifact, upstream):
         raw=tar.extractfile("runtime/bin/wine").read()
         ntdll_raw=tar.extractfile("runtime/lib/ntdll.so").read()
         server_raw=tar.extractfile("runtime/bin/wineserver").read()
+        preflight_manifest=tar.extractfile("manifest.json").read()
+        preflight_deps=tar.extractfile("dependency-review.json").read()
+    preflight=make_preflight(manifest,report,preflight_manifest,preflight_deps)
     validate_loader(ntdll_raw)
     validate_loader(server_raw)
     if server.get("size")!=len(server_raw) or server.get("sha256")!=digest(server_raw):
@@ -92,7 +128,9 @@ def stage(artifact, upstream):
     ntdll_dest=app/"jniLibs/arm64-v8a"/NTDLL_LIB
     server_dest=app/"jniLibs/arm64-v8a"/SERVER_LIB
     info=app/"assets"/ASSET
-    if dest.exists() or ntdll_dest.exists() or server_dest.exists() or info.exists():
+    preflight_dest=app/"assets"/PREFLIGHT_ASSET
+    if (dest.exists() or ntdll_dest.exists() or server_dest.exists()
+            or info.exists() or preflight_dest.exists()):
         raise ValueError("Refusing to overwrite existing native smoke payload")
     dest.parent.mkdir(parents=True,exist_ok=True)
     info.parent.mkdir(parents=True,exist_ok=True)
@@ -134,6 +172,7 @@ def stage(artifact, upstream):
         "anti_cheat_supported":False,
     }
     info.write_text(json.dumps(evidence,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    preflight_dest.write_text(json.dumps(preflight,indent=2,sort_keys=True)+"\n",encoding="utf-8")
     # Gradle must preserve the attested native code, not strip/alter its hash.
     gradle=upstream/"app/build.gradle"
     content=gradle.read_text(encoding="utf-8")
@@ -145,6 +184,7 @@ def stage(artifact, upstream):
         '        doNotStrip "**/libcharoite_wine_ntdll.so"\n'
         '        doNotStrip "**/libcharoite_wineserver.so"\n'
         "    }\n}\n",encoding="utf-8")
+    print("CHAROITE_NEXT_WINE_BOOTSTRAP_PREFLIGHT_STAGED=PASS")
     print("CHAROITE_NEXT_WINE_LOADER_PROBE_STAGED=PASS")
     print("WINE_LOADER_SHA256="+digest(raw))
     print("WINE_NTDLL_SHA256="+digest(ntdll_raw))

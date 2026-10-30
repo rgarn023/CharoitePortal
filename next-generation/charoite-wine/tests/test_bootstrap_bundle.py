@@ -154,6 +154,51 @@ class BootstrapBundleTest(unittest.TestCase):
         self.payloads[ver.COM_PATHS["ole32"]]=pe()+b"unexpected"
         self.save()
         with self.assertRaisesRegex(ValueError,"SHA-256"):ver.verify(self.path)
+    def test_26_component_services_provenance_and_tamper(self):
+        for name,path in {**ver.EXTRA_PATHS,**ver.COM_PATHS,**ver.SERVICES_PATHS}.items():
+            data=pe()
+            self.payloads[path]=data
+            self.parts[name]={"path":path,"size":len(data),"sha256":ver.digest(data),
+                              "format":"PE","machine":"0xA641",
+                              "imports":["kernel32.dll","notbundled.dll"]}
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.5"
+        self.manifest["component_count"]=26
+        self.manifest["startup_dependency_manifest_sha256"]="a"*64
+        self.manifest["com_dependency_manifest_sha256"]="b"*64
+        self.manifest["services_dependency_manifest_sha256"]="c"*64
+        self.report["bundled_windows_dlls"]=sorted(
+            k+".dll" for k in (*ver.PE,*ver.EXTRA_PE,*ver.COM_PE,*ver.SERVICES_PE) if k!="wineboot")
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\\n").encode()
+        self.manifest["dependency_review_sha256"]=ver.digest(self.payloads["dependency-review.json"])
+        self.save()
+        m,r=ver.verify(self.path)
+        self.assertEqual(m["component_count"],26)
+        self.assertEqual(m["nls_count"],76)
+        self.assertEqual(r["windows_imports_not_bundled"],["notbundled.dll"])
+        self.payloads[ver.SERVICES_PATHS["bcrypt"]]=pe()+b"modified"
+        self.save()
+        with self.assertRaisesRegex(ValueError,"SHA-256"):
+            ver.verify(self.path)
+
+    def test_26_services_missing_provenance_rejected(self):
+        for name,path in {**ver.EXTRA_PATHS,**ver.COM_PATHS,**ver.SERVICES_PATHS}.items():
+            data=pe()
+            self.payloads[path]=data
+            self.parts[name]={"path":path,"size":len(data),"sha256":ver.digest(data),
+                              "format":"PE","machine":"0xA641",
+                              "imports":["kernel32.dll","notbundled.dll"]}
+        self.manifest["version"]="wine10-arm64ec-bootstrap.0.5"
+        self.manifest["component_count"]=26
+        self.manifest["startup_dependency_manifest_sha256"]="a"*64
+        self.manifest["com_dependency_manifest_sha256"]="b"*64
+        self.report["bundled_windows_dlls"]=sorted(
+            k+".dll" for k in (*ver.PE,*ver.EXTRA_PE,*ver.COM_PE,*ver.SERVICES_PE) if k!="wineboot")
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\\n").encode()
+        self.manifest["dependency_review_sha256"]=ver.digest(self.payloads["dependency-review.json"])
+        self.save()
+        with self.assertRaisesRegex(ValueError,"services|security"):
+            ver.verify(self.path)
+
     def test_22_bundle_rejects_unverified_com_provenance(self):
         self.manifest["version"]="wine10-arm64ec-bootstrap.0.4"
         self.save()

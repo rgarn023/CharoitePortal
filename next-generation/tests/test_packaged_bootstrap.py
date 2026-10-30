@@ -81,7 +81,7 @@ class PackagedBootstrapTest(unittest.TestCase):
         self.assertIn("0.42 (Wine26 native loader re-exec diagnostic",ENGINE)
         self.assertIn("stage_bootstrap_payload.py",WF)
         self.assertIn("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='72' versionName='11.2-next.0.42'",WF)
+        self.assertIn("versionCode='73' versionName='11.2-next.0.42'",WF)
 
 if __name__=="__main__":
     unittest.main()

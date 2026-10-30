@@ -58,7 +58,7 @@ class NativeGateContract(unittest.TestCase):
                   "versionCode 73","11.2-next.0.42"):
             self.assertIn(s,PREP)
         self.assertIn('0.42 (Wine26 native loader re-exec diagnostic',ENGINE)
-        self.assertIn("versionCode='72' versionName='11.2-next.0.42'",WORKFLOW)
+        self.assertIn("versionCode='73' versionName='11.2-next.0.42'",WORKFLOW)
         self.assertIn("CharoiteWineBootstrapGate.java legal-bundle",WORKFLOW)
 
 if __name__=="__main__":

@@ -125,7 +125,7 @@ public final class CharoiteWine26PrefixProbe {
     public static String run(Context context) {
         StringBuilder out = new StringBuilder();
         out.append("CHAROITE NEXT — FIRST ISOLATED WINE26 PREFIX BOOTSTRAP\n");
-        out.append("One-shot opt-in: NEW v2 private scratch; v1 failure retained untouched\n");
+        out.append("One-shot opt-in: NEW v2 private scratch; never existing data; v1 failure retained untouched\n");
         out.append("Wine22, games, saves, user prefixes, rootfs: NOT ACCESSED\n");
         out.append("FEX, graphics, Steam, Battle.net, anti-cheat: NOT ATTEMPTED\n");
         out.append("A new Wine26 Wineboot and prefix MAY be created inside scratch ONLY\n\n");

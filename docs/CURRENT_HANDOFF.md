@@ -1419,4 +1419,16 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 - For further animation prototypes, give a verified direct GitHub artifact URL rather than sandbox/My Library links, and only implement animation after user reviews and approves it. Do not assume screenshot/preview concept equals final animation quality.
 
 ---
+## 71. October 30, 2026 — Mystic-energy CRYSTAL C preview (NO Android app changes)
+
+**User feedback:** Previous GitHub-hosted 5-second motion preview only distorted/wobbled the original image. User asks for *mystic energy around the purple crystal C* specifically, and wants to SEE the preview before implementation. User has reported ChatGPT Library / sandbox MP4 failures, so use GitHub Actions artifact URLs.
+
+**Implemented PREVIEW ONLY:** `docs/previews/render_crystal_awakening.py` now draws layered translucent violet/lilac energy tendrils tracing hand-aligned OUTER and INNER curves of the approved C-shaped crystal; animated traveling wisps, localized glow/glints at four crystal tips, static background and title. No global image warp, screen zoom, background drift, or rotation. The v0.24 source remains the base. The preview is a concept, **not an APK animation and not yet approved**. Renderer code commit `e63da2596516ec1c1cc17a954aafd16c4023b141`. Preview workflow `.github/workflows/charoite-preview-video.yml` packages the standalone `Charoite_Mystic_C_Preview.mp4`, commit `e0163960bb98dbf738bdacf6d265e3af073dd40b`.
+
+**Verified GitHub download:** [Actions run 41007265228](https://github.com/rgarn023/CharoitePortal/actions/runs/41007265228) completed SUCCESS. Artifact **Charoite-Mystic-C-Energy-Preview-MP4**, ID **12955164580**, [download GitHub ZIP containing the 5-second MP4](https://github.com/rgarn023/CharoitePortal/actions/runs/41007265228/artifacts/12955164580), uploaded and nonexpired. Do not confuse with prior warped concept artifact ID 12955885772.
+
+**Critical:** Stable Next remains **v0.24 code 55**; GitHub Actions run 40999653641, APK artifact 12953071666. This change only affects docs/previews and its isolated video-generation workflow; app, package, boot art/sound, Wine environments, prefixes, game saves NOT changed. Seek feedback on the new preview before modifying Android boot effects.
+
+
+---
 **End of current Charoite Portal handoff.**

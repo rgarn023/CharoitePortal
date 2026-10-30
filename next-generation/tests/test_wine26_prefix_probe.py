@@ -57,11 +57,11 @@ class Wine26FirstPrefixTests(unittest.TestCase):
         self.assertIn("Wineboot", ENGINE)
 
     def test_build_release_contains_only_experimental_code_and_version(self):
-        self.assertIn('versionCode 76', PREP)
-        self.assertIn('11.2-next.0.45', PREP)
-        self.assertIn('0.45 (read-only v3 PE import and architecture audit', ENGINE)
+        self.assertIn('versionCode 77', PREP)
+        self.assertIn('11.2-next.0.46', PREP)
+        self.assertIn('0.46 (opt-in fresh v4 traced Wineboot, games blocked', ENGINE)
         self.assertIn("CharoiteWine26PrefixProbe.java", WORKFLOW)
-        self.assertIn("versionCode='76' versionName='11.2-next.0.45'", WORKFLOW)
+        self.assertIn("versionCode='77' versionName='11.2-next.0.46'", WORKFLOW)
         self.assertNotIn("com.charoite.FileProvider", PROBE)
 
 if __name__ == "__main__":

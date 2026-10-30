@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.45"')
-text = text.replace("versionCode 33", "versionCode 76")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.46"')
+text = text.replace("versionCode 33", "versionCode 77")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -139,7 +139,8 @@ shutil.copy2(source_dir / "CharoiteWine26PrefixProbe.java", wine26_prefix_java)
 for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine27PrefixProbe.java",
                  "CharoiteWine27V3Forensics.java",
-                 "CharoiteWine27PEAudit.java"):
+                 "CharoiteWine27PEAudit.java",
+                 "CharoiteWine27V4Trace.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -699,6 +700,48 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine27Forensics);
+
+        android.widget.Button wine27V4Trace = new android.widget.Button(this);
+        wine27V4Trace.setText("Test new v4 isolated traced Wineboot");
+        wine27V4Trace.setAllCaps(false);
+        wine27V4Trace.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run ONE fresh v4 traced Wineboot attempt?")
+                .setMessage("Requires the verified 99-file patched Wine27 source cohort "
+                    + "and three matched APK-native hashes plus --version checks. "
+                    + "This creates only a NEW isolated v4 scratch/prefix, runs "
+                    + "Wineboot -i once, and records bounded module/process/server "
+                    + "diagnostics with an 8 MiB log cap and a 25-second deadline. "
+                    + "It may fail or use device storage. Never reuses or deletes "
+                    + "failed v1/v2/v3 evidence, installed games, user prefixes "
+                    + "or Wine22. Do NOT rerun if the v4 scratch exists. "
+                    + "FEX, graphics and modern gaming are not enabled.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run ONE v4 traced Wineboot", (dialog, which) -> {
+                    wine27V4Trace.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine27V4Trace.run(this);
+                        runOnUiThread(() -> {
+                            wine27V4Trace.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — v4 isolated traced Wineboot")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (d, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next v4 Wineboot traced result", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine27V4Trace").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine27V4Trace);
+
 
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");

@@ -432,6 +432,32 @@ jobs:
                            "prefix_created","fex_installed","graphics_verified",
                            "device_boot_tested","anti_cheat_supported"):
                   assert payload[flag] is False
+              modules=json.loads(apk.read("assets/charoite-next/wine-module-staging-index.json"))
+              assert modules["schema_version"]==1
+              assert modules["android_package"]=="com.charoitx"
+              assert modules["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert modules["source_run"]==40898982875
+              assert modules["archive_sha256"]==payload["archive_sha256"]
+              assert modules["file_count"]==95 and modules["pe_count"]==19 and modules["nls_count"]==76
+              assert len(modules["files"])==95
+              assert all(modules[flag] is False for flag in (
+                  "launch_ready","native_elf_installed","prefix_created",
+                  "wineboot_tested","anti_cheat_supported"))
+              seen=set()
+              total=0
+              for item in modules["files"]:
+                  name=item["asset"]
+                  assert name.startswith("charoite-next/wine-modules/")
+                  assert name not in seen
+                  seen.add(name)
+                  contents=apk.read("assets/"+name)
+                  assert len(contents)==item["size"]
+                  assert hashlib.sha256(contents).hexdigest()==item["sha256"]
+                  assert item["source"]=="runtime/"+item["path"]
+                  total+=len(contents)
+              assert total==modules["total_bytes"] and total <= 128*1024*1024
+              assert len([x for x in apk.namelist() if x.startswith("assets/charoite-next/wine-modules/")])==95
+              print("CHAROITE_NEXT_95_ISOLATED_PE_NLS_ASSETS_VERIFIED=PASS")
               print("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS")
               assert b"CHAROITE_NTDLL_NATIVE_DIR" in native
               assert len(native)==manifest["size"]
@@ -448,7 +474,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='67' versionName='11.2-next.0.36'"
+            grep -F "package: name='com.charoitx' versionCode='68' versionName='11.2-next.0.37'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -592,6 +618,9 @@ jobs:
           cp next-generation/CharoiteNextDiagnostics.java legal-bundle/CharoiteNextDiagnostics.java
           cp next-generation/CharoiteWineNativeProbe.java legal-bundle/CharoiteWineNativeProbe.java
           cp next-generation/CharoiteWineBootstrapPreflight.java legal-bundle/CharoiteWineBootstrapPreflight.java
+          cp next-generation/CharoiteWineIsolatedStage.java legal-bundle/CharoiteWineIsolatedStage.java
+          cp next-generation/stage_bootstrap_payload.py legal-bundle/stage_bootstrap_payload.py
+          cp upstream/app/src/main/assets/charoite-next/wine-module-staging-index.json legal-bundle/wine-module-staging-index.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-preflight.json legal-bundle/wine-bootstrap-preflight.json
           cp next-generation/stage_native_wine_loader.py legal-bundle/stage_native_wine_loader.py
           cp upstream/app/src/main/assets/charoite-next/wine-native-probe.json legal-bundle/wine-native-probe.json

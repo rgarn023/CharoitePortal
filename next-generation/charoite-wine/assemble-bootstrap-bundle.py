@@ -34,6 +34,8 @@ PE_STARTUP = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
               for name in ("win32u","gdi32","ucrtbase","shell32")}
 PE_COM = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
           for name in ("rpcrt4","combase","ole32","comctl32")}
+PE_SERVICES = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
+               for name in ("bcrypt","secur32","sechost","msvcrt")}
 ELF = {
     "wine": "loader/wine",
     "wineserver": "server/wineserver",
@@ -109,7 +111,7 @@ def check_pe(path: Path, readobj: Path, architecture: str) -> dict:
     return {"machine":id,"imports":dlls}
 
 def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
-                include_startup: bool = False, include_com: bool = False) -> dict:
+                include_startup: bool = False, include_com: bool = False, include_services: bool = False) -> dict:
     for p in (build,readelf,readobj,output):
         if not p.is_absolute(): raise ValueError("Expected absolute CI-only paths")
     if output.exists() or not output.parent.is_dir():
@@ -130,8 +132,15 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         load_validator("next_com","verify-pe-com.py").verify(
             build.parent/"charoite-pe-com",
             build.parent/"charoite-bootstrap-extended"/"dependency-review.json")
+    if include_services:
+        if not include_startup or not include_com:
+            raise ValueError("Security/service modules require source-audited COM bootstrap")
+        load_validator("next_services","verify-pe-services.py").verify(
+            build.parent/"charoite-pe-services",
+            build.parent/"charoite-bootstrap-com-extended"/"dependency-review.json")
     selected_pe={**PE,**(PE_STARTUP if include_startup else {}),
-                 **(PE_COM if include_com else {})}
+                 **(PE_COM if include_com else {}),
+                 **(PE_SERVICES if include_services else {})}
     payloads={}
     records={}
     for name,rel in ELF.items():
@@ -171,6 +180,9 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     if include_com:
         for name in PE_COM:
             prior[name]=build.parent/"charoite-pe-com"/f"{name}-arm64ec.dll"
+    if include_services:
+        for name in PE_SERVICES:
+            prior[name]=build.parent/"charoite-pe-services"/f"{name}-arm64ec.dll"
     for name,path in prior.items():
         if sha(regular(path))!=records[name]["sha256"]:
             raise ValueError("Same-tree Wine binary differs from audited component: "+name)
@@ -209,6 +221,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     payloads["dependency-review.json"]=(json.dumps(report,sort_keys=True,indent=2)+"\n").encode()
     manifest={
         "schema_version":1,"version":(
+            "wine10-arm64ec-bootstrap.0.5" if include_services else
             "wine10-arm64ec-bootstrap.0.4" if include_com else
             "wine10-arm64ec-bootstrap.0.3" if include_startup else
             "wine10-arm64ec-bootstrap.0.2"),
@@ -224,6 +237,9 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         "com_dependency_manifest_sha256":(
             sha(regular(build.parent/"charoite-pe-com"/"pe-com-manifest.json"))
             if include_com else None),
+        "services_dependency_manifest_sha256":(
+            sha(regular(build.parent/"charoite-pe-services"/"pe-services-manifest.json"))
+            if include_services else None),
         "source_files":source,"dependency_review_sha256":sha(payloads["dependency-review.json"]),
         "window_imports_unresolved_count":len(gap),
         "missing_for_runtime":[
@@ -255,10 +271,11 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
 
 if __name__=="__main__":
     if len(sys.argv) not in (5,6) or (len(sys.argv)==6 and
-        sys.argv[5] not in ("--include-startup","--include-com")):
-        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com]")
+        sys.argv[5] not in ("--include-startup","--include-com","--include-services")):
+        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com|--include-services]")
     flavor=sys.argv[5] if len(sys.argv)==6 else ""
     manifest=make_bundle(*map(Path,sys.argv[1:5]),
-                         include_startup=bool(flavor),include_com=flavor=="--include-com")
+                         include_startup=bool(flavor),include_com=flavor in ("--include-com","--include-services"),
+                         include_services=flavor=="--include-services")
     print("CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS",manifest["component_count"])
     print("LAUNCH_READY=false")

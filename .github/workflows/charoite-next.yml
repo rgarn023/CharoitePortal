@@ -310,6 +310,23 @@ jobs:
                   assert picture.size == (1536, 1536)
                   assert picture.format == "JPEG"
               assert "res/drawable-nodpi-v4/charoite_next_boot_scene.png" not in z.namelist()
+              # The icon keeps exact original bytes. Only the boot gets a
+              # separate transparent-corner image and violet full bleed.
+              foreground = z.read("res/drawable-nodpi-v4/charoite_next_boot_unframed.png")
+              backdrop = z.read("res/drawable-nodpi-v4/charoite_next_boot_backdrop.jpg")
+              with Image.open(io.BytesIO(foreground)) as fg:
+                  fg.load()
+                  assert fg.mode == "RGBA" and fg.size == (1536, 1536)
+                  for xy in ((0,0),(1535,0),(0,1535),(1535,1535)):
+                      assert fg.getpixel(xy)[3] < 8, "Black outer icon corner still visible"
+                  assert fg.getpixel((768,768))[3] > 250
+              with Image.open(io.BytesIO(backdrop)) as bg:
+                  bg.load()
+                  assert bg.size == (900,1600)
+                  for xy in ((0,0),(899,0),(0,1599),(899,1599)):
+                      assert max(bg.getpixel(xy)) > 12, "Black background corner remained"
+              print("CHAROITE_NEXT_FULLBLEED_BOOT_BLACK_FRAME_REMOVED=PASS")
+              print("CHAROITE_NEXT_LAUNCHER_ICON_ORIGINAL_UNMODIFIED=PASS")
               print("CHAROITE_NEXT_USER_APPROVED_1536PX_ARTWORK_EXACT_MATCH=PASS")
               print("CHAROITE_NEXT_BOOT_AND_LAUNCHER_IDENTICAL_PIXELS=PASS")
               audio_files=[p for p in z.namelist()
@@ -368,7 +385,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='46' versionName='11.2-next.0.15'"
+            grep -F "package: name='com.charoitx' versionCode='47' versionName='11.2-next.0.16'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

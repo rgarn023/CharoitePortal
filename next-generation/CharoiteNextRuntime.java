@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "0.37 (PE/NLS isolated data staging; modern engine blocked)";
+    public static final String VERSION = "0.38 (native Wine version-only bootstrap gate; wineboot blocked)";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";
@@ -76,6 +76,7 @@ public final class CharoiteNextRuntime {
                 + "Use Audit modern Wine bootstrap prerequisites to see attested import gaps.\n"
                 + "Use Verify packaged modern Wine modules to SHA-check the 22-component archive and 76 NLS tables.\n"
                 + "Use Stage isolated modern Wine PE/NLS modules for opt-in, hash-gated private DATA staging.\n"
+                + "Use Test native Wine startup prerequisites to verify the staged 95 files and run native loader/server --version only.\n"
                 + legacy.label + ": bundled (existing compatibility engine)\n"
                 + proton.label + ": NOT READY\n" + proton.detail + "\n"
                 + staging.label + ": NOT READY\n" + staging.detail + "\n"

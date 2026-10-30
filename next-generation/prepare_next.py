@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.42"')
-text = text.replace("versionCode 33", "versionCode 73")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.43"')
+text = text.replace("versionCode 33", "versionCode 74")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -135,6 +135,13 @@ shutil.copy2(source_dir / "CharoiteWine26NativeGate.java", wine26_native_java)
 wine26_prefix_java = app / "java/com/charoitegames/core/CharoiteWine26PrefixProbe.java"
 assert not wine26_prefix_java.exists()
 shutil.copy2(source_dir / "CharoiteWine26PrefixProbe.java", wine26_prefix_java)
+# Fully isolated patch-0800 native cohort: never replace the Wine26 cohort.
+for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
+                 "CharoiteWine27PrefixProbe.java"):
+    target = app / "java/com/charoitegames/core" / filename
+    assert not target.exists(), "Separate v3 source file already exists"
+    shutil.copy2(source_dir / filename, target)
+
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -536,6 +543,123 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine26Prefix);
+        android.widget.Button wine27Stage = new android.widget.Button(this);
+        wine27Stage.setText("Stage patched Wine source (v3 isolated)");
+        wine27Stage.setAllCaps(false);
+        wine27Stage.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage patched NLS source cohort (v3)?")
+                .setMessage("Verifies the separately rebuilt 26-component source archive with " +
+                    "Android-only NLS and native loader patches, " +
+                    "then stages only 23 Windows PE modules and 76 NLS tables " +
+                    "in a NEW 0.6 private data slot. Wine26 0.5, Wine22 " +
+                    "data, native loader, installed games, saves and prefixes " +
+                    "remain unchanged. This uses additional device storage. " +
+                    "Native Wine executables, wineboot, FEX and graphics stay " +
+                    "disabled. This is NOT a runnable Windows engine.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage patched 0.6 cohort", (d, which) -> {
+                    wine27Stage.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine27Stage.run(this);
+                        runOnUiThread(() -> {
+                            wine27Stage.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine27 data staging")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine27 source staging", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine27Stage").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine27Stage);
+        android.widget.Button wine27Native = new android.widget.Button(this);
+        wine27Native.setText("Verify new patched Wine native cohort");
+        wine27Native.setAllCaps(false);
+        wine27Native.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Verify patched native loader/ntdll/server?")
+                .setMessage("First re-verifies your separately staged 23 PE and " +
+                    "76 NLS files, then checks all THREE matching source-built " +
+                    "APK-native ELF hashes. Executes only native Wine 10 and " +
+                    "wineserver with --version, with a clean environment and " +
+                    "timeout. No Windows EXE, Wine prefix, Wineboot, server " +
+                    "session, FEX or graphics are attempted. Existing games, " +
+                    "Wine22 files, saves and prefixes remain untouched.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Verify patched Wine native --version", (d, which) -> {
+                    wine27Native.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine27NativeGate.run(this);
+                        runOnUiThread(() -> {
+                            wine27Native.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine27 Native Bootstrap Gate")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine27 Native Bootstrap Gate", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine27NativeGate").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine27Native);
+        android.widget.Button wine27Prefix = new android.widget.Button(this);
+        wine27Prefix.setText("Test new v3 isolated Wineboot");
+        wine27Prefix.setAllCaps(false);
+        wine27Prefix.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run isolated Wineboot with patched native NLS paths?")
+                .setMessage("Only after verifying the full 99-file staged Wine27 data " +
+                    "and all 3 APK native hashes and version probes, copies a " +
+                    "source-verified set into a brand-new app-private test folder " +
+                    "and tries Wineboot -i with its own NEW Wine prefix and " +
+                    "wineserver. It may use extra storage, can fail or time out, " +
+                    "and RETAINS diagnostic files rather than automatically " +
+                    "deleting them. Never touches existing prefixes, Wine22, " +
+                    "games or saves. Uses a NEW one-shot v3 scratch, with " +
+                    "an APK-native source-matched ntdll and a verified private " +
+                    "NLS directory. v1/v2 diagnostic evidence is preserved. " +
+                    "FEX, graphics and gaming remain untested.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run one-time v3 Wineboot probe", (dialog, which) -> {
+                    wine27Prefix.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine27PrefixProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine27Prefix.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine27 isolated prefix")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (d, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine27 isolated Wineboot", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine27PrefixProbe").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine27Prefix);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

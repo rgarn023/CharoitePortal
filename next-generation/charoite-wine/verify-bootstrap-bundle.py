@@ -15,6 +15,7 @@ PE=("ntdll","kernelbase","kernel32","advapi32","user32","ws2_32",
     "crypt32","setupapi","shlwapi","version","wineboot")
 EXTRA_PE=("win32u","gdi32","ucrtbase","shell32")
 COM_PE=("rpcrt4","combase","ole32","comctl32")
+SERVICES_PE=("bcrypt","secur32","sechost","msvcrt")
 SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
          "Wine-NLS-Makefile.in")
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
@@ -27,6 +28,7 @@ EXPECTED={
 }
 EXTRA_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in EXTRA_PE}
 COM_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in COM_PE}
+SERVICES_PATHS={k:f"runtime/pe/arm64ec/{k}.dll" for k in SERVICES_PE}
 ALL=set(EXPECTED.values())|{f"source/{k}" for k in SOURCES}|{
     "dependency-review.json","manifest.json",
 }
@@ -63,18 +65,22 @@ def verify(archive: Path) -> tuple[dict,dict]:
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
         version=manifest.get("version")
-        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4")
-        com=version=="wine10-arm64ec-bootstrap.0.4"
+        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5")
+        com=version in ("wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5")
+        services=version=="wine10-arm64ec-bootstrap.0.5"
         expected={**EXPECTED,**(EXTRA_PATHS if extended else {}),
-                  **(COM_PATHS if com else {})}
+                  **(COM_PATHS if com else {}),
+                  **(SERVICES_PATHS if services else {})}
         allowed=ALL | (set(EXTRA_PATHS.values()) if extended else set()) | (
-            set(COM_PATHS.values()) if com else set())
+            set(COM_PATHS.values()) if com else set()) | (
+            set(SERVICES_PATHS.values()) if services else set())
         if (len(members)!=len(allowed)+len(nls_paths) or actual!=allowed|nls_paths):
             raise ValueError("Wrong, repeated or missing bundle files")
         if (manifest.get("schema_version")!=1 or
             manifest.get("version") not in (
                 "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3",
-                "wine10-arm64ec-bootstrap.0.4") or
+                "wine10-arm64ec-bootstrap.0.4",
+                "wine10-arm64ec-bootstrap.0.5") or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
@@ -104,6 +110,12 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 raise ValueError("Missing COM/RPC source provenance")
         elif com_hash is not None:
             raise ValueError("Unexpected COM/RPC provenance in older archive")
+        services_hash=manifest.get("services_dependency_manifest_sha256")
+        if services:
+            if not isinstance(services_hash,str) or not re.fullmatch(r"[0-9a-f]{64}",services_hash):
+                raise ValueError("Missing source-verified PE security/service manifest")
+        elif services_hash is not None:
+            raise ValueError("Unexpected PE services provenance on older bundle")
         for name,path in expected.items():
             entry=manifest["components"][name]
             if entry.get("path")!=path or entry.get("format")!=(

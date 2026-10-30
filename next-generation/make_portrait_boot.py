@@ -42,6 +42,27 @@ def generate(source, destination):
     # never a fabricated flat-color sky or a mirrored copy of the icon.
     interior = master.crop((SOURCE_X[0], 0, SOURCE_X[1], SOURCE_SIZE[1]))
     interior = interior.resize((width, SOURCE_SIZE[1]), Image.Resampling.LANCZOS)
+    # Even a tight crop contains tiny bits of the original rounded icon
+    # silhouette at the four corners. Repair only the edge-connected near-black
+    # regions by reflecting actual neighboring nebula/sky/floor pixels on
+    # THAT SAME ROW. This is an edge-pixel repair on the single scene, not a
+    # rectangle over another wallpaper or a synthetic background layer.
+    pixels = interior.load()
+    for y in range(SOURCE_SIZE[1]):
+        if not (y <= 310 or y >= 1280):
+            continue
+        left = 0
+        while left < width//3 and max(pixels[left, y]) < 32:
+            left += 1
+        right = width-1
+        while right > 2*width//3 and max(pixels[right, y]) < 32:
+            right -= 1
+        if left:
+            for x in range(left):
+                pixels[x, y] = pixels[min(width-1, 2*left-x), y]
+        if right < width-1:
+            for x in range(right+1, width):
+                pixels[x, y] = pixels[max(0, 2*right-x), y]
     portrait = Image.new("RGB", PORTRAIT_SIZE)
     for band in range(len(SOURCE_Y)-1):
         sy0, sy1 = SOURCE_Y[band], SOURCE_Y[band+1]

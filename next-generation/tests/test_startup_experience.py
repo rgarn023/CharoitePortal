@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 57", PREP)
-        self.assertIn("11.2-next.0.26", PREP)
+        self.assertIn("versionCode 58", PREP)
+        self.assertIn("11.2-next.0.27", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -135,8 +135,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("setContentDescription(\"Charoite Portal\")", BOOT)
         self.assertNotIn("ProgressBar", view)
 
-    def test_ten_second_boot_once_per_real_session(self):
-        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
+    def test_five_second_boot_once_per_real_session(self):
+        self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
         self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)", BOOT)
         self.assertIn("CrystalShimmer extends View", BOOT)
         self.assertNotIn("slowReveal.setDuration(", BOOT)
@@ -185,22 +185,22 @@ class StartupExperienceTest(unittest.TestCase):
         # The signed Next APK must play the approved silent cloud-only
         # visual, not the rejected electricity preview or any screen warp.
         renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
-        self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 10", renderer)
-        self.assertIn("Charoite_Mystic_C_Cloud_Only_10s.mp4", renderer)
+        self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 5", renderer)
+        self.assertIn("Charoite_Mystic_C_Cloud_Only_5s.mp4", renderer)
         self.assertIn("cloud_noise(", renderer)
         self.assertIn("make_cloud_sources(", renderer)
         self.assertNotIn("def electrify(", renderer)
         self.assertNotIn("cv2.remap(", renderer)
         self.assertIn("subprocess.run([sys.executable, str(preview_script)]", PREP)
-        self.assertIn("movie_raw = app / \"res/raw/charoite_mystic_c_cloud_10s.mp4\"", PREP)
+        self.assertIn("movie_raw = app / \"res/raw/charoite_mystic_c_cloud_5s.mp4\"", PREP)
         self.assertIn("shutil.copyfile(movie_generated, movie_raw)", PREP)
-        self.assertIn("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_10_SECONDS=PASS", PREP)
+        self.assertIn("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_5_SECONDS=PASS", PREP)
 
         # Texture-backed video keeps the original art/title under it until
         # an actual first decoded frame appears; it is never a black splash.
         self.assertIn("new CrystalCloudMovie(activity)", BOOT)
         self.assertIn("class CrystalCloudMovie extends TextureView", BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_mystic_c_cloud_10s", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_mystic_c_cloud_5s", BOOT)
         self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
         self.assertIn("setAlpha(0f)", BOOT)
         self.assertIn("setAlpha(1f)", BOOT)
@@ -210,8 +210,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("getWidth() <= getHeight()", BOOT)
         self.assertIn("releaseMovie()", BOOT)
         self.assertIn("matrix.setScale(sx, sy, w / 2f, h / 2f)", BOOT)
-        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
-        self.assertNotIn("BOOT_DURATION_MS = 5000L", BOOT)
+        self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
+        self.assertNotIn("BOOT_DURATION_MS = 10000L", BOOT)
         self.assertNotIn("setVideoURI(", BOOT)
         self.assertNotIn("R.raw.charoite_mystic_c_cloud_and_lightning", BOOT)
 
@@ -312,10 +312,10 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("showColdPortalFallback(", BOOT)
         self.assertIn("pendingColdFallbackOwner = null", BOOT)
 
-    def test_ten_second_audio_starts_under_splash_and_ends_before_portal(self):
+    def test_five_second_audio_starts_under_splash_and_ends_before_portal(self):
         from array import array
         import math
-        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
+        self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
         self.assertIn("playCrystalChime(this);", BOOT)
         self.assertIn("playCrystalChime(portal);", BOOT)
         self.assertIn("stopBootSound(this);", BOOT)
@@ -343,21 +343,21 @@ class StartupExperienceTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             wav = Path(td)/"startup.wav"
-            self.assertEqual(audio.generate(wav),441000)
+            self.assertEqual(audio.generate(wav),220500)
             with wave.open(str(wav),"rb") as tone:
                 self.assertEqual(tone.getnchannels(),1)
                 self.assertEqual(tone.getsampwidth(),2)
                 self.assertEqual(tone.getframerate(),44100)
-                self.assertEqual(tone.getnframes(),441000)
+                self.assertEqual(tone.getnframes(),220500)
                 decoded = array("h")
                 decoded.frombytes(tone.readframes(tone.getnframes()))
                 def rms(a,b):
                     subset=decoded[round(a*44100):round(b*44100):60]
                     return math.sqrt(sum(x*x for x in subset)/len(subset))/32768
                 self.assertGreater(rms(.5,2.5), .015)
-                self.assertGreater(rms(5.0,7.5), .008,
-                                   "Extended crystal sound must not become silent halfway")
-                self.assertLess(rms(9.9,10), rms(8.1,8.6)*.18,
+                self.assertGreater(rms(2.0,3.5), .008,
+                                   "Five-second crystal sound must remain audible before final fade")
+                self.assertLess(rms(4.92,4.99), rms(3.3,3.7)*.18,
                                 "Crystal ambience must fade cleanly at boot end")
 
     def test_no_access_to_saved_games(self):

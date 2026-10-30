@@ -1720,4 +1720,17 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 90. October 30, 2026 — LibTomCrypt ARM64EC shared crypto compiler follow-up
+
+**Third source-run finding:** [run 41120261606](https://github.com/rgarn023/CharoitePortal/actions/runs/41120261606), Android ARM64EC job **FAILURE** in step `Compile four missing ARM64EC security and C runtime Wine PE modules`: the temporary wrapper successfully switched `dlls/bcrypt/bcrypt_main.c` to portable mode (log `CHAROITE_ARM64EC_BCRYPT_PORTABLE_ROTATES_WRAPPER=PASS`), but compiling dependent `libs/tomcrypt/src/ciphers/aes/aes.c` still failed with `tomcrypt_macros.h:261/269 invalid input constraint 'c' in asm`. This is a **second source path with the same architecture issue**, not a failure of the original 22-component bundle. Run 41120261606 uploaded the 22-component artifact 13009605132 but did **not** produce a 26-component candidate. The v0.38 APK on device is unaffected.
+
+**Latest correction committed to main:** `build-pe-services.sh` now requires the precise expected **ephemeral compiler wrapper** then adds LibTomCrypt's supported `-DLTC_NO_ASM` for **all ARM64EC source compilations in the final security/service PE step**, rather than just `dlls/bcrypt/`. This phase runs only **after** assembling and verifying the old pinned 22-component archive, so prior source-built modules remain unaffected. No pinned Wine/LibTomCrypt source edits, compiler-error bypass, ABI relaxation or installed app mutation. Regression test `test_pe_services.py` now actually runs the temporary-wrapper rewrite with a dummy command, checks correct executable Bash syntax, correct portable flag and refusal to patch a wrapper twice. New CI source commits `6e61266b`, test `9cd991e4`, executable regression `00d8b84d` and newline fix `244e61b7`; build-triggering README SHA **`1dff28e50af56903bcd713c78da23d2fb674ee65`**.
+
+**Current build:** [source workflow run **41121328663**](https://github.com/rgarn023/CharoitePortal/actions/runs/41121328663), status **QUEUED** at last check because older failed run's cleanup/worker slot had not yet released. GitHub needs to report completion and artifact evidence before claiming source binaries verified. If it fails, inspect actual error lines in **android-arm64ec-ntdll** job (late step 30 or beyond). If green, inspect `Charoite-Wine-ARM64EC-PE-Security-Services-Experimental` and `Charoite-Wine-Coherent-Bootstrap-26-Experimental`, 26-component manifest and measured new PE import-gap count; integrate into a separately versioned Next APK only after independent verification.
+
+**Keep:** stable Charoite Portal `com.charoite` untouched, existing `com.charoitx` v0.38 phone version and its successful native version probes intact. No uninstall, data clear, Wineboot, FEX/graphics launch or game execution as part of source builds.
+
+---
+
 **End of current Charoite Portal handoff.**

@@ -159,6 +159,14 @@ assert generate_portrait_boot(approved_art, boot_portrait) == boot_portrait
 # This is silent H.264 packaged as a local app resource, never downloaded
 # while the phone starts and never placed into the stable Portal build.
 # The Android TextureView falls back to the still boot if decoding fails.
+# Ensure the EXACT extracted spiral from the user's newly approved edited image
+# is present and has not been swapped for another generated illustration.
+reference_vortex = source_dir / "assets/charoite_user_edited_portal_v33.webp"
+assert reference_vortex.is_file(), "Missing edited-image vortex texture"
+assert hashlib.sha256(reference_vortex.read_bytes()).hexdigest() == (
+    "09691efddf9741c9df083efc9ef2c869afc0861dd8ecdedb191bce6c862d76fc"
+), "Reference spiral artwork changed"
+print("CHAROITE_NEXT_USER_EDITED_VORTEX_REFERENCE_EXACT_MATCH=PASS")
 preview_script = source_dir.parent / "docs/previews/render_crystal_awakening.py"
 movie_generated = source_dir.parent / "Charoite_C_Glow_Reference_Portal_7s.mp4"
 storyboard_generated = source_dir.parent / "Charoite_C_Glow_Reference_Portal_7s_Storyboard.jpg"

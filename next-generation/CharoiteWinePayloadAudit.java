@@ -13,7 +13,7 @@ import org.json.JSONObject;
 public final class CharoiteWinePayloadAudit {
     private static final String PACKAGE = "com.charoitx";
     private static final String INDEX = "charoite-next/wine-bootstrap-payload.json";
-    private static final String ASSET = "charoite-next/wine-bootstrap-22.tar.gz";
+    private static final String ASSET = "charoite-next/wine-bootstrap-22.bundle";
     private static final String WINE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767";
     private static final long SOURCE_RUN = 40898982875L;
     private static final long MAX_BYTES = 64L * 1024L * 1024L;

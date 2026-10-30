@@ -1443,4 +1443,16 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 
 
 ---
+## 73. October 30, 2026 — 10-second Mystic C cloud-only preview (electricity removed)
+
+**User decision:** User liked the 10-second purple cloud/glow concept but explicitly requested **remove electricity**. Do not add lightning or electric branches. User still has not approved implementation in the APK; preview only.
+
+**Executed directly in GitHub `main`:**
+- `docs/previews/render_crystal_awakening.py`: removed the complete `electrify` function, jagged bolts, branching discharges, and its overlay call. Kept all existing glowing, drifting amethyst cloud noise, soft C-bound atmospheric plumes, gentle rim glow, 10-second duration at 24 fps, a stationary v0.24 crystal artwork, and static title plaque. New output `Charoite_Mystic_C_Cloud_Only_10s.mp4` and matching storyboard JPG. Source change commit `0426492a3b164bb3951fb07a75c91a10a9f8ea39`.
+- `.github/workflows/charoite-preview-video.yml`: changed labels, filename checks and artifact name to cloud-only; no Next Android build. Workflow commit `262671ee88307f2f6989fe11d944f870be567a98`.
+- GitHub Actions **run [41008339632](https://github.com/rgarn023/CharoitePortal/actions/runs/41008339632)** **COMPLETED SUCCESS** with no failed steps; verified 10s MP4. **Final cloud-only MP4 + storyboard download artifact [12956346982](https://github.com/rgarn023/CharoitePortal/actions/runs/41008339632/artifacts/12956346982)**, name `Charoite-Mystic-C-Cloud-Only-10s-MP4`, nonexpired ZIP 936,412 bytes. Do **not** link previous lightning artifact 12956012303 as the newest preview.
+- **Next APK still v0.24 / code 55 / com.charoitx**, signed release workflow 40999653641 and artifact 12953071666. No changes to boot screen, Wine or saved data. Ask for visual approval before implementing cloud animation into Android.
+
+
+---
 **End of current Charoite Portal handoff.**

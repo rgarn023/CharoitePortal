@@ -44,9 +44,19 @@ def make_index(manifest,review,raw,old_manifest):
                 "device_tested","anti_cheat_supported"))
             or old_manifest.get("version")!="wine10-arm64ec-bootstrap.0.4"
             or old_manifest.get("source_commit")!=SOURCE
-            or old_manifest.get("source_files")!=manifest.get("source_files")
             or not 0<len(raw)<=MAX_ARCHIVE):
         raise ValueError("New Wine archive or original source provenance is untrusted")
+    # The source patch 0800 legitimately changes the source-delta digest.
+    # Retain the same pinned upstream, core licenses and source NLS makefile;
+    # do not accidentally accept a stale unpatched source-delta archive.
+    earlier=old_manifest.get("source_files",{})
+    current=manifest.get("source_files",{})
+    if (set(earlier)!=set(current)
+            or any(earlier[name].get("sha256")!=current[name].get("sha256")
+                   for name in earlier if name!="charoite-source-delta.patch")
+            or earlier["charoite-source-delta.patch"].get("sha256")==
+                current["charoite-source-delta.patch"].get("sha256")):
+        raise ValueError("Wine27 source-delta or shared original licensing mismatch")
     comps=manifest.get("components")
     nls=manifest.get("nls_files")
     if not isinstance(comps,dict) or not isinstance(nls,dict):

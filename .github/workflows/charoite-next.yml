@@ -263,6 +263,34 @@ jobs:
           done
           echo "Only APK-installed source-matched Wine26 native binaries may run --version."
 
+      - name: Stage patched Wine27 PE/NLS cohort in a distinct versioned APK slot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine27"
+          gh run download 41130899651 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-Coherent-Bootstrap-26-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine27"
+          python3 next-generation/stage_wine27.py \
+            "$RUNNER_TEMP/charoite-wine27/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-27.bundle
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-27-index.json
+          echo "Wine27 APK assets preserve earlier Wine22/Wine26 cohorts."
+
+      - name: Package patched Wine27 native cohort without replacing older ELF libraries
+        run: |
+          set -euo pipefail
+          python3 next-generation/stage_wine27_native.py \
+            "$RUNNER_TEMP/charoite-wine27/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine27-native-probe.json
+          for name in loader ntdll wineserver; do
+            test -s "upstream/app/src/main/jniLibs/arm64-v8a/libcharoite_wine27_${name}.so"
+          done
+          echo "Native patched loader, ntdll and server are APK-only and v3-consent gated."
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -545,6 +573,51 @@ jobs:
                   assert isinstance(entry["native_needed"],list)
               print("CHAROITE_NEXT_WINE26_THREE_MATCHED_NATIVE_APK_ELF_HASHES=PASS")
               print("CHAROITE_NEXT_WINE26_NATIVE_ELF_VERSION_EXECUTION_DEVICE_ONLY=PASS")
+              patched=json.loads(apk.read("assets/charoite-next/wine-bootstrap-27-index.json"))
+              patched_raw=apk.read("assets/charoite-next/wine-bootstrap-27.bundle")
+              assert patched["source_run"]==41130899651
+              assert patched["source_artifact"]==13012239618
+              assert patched["bundle_version"]=="wine10-arm64ec-bootstrap.0.5"
+              assert patched["archive_asset"]=="charoite-next/wine-bootstrap-27.bundle"
+              assert patched["archive_size"]==len(patched_raw)
+              assert patched["archive_sha256"]==hashlib.sha256(patched_raw).hexdigest()
+              assert patched["module_count"]==99 and len(patched["module_files"])==99
+              assert patched["component_count"]==26 and patched["pe_count"]==23
+              assert patched["nls_count"]==76 and patched["native_elf_in_archive"]==3
+              assert all(patched[k] is False for k in (
+                  "launch_ready","installable_as_runtime","native_elf_installed",
+                  "prefix_created","wineboot_tested","fex_installed",
+                  "graphics_verified","anti_cheat_supported"))
+              for entry in patched["module_files"]:
+                  raw=apk.read("assets/"+entry["asset"])
+                  assert entry["asset"].startswith("charoite-next/wine27-modules/")
+                  assert len(raw)==entry["size"]
+                  assert hashlib.sha256(raw).hexdigest()==entry["sha256"]
+              patched_native=json.loads(apk.read("assets/charoite-next/wine27-native-probe.json"))
+              assert patched_native["source_run"]==41130899651
+              assert patched_native["source_artifact"]==13012239618
+              assert patched_native["archive_sha256"]==patched["archive_sha256"]
+              assert patched_native["stage_version"]=="wine10-arm64ec-bootstrap-0.6-staged"
+              expected_patched={
+                  "wine":"libcharoite_wine27_loader.so",
+                  "ntdll_unix":"libcharoite_wine27_ntdll.so",
+                  "wineserver":"libcharoite_wine27_wineserver.so"}
+              assert set(patched_native["native_components"])==set(expected_patched)
+              for key,filename in expected_patched.items():
+                  e=patched_native["native_components"][key]
+                  assert e["library_filename"]==filename
+                  raw=apk.read("lib/arm64-v8a/"+filename)
+                  assert len(raw)==e["size"]
+                  assert hashlib.sha256(raw).hexdigest()==e["sha256"]
+                  assert raw[:6]==b"\\x7fELF\\x02\\x01".replace(b"\\\\",b"\\")
+                  if key=="wine":
+                      assert b"CHAROITE_WINE27_NATIVE_DIR" in raw
+                      assert b"libcharoite_wine27_ntdll.so" in raw
+                  if key in ("ntdll_unix","wineserver"):
+                      assert b"CHAROITE_WINE26_DATA_DIR" in raw
+              assert patched["archive_sha256"]!=wine26["archive_sha256"]
+              print("CHAROITE_NEXT_WINE27_PATCHED_SOURCE_APK_HASHES_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE27_V3_ONLY_BOOTSTRAP_NOT_DEVICE_VERIFIED=PASS")
               assert b"CHAROITE_NTDLL_NATIVE_DIR" in native
               assert len(native)==manifest["size"]
               assert hashlib.sha256(native).hexdigest()==manifest["sha256"]
@@ -709,6 +782,13 @@ jobs:
           cp next-generation/CharoiteWine26Stage.java legal-bundle/CharoiteWine26Stage.java
           cp next-generation/CharoiteWine26NativeGate.java legal-bundle/CharoiteWine26NativeGate.java
           cp next-generation/CharoiteWine26PrefixProbe.java legal-bundle/CharoiteWine26PrefixProbe.java
+          for file in CharoiteWine27Stage.java CharoiteWine27NativeGate.java CharoiteWine27PrefixProbe.java; do
+            cp "next-generation/$file" "legal-bundle/$file"
+          done
+          cp next-generation/stage_wine27.py legal-bundle/stage_wine27.py
+          cp next-generation/stage_wine27_native.py legal-bundle/stage_wine27_native.py
+          cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-27-index.json legal-bundle/wine-bootstrap-27-index.json
+          cp upstream/app/src/main/assets/charoite-next/wine27-native-probe.json legal-bundle/wine27-native-probe.json
           cp next-generation/stage_wine26_native.py legal-bundle/stage_wine26_native.py
           cp upstream/app/src/main/assets/charoite-next/wine26-native-probe.json legal-bundle/wine26-native-probe.json
           cp next-generation/stage_wine26.py legal-bundle/stage_wine26.py

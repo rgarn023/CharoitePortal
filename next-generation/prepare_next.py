@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.39"')
-text = text.replace("versionCode 33", "versionCode 70")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.40"')
+text = text.replace("versionCode 33", "versionCode 71")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -129,6 +129,9 @@ shutil.copy2(source_dir / "CharoiteWineBootstrapGate.java", gate_java)
 wine26_java = app / "java/com/charoitegames/core/CharoiteWine26Stage.java"
 assert not wine26_java.exists()
 shutil.copy2(source_dir / "CharoiteWine26Stage.java", wine26_java)
+wine26_native_java = app / "java/com/charoitegames/core/CharoiteWine26NativeGate.java"
+assert not wine26_native_java.exists()
+shutil.copy2(source_dir / "CharoiteWine26NativeGate.java", wine26_native_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -452,6 +455,43 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine26Stage);
+        android.widget.Button wine26Native = new android.widget.Button(this);
+        wine26Native.setText("Test matched Wine26 native startup");
+        wine26Native.setAllCaps(false);
+        wine26Native.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Test same-source Wine26 native binaries?")
+                .setMessage("First re-verifies your separately staged 23 PE and " +
+                    "76 NLS files, then checks all THREE matching source-built " +
+                    "APK-native ELF hashes. Executes only native Wine 10 and " +
+                    "wineserver with --version, with a clean environment and " +
+                    "timeout. No Windows EXE, Wine prefix, Wineboot, server " +
+                    "session, FEX or graphics are attempted. Existing games, " +
+                    "Wine22 files, saves and prefixes remain untouched.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run Wine26 version tests", (d, which) -> {
+                    wine26Native.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine26NativeGate.run(this);
+                        runOnUiThread(() -> {
+                            wine26Native.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine26 Native Bootstrap Gate")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine26 Native Bootstrap Gate", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine26NativeGate").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine26Native);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

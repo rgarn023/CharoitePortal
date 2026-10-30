@@ -1824,4 +1824,18 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 **What remains unproven:** whether the new prefix can be initialized at all; 20 observed missing Windows import DLL names, no FEX or graphics. Do not interpret CI success, two native --version results, a created directory, or game icons as Windows/gaming readiness. No original Charoite Portal com.charoite app/game/save/prefix data is accessed by the new probe. Preserve both installed apps, original signer, staged 0.4 and 0.5 modules, and boot art. Next development should be based on the actual on-phone v0.41 Wineboot report.
 
+---
+
+## 98. October 30, 2026 — Wine26 loader re-exec failure and fresh v0.42 diagnostic
+
+**On-device report confirmed (Next v0.41):** Galaxy S26 Ultra passed 99/99 (23 PE + 76 NLS) staged source SHA checks and all three native Wine26 hash/version gates; 22 ARM64EC DLL + ARM64 wineboot.exe + 76 NLS files SHA-256 copied into a brand-new one-shot private scratch. Wineboot was actually attempted, exited **1** before 25 seconds, and logged **`wine: could not exec the wine loader`**. No new private prefix directory, no system.reg. Isolated wineserver stop was requested. Existing Wine22/Portal data/games/saves/prefixes/rootfs untouched; failed v1 scratch **retained and never reused**. This is not a Wineboot pass.
+
+**Source diagnosis (hypothesis, not established device fix):** Wine10 ntdll Unix `__wine_main` attempts a second loader exec in `pre_exec()` when `WINELOADERNOEXEC` is absent, and prints this exact message on loader reexec failure. Source: https://sources.debian.org/src/wine/10.0~repack-12/dlls/ntdll/unix/loader.c . The source-built APK-owned loader has a renamed native-library filename, not the usual Wine bin/wine installation layout. This is a plausible cause, but further runtime failures could follow and 20 sampled unbundled PE import names remain.
+
+**Targeted experimental v0.42 implemented in GitHub/main:** Code SHA `83c3c22a3c98341ed1ec6165bffdccd05610273e` adds `WINELOADERNOEXEC=1` only to the user-consented Wine26PrefixProbe's clean process environment; no alteration to source-built native Wine binaries and no claim that skipping the preloader is a generalized runtime fix. The scratch is now **`charoite-next-wine26-first-prefix-v2`**; v1 is untouched, and v2 is strictly one-shot. Retains 99+3 hash gates, isolated WINEPREFIX/HOME/TMP, source-matched loader and wineserver, 25-second timeout and bounded report. Version `11.2-next.0.42`, versionCode `73`, package `com.charoitx`, original Next signing identity/boot and stable Portal unaffected. Updated 9 regression test files and new test assertions for v2 isolation and diagnostic environment.
+
+**Build status as recorded:** [v0.42 Actions run 41128003255](https://github.com/rgarn023/CharoitePortal/actions/runs/41128003255) triggered from SHA `83c3c22a3c98341ed1ec6165bffdccd05610273e`, **in progress** when first checked; do not yet claim a signed v0.42 APK. Latest proven signed APK remains v0.41 [run 41126672262 success](https://github.com/rgarn023/CharoitePortal/actions/runs/41126672262), artifact 13010493524. Verify final CI tests, signed APK, signer, source hash and APK artifact before sharing v0.42.
+
+**Exact next step:** Once v0.42 is signed and verified, user updates Next without uninstall/data clear, goes to System → Test isolated Wine26 prefix bootstrap, approves new v2 Wineboot diagnostic, copies full report. On failure, analyze the new first error, preserve both v1 and v2 scratch. No FEX, graphics, Windows apps, Battle.net or games are established.
+
 **End of current Charoite Portal handoff.**

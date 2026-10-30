@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.27"')
-text = text.replace("versionCode 33", "versionCode 58")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.28"')
+text = text.replace("versionCode 33", "versionCode 59")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -119,11 +119,11 @@ assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
 
 # Generate the longer version of the original crystal resonance as a
-# 5-second PCM WAV. It plays ONLY while the cloud-only splash is visible,
+# 7-second PCM WAV. It plays ONLY while the cloud-only splash is visible,
 # and fades to silence before the main Portal is revealed.
 chime = app / "res/raw/charoite_crystal_startup.wav"
 assert not chime.exists()
-assert generate_crystal_chime(chime) == round(44100 * 5.0)
+assert generate_crystal_chime(chime) == round(44100 * 7.0)
 
 # The exact 1536x1536 image personally provided as the required reference.
 # Do not generate, upsample, redesign, crop, or alter it. Reuse identical bytes
@@ -152,34 +152,34 @@ assert generate_fullbleed_boot(approved_art, boot_unframed, boot_backdrop) == (
 boot_portrait = app / "res/drawable-nodpi/charoite_next_boot_portrait.jpg"
 assert generate_portrait_boot(approved_art, boot_portrait) == boot_portrait
 
-# Render the user's approved 5-second CLOUD-ONLY animation using exactly the
+# Render the user's approved 7-second CLOUD-ONLY animation using exactly the
 # same approved v0.24 portrait compositor and static crystal-title image.
 # This is silent H.264 packaged as a local app resource, never downloaded
 # while the phone starts and never placed into the stable Portal build.
 # The Android TextureView falls back to the still boot if decoding fails.
 preview_script = source_dir.parent / "docs/previews/render_crystal_awakening.py"
-movie_generated = source_dir.parent / "Charoite_Mystic_C_Cloud_Only_5s.mp4"
-storyboard_generated = source_dir.parent / "Charoite_Mystic_C_Cloud_Only_5s_Storyboard.jpg"
+movie_generated = source_dir.parent / "Charoite_Mystic_C_Cloud_Only_7s.mp4"
+storyboard_generated = source_dir.parent / "Charoite_Mystic_C_Cloud_Only_7s_Storyboard.jpg"
 assert preview_script.is_file() and not movie_generated.exists()
 subprocess.run([sys.executable, str(preview_script)], check=True, cwd=source_dir.parent)
 assert movie_generated.is_file() and movie_generated.stat().st_size > 100000
-# Verify a full 5-second 24-fps portrait movie before embedding.
+# Verify a full 7-second 24-fps portrait movie before embedding.
 import cv2
 video_capture = cv2.VideoCapture(str(movie_generated))
 assert video_capture.isOpened(), "Cloud-only boot MP4 cannot be decoded"
 assert round(video_capture.get(cv2.CAP_PROP_FPS)) == 24
-assert round(video_capture.get(cv2.CAP_PROP_FRAME_COUNT)) == 120
+assert round(video_capture.get(cv2.CAP_PROP_FRAME_COUNT)) == 168
 assert round(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 480
 assert round(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == 920
 video_capture.release()
-movie_raw = app / "res/raw/charoite_mystic_c_cloud_5s.mp4"
+movie_raw = app / "res/raw/charoite_mystic_c_cloud_7s.mp4"
 assert not movie_raw.exists()
 shutil.copyfile(movie_generated, movie_raw)
 assert movie_raw.stat().st_size == movie_generated.stat().st_size
 movie_generated.unlink()
 if storyboard_generated.exists():
     storyboard_generated.unlink()
-print("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_5_SECONDS=PASS")
+print("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_7_SECONDS=PASS")
 
 
 

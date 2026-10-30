@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Five-second, slow and mysterious Charoite crystal BOOT atmosphere.
+"""Seven-second, slow and mysterious Charoite crystal BOOT atmosphere.
 
 A warm crystalline resonance blooms gradually out of a quiet nebula drone,
-then dissolves into a five-second shimmer. No notification-style repeated ring,
+then dissolves into a seven-second shimmer. No notification-style repeated ring,
 no borrowed samples, and no licensed/copyrighted musical motifs.
 Standard-library PCM synthesis; isolated to experimental Next build.
 """
@@ -13,7 +13,7 @@ import sys
 import wave
 
 RATE = 44100
-DURATION_SECONDS = 5.0
+DURATION_SECONDS = 7.0
 # Sparse original tones: low suspended foundation, two slowly emerging
 # harmonic glass voices, with gentle pitch drift; no fast-note arpeggio.
 VOICES = (
@@ -50,7 +50,7 @@ def sample(t):
             value += (amp * .085 * echo_attack *
                       math.exp(-reflection / 1.9) *
                       math.sin(2 * math.pi * hz * reflection + .72))
-    # Sustain a soft overtone through the middle of the five-second animation.
+    # Sustain a soft overtone through the middle of the seven-second animation.
     # A soft glass overtone preserves the original crystalline atmosphere.
     airy_attack = smoothstep((t-1.1)/.85)
     breath = (0.022 * math.sin(2 * math.pi * 293.66 * t + .12 *
@@ -59,9 +59,11 @@ def sample(t):
                 math.sin(2 * math.pi * .13 * t)))
     value += airy_attack * breath * (0.82 + .18 * math.sin(.62*t)**2)
 
-    # A full-second smooth fade ends at exactly 5 seconds, without clicks.
-    # The silent movie and PCM WAV use the same five-second boot timeline.
-    fade = smoothstep((DURATION_SECONDS-t)/1.00)
+    # Reach digital silence 650ms ahead of the fixed Android splash dismissal.
+    # Initializing an AudioTrack happens after the splash timer begins;
+    # this safety margin prevents cutting off delayed playback on Samsung.
+    # Gently fade across 1.5s (4.85 to 6.35 seconds).
+    fade = smoothstep((DURATION_SECONDS - 0.65 - t) / 1.50)
     return max(-1.0, min(1.0, value * fade * .88))
 
 def generate(path):

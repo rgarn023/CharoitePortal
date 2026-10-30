@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Five-second Charoite CLOUD-ONLY boot animation; never changes app assets.
+"""Seven-second Charoite CLOUD-ONLY boot animation; never changes app assets.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,8 +17,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_5s.mp4"
-WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 5
+OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_7s.mp4"
+WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7
 
 
 def draw_plaque(canvas):
@@ -122,9 +122,9 @@ def make_cloud_sources(paths):
 def overlay(t, xx, yy, paths, sources):
     fine,broad,noise_a,noise_b=sources
     ramp=smoothstep(.0,.95,t)
-    # Cloud light and audio follow the same five-second timeline; no flash.
-    finale=1+.14*math.exp(-.5*((t-4.0)/.36)**2)
-    tail=1-smoothstep(4.22,5.0,t)
+    # Cloud light and audio follow the same seven-second timeline; no flash.
+    finale=1+.14*math.exp(-.5*((t-5.4)/.58)**2)
+    tail=1-smoothstep(5.55,6.85,t)
     envelope=ramp*finale*tail
 
     # Animate the CLOUD textures, never the original illustration. The
@@ -175,7 +175,7 @@ def main():
              "-i","-","-an","-c:v","libx264","-preset","fast",
              "-crf","18","-pix_fmt","yuv420p","-movflags","+faststart",str(OUT)]
     proc=subprocess.Popen(command,stdin=subprocess.PIPE)
-    frames=(0,1,2,3,4.5)
+    frames=(0,1,2.5,4.5,5.8,6.9)
     stills=[]
     for n in range(FPS*SECONDS):
         t=n/FPS
@@ -197,9 +197,9 @@ def main():
         sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
         for j,still in enumerate(stills):
             sheet.paste(still,(j*240,0))
-        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_5s_Storyboard.jpg",
+        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_7s_Storyboard.jpg",
                    quality=90)
-    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_5_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
+    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_7_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

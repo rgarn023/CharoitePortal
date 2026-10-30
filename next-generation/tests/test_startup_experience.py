@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 54", PREP)
-        self.assertIn("11.2-next.0.23", PREP)
+        self.assertIn("versionCode 55", PREP)
+        self.assertIn("11.2-next.0.24", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -89,15 +89,40 @@ class StartupExperienceTest(unittest.TestCase):
         # uninterrupted source image must fill the portrait canvas.
         generator_source = (ROOT / "make_portrait_boot.py").read_text(encoding="utf-8")
         self.assertIn("SOURCE_X = (114, 1422)", generator_source)
-        self.assertIn("SOURCE_Y = (113, 360, 1160, 1434)", generator_source)
-        self.assertIn("DEST_Y = (0, 385, 1230, 1840)", generator_source)
-        self.assertIn("for band in range(len(SOURCE_Y)-1)", generator_source)
-        self.assertIn("Image.blend(", generator_source)
-        self.assertNotIn("Image.alpha_composite", generator_source)
-        self.assertNotIn("GaussianBlur", generator_source)
+        self.assertIn("SOURCE_Y = (113, 1434)", generator_source)
+        self.assertIn("TOP_EXTENSION = 410", generator_source)
+        self.assertIn("uniform_scale=width/src_width", generator_source)
+        self.assertIn("core_height=round(src_height*uniform_scale)", generator_source)
+        self.assertIn("_sky_extension(core,TOP_EXTENSION)", generator_source)
+        self.assertIn("_glass_extension(core,bottom_height)", generator_source)
+        self.assertNotIn("DEST_Y", generator_source)
+        self.assertNotIn("for band in range(len(SOURCE_Y)-1)", generator_source)
         self.assertNotIn("core_top = ", generator_source)
-        self.assertNotIn("ImageOps.flip", generator_source)
 
+
+    def test_gateway_keeps_original_aspect_ratio_without_pixel_stretch(self):
+        from PIL import Image, ImageStat, ImageChops
+        x0,x1 = portrait_art.SOURCE_X
+        y0,y1 = portrait_art.SOURCE_Y
+        scale = portrait_art.PORTRAIT_SIZE[0] / (x1-x0)
+        natural_height = round((y1-y0)*scale)
+        self.assertEqual(portrait_art.TOP_EXTENSION, 410)
+        self.assertGreater(natural_height, 900)
+        self.assertLess(natural_height, 1020)
+        self.assertLess(abs(natural_height/(y1-y0)-scale), 0.001)
+        with tempfile.TemporaryDirectory() as td:
+            out=Path(td)/"portrait.jpg"
+            portrait_art.generate(ART,out)
+            with Image.open(ART) as master:
+                expected=master.convert("RGB").crop((x0,y0,x1,y1))
+                expected=expected.resize((960,natural_height),Image.Resampling.LANCZOS)
+            with Image.open(out) as picture:
+                core=picture.crop((0,410,960,410+natural_height))
+                # JPEG encoding is allowed to vary a few levels. Compare
+                # untouched, centered interior; no stretch or aspect warp.
+                area=(180,140,780,natural_height-140)
+                error=ImageChops.difference(expected.crop(area), core.crop(area))
+                self.assertLess(max(ImageStat.Stat(error).mean), 5.0)
 
     def test_crystal_title_has_contrasting_dark_faceted_plaque(self):
         view = BOOT.split("private static final class CrystalWordmark extends View {",1)[1].split("private static final class CrystalShimmer",1)[0]
@@ -203,8 +228,9 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("crystalY(.46f, w, h)", effect)
         self.assertIn("crystalX(CRYSTAL_TIPS[i][0], w, h)", effect)
         self.assertIn("crystalY(CRYSTAL_TIPS[i][1], w, h)", effect)
-        self.assertIn("float sy = fraction * 1536f", effect)
-        self.assertIn("385f + (sy - 360f) * (845f / 800f)", effect)
+        self.assertIn("float sourceY = fraction * 1536f", effect)
+        self.assertIn("410f + (sourceY - 113f) * (960f / 1308f)", effect)
+        self.assertNotIn("845f / 800f", effect)
         self.assertNotIn("1020f / 1406f", effect)
         self.assertIn("crystalX(CRYSTAL_TIPS[i][0], w, h)", effect)
         self.assertIn("crystalY(CRYSTAL_TIPS[i][1], w, h)", effect)

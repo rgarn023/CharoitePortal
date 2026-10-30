@@ -55,15 +55,15 @@ if (len(lines)!=2 or lines[0]!="#!/usr/bin/env bash"
 cmd=lines[1]
 portable=cmd.replace('"$@"','-DLTC_NO_ASM "$@"')
 wrapper.write_text(
-    "#!/usr/bin/env bash\\n"
-    "case \" $* \" in\\n"
-    "  *\"dlls/bcrypt/\"*)\\n"
-    f"    {portable}\\n"
-    "    ;;\\n"
-    "  *)\\n"
-    f"    {cmd}\\n"
-    "    ;;\\n"
-    "esac\\n",
+    "#!/usr/bin/env bash\n"
+    "case \" $* \" in\n"
+    "  *\"dlls/bcrypt/\"*)\n"
+    f"    {portable}\n"
+    "    ;;\n"
+    "  *)\n"
+    f"    {cmd}\n"
+    "    ;;\n"
+    "esac\n",
     encoding="utf-8")
 print("CHAROITE_ARM64EC_BCRYPT_PORTABLE_ROTATES_WRAPPER=PASS")
 PY

@@ -14,7 +14,7 @@ import sys
 RUN = 40898982875
 ARTIFACT = 12908731604
 WINE_SHA = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
-ASSET = "charoite-next/wine-bootstrap-22.tar.gz"
+ASSET = "charoite-next/wine-bootstrap-22.bundle"
 INDEX = "charoite-next/wine-bootstrap-payload.json"
 MAX_BYTES = 64 * 1024 * 1024
 

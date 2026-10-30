@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.32"')
-text = text.replace("versionCode 33", "versionCode 63")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.33"')
+text = text.replace("versionCode 33", "versionCode 64")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -152,15 +152,16 @@ assert generate_fullbleed_boot(approved_art, boot_unframed, boot_backdrop) == (
 boot_portrait = app / "res/drawable-nodpi/charoite_next_boot_portrait.jpg"
 assert generate_portrait_boot(approved_art, boot_portrait) == boot_portrait
 
-# Keep the exact user-reference swirling portal and original crystal/title.
-# Purple-black clouds originate along the INNER edge of C and spiral inward.
-# Portal and feeder clouds both dissipate from 4.85s, matching audio fade.
+# Use the ACTUAL black-purple spiral from the newly approved edited image,
+# placed larger to match the user's red-spiral area inside the original C.
+# The crystal itself glows, and inward-feeding wisps dissolve with the 7s audio.
+# Original crystal art, native title and all runtime data stay intact.
 # This is silent H.264 packaged as a local app resource, never downloaded
 # while the phone starts and never placed into the stable Portal build.
 # The Android TextureView falls back to the still boot if decoding fails.
 preview_script = source_dir.parent / "docs/previews/render_crystal_awakening.py"
-movie_generated = source_dir.parent / "Charoite_C_Edge_Fed_Portal_7s.mp4"
-storyboard_generated = source_dir.parent / "Charoite_C_Edge_Fed_Portal_7s_Storyboard.jpg"
+movie_generated = source_dir.parent / "Charoite_C_Glow_Reference_Portal_7s.mp4"
+storyboard_generated = source_dir.parent / "Charoite_C_Glow_Reference_Portal_7s_Storyboard.jpg"
 assert preview_script.is_file() and not movie_generated.exists()
 subprocess.run([sys.executable, str(preview_script)], check=True, cwd=source_dir.parent)
 assert movie_generated.is_file() and movie_generated.stat().st_size > 100000
@@ -168,19 +169,19 @@ assert movie_generated.is_file() and movie_generated.stat().st_size > 100000
 import cv2
 video_capture = cv2.VideoCapture(str(movie_generated))
 assert video_capture.isOpened(), "Reference-only portal MP4 cannot be decoded"
-assert round(video_capture.get(cv2.CAP_PROP_FPS)) == 24
-assert round(video_capture.get(cv2.CAP_PROP_FRAME_COUNT)) == 168
+assert round(video_capture.get(cv2.CAP_PROP_FPS)) == 30
+assert round(video_capture.get(cv2.CAP_PROP_FRAME_COUNT)) == 210
 assert round(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 480
 assert round(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == 920
 video_capture.release()
-movie_raw = app / "res/raw/charoite_c_edge_fed_portal_7s.mp4"
+movie_raw = app / "res/raw/charoite_c_glow_reference_portal_7s.mp4"
 assert not movie_raw.exists()
 shutil.copyfile(movie_generated, movie_raw)
 assert movie_raw.stat().st_size == movie_generated.stat().st_size
 movie_generated.unlink()
 if storyboard_generated.exists():
     storyboard_generated.unlink()
-print("CHAROITE_NEXT_C_EDGE_FED_PORTAL_7_SECONDS=PASS")
+print("CHAROITE_NEXT_C_GLOW_REFERENCE_PORTAL_7_SECONDS=PASS")
 
 
 

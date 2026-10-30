@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Seven-second reference vortex fed by purple-black clouds from the existing C rim.
+"""Seven-second crystal C glow and expanded counterclockwise vortex sampled from the user-approved edited image.
 
-The original crystal C, full-screen scenery and Android-drawn wordmark are
-unchanged. ONLY clouds in the C opening and its feathered vortex are animated. In
+The original crystal C geometry, full-screen scenery and native Android wordmark
+remain fixed. Only restrained violet light on the C, inward cloud wisps and the
+portal texture change; the boot art and title never switch. In
 particular, never bake a second wordmark into the video: Android's
 CrystalWordmark view is drawn ABOVE this silent video, at all times.
 """
@@ -18,14 +19,16 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_C_Edge_Fed_Portal_7s.mp4"
-SOURCE = ROOT / "next-generation/assets/charoite_portal_reference_inner.jpg"
-WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7
+OUT = ROOT / "Charoite_C_Glow_Reference_Portal_7s.mp4"
+SOURCE = ROOT / "next-generation/assets/charoite_user_edited_portal_v33.webp"
+WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 30, 7
 
 # Placement is relative to the same 960x1840 portrait art used by
 # CrystalArtwork; these are 480x920 coordinates in the C's open center.
-PORTAL_X, PORTAL_Y = 292, 416
-PORTAL_RX, PORTAL_RY = 78, 89
+# Portal center and extent are measured against the user's red-spiral
+# placement guide: it must FILL the opening, not look like a small circle.
+PORTAL_X, PORTAL_Y = 278, 417
+PORTAL_RX, PORTAL_RY = 103, 114
 
 
 def make_base():
@@ -46,7 +49,7 @@ def make_base():
 
 
 def make_portal_source():
-    """Real swirled violet/black cloud texture cropped from the user screenshot."""
+    """Actual vortex texture cropped from the newly approved edited boot image."""
     with Image.open(SOURCE) as image:
         image.load()
         assert image.size == (160, 160), "Unexpected reference crop geometry"
@@ -64,6 +67,15 @@ def portal_phase(t):
                  (1. - smoothstep(4.85, 6.25, t)))
 
 
+# Hand-traced outer and INNER crystalline C rims in the 480x920 portrait.
+# Only the existing crystal changes in brightness, never shape or position.
+OUTER_C_RIM = np.array([
+    (361.,322.), (334.,289.), (298.,268.), (256.,260.),
+    (208.,270.), (166.,294.), (129.,332.), (113.,374.),
+    (113.,431.), (128.,482.), (162.,531.), (213.,563.),
+    (271.,576.), (333.,558.)
+],dtype=np.float32)
+
 # Hand-traced INNER rim of the actual crystal C, in the 480x920 portrait.
 # These are separate geometry references: the crystal artwork is NEVER drawn
 # or modified by these paths, including at the emitter locations.
@@ -77,7 +89,7 @@ INNER_C_RIM = np.array([
 # This narrow ROI contains the inward-moving clouds plus the reference
 # vortex. Everything beyond it, including the C's crystalline facets,
 # the landscape and the native Android title, remains an exact base copy.
-FEED_X0, FEED_Y0, FEED_X1, FEED_Y1 = 138, 280, 380, 521
+FEED_X0, FEED_Y0, FEED_X1, FEED_Y1 = 111, 262, 408, 569
 
 
 def smoke_phase(t):
@@ -124,15 +136,42 @@ def opening_mask():
     # Trace the boundary immediately INWARD from the crystal's inner facets,
     # then close around the existing central portal's open right-hand region.
     points = np.array(
-        [(349.,345.), (332.,330.), (302.,310.), (268.,299.),
-         (237.,297.), (207.,314.), (180.,337.), (164.,370.),
-         (161.,411.), (173.,451.), (198.,476.), (228.,495.),
-         (263.,499.), (310.,486.), (369.,481.), (375.,351.)],
+        [(358.,331.), (336.,307.), (304.,287.), (270.,278.),
+         (231.,279.), (197.,296.), (168.,324.), (147.,361.),
+         (145.,414.), (158.,456.), (185.,494.), (222.,525.),
+         (274.,538.), (334.,534.), (402.,551.), (403.,308.)],
         dtype=np.float32)
     points[:,0] -= FEED_X0
     points[:,1] -= FEED_Y0
     cv2.fillPoly(stencil, [np.rint(points).astype(np.int32)], 255)
     return cv2.GaussianBlur(stencil, (0,0), 3).astype(np.float32)/255.
+
+
+def crystal_phase(t):
+    """Gentle C glow synchronizes with the formation and audio-tail fade."""
+    return float(smoothstep(.12, 1.20, t) *
+                 (1.-smoothstep(4.85, 6.30, t)))
+
+
+def crystal_glow_layers():
+    """Glow follows ONLY the existing C crystal's facets and rims."""
+    import functools
+    # Precomputed once per movie-render process rather than per-frame.
+    if hasattr(crystal_glow_layers, "_cache"):
+        return crystal_glow_layers._cache
+    fill = np.zeros((HEIGHT,WIDTH),np.uint8)
+    traced = np.vstack([OUTER_C_RIM,INNER_C_RIM[::-1]])
+    cv2.fillPoly(fill,[np.rint(traced).astype(np.int32)],255)
+    edges=np.zeros_like(fill)
+    for rim in (OUTER_C_RIM, INNER_C_RIM):
+        cv2.polylines(edges,[np.rint(rim).astype(np.int32)],False,255,6,cv2.LINE_AA)
+    # The low-level material glow is shaped by C itself, not a circle.
+    material=cv2.GaussianBlur(fill,(0,0),7).astype(np.float32)/255.
+    aura=cv2.GaussianBlur(edges,(0,0),12).astype(np.float32)/255.
+    highlights=cv2.GaussianBlur(edges,(0,0),3.5).astype(np.float32)/255.
+    result=(material,aura,highlights)
+    crystal_glow_layers._cache=result
+    return result
 
 
 def make_clouds(t):
@@ -145,8 +184,8 @@ def make_clouds(t):
     hh, ww = FEED_Y1-FEED_Y0, FEED_X1-FEED_X0
     black = np.zeros((hh, ww), np.uint8)
     violet = np.zeros_like(black)
-    for i in range(67):
-        launch = .18 + i*.071
+    for i in range(88):
+        launch = .15 + i*.053
         age = t-launch
         if age <= 0 or age >= 2.8 or launch >= 4.85:
             continue
@@ -154,8 +193,8 @@ def make_clouds(t):
         birth = float(smoothstep(0., .28, age))
         death = float(1.-smoothstep(2.15,2.8,age))
         strength = birth*death
-        for j in range(8):
-            trailing_age = max(0.,age-j*.078)
+        for j in range(10):
+            trailing_age = max(0.,age-j*.074)
             x,y = advect_cloud(source, trailing_age, i*.73)
             # Mild curling/noise to produce irregular CLOUDS, never
             # straight tracer lines or rigid concentric rings.
@@ -163,8 +202,8 @@ def make_clouds(t):
             y += 2.2*math.cos(1.9*i+j*1.1+age*3.1)
             x -= FEED_X0
             y -= FEED_Y0
-            opacity = strength*(1.-j/11.)
-            size = (7.7+3.*math.sin(i*1.73+j*.93)**2)*(1.+.10*trailing_age)
+            opacity = strength*(1.-j/13.)
+            size = (8.4+3.*math.sin(i*1.73+j*.93)**2)*(1.+.12*trailing_age)
             if -20 < x < ww+20 and -20 < y < hh+20:
                 cv2.circle(black,(int(x),int(y)),max(2,int(size)),
                            min(255,int(200*opacity)),-1,cv2.LINE_AA)
@@ -184,9 +223,20 @@ def render_overlay(t, base, portal_source):
     """
     portal_opacity = portal_phase(t)
     cloud_opacity = smoke_phase(t)
-    if portal_opacity == 0. and cloud_opacity == 0.:
+    glow_opacity=crystal_phase(t)
+    if portal_opacity == 0. and cloud_opacity == 0. and glow_opacity == 0.:
         return base
     scene = base.copy()
+    if glow_opacity:
+        material,aura,highlights=crystal_glow_layers()
+        breathe=.93+.07*math.sin(t*1.7)**2
+        # Warm violet luminance comes from the existing C crystal geometry.
+        # The wider bloom lights its neighboring air without moving scenery.
+        energy=glow_opacity*breathe
+        scene += (material*.48+aura*2.3)[:,:,None]*energy * np.array(
+            [52.,25.,91.],np.float32)
+        scene += highlights[:,:,None]*energy*np.array(
+            [78.,62.,108.],np.float32)
     x0,y0,x1,y1 = FEED_X0,FEED_Y0,FEED_X1,FEED_Y1
     target = scene[y0:y1,x0:x1]
     mask = opening_mask()
@@ -211,13 +261,13 @@ def render_overlay(t, base, portal_source):
         dy=(yy-PORTAL_RY)/PORTAL_RY
         radius=np.sqrt(dx*dx+dy*dy)
         theta=np.arctan2(-dy,dx)
-        twist=.78*t*np.maximum(0.,1.-radius)**1.3
+        twist=1.05*t*np.maximum(0.,1.-radius)**1.10
         angle=theta-twist
         src_x=(80.+76.*radius*np.cos(angle)).astype(np.float32)
         src_y=(80.-76.*radius*np.sin(angle)).astype(np.float32)
         warped=cv2.remap(portal_source,src_x,src_y,cv2.INTER_LINEAR,
                          borderMode=cv2.BORDER_REFLECT)
-        alpha=(1.-smoothstep(.86,.99,radius))*portal_opacity
+        alpha=(1.-smoothstep(.87,.995,radius))*portal_opacity
         # This soft alpha is not a painted circle: every color comes from
         # the actual user's reference. Keep C facets outside the mask.
         px0=PORTAL_X-PORTAL_RX-FEED_X0
@@ -244,7 +294,7 @@ def main():
         t = frame_index/FPS
         frame = np.uint8(np.clip(render_overlay(t, base, portal), 0, 255))
         proc.stdin.write(frame.tobytes())
-        if frame_index in (0, 27, 60, 96, 136, 167):
+        if frame_index in (0, 33, 75, 120, 170, 209):
             storyboard.append(Image.fromarray(frame, "RGB").resize(
                 (240, 460), Image.Resampling.LANCZOS))
     proc.stdin.close()
@@ -258,8 +308,8 @@ def main():
     contact = Image.new("RGB", (720, 920))
     for index, img in enumerate(storyboard):
         contact.paste(img, ((index%3)*240, (index//3)*460))
-    contact.save(ROOT / "Charoite_C_Edge_Fed_Portal_7s_Storyboard.jpg", quality=89)
-    print("CHAROITE_C_EDGE_FED_PORTAL_7_SECONDS=PASS", OUT.stat().st_size)
+    contact.save(ROOT / "Charoite_C_Glow_Reference_Portal_7s_Storyboard.jpg", quality=89)
+    print("CHAROITE_C_GLOW_REFERENCE_PORTAL_7_SECONDS=PASS", OUT.stat().st_size)
 
 
 if __name__ == "__main__":

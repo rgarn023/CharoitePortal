@@ -1761,4 +1761,23 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 93. October 30, 2026 — User confirms Wine26 99-file staging PASS; Next v0.40 matching native ELF gate
+
+**Actual on-device report pasted by user:** `CHAROITE NEXT — ISOLATED WINE26 PE/NLS STAGING`: complete **26-component source archive SHA-256 PASS**, **Windows PE 23/23 staged and verified**, **Wine NLS 76/76 staged and verified**, **20 unbundled PE import names**, original Wine22/native loader cohort **UNCHANGED**, no prefixes, games, saves, rootfs accessed, no native ELF, Wineboot, Windows EXE, FEX or graphics executed. Final **`RESULT: PASS — source-coherent Wine26 data staged; NOT runnable`**. This confirms **v0.39 device staging success**, NOT native Wine26 startup.
+
+**Direct development on GitHub/main completed for Next v0.40 candidate:**
+- `CharoiteWine26Stage.java`: added **read-only** `verifyOnly(Context)` which verifies original pinned full Wine26 APK archive plus 99 staged PE/NLS hashes, blocks if pending staged files exist, does not create/copy/delete a file, and does not touch old Wine22 or save data.
+- New `stage_wine26_native.py`: independently verifies successful pinned source archive from [Wine source run **41121328663 SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/41121328663), artifact **13009171257**, checks entire new archive bytes match already packaged Wine26 archive, source SHA `c74acb09d51b447f5d5ac56c87608d3ec565a767`, 26 components/76 NLS, 3 matching native ARM64 ELF entries, hashes, dependencies and ELF64 PIE/Android 16K alignment. Adds *distinct* APK-owned `libcharoite_wine26_loader.so`, `libcharoite_wine26_ntdll.so`, `libcharoite_wine26_wineserver.so` **without modifying the prior Wine22 native libs or staged data**; doesNotStrip preserves their exact source hashes. Emits separately pinned `assets/charoite-next/wine26-native-probe.json`.
+- New `CharoiteWine26NativeGate.java`: user-confirmed `System → Test matched Wine26 native startup → Run Wine26 version tests`. Re-checks 99 staged data files before any native code, independently hashes all 3 APK-extracted native ELF files, then runs only source-matched Android Wine `--version` and wineserver `--version` in a cleared process environment, exact Wine 10 output and 7s timeout, copyable report. No new Wine prefix, Wineboot, Windows EXE, FEX, graphics, server session or game; original old probes remain in UI.
+- `prepare_next.py` candidate version **11.2-next.0.40**, versionCode **71**, same `com.charoitx` package/signing, new consent UI and copied Java class. `CharoiteNextRuntime.java` accurately labels VERSION-ONLY status.
+- `.github/workflows/charoite-next.yml` pins new ELF source archive, packages native libraries and verifies final APK exact hashes/ELF machine/ABI, prior Wine22 95 asset files, Wine26 99 assets, AAPT version and signer; includes legal/source payloads. Added `next-generation/tests/test_wine26_native_gate.py` for source identity, staging read-only, no preexisting prefix mutation and double native version checks; all old test version assertions adjusted to v0.40.
+- CI triggering source README commit **`3f4c13e17831e3ae1af5df47d8287388a470d757`**. This includes earlier commits `880554c2` (read-only stage), `d4b1063f` (source native APK packaging), `e84ac5ca` (native Java gate), `832aa718` (UI/version), `9b4a1876` (status), `0373f843` (APK CI), `8a201ffe` (new tests), plus old test pin updates.
+
+**Current v0.40 CI:** [GitHub Actions run **41124755206**](https://github.com/rgarn023/CharoitePortal/actions/runs/41124755206) is **QUEUED at time of this note**, no verified new signed APK. Check actual job results and artifacts; do NOT claim success before green job + artifact. If failure, inspect first failed test/Java/native packaging step and fix on main, trigger a new run. Only give a new APK once signing, source/asset hashes and 7-second boot tests pass.
+
+**Last verified signed phone APK v0.39** from [run **41122977199 SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/41122977199), [APK artifact **13009028227**](https://github.com/rgarn023/CharoitePortal/actions/runs/41122977199/artifacts/13009028227); user has already verified its Wine26 data staging PASS. Next user-requested report only after signed v0.40: **System → Test matched Wine26 native startup → Run Wine26 version tests → Copy report**. Even successful native --version still is NOT Wineboot, Windows exe or game launch. Stable `com.charoite` unchanged. No uninstall/clear data; approved 7-second crystal energy boot and app data must be preserved.
+
+---
+
 **End of current Charoite Portal handoff.**

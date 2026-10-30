@@ -84,6 +84,12 @@ while IFS= read -r rel; do
       echo "Observed post-prerequisite loader NLS source context:" >&2
       grep -n -C 2 -F "data_dir = build_relative_path" dlls/ntdll/unix/loader.c >&2 || :
     fi
+    if [[ "$rel" == 0900-* ]]; then
+      echo "Pinned post-prerequisite initial Windows NTDLL source context:" >&2
+      grep -n -C 15 -F 'status = open_builtin_pe_file( name, &attr' dlls/ntdll/unix/loader.c | tail -n 90 >&2 || :
+      echo "Pinned post-prerequisite native loader context:" >&2
+      grep -n -C 16 -F 'WINEDLLPATH' loader/main.c | tail -n 85 >&2 || :
+    fi
     echo "Charoite Wine source patch needs rebase: $rel" >&2
     exit 13
   fi

@@ -152,8 +152,8 @@ public final class CharoiteWineIsolatedStage {
      */
     public static String verifyOnly(Context context) {
         StringBuilder report = new StringBuilder();
-        report.append("CHAROITE NEXT — STAGED PE/NLS READ-ONLY VERIFY\\n");
-        report.append("Existing prefixes, saves, and rootfs: NOT ACCESSED\\n");
+        report.append("CHAROITE NEXT — STAGED PE/NLS READ-ONLY VERIFY\n");
+        report.append("Existing prefixes, saves, and rootfs: NOT ACCESSED\n");
         try {
             JSONObject index = validatedInventory(context);
             File base = context.getNoBackupFilesDir().getCanonicalFile();
@@ -166,12 +166,12 @@ public final class CharoiteWineIsolatedStage {
             if (pending.exists())
                 throw new SecurityException("Incomplete pending staging is quarantined");
             verifyFiles(complete, index.getJSONArray("files"));
-            report.append("Staged Windows PE: 19/19 verified\\n");
-            report.append("Staged Wine NLS: 76/76 verified\\n");
-            report.append("No native executable or Wine prefix was installed\\n");
-            report.append("RESULT: PASS — staged module data verified; NOT runnable\\n");
+            report.append("Staged Windows PE: 19/19 verified\n");
+            report.append("Staged Wine NLS: 76/76 verified\n");
+            report.append("No native executable or Wine prefix was installed\n");
+            report.append("RESULT: PASS — staged module data verified; NOT runnable\n");
         } catch (Exception error) {
-            report.append("RESULT: BLOCKED — ").append(error.getClass().getSimpleName()).append("\\n");
+            report.append("RESULT: BLOCKED — ").append(error.getClass().getSimpleName()).append("\n");
         }
         return report.toString();
     }

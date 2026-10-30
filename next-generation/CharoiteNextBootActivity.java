@@ -266,19 +266,19 @@ public final class CharoiteNextBootActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // Full-frame silent preview approved by user, with a static-image
+        // Full-frame silent crystal-portal animation, with a static-image
         // fallback underneath. TextureView stays transparent until Android
         // actually renders its first video frame: no black video flash.
         // Portrait video is NOT stretched over landscape orientation.
-        CrystalCloudMovie clouds = new CrystalCloudMovie(activity);
-        clouds.setClickable(false);
-        clouds.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        boot.addView(clouds, new FrameLayout.LayoutParams(
+        CrystalPortalMovie portalMovie = new CrystalPortalMovie(activity);
+        portalMovie.setClickable(false);
+        portalMovie.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        boot.addView(portalMovie, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         // Fade back to the native crystal artwork ahead of Android navigation,
         // even when first video-frame decode starts late.
-        clouds.postDelayed(clouds::fadeForBootEnd, BOOT_DURATION_MS - 950L);
+        portalMovie.postDelayed(portalMovie::fadeForBootEnd, BOOT_DURATION_MS - 950L);
         return boot;
     }
 
@@ -300,7 +300,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
     /**
-     * Plays the approved silent seven-second cloud-only Mystic C video.
+     * Plays the silent seven-second glowing C and inner black-purple portal.
      * The native artwork, shimmer and crystal wordmark remain underneath as a
      * fallback if the decoder is slow or unavailable. TextureView prevents
      * SurfaceView from showing a blank/black overlay during preparation.
@@ -309,7 +309,7 @@ public final class CharoiteNextBootActivity extends Activity {
      * Player and Surface are released when the splash detaches (including
      * Samsung direct-root cold-fallback), never when simply resuming Portal.
      */
-    private static final class CrystalCloudMovie extends TextureView
+    private static final class CrystalPortalMovie extends TextureView
             implements TextureView.SurfaceTextureListener {
         private static final float MOVIE_W = 480f;
         private static final float MOVIE_H = 920f;
@@ -323,7 +323,7 @@ public final class CharoiteNextBootActivity extends Activity {
             animate().alpha(0f).setDuration(750L).start();
         }
 
-        CrystalCloudMovie(Context context) {
+        CrystalPortalMovie(Context context) {
             super(context);
             setSurfaceTextureListener(this);
             setOpaque(true);
@@ -350,7 +350,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 MediaPlayer player = new MediaPlayer();
                 movie = player;
                 AssetFileDescriptor afd = getResources().openRawResourceFd(
-                        com.winlator.R.raw.charoite_mystic_c_cloud_7s);
+                        com.winlator.R.raw.charoite_crystal_portal_7s);
                 try {
                     player.setDataSource(afd.getFileDescriptor(),
                             afd.getStartOffset(), afd.getLength());
@@ -377,7 +377,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 });
                 player.setOnErrorListener((mp, what, extra) -> {
                     Log.w("CharoiteNextStartup",
-                            "Mystic C decoder failed; keeping original artwork");
+                            "Crystal portal decoder failed; keeping original artwork");
                     setAlpha(0f);
                     releaseMovie();
                     return true;
@@ -385,7 +385,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 player.prepareAsync();
             } catch (Exception e) {
                 Log.w("CharoiteNextStartup",
-                        "Mystic C unavailable; keeping original artwork", e);
+                        "Crystal portal unavailable; keeping original artwork", e);
                 setAlpha(0f);
                 releaseMovie();
             }

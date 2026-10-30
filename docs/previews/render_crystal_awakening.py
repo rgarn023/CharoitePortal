@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seven-second Charoite CLOUD-ONLY boot animation; never changes app assets.
+"""Seven-second C-crystal glow and inner black-purple portal; preserves approved art.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_7s.mp4"
+OUT = ROOT / "Charoite_Crystal_Portal_7s.mp4"
 WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7
 
 
@@ -58,8 +58,8 @@ def make_base():
 
 
 
-# Curve points follow the approved `C` crystal silhouette. Only
-# additive light is painted; the actual artwork never shifts or warps.
+# Hand-traced outlines of the approved C-crystal. Its material stays still;
+# light is added only along the facets, with the portal within the inner void.
 OUTER = np.array([
     (699,614),(681,578),(618,522),(538,505),(452,514),(371,533),
     (295,591),(234,677),(211,761),(226,867),(276,960),(359,1020),
@@ -95,80 +95,85 @@ def smoothstep(a, b, x):
     return x*x*(3-2*x)
 
 
-def cloud_noise(seed, low_shape):
-    """Soft multi-octave, reproducible volumetric noise, not image distortion."""
-    rng=np.random.default_rng(seed)
-    small=rng.random(low_shape,dtype=np.float32)
-    return cv2.GaussianBlur(cv2.resize(small,(WIDTH,HEIGHT),
-                        interpolation=cv2.INTER_CUBIC),(0,0),7)
+def make_energy_sources(paths):
+    """Precompute a localized facet glow; never paint drifting clouds."""
+    thin = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
+    for curve, _ in paths:
+        pts = np.rint(curve).astype(np.int32).reshape(-1, 1, 2)
+        cv2.polylines(thin, [pts], False, 255, 9, cv2.LINE_AA)
+    narrow = cv2.GaussianBlur(thin, (0, 0), 7).astype(np.float32) / 255
+    wide = cv2.GaussianBlur(thin, (0, 0), 22).astype(np.float32) / 255
+    return narrow, wide
 
 
-def make_cloud_sources(paths):
-    """Cloud envelopes hug the C silhouette, not the entire screen."""
-    fine=np.zeros((HEIGHT,WIDTH),dtype=np.uint8)
-    broad=np.zeros_like(fine)
-    for path,_ in paths:
-        pts=np.rint(path).astype(np.int32).reshape(-1,1,2)
-        cv2.polylines(fine,[pts],False,255,43,cv2.LINE_AA)
-        cv2.polylines(broad,[pts],False,255,104,cv2.LINE_AA)
-    fine=cv2.GaussianBlur(fine,(0,0),18).astype(np.float32)/255
-    broad=cv2.GaussianBlur(broad,(0,0),34).astype(np.float32)/255
-    # Keep the energy entirely near the outer crystal C and inner crescent,
-    # out of the title, stars, planets and open portal center.
-    return fine,broad,cloud_noise(814,(24,13)),cloud_noise(191,(53,31))
+def portal_phase(t):
+    # The source soundtrack is fully silent at t=6.35. Complete the portal
+    # fade by 6.25 so it never pops away when Android closes the boot at 7s.
+    appear = smoothstep(1.15, 2.65, t)
+    disappear = 1.0 - smoothstep(5.05, 6.25, t)
+    return float(appear * disappear)
 
 
+def crystal_phase(t):
+    return float(smoothstep(.08, 1.40, t) *
+                 (1.0 - smoothstep(5.12, 6.30, t)))
 
-def overlay(t, xx, yy, paths, sources):
-    fine,broad,noise_a,noise_b=sources
-    ramp=smoothstep(.0,.95,t)
-    # Cloud light and audio follow the same seven-second timeline; no flash.
-    finale=1+.14*math.exp(-.5*((t-5.4)/.58)**2)
-    tail=1-smoothstep(5.55,6.85,t)
-    envelope=ramp*finale*tail
 
-    # Animate the CLOUD textures, never the original illustration. The
-    # two drifting noise fields make wispy violet fog curl around the C.
-    dx=int(22*t+9*math.sin(t*.85))
-    dy=int(-24*t+5*math.sin(t*.96))
-    a=np.roll(noise_a,(dy,dx),(0,1))
-    b=np.roll(noise_b,(-dy*2,dx//2),(0,1))
-    cloud=np.clip((a*.78+b*.55-.31)*3.2,0,1)
-    cloud=cv2.GaussianBlur(cloud.astype(np.float32),(0,0),3)
-    density=(.38*broad + 1.3*fine)*cloud
-    density=np.clip(density*envelope,0,.93)
-    # Layer luminous lavender smoke over the C, retaining artwork details.
-    color=np.array([164,64,246],dtype=np.float32)
-    cloudy=(color[None,None,:]*density[:,:,None]*.78)
-    cloudy+=density[:,:,None]*np.array([37,12,82],dtype=np.float32)
+def render_overlay(t, base, xx, yy, paths, sources):
+    """C glow and softly shaded inner vortex; NO clouds, lightning or zoom.
 
-    # Three floating masses flow along the curved crystal. Broad
-    # Gaussian plumes, no drawn tracer lines or screen-scale distortions.
-    cloud_mass=np.zeros((HEIGHT,WIDTH),dtype=np.float32)
-    for k,(path,norm) in enumerate((paths[0],paths[1],paths[0])):
-        phase=(t*(.09+.027*k)+(.09,.55,.77)[k])%1
-        center=int(phase*(len(path)-1))
-        p=path[center]
-        offset=(11 if k!=1 else -7)+7*math.sin(1.25*t+k*2)
-        x,y=(p+norm[center]*offset)
-        r2=((xx-x)/28)**2+((yy-y)/35)**2
-        patch=np.exp(-.5*r2)*(.65+.35*math.sin(t*1.15+k*2)**2)
-        cloud_mass+=patch*cloud
-    cloudy+=np.clip(cloud_mass*envelope,0,1)[:,:,None]*np.array([44,17,98],dtype=np.float32)
+    The portal is a carefully feathered ellipse within the negative space of
+    the original C. It never obscures the title, sky or outer crystal tips.
+    At the first and final frames this returns the untouched approved image.
+    """
+    narrow, wide = sources
+    glow_amount = crystal_phase(t)
+    portal_amount = portal_phase(t)
+    if glow_amount == 0.0 and portal_amount == 0.0:
+        return base
 
-    # Crystal edge glow responds gently to the drifting, magical cloud.
-    illumination=(fine*.35+broad*.12)*envelope
-    cloudy+=illumination[:,:,None]*np.array([29,12,56],dtype=np.float32)
+    # Gentle, breathing violet-lavender light on the two crystal contours.
+    breathing = 0.94 + 0.06 * math.sin(2.0 * math.pi * .28 * t)
+    bright = glow_amount * breathing * (.72 * narrow + .38 * wide)
+    scene = base + bright[:, :, None] * np.array([105., 49., 150.], np.float32)
 
-    # No electrical discharges, bolts, filaments, flashes, or image warping.
-    return cloudy
+    if portal_amount > 0:
+        # Coordinates in original 960x1840 artwork: C void near (496, 780).
+        # Confining the radius keeps the portal inside the opening, not over
+        # the facets, its right-hand tips, title plaque or exterior scenery.
+        u = (xx - 248.) / 74.
+        v = (yy - 391.) / 88.
+        radius = np.sqrt(u*u + v*v)
+        angle = np.arctan2(v, u)
+
+        # Soft black-amethyst center blended WITH the existing picture. No
+        # opaque flat black disk and no sharp edge that could suddenly vanish.
+        inside = 1.0 - smoothstep(.77, 1.025, radius)
+        darkness = portal_amount * inside * .83
+        scene = scene * (1.0 - darkness[:, :, None])
+
+        # Two subtly rotating folds, distant violet light inside the vortex.
+        swirl = 0.5 + 0.5 * np.cos(14.0*radius + 2.2*angle - 1.0*t)
+        inner = np.exp(-1.8*radius*radius) * inside
+        folds = portal_amount * inner * (.12 + .15 * swirl)
+        scene += folds[:, :, None] * np.array([57., 20., 128.], np.float32)
+
+        # Luminous inner lip and restrained halo, with extremely slow pulse.
+        # These are smooth ellipses, NEVER jagged lightning/electric branches.
+        lip = np.exp(-.5*((radius - .91)/.065)**2)
+        halo = np.exp(-.5*((radius - 1.04)/.17)**2)
+        pulse = 0.94 + .06 * math.sin(2.0*math.pi*.36*t)
+        edge = portal_amount * pulse * (.41*lip + .22*halo)
+        scene += edge[:, :, None] * np.array([97., 35., 171.], np.float32)
+
+    return scene
 
 
 def main():
     base=make_base()
     yy,xx=np.mgrid[0:HEIGHT,0:WIDTH].astype(np.float32)
     paths=[resample_curve(OUTER),resample_curve(INNER)]
-    sources=make_cloud_sources(paths)
+    sources=make_energy_sources(paths)
     command=[imageio_ffmpeg.get_ffmpeg_exe(),"-y","-loglevel","error",
              "-f","rawvideo","-pixel_format","rgb24",
              "-video_size",f"{WIDTH}x{HEIGHT}","-framerate",str(FPS),
@@ -179,7 +184,7 @@ def main():
     stills=[]
     for n in range(FPS*SECONDS):
         t=n/FPS
-        frame=np.uint8(np.clip(base+overlay(t,xx,yy,paths,sources),0,255))
+        frame=np.uint8(np.clip(render_overlay(t,base,xx,yy,paths,sources),0,255))
         proc.stdin.write(frame.tobytes())
         if any(abs(t-s)<=.02 for s in frames):
             stills.append(Image.fromarray(frame,"RGB").resize(
@@ -197,9 +202,9 @@ def main():
         sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
         for j,still in enumerate(stills):
             sheet.paste(still,(j*240,0))
-        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_7s_Storyboard.jpg",
+        sheet.save(ROOT/"Charoite_Crystal_Portal_7s_Storyboard.jpg",
                    quality=90)
-    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_7_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
+    print(f"CHAROITE_CRYSTAL_PORTAL_7_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 59", PREP)
-        self.assertIn("11.2-next.0.28", PREP)
+        self.assertIn("versionCode 60", PREP)
+        self.assertIn("11.2-next.0.29", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -181,26 +181,29 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("createBootView(",resume)
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
-    def test_approved_cloud_only_movie_is_packaged_and_fails_safe(self):
-        # The signed Next APK must play the approved silent cloud-only
-        # visual, not the rejected electricity preview or any screen warp.
+    def test_seven_second_crystal_portal_movie_is_packaged_and_fails_safe(self):
+        # A crystal glow plus black-purple portal replaces cloudy energy.
         renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
         self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7", renderer)
-        self.assertIn("Charoite_Mystic_C_Cloud_Only_7s.mp4", renderer)
-        self.assertIn("cloud_noise(", renderer)
-        self.assertIn("make_cloud_sources(", renderer)
+        self.assertIn("Charoite_Crystal_Portal_7s.mp4", renderer)
+        self.assertIn("def portal_phase(t):", renderer)
+        self.assertIn("def crystal_phase(t):", renderer)
+        self.assertIn("def render_overlay(t, base, xx, yy, paths, sources):", renderer)
+        self.assertIn("make_energy_sources(paths)", renderer)
+        self.assertNotIn("def cloud_noise(", renderer)
+        self.assertNotIn("make_cloud_sources(", renderer)
         self.assertNotIn("def electrify(", renderer)
         self.assertNotIn("cv2.remap(", renderer)
         self.assertIn("subprocess.run([sys.executable, str(preview_script)]", PREP)
-        self.assertIn("movie_raw = app / \"res/raw/charoite_mystic_c_cloud_7s.mp4\"", PREP)
+        self.assertIn('movie_raw = app / "res/raw/charoite_crystal_portal_7s.mp4"', PREP)
         self.assertIn("shutil.copyfile(movie_generated, movie_raw)", PREP)
-        self.assertIn("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_7_SECONDS=PASS", PREP)
+        self.assertIn("CHAROITE_NEXT_CRYSTAL_PORTAL_MOVIE_7_SECONDS=PASS", PREP)
 
-        # Texture-backed video keeps the original art/title under it until
-        # an actual first decoded frame appears; it is never a black splash.
-        self.assertIn("new CrystalCloudMovie(activity)", BOOT)
-        self.assertIn("class CrystalCloudMovie extends TextureView", BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_mystic_c_cloud_7s", BOOT)
+        # TextureView covers the still image only after a decoded frame; its
+        # own fade prevents a late decoder from cutting to an unfinished frame.
+        self.assertIn("new CrystalPortalMovie(activity)", BOOT)
+        self.assertIn("class CrystalPortalMovie extends TextureView", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_crystal_portal_7s", BOOT)
         self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
         self.assertIn("setAlpha(0f)", BOOT)
         self.assertIn("setAlpha(1f)", BOOT)
@@ -211,12 +214,35 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("releaseMovie()", BOOT)
         self.assertIn("matrix.setScale(sx, sy, w / 2f, h / 2f)", BOOT)
         self.assertIn("BOOT_DURATION_MS = 7000L", BOOT)
-        self.assertIn("clouds.postDelayed(clouds::fadeForBootEnd, BOOT_DURATION_MS - 950L)", BOOT)
+        self.assertIn("portalMovie.postDelayed(portalMovie::fadeForBootEnd, BOOT_DURATION_MS - 950L)", BOOT)
         self.assertIn("fadingForBootEnd", BOOT)
         self.assertIn("animate().alpha(0f).setDuration(750L)", BOOT)
         self.assertNotIn("BOOT_DURATION_MS = 10000L", BOOT)
         self.assertNotIn("setVideoURI(", BOOT)
-        self.assertNotIn("R.raw.charoite_mystic_c_cloud_and_lightning", BOOT)
+        self.assertNotIn("R.raw.charoite_mystic_c_cloud_7s", BOOT)
+
+    def test_portal_stays_inside_c_and_vanishes_before_audio_ends(self):
+        import importlib.util
+        import numpy as np
+        source = ROOT.parent / "docs/previews/render_crystal_awakening.py"
+        spec = importlib.util.spec_from_file_location("crystal_portal_shader", source)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.portal_phase(0), 0)
+        self.assertGreater(mod.portal_phase(3.5), 0.9)
+        self.assertEqual(mod.portal_phase(6.35), 0)
+        self.assertEqual(mod.crystal_phase(6.35), 0)
+        y, x = np.mgrid[0:mod.HEIGHT, 0:mod.WIDTH].astype(np.float32)
+        base = np.full((mod.HEIGHT, mod.WIDTH, 3), 100., dtype=np.float32)
+        paths = [mod.resample_curve(mod.OUTER), mod.resample_curve(mod.INNER)]
+        sources = mod.make_energy_sources(paths)
+        opening = mod.render_overlay(3.6, base, x, y, paths, sources)
+        self.assertLess(float(opening[391, 248].mean()), 85.,
+                        "Portal must shade the void inside the C")
+        self.assertTrue(np.array_equal(opening[850, 240], base[850, 240]),
+                        "Wordmark and lower art must remain untouched")
+        self.assertTrue(np.array_equal(mod.render_overlay(0, base, x, y, paths, sources), base))
+        self.assertTrue(np.array_equal(mod.render_overlay(6.35, base, x, y, paths, sources), base))
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
         # Portrait source is a proper 960x1840 composition, not a zoomed

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Five-second Charoite v0.24 motion CONCEPT preview; never changes app assets.
+"""Ten-second Charoite v0.24 CLOUD-AND-LIGHTNING CONCEPT preview; never changes app assets.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,8 +17,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Mystic_C_Preview.mp4"
-WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 20, 5
+OUT = ROOT / "Charoite_Mystic_C_Cloud_and_Lightning_10s.mp4"
+WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 10
 
 
 def draw_plaque(canvas):
@@ -89,71 +89,153 @@ def resample_curve(points, count=1050):
     return curve*scale,normal
 
 
-def overlay(t, xx, yy, paths):
-    w,h=WIDTH,HEIGHT
-    energy=np.zeros((h,w,3),dtype=np.float32)
-    smoke=np.zeros((h,w),dtype=np.uint8)
-    ignite=np.clip((t-.15)/.9,0,1)*np.clip((5.1-t)/.5,0,1)
-    flows=[(paths[0],.04,1.04,.32,1.),(paths[1],.16,.71,.23,.82),
-           (paths[0],.48,.77,.15,.52)]
-    for k,((path,norm),offset,speed,length,power) in enumerate(flows):
-        progress=(t*speed/5+offset)%1.
-        u=np.linspace(progress-length,progress,140)
-        u=u[(u>=0)&(u<=1)]
-        if not len(u):
-            continue
-        ix=np.clip((u*(len(path)-1)).astype(int),0,len(path)-1)
-        phase=np.linspace(0,1,len(ix))
-        curl=np.sin(u*32+t*1.9+k*2.3)*(.6+3.2*phase)
-        push=(-1 if k==1 else 1)*(11.5+7*np.sin(np.pi*phase)**2)
-        pos=path[ix]+norm[ix]*(curl+push)[:,None]
-        line=np.zeros((h,w),dtype=np.uint8)
-        cv2.polylines(line,[np.rint(pos).astype(np.int32).reshape(-1,1,2)],
-                      False,255,3 if k==0 else 2,cv2.LINE_AA)
-        cv2.polylines(smoke,[np.rint(pos+norm[ix]*2.9).astype(np.int32).reshape(-1,1,2)],
-                      False,255,7,cv2.LINE_AA)
-        blur=cv2.GaussianBlur(line,(0,0),3.5)
-        halo=cv2.GaussianBlur(line,(0,0),12)
-        amount=ignite*power
-        energy+=halo[:,:,None]*np.array([2.1,.80,3.4])*amount
-        energy+=blur[:,:,None]*np.array([.95,.66,1.75])*amount
-        energy+=line[:,:,None]*np.array([.25,.42,.55])*amount
-        x,y=pos[-1]
-        rr=(xx-x)**2+(yy-y)**2
-        bloom=np.exp(-rr/(2*7**2))*ignite*power
-        glint=np.exp(-rr/(2*1.55**2))*ignite*power
-        energy+=bloom[:,:,None]*np.array([50,24,87])
-        energy+=glint[:,:,None]*np.array([155,202,245])
-    halo=cv2.GaussianBlur(smoke,(0,0),21)
-    energy+=halo[:,:,None]*np.array([.95,.30,1.6])*ignite
 
-    # Four crystal-tip glints; no random full-screen particle overlay.
-    tips=[(.47,.278),(.71,.34),(.22,.39),(.48,.589)]
-    for i,(nx,ny) in enumerate(tips):
-        peak=max(0,math.sin(t*2.2-i*.93))**9
-        r2=(xx-nx*w)**2+(yy-ny*h)**2
-        fine=np.exp(-r2/(2*2.9**2))
-        broad=np.exp(-r2/(2*13**2))
-        energy+=(fine[:,:,None]*[33,46,62]+broad[:,:,None]*[8,5,16])*peak*.65*ignite
-    return energy
+def smoothstep(a, b, x):
+    x=np.clip((x-a)/(b-a),0,1)
+    return x*x*(3-2*x)
+
+
+def cloud_noise(seed, low_shape):
+    """Soft multi-octave, reproducible volumetric noise, not image distortion."""
+    rng=np.random.default_rng(seed)
+    small=rng.random(low_shape,dtype=np.float32)
+    return cv2.GaussianBlur(cv2.resize(small,(WIDTH,HEIGHT),
+                        interpolation=cv2.INTER_CUBIC),(0,0),7)
+
+
+def make_cloud_sources(paths):
+    """Cloud envelopes hug the C silhouette, not the entire screen."""
+    fine=np.zeros((HEIGHT,WIDTH),dtype=np.uint8)
+    broad=np.zeros_like(fine)
+    for path,_ in paths:
+        pts=np.rint(path).astype(np.int32).reshape(-1,1,2)
+        cv2.polylines(fine,[pts],False,255,31,cv2.LINE_AA)
+        cv2.polylines(broad,[pts],False,255,83,cv2.LINE_AA)
+    fine=cv2.GaussianBlur(fine,(0,0),14).astype(np.float32)/255
+    broad=cv2.GaussianBlur(broad,(0,0),29).astype(np.float32)/255
+    # Keep the energy entirely near the outer crystal C and inner crescent,
+    # out of the title, stars, planets and open portal center.
+    return fine,broad,cloud_noise(814,(24,13)),cloud_noise(191,(53,31))
+
+
+def electrify(t, paths, mask, index):
+    """Branching lavender lightning periodically crackles along the C.
+
+    Reuses a stable C-shaped skeleton; each event has a jittered main bolt,
+    two side branches, thin white-violet filament and a soft purple halo.
+    All drawn in a separate light field; source image pixels never move.
+    """
+    strokes=np.zeros((HEIGHT,WIDTH),dtype=np.uint8)
+    fine=np.zeros_like(strokes)
+    events=(1.00,1.76,2.54,3.35,4.16,4.94,5.81,6.55,7.32,8.02,8.78,9.43)
+    for k,when in enumerate(events):
+        delta=t-when
+        if not (-.07<=delta<=.28):
+            continue
+        weight=math.sin(math.pi*np.clip((delta+.07)/.35,0,1))**.65
+        if weight<.08:
+            continue
+        path,norm=paths[k%2]
+        rng=np.random.default_rng(5010+k)
+        center=(.08+k*.17)%0.78+.11
+        start=max(.005,center-.11)
+        stop=min(.995,center+.15)
+        units=np.linspace(start,stop,37)
+        ix=np.clip((units*(len(path)-1)).astype(int),0,len(path)-1)
+        jag=rng.normal(0,5.2,len(ix)).astype(np.float32)
+        jag += np.sin(np.arange(len(ix))*2.8+t*21+k)*2.4
+        pts=path[ix]+norm[ix]*(jag+(-7 if k%2 else 8))[:,None]
+        line=np.rint(pts).astype(np.int32).reshape(-1,1,2)
+        cv2.polylines(strokes,[line],False,int(225*weight),3,cv2.LINE_AA)
+        cv2.polylines(fine,[line],False,int(255*weight),1,cv2.LINE_AA)
+        for m in (9,22,30):
+            p=pts[m]
+            vec=norm[ix[m]]
+            branch=np.stack([
+                p,
+                p+vec*rng.uniform(9,17)+np.array([rng.uniform(-3,3),rng.uniform(-3,3)]),
+                p+vec*rng.uniform(24,39)+np.array([rng.uniform(-9,9),rng.uniform(-7,7)])
+            ])
+            cv2.polylines(strokes,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
+                          False,int(170*weight),2,cv2.LINE_AA)
+            cv2.polylines(fine,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
+                          False,int(220*weight),1,cv2.LINE_AA)
+    glow=cv2.GaussianBlur(strokes,(0,0),9).astype(np.float32)/255
+    mid=cv2.GaussianBlur(strokes,(0,0),3).astype(np.float32)/255
+    core=fine.astype(np.float32)/255
+    light=(glow[:,:,None]*np.array([76,10,129],dtype=np.float32)
+           +mid[:,:,None]*np.array([116,56,205],dtype=np.float32)
+           +core[:,:,None]*np.array([157,139,211],dtype=np.float32))
+    return light*mask[:,:,None]
+
+
+def overlay(t, xx, yy, paths, sources):
+    fine,broad,noise_a,noise_b=sources
+    ramp=smoothstep(.15,2.1,t)
+    # A bright but gentle crescendo at the end; no full-screen flash.
+    finale=1+.22*math.exp(-.5*((t-9.25)/.34)**2)
+    tail=1-.88*smoothstep(9.72,10.0,t)
+    envelope=ramp*finale*tail
+
+    # Animate the CLOUD textures, never the original illustration. The
+    # two drifting noise fields make wispy violet fog curl around the C.
+    dx=int(6*t+9*math.sin(t*.57))
+    dy=int(-7*t+5*math.sin(t*.72))
+    a=np.roll(noise_a,(dy,dx),(0,1))
+    b=np.roll(noise_b,(-dy*2,dx//2),(0,1))
+    cloud=np.clip((a*.72+b*.47-.37)*2.4,0,1)
+    cloud=cv2.GaussianBlur(cloud.astype(np.float32),(0,0),3)
+    density=(.25*broad + .92*fine)*cloud
+    density=np.clip(density*envelope,0,.8)
+    # Layer luminous lavender smoke over the C, retaining artwork details.
+    color=np.array([131,50,226],dtype=np.float32)
+    cloudy=(color[None,None,:]*density[:,:,None]*.56)
+    cloudy+=density[:,:,None]*np.array([29,8,67],dtype=np.float32)
+
+    # Three floating masses flow along the curved crystal. Broad
+    # Gaussian plumes, no drawn tracer lines or screen-scale distortions.
+    cloud_mass=np.zeros((HEIGHT,WIDTH),dtype=np.float32)
+    for k,(path,norm) in enumerate((paths[0],paths[1],paths[0])):
+        phase=(t*(.047+.013*k)+(.09,.55,.77)[k])%1
+        center=int(phase*(len(path)-1))
+        p=path[center]
+        offset=(11 if k!=1 else -7)+7*math.sin(1.25*t+k*2)
+        x,y=(p+norm[center]*offset)
+        r2=((xx-x)/28)**2+((yy-y)/35)**2
+        patch=np.exp(-.5*r2)*(.65+.35*math.sin(t*1.15+k*2)**2)
+        cloud_mass+=patch*cloud
+    cloudy+=np.clip(cloud_mass*envelope,0,1)[:,:,None]*np.array([29,12,74],dtype=np.float32)
+
+    # Cloud-illuminated rim shines from within as electricity travels.
+    illumination=(fine*.35+broad*.12)*envelope
+    cloudy+=illumination[:,:,None]*np.array([18,6,39],dtype=np.float32)
+
+    # Thin, branching, intermittent electric filaments. This remains
+    # a *second layer of light*, never a warp of any source pixels.
+    arc=electrify(t,paths,np.clip(broad*.8+fine*.6,0,1),int(t*FPS))
+    return cloudy+arc
 
 
 def main():
     base=make_base()
     yy,xx=np.mgrid[0:HEIGHT,0:WIDTH].astype(np.float32)
     paths=[resample_curve(OUTER),resample_curve(INNER)]
+    sources=make_cloud_sources(paths)
     command=[imageio_ffmpeg.get_ffmpeg_exe(),"-y","-loglevel","error",
              "-f","rawvideo","-pixel_format","rgb24",
              "-video_size",f"{WIDTH}x{HEIGHT}","-framerate",str(FPS),
              "-i","-","-an","-c:v","libx264","-preset","fast",
-             "-crf","19","-pix_fmt","yuv420p","-movflags","+faststart",str(OUT)]
+             "-crf","18","-pix_fmt","yuv420p","-movflags","+faststart",str(OUT)]
     proc=subprocess.Popen(command,stdin=subprocess.PIPE)
+    frames=(0,2.5,5,7.5,9.25)
+    stills=[]
     for n in range(FPS*SECONDS):
         t=n/FPS
-        # STATIC background: pixel coordinates unchanged for every frame.
-        # All motion is additional spectral light following the C's curves.
-        frame=np.uint8(np.clip(base+overlay(t,xx,yy,paths),0,255))
+        frame=np.uint8(np.clip(base+overlay(t,xx,yy,paths,sources),0,255))
         proc.stdin.write(frame.tobytes())
+        if any(abs(t-s)<=.02 for s in frames):
+            stills.append(Image.fromarray(frame,"RGB").resize(
+                (240,460),Image.Resampling.LANCZOS))
     proc.stdin.close()
     if proc.wait()!=0:
         raise RuntimeError("ffmpeg encoding failed")
@@ -161,7 +243,15 @@ def main():
     framecount=capture.get(cv2.CAP_PROP_FRAME_COUNT)
     capture.release()
     assert abs(framecount-FPS*SECONDS)<1
-    print(f"CHAROITE_MYSTIC_C_PREVIEW=PASS {OUT.name} {OUT.stat().st_size} bytes")
+
+    # Optional visual contact sheet for preview review on Github.
+    if len(stills)>=4:
+        sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
+        for j,still in enumerate(stills):
+            sheet.paste(still,(j*240,0))
+        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_and_Lightning_10s_Storyboard.jpg",
+                   quality=90)
+    print(f"CHAROITE_MYSTIC_C_CLOUD_LIGHTNING_10_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

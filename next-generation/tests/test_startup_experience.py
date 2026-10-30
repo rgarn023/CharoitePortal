@@ -32,8 +32,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 48", PREP)
-        self.assertIn("11.2-next.0.17", PREP)
+        self.assertIn("versionCode 49", PREP)
+        self.assertIn("11.2-next.0.18", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -64,7 +64,11 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("hasLivePortalInSameTask(this)", BOOT)
         self.assertIn("portal.getTaskId() == launcher.getTaskId()", BOOT)
         self.assertIn("onPortalCreated(Activity portal, Bundle state)", BOOT)
-        self.assertIn("showColdPortalFallback(portal, 0)", BOOT)
+        self.assertIn("pendingColdFallbackOwner = portal", BOOT)
+        self.assertIn("onPortalPostCreated(Activity portal)", BOOT)
+        self.assertIn(".onPortalPostCreated(this)", PREP)
+        self.assertIn("onPostCreate(android.os.Bundle savedInstanceState)", PREP)
+        self.assertIn("super.onPostCreate(savedInstanceState)", PREP)
         self.assertIn("markBootShown(this)", BOOT)
         self.assertIn("LAST_BOOT_VERSION", BOOT)
         self.assertIn("installedVersion(portal)", BOOT)
@@ -78,8 +82,8 @@ class StartupExperienceTest(unittest.TestCase):
         # Portal; otherwise Samsung can resume Portal forever without boot.
         launch = BOOT.split("startActivity(main);",1)[1].split("};\n        handler.postDelayed(openMain",1)[0]
         self.assertNotIn("finish();", launch)
-        fallback = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("private static void showColdPortalFallback",1)[0]
-        self.assertIn("showColdPortalFallback(portal, 0)", fallback)
+        fallback = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("public static void onPortalPostCreated",1)[0]
+        self.assertIn("pendingColdFallbackOwner = portal", fallback)
         self.assertIn("portal.isChangingConfigurations()", fallback)
         self.assertIn('Already running in same task; boot skipped', BOOT)
         self.assertIn("currentPortal.get()", BOOT)
@@ -101,10 +105,10 @@ class StartupExperienceTest(unittest.TestCase):
     def test_direct_task_fallback_occurs_only_on_creation(self):
         # Regression for 0.16: finishing the launcher while Portal remains
         # alive prevented the next genuinely fresh task from showing splash.
-        direct = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("private static void showColdPortalFallback",1)[0]
+        direct = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("public static void onPortalPostCreated",1)[0]
         self.assertIn("onPortalCreated", BOOT)
         self.assertIn("state != null && seen == version", direct)
-        self.assertIn("showColdPortalFallback(portal, 0)", direct)
+        self.assertIn("pendingColdFallbackOwner = portal", direct)
         self.assertIn("portal.isTaskRoot()", direct)
         self.assertIn("installedVersion", direct)
         self.assertIn("intent.getBooleanExtra(EXTRA_PLAY_CHIME, false)", direct)
@@ -114,6 +118,25 @@ class StartupExperienceTest(unittest.TestCase):
         # New Portal starts from the launcher; switching apps is just resume.
         self.assertNotIn(".notePortalPaused(this)", PREP)
         self.assertNotIn(".noteUserLeaving(this)", PREP)
+
+    def test_fallback_covers_first_frame_without_portal_flash(self):
+        # v0.17 was delayed by at least 80 ms after window attachment,
+        # exposing the main page before the splash appeared.
+        start = BOOT.split("public static void onPortalPostCreated(Activity portal) {",1)[1]
+        install = start.split("OVERLAY_HANDLER.postDelayed",1)[0]
+        self.assertIn("pendingColdFallbackOwner != portal", install)
+        self.assertIn("content.addView(splash", install)
+        self.assertIn("splash.bringToFront()", install)
+        self.assertIn("markBootShown(portal)", install)
+        self.assertNotIn("decorView().post", install)
+        self.assertNotIn("postDelayed(() ->", install)
+        self.assertNotIn("isAttachedToWindow()", install)
+        # install must finish *before* the 5-second dismissal is scheduled
+        self.assertLess(install.index("content.addView(splash"),
+                        install.index("markBootShown(portal)"))
+        self.assertIn("onPortalPostCreated(this)", PREP)
+        self.assertNotIn("showColdPortalFallback(", BOOT)
+        self.assertIn("pendingColdFallbackOwner = null", BOOT)
 
     def test_first_cold_launch_keeps_the_clean_crystal_sound(self):
         self.assertIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)

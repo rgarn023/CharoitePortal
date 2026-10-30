@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.35"')
-text = text.replace("versionCode 33", "versionCode 66")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.36"')
+text = text.replace("versionCode 33", "versionCode 67")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -117,6 +117,9 @@ shutil.copy2(source_dir / "CharoiteWineServerProbe.java", server_probe_java)
 preflight_java = app / "java/com/charoitegames/core/CharoiteWineBootstrapPreflight.java"
 assert not preflight_java.exists()
 shutil.copy2(source_dir / "CharoiteWineBootstrapPreflight.java", preflight_java)
+payload_java = app / "java/com/charoitegames/core/CharoiteWinePayloadAudit.java"
+assert not payload_java.exists()
+shutil.copy2(source_dir / "CharoiteWinePayloadAudit.java", payload_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -306,6 +309,31 @@ ui = ui.replace(anchor, anchor + """
                 .setNegativeButton("Close", null).show();
         });
         nextCoreCard.addView(bootAudit);
+        android.widget.Button modulePayload = new android.widget.Button(this);
+        modulePayload.setText("Verify packaged modern Wine modules");
+        modulePayload.setAllCaps(false);
+        modulePayload.setOnClickListener(v -> {
+            modulePayload.setEnabled(false);
+            new Thread(() -> {
+                final String report = com.charoitegames.core.CharoiteWinePayloadAudit.report(this);
+                runOnUiThread(() -> {
+                    modulePayload.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Module Archive Integrity")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Source-built Wine Modules", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWinePayloadAudit").start();
+        });
+        nextCoreCard.addView(modulePayload);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

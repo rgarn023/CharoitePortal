@@ -21,7 +21,7 @@ wineserver integration and isolated `wineboot` have not passed on device.
 
 **What Proton functionality is incorporated?** Charoite Wine currently comes
 from the pinned Proton-Wine fork plus 70 Android/ARM64EC prerequisites,
-10 applied GE-Proton game-fixes and eight Charoite patch-series changes.
+10 applied GE-Proton game-fixes and nine Charoite patch-series changes.
 The pinned upstream GE script explicitly excludes its separate video rework.
 DXVK, VKD3D-Proton, FEX, graphics drivers, multimedia, compatibility data and
 the surrounding Proton environment are separately gated components, **not
@@ -67,7 +67,9 @@ The verified installable APK is still the **separate Next v0.2 diagnostic APK**,
 
 **Patch 0700** (Android-only native loader): on Android ARM64, accept a probe-specific `CHAROITE_NTDLL_NATIVE_DIR` pointing to a verified APK native library directory and dlopen `libcharoite_wine_ntdll.so` when normal `ntdll.so` paths are absent. It does not install executable code or create a prefix; the native probe separately verifies both binary hashes. The fallback is off unless the explicit environment variable is supplied.
 
-**Patch order:** `patches/SERIES` applies 0100, 0002, 0200, 0300, 0400, 0500, 0600 and 0700 after the pinned Android/Bionic/FEX prerequisites and GE game fixes. Patch 0001 is kept as the original upstream reference only; reapplying all its suspension and SVE hunks duplicates the upstream patch list and fails. The validated prep script refuses an existing workspace and refuses fuzzy or partially applied Charoite patches.
+**Patch 0800** (Android-only, unverified source-build candidate): on Android AArch64 only, accept `CHAROITE_WINE26_DATA_DIR` as an explicit absolute private Wine data-directory override during native `ntdll` initialization; use `realpath` and fail on a missing directory or basic dot-segment traversal, and otherwise preserve the default installed Wine data-directory behavior. This targets the verified Galaxy v0.42 `locale.nls` / `l_intl.nls` failure after a fresh private prefix directory was created. It does not install an engine, execute games, or change earlier source artifacts. The phone probe must supply the path only after all 76 NLS files have passed SHA-256 verification in an entirely NEW, isolated sandbox.
+
+**Patch order:** `patches/SERIES` applies 0100, 0002, 0200, 0300, 0400, 0500, 0600, 0700 and 0800 after the pinned Android/Bionic/FEX prerequisites and GE game fixes. Patch 0001 is kept as the original upstream reference only; reapplying all its suspension and SVE hunks duplicates the upstream patch list and fails. The validated prep script refuses an existing workspace and refuses fuzzy or partially applied Charoite patches.
 
 These patches establish a reproducible starting point for **Charoite-maintained Wine patches**. They must be validated against the exact source state (including upstream GE and ARM64EC build prepatches) before building. No claim is made that merely applying these files produces a functioning Android Wine executable.
 

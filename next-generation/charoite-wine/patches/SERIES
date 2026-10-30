@@ -10,3 +10,4 @@
 0500-arm64ec-no-spurious-libgcc.patch
 0600-arm64ec-clipboard-winsock-buffers.patch
 0700-android-apk-native-ntdll-path.patch
+0800-android-isolated-wine-data-dir.patch

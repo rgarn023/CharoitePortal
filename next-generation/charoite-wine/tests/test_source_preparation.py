@@ -27,11 +27,11 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 9)
+        self.assertEqual(len(patched), 10)
         active = (WINE / "patches/SERIES").read_text()
         active_patches = [line.strip() for line in active.splitlines()
                           if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(active_patches), 8)
+        self.assertEqual(len(active_patches), 9)
         self.assertEqual(len(active_patches), len(set(active_patches)))
         self.assertEqual(set(active_patches),
                          {p.name for p in patched} -
@@ -39,6 +39,11 @@ class SourceContract(unittest.TestCase):
         self.assertIn("0500-arm64ec-no-spurious-libgcc.patch", active_patches)
         self.assertIn("0600-arm64ec-clipboard-winsock-buffers.patch", active_patches)
         self.assertIn("0700-android-apk-native-ntdll-path.patch", active_patches)
+        self.assertIn("0800-android-isolated-wine-data-dir.patch", active_patches)
+        data_patch = (WINE / "patches/0800-android-isolated-wine-data-dir.patch").read_text()
+        self.assertIn("CHAROITE_WINE26_DATA_DIR", data_patch)
+        self.assertIn("dlls/ntdll/unix/loader.c", data_patch)
+        self.assertIn("CHAROITE_WINE26_DATA_DIR", SCRIPT)
         self.assertIn("CHAROITE_NTDLL_NATIVE_DIR", (WINE / "patches/0700-android-apk-native-ntdll-path.patch").read_text())
         self.assertNotIn("0500-arm64ec-clang-compiler-rt.patch", active_patches)
         self.assertIn("0100-arm64ec-syscall-stubs-and-thread-grace.patch",active)

@@ -1,0 +1,26 @@
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -528,8 +528,25 @@ static void init_paths( char *argv[] )
+         }
+ #endif
+         if (!bin_dir) bin_dir = build_relative_path( dll_dir, LIBDIR "/wine", BINDIR );
++#if defined(__ANDROID__) && defined(__aarch64__)
++        /* Charoite Next: APK-installed native ELFs are read-only and have
++         * no sibling share/wine directory. Permit an isolated, explicit
++         * runtime data directory containing source-verified NLS files.
++         * Unset by default; normal Wine installation lookup is unchanged.
++         * The Android caller restricts this to its new one-shot sandbox. */
++        if (getenv( "CHAROITE_WINE26_DATA_DIR" ))
++        {
++            const char *dir = getenv( "CHAROITE_WINE26_DATA_DIR" );
++            if (dir[0] != '/' || strstr( dir, "/../" ) || strstr( dir, "/./" ))
++                fatal_error( "invalid isolated Wine data directory\n" );
++            if (!(data_dir = realpath( dir, NULL )))
++                fatal_error( "isolated Wine data directory not accessible\n" );
++        }
++        else
++#endif
+         data_dir = build_relative_path( bin_dir, BINDIR, DATADIR "/wine" );
+         wineloader = build_path( bin_dir, basename );
+     }

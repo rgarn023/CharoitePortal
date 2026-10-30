@@ -84,8 +84,11 @@ while IFS= read -r rel; do
   git apply --whitespace=error "$patch"
   count=$((count+1))
 done < "$script_dir/patches/SERIES"
-[[ "$count" -eq 8 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
+[[ "$count" -eq 9 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
 git diff --check
+grep -Fq 'CHAROITE_WINE26_DATA_DIR' dlls/ntdll/unix/loader.c || {
+  echo "Isolated Android Wine data directory patch missing" >&2; exit 14;
+}
 grep -Fq 'CHAROITE_NTDLL_NATIVE_DIR' loader/main.c || {
   echo "Android native ntdll fallback patch not present" >&2; exit 14;
 }

@@ -301,7 +301,7 @@ def main():
     if proc.wait() != 0:
         raise RuntimeError("Portal-only MP4 H.264 encoding failed")
     cap = cv2.VideoCapture(str(OUT))
-    assert cap.isOpened() and round(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 168
+    assert cap.isOpened() and round(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == FPS * SECONDS
     assert round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) == WIDTH
     assert round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) == HEIGHT
     cap.release()

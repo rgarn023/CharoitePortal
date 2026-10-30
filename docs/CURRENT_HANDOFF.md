@@ -1630,4 +1630,22 @@ The user explicitly requested GitHub changes to replace the clouds with a soft p
 
 
 ---
+## 85. October 30, 2026 — Next v0.36: source-verified 22-module archive packaged (CI running)
+
+**User:** Continue development directly on GitHub, no false claim that access is absent. Connected read/write GitHub tools were used on `main`. No changes to stable `com.charoite`, pre-existing Wine prefixes, installed games, saves or approved v0.34 crystal energy boot.
+
+**Engineering change:** The current Next APK previously installed only three native ELF `--version` probes from the audited 22-component, 76-NLS source bundle. Next v0.36 packages the **complete coherent source-built archive** as one inert app asset, `assets/charoite-next/wine-bootstrap-22.tar.gz` (source run `40898982875`, artifact `12908731604`, pinned Wine SHA `c74acb09d51b447f5d5ac56c87608d3ec565a767`). This is not a runtime install; it neither extracts nor executes the archive. FEX, graphics, PE closure, Android native layout and actual wineboot are still NOT READY.
+
+**Implementation on main:**
+- `next-generation/stage_bootstrap_payload.py` independently calls `verify-bootstrap-bundle.py` before copying bytes to APK assets, checks the 22 components/19 PE/3 ELF/76 NLS inventory, source, non-ready flags, import count and SHA-256, and creates a pinned provenance/size/hash asset index.
+- `next-generation/CharoiteWinePayloadAudit.java` reads immutable APK asset streams on a user-initiated background thread, checks provenance, limits size to 64 MiB and compares actual SHA-256 to the build-attested index. **No files are written, extracted, executed or renamed. No prefix/data accessed.**
+- `next-generation/prepare_next.py` adds System → **Verify packaged modern Wine modules** with Copy report; uses package `com.charoitx`, version `11.2-next.0.36` / versionCode `67`, same Next signing path. `CharoiteNextRuntime.java` documents the inert status.
+- `.github/workflows/charoite-next.yml` stages the whole archive from the pinned source CI run and hashes it directly inside final APK. New `next-generation/tests/test_packaged_bootstrap.py` covers provenance, refusal of malformed/unready manifests, and no prefix side effects. Updated three existing version contract tests and README.
+
+**Commits:** initial staging `89963453`, source-backed audit `e83406da`, Android UI `00691e70`, engine `f20ca4c7`, workflow `280152ed`, new tests `049e31dd`, version contract fixes `801fb66c`, `f037a79c`, `e2d8257b`, build-triggering README commit `9618c089`. First [CI 41110364301](https://github.com/rgarn023/CharoitePortal/actions/runs/41110364301) FAILED on a stale **test string only**, corrected in latest **code commit `cc90be72e0bc6d1154665fc00541b9ea74c03f02`**. Replacement [Next APK run 41110501701](https://github.com/rgarn023/CharoitePortal/actions/runs/41110501701) was **IN PROGRESS** at this handoff edit. Do not claim a v0.36 signed APK exists until this run's steps and artifact are verified. Last *verified* signed Next APK remains v0.35, run 41105956380, artifact 13000548951, code 24e35e84.
+
+**Next action:** Check run 41110501701 for tests, Java compilation, immutable archive asset verification, signing, artifact size/id. On success install v0.36 over existing Next (no uninstall) and use **System → Verify packaged modern Wine modules → Copy report**, plus **Test source-built wineserver --version**. Only after device verification proceed to fully isolated, hash-gated Next-only runtime staging and disposable-prefix `wineboot` with rollback; never treat a packaged archive as a runnable engine.
+
+---
+
 **End of current Charoite Portal handoff.**

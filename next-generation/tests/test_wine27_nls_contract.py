@@ -26,8 +26,8 @@ class Wine27IsolatedNlsContract(unittest.TestCase):
         self.assertIn("CHAROITE_WINE26_DATA_DIR", STAGE)
         self.assertIn("CHAROITE_WINE27_NATIVE_DIR", NATIVE)
         self.assertIn("CHAROITE_WINE26_DATA_DIR", NATIVE)
-        self.assertIn("wine10-arm64ec-bootstrap.0.6-staged", DATA)
-        self.assertIn("wine10-arm64ec-bootstrap.0.6-staged", GATE)
+        self.assertIn("wine10-arm64ec-bootstrap-0.6-staged", DATA)
+        self.assertIn("wine10-arm64ec-bootstrap-0.6-staged", GATE)
 
     def test_fresh_v3_scratch_and_no_legacy_data_modification(self):
         self.assertIn('charoite-next-wine27-first-prefix-v3', PREFIX)

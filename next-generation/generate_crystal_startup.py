@@ -35,15 +35,20 @@ def sample(t):
             continue
         envelope = smoothstep(elapsed / attack) * math.exp(-max(0.0, elapsed-attack)/tail)
         phase = 2.0 * math.pi * hz * (elapsed + 0.00055 * math.sin(2 * math.pi * .31 * elapsed))
-        # Slight inharmonicity supplies a mysterious glass color without a ding.
-        body = (0.82 * math.sin(phase) +
-                0.16 * math.sin(2.013 * phase + 0.28) +
-                0.07 * math.sin(3.021 * phase + 1.18))
+        # Soft crystalline partials, kept close to harmonics so the sound
+        # feels mysterious without the raspy interference heard as static.
+        body = (0.90 * math.sin(phase) +
+                0.095 * math.sin(2.003 * phase + 0.28) +
+                0.025 * math.sin(3.006 * phase + 1.18))
         value += amp * envelope * body
-        # Soft echo across the crystal, deliberately quieter than the body.
+        # Avoid an instantaneous echo onset: a delayed sine starting at
+        # nonzero phase creates a discontinuity (audible click/crackle).
+        # A 140 ms smooth envelope preserves the distant crystal reflection.
         if elapsed > .36:
             reflection = elapsed - .36
-            value += (amp * .105 * math.exp(-reflection / 1.9) *
+            echo_attack = smoothstep(reflection / .14)
+            value += (amp * .085 * echo_attack *
+                      math.exp(-reflection / 1.9) *
                       math.sin(2 * math.pi * hz * reflection + .72))
     # 700 ms of silence-free fade-out avoids a hard ending.
     fade = smoothstep((DURATION_SECONDS-t)/.82)

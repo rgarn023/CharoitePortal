@@ -7,6 +7,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
 from make_fullbleed_boot import generate as generate_fullbleed_boot
+from make_portrait_boot import generate as generate_portrait_boot
 import hashlib
 import re
 import shutil
@@ -29,8 +30,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.21"')
-text = text.replace("versionCode 33", "versionCode 52")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.22"')
+text = text.replace("versionCode 33", "versionCode 53")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -143,6 +144,11 @@ boot_unframed = app / "res/drawable-nodpi/charoite_next_boot_unframed.png"
 boot_backdrop = app / "res/drawable-nodpi/charoite_next_boot_backdrop.jpg"
 assert generate_fullbleed_boot(approved_art, boot_unframed, boot_backdrop) == (
     boot_unframed, boot_backdrop)
+# This portrait artwork is an ACTUAL 960×1840 seamless scene, not a stretched
+# icon or a floating square over its blurred copy. Generated deterministically
+# from the approved master; no launcher/icon changes.
+boot_portrait = app / "res/drawable-nodpi/charoite_next_boot_portrait.jpg"
+assert generate_portrait_boot(approved_art, boot_portrait) == boot_portrait
 
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"

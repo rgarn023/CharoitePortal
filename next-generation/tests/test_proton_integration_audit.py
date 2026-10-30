@@ -29,7 +29,7 @@ class ProtonIntegrationAuditTest(unittest.TestCase):
         patches = [line.strip() for line in SERIES.splitlines()
                    if line.strip() and not line.lstrip().startswith("#")]
         self.assertEqual(len(patches), 10)
-        self.assertEqual(len(set(patches)), 9)
+        self.assertEqual(len(set(patches)), 10)
         self.assertTrue(all((FORK / "patches" / name).is_file() for name in patches))
         for needle in ("0700-android-apk-native-ntdll-path.patch",
                        "0400-arm64ec-atomic-operations.patch",

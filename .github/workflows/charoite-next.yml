@@ -314,6 +314,13 @@ jobs:
               # separate transparent-corner image and violet full bleed.
               foreground = z.read("res/drawable-nodpi-v4/charoite_next_boot_unframed.png")
               backdrop = z.read("res/drawable-nodpi-v4/charoite_next_boot_backdrop.jpg")
+              portrait = z.read("res/drawable-nodpi-v4/charoite_next_boot_portrait.jpg")
+              with Image.open(io.BytesIO(portrait)) as portrait_art:
+                  assert portrait_art.size == (960, 1840), "Expected true 960x1840 portrait asset"
+                  assert portrait_art.mode == "RGB"
+                  for xy in ((0,0), (959,0), (0,1839), (959,1839)):
+                      assert max(portrait_art.getpixel(xy)) > 20, "Original icon edge remained"
+              print("CHAROITE_NEXT_SEAMLESS_PORTRAIT_BOOT=PASS")
               with Image.open(io.BytesIO(foreground)) as fg:
                   fg.load()
                   assert fg.mode == "RGBA" and fg.size == (1536, 1536)
@@ -385,7 +392,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='52' versionName='11.2-next.0.21'"
+            grep -F "package: name='com.charoitx' versionCode='53' versionName='11.2-next.0.22'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

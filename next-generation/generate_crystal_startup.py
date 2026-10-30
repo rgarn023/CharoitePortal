@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Ten-second, slow and mysterious Charoite crystal BOOT atmosphere.
+"""Five-second, slow and mysterious Charoite crystal BOOT atmosphere.
 
 A warm crystalline resonance blooms gradually out of a quiet nebula drone,
-then dissolves into a long ten-second shimmer. No notification-style repeated ring,
+then dissolves into a five-second shimmer. No notification-style repeated ring,
 no borrowed samples, and no licensed/copyrighted musical motifs.
 Standard-library PCM synthesis; isolated to experimental Next build.
 """
@@ -13,14 +13,14 @@ import sys
 import wave
 
 RATE = 44100
-DURATION_SECONDS = 10.0
+DURATION_SECONDS = 5.0
 # Sparse original tones: low suspended foundation, two slowly emerging
 # harmonic glass voices, with gentle pitch drift; no fast-note arpeggio.
 VOICES = (
-    (0.00, 146.83, 0.25, 0.42, 5.4),  # low D, distant
-    (0.24, 220.00, 0.15, 0.85, 5.0),
-    (0.78, 293.66, 0.13, 0.95, 5.3),
-    (1.18, 440.00, 0.08, 0.80, 4.7),
+    (0.00, 146.83, 0.25, 0.42, 3.4),  # low D, distant
+    (0.24, 220.00, 0.15, 0.85, 3.3),
+    (0.78, 293.66, 0.13, 0.95, 3.25),
+    (1.18, 440.00, 0.08, 0.80, 3.05),
 )
 
 def smoothstep(x):
@@ -50,19 +50,18 @@ def sample(t):
             value += (amp * .085 * echo_attack *
                       math.exp(-reflection / 1.9) *
                       math.sin(2 * math.pi * hz * reflection + .72))
-    # The prolonged suspended resonance is most audible through seconds 4–9.
-    # A softly swelling glass overtone keeps the energy present under the
-    # 10-second cloudy animation rather than leaving its last half silent.
-    airy_attack = smoothstep((t-2.3)/2.1)
+    # Sustain a soft overtone through the middle of the five-second animation.
+    # A soft glass overtone preserves the original crystalline atmosphere.
+    airy_attack = smoothstep((t-1.1)/.85)
     breath = (0.022 * math.sin(2 * math.pi * 293.66 * t + .12 *
                 math.sin(2 * math.pi * .21 * t)) +
               0.013 * math.sin(2 * math.pi * 440.0 * t + .06 *
                 math.sin(2 * math.pi * .13 * t)))
     value += airy_attack * breath * (0.82 + .18 * math.sin(.62*t)**2)
 
-    # 1.4 seconds of smooth fade reaches digital silence at the EXACT end.
-    # The animation and PCM WAV share the same 10,000 ms duration.
-    fade = smoothstep((DURATION_SECONDS-t)/1.40)
+    # A full-second smooth fade ends at exactly 5 seconds, without clicks.
+    # The silent movie and PCM WAV use the same five-second boot timeline.
+    fade = smoothstep((DURATION_SECONDS-t)/1.00)
     return max(-1.0, min(1.0, value * fade * .88))
 
 def generate(path):

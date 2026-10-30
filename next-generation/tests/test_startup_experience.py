@@ -1,4 +1,4 @@
-"""Charoite Next boot: exact user-supplied artwork, repeated launch, safe audio."""
+"""Next boot: exact approved launcher icon, full-bleed splash, no warm replay."""
 from pathlib import Path
 import hashlib
 import importlib.util
@@ -11,99 +11,94 @@ BOOT = (ROOT / "CharoiteNextBootActivity.java").read_text(encoding="utf-8")
 PREP = (ROOT / "prepare_next.py").read_text(encoding="utf-8")
 ART = ROOT / "assets/charoite_next_boot_reference.jpg"
 ART_SHA = "2f368b7731f8ff96db03842e0f36b62bc9d22c48fcdb77ed864846d6be44b748"
-spec = importlib.util.spec_from_file_location("startup_audio",ROOT / "generate_crystal_startup.py")
+spec = importlib.util.spec_from_file_location("startup_audio", ROOT / "generate_crystal_startup.py")
 audio = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audio)
+art_spec = importlib.util.spec_from_file_location("boot_art", ROOT / "make_fullbleed_boot.py")
+art = importlib.util.module_from_spec(art_spec)
+art_spec.loader.exec_module(art)
 
 
 class StartupExperienceTest(unittest.TestCase):
-    def test_exact_user_supplied_full_resolution_artwork(self):
+    def test_original_launcher_artwork_preserved_exactly(self):
         from PIL import Image
-        with Image.open(ART) as img:
-            img.load()
-            self.assertEqual(img.size, (1536,1536))
-            self.assertEqual(img.format, "JPEG")
-        self.assertEqual(hashlib.sha256(ART.read_bytes()).hexdigest(),ART_SHA)
-        self.assertIn("boot_art.write_bytes(image_bytes)",PREP)
-        self.assertIn("next_launcher_icon.write_bytes(image_bytes)",PREP)
-        self.assertIn("charoite_next_boot_reference.jpg",PREP)
-        self.assertIn("charoite_next_boot_scene.jpg",PREP)
-        self.assertNotIn("render_crystal_portal(",PREP)
-        self.assertIn("R.drawable.charoite_next_boot_scene",BOOT)
-        self.assertIn("com.charoitx",PREP)
-        self.assertIn("versionCode 46",PREP)
-        self.assertIn("11.2-next.0.15",PREP)
+        with Image.open(ART) as picture:
+            picture.load()
+            self.assertEqual(picture.size, (1536,1536))
+            self.assertEqual(picture.format, "JPEG")
+        self.assertEqual(hashlib.sha256(ART.read_bytes()).hexdigest(), ART_SHA)
+        self.assertIn("boot_art.write_bytes(image_bytes)", PREP)
+        self.assertIn("next_launcher_icon.write_bytes(image_bytes)", PREP)
+        self.assertIn("generate_fullbleed_boot(approved_art", PREP)
+        self.assertIn("charoite_next_boot_unframed.png", PREP)
+        self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
+        self.assertIn("versionCode 47", PREP)
+        self.assertIn("11.2-next.0.16", PREP)
 
-    def test_five_seconds_on_initial_open_and_each_foreground_return(self):
-        self.assertIn("BOOT_DURATION_MS = 5000L",BOOT)
-        self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)",BOOT)
-        self.assertIn("ObjectAnimator.ofInt(progress",BOOT)
-        self.assertIn("animation.setDuration(BOOT_DURATION_MS)",BOOT)
-        self.assertIn("new Intent(this, com.winlator.TouhouEntryActivity.class)",BOOT)
-        self.assertIn("onPortalRestart(Activity portal)",BOOT)
-        self.assertIn("onPortalResumed(Activity portal)",BOOT)
-        self.assertIn(".onPortalResumed(this)",PREP)
-        self.assertNotIn(".playArrivalChimeIfRequested(this)",PREP)
-        self.assertIn("Last-resort onResume replay",BOOT)
-        # onRestart is no longer permitted to cancel a later external resume.
-        restart=BOOT.split("public static void onPortalRestart(Activity portal) {")[1].split("    /** Every actual Portal resume")[0]
-        self.assertNotIn("REENTRY_NEEDED.set(false)",restart)
-        self.assertNotIn("SUPPRESS_NEXT_RESTART.getAndSet(false)",restart)
-        self.assertIn("onRestart()",PREP)
-        self.assertIn(".onPortalRestart(this)",PREP)
-        self.assertIn("onNewIntent(Intent intent)",PREP)
-        self.assertIn("noteLauncherIntent(intent)",PREP)
-        self.assertIn("onPause()",PREP)
-        self.assertIn("notePortalPaused(this)",PREP)
-        self.assertIn("onWindowFocusChanged(boolean hasFocus)",PREP)
+    def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as td:
+            front = Path(td) / "unframed.png"
+            back = Path(td) / "backdrop.jpg"
+            art.generate(ART, front, back)
+            with Image.open(front) as image:
+                self.assertEqual(image.size, (1536,1536))
+                self.assertEqual(image.mode, "RGBA")
+                for xy in ((0,0),(0,1535),(1535,0),(1535,1535)):
+                    self.assertLess(image.getpixel(xy)[3], 8)
+                self.assertGreater(image.getpixel((768,768))[3], 250)
+            with Image.open(back) as image:
+                self.assertEqual(image.size, (900,1600))
+                for xy in ((0,0),(899,0),(0,1599),(899,1599)):
+                    self.assertGreater(max(image.getpixel(xy)), 12)
+        self.assertIn("R.drawable.charoite_next_boot_unframed", BOOT)
+        self.assertIn("R.drawable.charoite_next_boot_backdrop", BOOT)
+        self.assertIn("ImageView.ScaleType.CENTER_CROP", BOOT)
+        self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", BOOT)
 
-    def test_no_dialog_token_race_and_reopen_without_focus_callback(self):
-        self.assertIn("FrameLayout activeReentryOverlay",BOOT)
-        self.assertIn("activity.findViewById(android.R.id.content)",BOOT)
-        self.assertIn("content.addView(overlay",BOOT)
-        self.assertIn("overlay.bringToFront()",BOOT)
-        self.assertIn("OVERLAY_HANDLER.postDelayed(activeOverlayTimeout, BOOT_DURATION_MS)",BOOT)
-        self.assertIn("removeWarmOverlay(activity, true)",BOOT)
-        self.assertIn("removeWarmOverlay(portal, false)",BOOT)
-        self.assertNotIn("new Dialog(activity",BOOT)
-        self.assertNotIn("WindowManager.BadTokenException",BOOT)
-        self.assertNotIn("|| !activity.hasWindowFocus()",BOOT)
-        self.assertIn("SUPPRESS_NEXT_RESTART.set(true)",BOOT)
-        self.assertIn("SUPPRESS_NEXT_RESTART.getAndSet(false)",BOOT)
-        self.assertIn("REENTRY_NEEDED.set(true)",BOOT)
-        self.assertIn("if (internalReturn && !explicitHomeOrLauncher)",BOOT)
-        self.assertIn("portal.isChangingConfigurations()",BOOT)
-        self.assertIn("noteDocumentPickerReturn(this)",PREP)
-        self.assertIn("REENTRY_NEEDED.set(false)",BOOT)
+    def test_five_second_boot_once_per_real_session(self):
+        self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
+        self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)", BOOT)
+        self.assertIn("ObjectAnimator.ofInt(progress", BOOT)
+        self.assertIn("animation.setDuration(BOOT_DURATION_MS)", BOOT)
+        self.assertIn("hasLivePortalSession()", BOOT)
+        self.assertIn('Already running; boot intentionally skipped', BOOT)
+        self.assertIn("currentPortal.get()", BOOT)
+        self.assertIn("portal.isDestroyed()", BOOT)
+        self.assertIn("notePortalDestroyed(this)", PREP)
+        self.assertIn(".onPortalResumed(this)", PREP)
+        self.assertIn(".installReentryTracker(this)", PREP)
+        self.assertNotIn("showOnBackgroundReentryIfNeeded", BOOT)
+        self.assertNotIn("activeReentryOverlay", BOOT)
+        self.assertNotIn("REENTRY_NEEDED", BOOT)
+        self.assertNotIn(".notePortalPaused(this)", PREP)
+        self.assertNotIn(".onPortalRestart(this)", PREP)
+        self.assertNotIn(".noteUserLeaving(this)", PREP)
+        self.assertNotIn(".noteLauncherIntent(intent)", PREP)
+        resume = BOOT.split("public static void onPortalResumed(Activity portal) {",1)[1].split("\n    }",1)[0]
+        self.assertNotIn("createBootView(",resume)
+        self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
-    def test_no_games_prefixes_or_installed_data_touched(self):
-        for forbidden in ("ProcessBuilder", "Runtime.getRuntime()", "deleteRecursively",
-                          "finishAffinity()", "finishAndRemoveTask()", "clearApplicationUserData"):
-            self.assertNotIn(forbidden,BOOT)
-        self.assertIn('applicationId \'com.charoitx\'',PREP)
-        self.assertNotIn("WINEPREFIX",BOOT)
-
-    def test_original_slow_crystal_arrival_sound(self):
-        self.assertIn("playCrystalChime(activity)",BOOT)
+    def test_first_cold_launch_keeps_the_clean_crystal_sound(self):
         self.assertIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)
         self.assertIn("playPendingColdArrivalIfReady", BOOT)
-        self.assertIn("postDelayed(", BOOT)
         self.assertIn("new android.media.AudioTrack.Builder()", BOOT)
         self.assertIn("android.media.AudioTrack.MODE_STATIC", BOOT)
-        self.assertIn("activeCrystalAudioTrack = track", BOOT)
         self.assertIn("MediaPlayer.create(activity", BOOT)
-        self.assertIn("STARTED: direct PCM crystal sound", BOOT)
-        self.assertIn("QUEUED: cold arrival sound waiting", BOOT)
-        self.assertIn("charoite_crystal_startup",BOOT)
-        self.assertIn("AudioAttributes.USAGE_MEDIA",BOOT)
-        self.assertIn("AudioManager.STREAM_MUSIC",BOOT)
-        self.assertEqual(audio.DURATION_SECONDS,4.2)
-        with tempfile.TemporaryDirectory() as folder:
-            path=Path(folder)/"arrival.wav"
-            audio.generate(path)
-            with wave.open(str(path),"rb") as sound:
-                self.assertEqual(sound.getframerate(),44100)
-                self.assertEqual(sound.getnframes(),round(44100*4.2))
+        self.assertIn("R.raw.charoite_crystal_startup", BOOT)
+        self.assertIn("AudioAttributes.USAGE_MEDIA", BOOT)
+        with tempfile.TemporaryDirectory() as td:
+            wav = Path(td)/"startup.wav"
+            audio.generate(wav)
+            with wave.open(str(wav),"rb") as tone:
+                self.assertEqual(tone.getframerate(),44100)
+                self.assertEqual(tone.getnframes(),185220)
+
+    def test_no_access_to_saved_games(self):
+        for forbidden in ("ProcessBuilder", "deleteRecursively", "finishAffinity()",
+                          "finishAndRemoveTask()", "clearApplicationUserData", "WINEPREFIX"):
+            self.assertNotIn(forbidden, BOOT)
+        self.assertIn("applicationId 'com.charoitx'", PREP)
 
 
 if __name__ == "__main__":

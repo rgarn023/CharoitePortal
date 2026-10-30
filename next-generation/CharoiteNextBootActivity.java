@@ -7,7 +7,6 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
-import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
@@ -222,12 +221,11 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    // Reveal ~11% more of the original artwork at the cropped edges, while
-    // retaining a SINGLE edge-to-edge image. Android's normal CENTER_CROP
-    // hides too much of a square illustration on a tall Samsung phone.
-    // Keep the full screen covered: portrait relaxes the horizontal crop;
-    // landscape relaxes the vertical crop. No blurred wallpaper/card/zoom.
-    private static final float ART_CROP_RELIEF = .90f;
+    // Portrait is now composed from the actual scene, with extra sky/floor.
+    // The square launcher icon stays byte-for-byte untouched. No landscape
+    // changes affect the common Wine runtime or Portal lifecycle.
+    private static final float PORTRAIT_ART_WIDTH = 960f;
+    private static final float PORTRAIT_ART_HEIGHT = 1840f;
 
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
@@ -261,23 +259,17 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final class CrystalArtwork extends ImageView {
         CrystalArtwork(Context context) {
             super(context);
-            setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
-            setScaleType(ImageView.ScaleType.MATRIX);
-            setContentDescription("Full-screen Charoite crystal gateway");
+            setContentDescription("Full-screen Charoite crystalline realm, extended portrait scene");
+            setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
         @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
             super.onSizeChanged(w, h, oldw, oldh);
-            if (w <= 0 || h <= 0 || getDrawable() == null) return;
-            float sourceWidth = getDrawable().getIntrinsicWidth();
-            float sourceHeight = getDrawable().getIntrinsicHeight();
-            if (sourceWidth <= 0 || sourceHeight <= 0) return;
-            float fullScale = Math.max(w / sourceWidth, h / sourceHeight);
-            float displayWidth = Math.max(w, sourceWidth * fullScale * ART_CROP_RELIEF);
-            float displayHeight = Math.max(h, sourceHeight * fullScale * ART_CROP_RELIEF);
-            Matrix matrix = new Matrix();
-            matrix.setScale(displayWidth / sourceWidth, displayHeight / sourceHeight);
-            matrix.postTranslate((w - displayWidth) * .5f, (h - displayHeight) * .5f);
-            setImageMatrix(matrix);
+            if (w <= 0 || h <= 0) return;
+            // A portrait photo *asset*, not the square app icon stretched
+            // into a tall rectangle. No visible rounded icon perimeter.
+            setImageResource(w <= h
+                    ? com.winlator.R.drawable.charoite_next_boot_portrait
+                    : com.winlator.R.drawable.charoite_next_boot_unframed);
         }
     }
 
@@ -300,20 +292,50 @@ public final class CharoiteNextBootActivity extends Activity {
             if (firstFrameAt < 0L) firstFrameAt = SystemClock.uptimeMillis();
             long elapsed = Math.max(0L, SystemClock.uptimeMillis() - firstFrameAt);
             float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
-            float size = Math.min(w * .070f, h * .095f);
-            float x = w * .50f, y = h * .87f;
+            float size = Math.min(w * .079f, h * .095f);
+            float x = w * .50f, y = h * .85f;
             lettering.reset();
             lettering.setAntiAlias(true);
             lettering.setTypeface(Typeface.create("serif", Typeface.BOLD));
             lettering.setTextAlign(Paint.Align.CENTER);
             lettering.setTextSize(size);
             float measured = lettering.measureText(WORDMARK);
-            if (measured > w * .88f) lettering.setTextSize(size * w * .88f / measured);
+            if (measured > w * .81f) lettering.setTextSize(size * w * .81f / measured);
             size = lettering.getTextSize();
             float textWidth = lettering.measureText(WORDMARK);
 
+            // Opaque enough to remain legible against the luminous glass
+            // floor and portal highlights, unlike the old outlined-only text.
+            // Faceted dark crystal plaque with bright silver-lilac rim.
+            float plateLeft = Math.max(w * .045f, x - textWidth * .5f - size * .34f);
+            float plateRight = Math.min(w * .955f, x + textWidth * .5f + size * .34f);
+            float plateTop = y - size * 1.22f;
+            float plateBottom = y + size * .55f;
+            float corner = size * .34f;
+            Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
+            panel.setStyle(Paint.Style.FILL);
+            panel.setShader(new LinearGradient(0f, plateTop, 0f, plateBottom,
+                    new int[]{Color.argb(247, 12, 6, 42),
+                            Color.argb(243, 39, 14, 89), Color.argb(246, 16, 6, 51)},
+                    null, Shader.TileMode.CLAMP));
+            panel.setShadowLayer(size * .33f, 0f, 0f, Color.argb(205, 131, 70, 255));
+            canvas.drawRoundRect(plateLeft, plateTop, plateRight, plateBottom,
+                    corner, corner, panel);
+            panel.clearShadowLayer();
+            panel.setShader(null);
+            panel.setColor(Color.rgb(206, 163, 255));
+            panel.setStyle(Paint.Style.STROKE);
+            panel.setStrokeWidth(Math.max(2f, size * .045f));
+            canvas.drawRoundRect(plateLeft, plateTop, plateRight, plateBottom,
+                    corner, corner, panel);
+            panel.setStrokeWidth(Math.max(1f, size * .014f));
+            panel.setColor(Color.argb(225, 238, 224, 255));
+            canvas.drawRoundRect(plateLeft + size * .07f, plateTop + size * .07f,
+                    plateRight - size * .07f, plateBottom - size * .07f,
+                    corner * .65f, corner * .65f, panel);
+
             // Deep-violet glass outline with a cool pale rim, then facets
-            // shifting from icy-white to lilac to deep polished amethyst.
+            // shifting from icy-white to lilac to polished amethyst.
             lettering.setStyle(Paint.Style.STROKE);
             lettering.setStrokeJoin(Paint.Join.ROUND);
             lettering.setStrokeWidth(Math.max(2f, size * .13f));
@@ -393,12 +415,29 @@ public final class CharoiteNextBootActivity extends Activity {
             final long elapsed = Math.max(0L,
                     SystemClock.uptimeMillis() - firstFrameAt);
             final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
-            final float side = Math.max(getWidth(), getHeight());
-            if (side <= 0f) return;
-            final float artWidth = Math.max(getWidth(), side * ART_CROP_RELIEF);
-            final float artHeight = Math.max(getHeight(), side * ART_CROP_RELIEF);
-            final float left = (getWidth() - artWidth) * .5f;
-            final float top = (getHeight() - artHeight) * .5f;
+            final float w = getWidth(), h = getHeight();
+            if (w <= 0f || h <= 0f) return;
+            final float artWidth, artHeight, left, top;
+            if (w <= h) {
+                // match portrait asset's 960x1840 CENTER_CROP plus its
+                // 1536→1020→960 square-source mapping in make_portrait_boot.py.
+                float viewportScale = Math.max(w / PORTRAIT_ART_WIDTH,
+                        h / PORTRAIT_ART_HEIGHT);
+                float sourceScale = viewportScale * 1020f / 1406f;
+                artWidth = 1536f * sourceScale;
+                artHeight = artWidth;
+                left = (w - PORTRAIT_ART_WIDTH * viewportScale) * .5f
+                        + (-30f - 65f * 1020f / 1406f) * viewportScale;
+                top = (h - PORTRAIT_ART_HEIGHT * viewportScale) * .5f
+                        + (398f - 72f * 1020f / 1406f) * viewportScale;
+            } else {
+                float side = Math.max(w, h);
+                artWidth = side;
+                artHeight = side;
+                left = (w - side) * .5f;
+                top = (h - side) * .5f;
+            }
+            final float side = Math.max(artWidth, artHeight);
             final float glow = .5f + .5f *
                     (float)Math.sin(2.0 * Math.PI * t / 3.6f - .7f);
 

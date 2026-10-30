@@ -109,10 +109,10 @@ def make_cloud_sources(paths):
     broad=np.zeros_like(fine)
     for path,_ in paths:
         pts=np.rint(path).astype(np.int32).reshape(-1,1,2)
-        cv2.polylines(fine,[pts],False,255,31,cv2.LINE_AA)
-        cv2.polylines(broad,[pts],False,255,83,cv2.LINE_AA)
-    fine=cv2.GaussianBlur(fine,(0,0),14).astype(np.float32)/255
-    broad=cv2.GaussianBlur(broad,(0,0),29).astype(np.float32)/255
+        cv2.polylines(fine,[pts],False,255,43,cv2.LINE_AA)
+        cv2.polylines(broad,[pts],False,255,104,cv2.LINE_AA)
+    fine=cv2.GaussianBlur(fine,(0,0),18).astype(np.float32)/255
+    broad=cv2.GaussianBlur(broad,(0,0),34).astype(np.float32)/255
     # Keep the energy entirely near the outer crystal C and inner crescent,
     # out of the title, stars, planets and open portal center.
     return fine,broad,cloud_noise(814,(24,13)),cloud_noise(191,(53,31))
@@ -127,46 +127,46 @@ def electrify(t, paths, mask, index):
     """
     strokes=np.zeros((HEIGHT,WIDTH),dtype=np.uint8)
     fine=np.zeros_like(strokes)
-    events=(1.00,1.76,2.54,3.35,4.16,4.94,5.81,6.55,7.32,8.02,8.78,9.43)
+    events=(.95,1.65,2.31,2.97,3.62,4.26,4.91,5.58,6.22,6.87,7.52,8.15,8.77,9.4)
     for k,when in enumerate(events):
         delta=t-when
-        if not (-.07<=delta<=.28):
+        if not (-.10<=delta<=.38):
             continue
-        weight=math.sin(math.pi*np.clip((delta+.07)/.35,0,1))**.65
+        weight=math.sin(math.pi*np.clip((delta+.10)/.48,0,1))**.65
         if weight<.08:
             continue
         path,norm=paths[k%2]
         rng=np.random.default_rng(5010+k)
-        center=(.08+k*.17)%0.78+.11
-        start=max(.005,center-.11)
-        stop=min(.995,center+.15)
-        units=np.linspace(start,stop,37)
+        center=(.06+k*.17)%0.76+.12
+        start=max(.005,center-.15)
+        stop=min(.995,center+.18)
+        units=np.linspace(start,stop,43)
         ix=np.clip((units*(len(path)-1)).astype(int),0,len(path)-1)
-        jag=rng.normal(0,5.2,len(ix)).astype(np.float32)
+        jag=rng.normal(0,8.2,len(ix)).astype(np.float32)
         jag += np.sin(np.arange(len(ix))*2.8+t*21+k)*2.4
         pts=path[ix]+norm[ix]*(jag+(-7 if k%2 else 8))[:,None]
         line=np.rint(pts).astype(np.int32).reshape(-1,1,2)
-        cv2.polylines(strokes,[line],False,int(225*weight),3,cv2.LINE_AA)
-        cv2.polylines(fine,[line],False,int(255*weight),1,cv2.LINE_AA)
-        for m in (9,22,30):
+        cv2.polylines(strokes,[line],False,int(255*weight),4,cv2.LINE_AA)
+        cv2.polylines(fine,[line],False,int(255*weight),2,cv2.LINE_AA)
+        for m in (7,15,27,35):
             p=pts[m]
             vec=norm[ix[m]]
             branch=np.stack([
                 p,
                 p+vec*rng.uniform(9,17)+np.array([rng.uniform(-3,3),rng.uniform(-3,3)]),
-                p+vec*rng.uniform(24,39)+np.array([rng.uniform(-9,9),rng.uniform(-7,7)])
+                p+vec*rng.uniform(29,53)+np.array([rng.uniform(-9,9),rng.uniform(-7,7)])
             ])
             cv2.polylines(strokes,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
                           False,int(170*weight),2,cv2.LINE_AA)
             cv2.polylines(fine,[np.rint(branch).astype(np.int32).reshape(-1,1,2)],
                           False,int(220*weight),1,cv2.LINE_AA)
-    glow=cv2.GaussianBlur(strokes,(0,0),9).astype(np.float32)/255
-    mid=cv2.GaussianBlur(strokes,(0,0),3).astype(np.float32)/255
+    glow=cv2.GaussianBlur(strokes,(0,0),13).astype(np.float32)/255
+    mid=cv2.GaussianBlur(strokes,(0,0),4).astype(np.float32)/255
     core=fine.astype(np.float32)/255
-    light=(glow[:,:,None]*np.array([76,10,129],dtype=np.float32)
-           +mid[:,:,None]*np.array([116,56,205],dtype=np.float32)
-           +core[:,:,None]*np.array([157,139,211],dtype=np.float32))
-    return light*mask[:,:,None]
+    light=(glow[:,:,None]*np.array([115,20,183],dtype=np.float32)
+           +mid[:,:,None]*np.array([164,81,236],dtype=np.float32)
+           +core[:,:,None]*np.array([206,188,250],dtype=np.float32))
+    return light*(.4+.6*mask[:,:,None])
 
 
 def overlay(t, xx, yy, paths, sources):
@@ -179,18 +179,18 @@ def overlay(t, xx, yy, paths, sources):
 
     # Animate the CLOUD textures, never the original illustration. The
     # two drifting noise fields make wispy violet fog curl around the C.
-    dx=int(6*t+9*math.sin(t*.57))
-    dy=int(-7*t+5*math.sin(t*.72))
+    dx=int(12*t+9*math.sin(t*.57))
+    dy=int(-13*t+5*math.sin(t*.72))
     a=np.roll(noise_a,(dy,dx),(0,1))
     b=np.roll(noise_b,(-dy*2,dx//2),(0,1))
-    cloud=np.clip((a*.72+b*.47-.37)*2.4,0,1)
+    cloud=np.clip((a*.78+b*.55-.31)*3.2,0,1)
     cloud=cv2.GaussianBlur(cloud.astype(np.float32),(0,0),3)
-    density=(.25*broad + .92*fine)*cloud
-    density=np.clip(density*envelope,0,.8)
+    density=(.38*broad + 1.3*fine)*cloud
+    density=np.clip(density*envelope,0,.93)
     # Layer luminous lavender smoke over the C, retaining artwork details.
-    color=np.array([131,50,226],dtype=np.float32)
-    cloudy=(color[None,None,:]*density[:,:,None]*.56)
-    cloudy+=density[:,:,None]*np.array([29,8,67],dtype=np.float32)
+    color=np.array([164,64,246],dtype=np.float32)
+    cloudy=(color[None,None,:]*density[:,:,None]*.78)
+    cloudy+=density[:,:,None]*np.array([37,12,82],dtype=np.float32)
 
     # Three floating masses flow along the curved crystal. Broad
     # Gaussian plumes, no drawn tracer lines or screen-scale distortions.
@@ -204,11 +204,11 @@ def overlay(t, xx, yy, paths, sources):
         r2=((xx-x)/28)**2+((yy-y)/35)**2
         patch=np.exp(-.5*r2)*(.65+.35*math.sin(t*1.15+k*2)**2)
         cloud_mass+=patch*cloud
-    cloudy+=np.clip(cloud_mass*envelope,0,1)[:,:,None]*np.array([29,12,74],dtype=np.float32)
+    cloudy+=np.clip(cloud_mass*envelope,0,1)[:,:,None]*np.array([44,17,98],dtype=np.float32)
 
     # Cloud-illuminated rim shines from within as electricity travels.
     illumination=(fine*.35+broad*.12)*envelope
-    cloudy+=illumination[:,:,None]*np.array([18,6,39],dtype=np.float32)
+    cloudy+=illumination[:,:,None]*np.array([29,12,56],dtype=np.float32)
 
     # Thin, branching, intermittent electric filaments. This remains
     # a *second layer of light*, never a warp of any source pixels.

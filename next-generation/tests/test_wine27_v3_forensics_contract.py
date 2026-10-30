@@ -32,14 +32,16 @@ class ReadOnlyV3ForensicsContract(unittest.TestCase):
         self.assertIn('LOG_LIMIT = 12288', FORENSICS)
 
     def test_new_apk_includes_source_and_explicit_user_button(self):
-        self.assertIn('versionCode 75', PREP)
-        self.assertIn('11.2-next.0.44', PREP)
+        self.assertIn('versionCode 76', PREP)
+        self.assertIn('11.2-next.0.45', PREP)
         self.assertIn('CharoiteWine27V3Forensics.java', PREP)
-        self.assertIn('Inspect failed Wine27 v3 logs (read-only)', PREP)
+        self.assertIn('Inspect failed Wine27 v3 PE imports and logs (read-only)', PREP)
         self.assertIn('Inspect v3 without changing files', PREP)
         self.assertIn('CharoiteWine27V3Forensics.run(this)', PREP)
         self.assertIn('CharoiteWine27V3Forensics.java', CI)
-        self.assertIn("versionCode='75' versionName='11.2-next.0.44'", CI)
+        self.assertIn('CharoiteWine27PEAudit.java', CI)
+        self.assertIn('CharoiteWine27PEAudit.inspect(', FORENSICS)
+        self.assertIn("versionCode='76' versionName='11.2-next.0.45'", CI)
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.44"')
-text = text.replace("versionCode 33", "versionCode 75")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.45"')
+text = text.replace("versionCode 33", "versionCode 76")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -138,7 +138,8 @@ shutil.copy2(source_dir / "CharoiteWine26PrefixProbe.java", wine26_prefix_java)
 # Fully isolated patch-0800 native cohort: never replace the Wine26 cohort.
 for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine27PrefixProbe.java",
-                 "CharoiteWine27V3Forensics.java"):
+                 "CharoiteWine27V3Forensics.java",
+                 "CharoiteWine27PEAudit.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -662,7 +663,7 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(wine27Prefix);
         android.widget.Button wine27Forensics = new android.widget.Button(this);
-        wine27Forensics.setText("Inspect failed Wine27 v3 logs (read-only)");
+        wine27Forensics.setText("Inspect failed Wine27 v3 PE imports and logs (read-only)");
         wine27Forensics.setAllCaps(false);
         wine27Forensics.setOnClickListener(v -> {
             new android.app.AlertDialog.Builder(this)

@@ -74,7 +74,7 @@ class BootstrapPreflightTest(unittest.TestCase):
         self.assertIn("CHAROITE_NEXT_WINE_BOOTSTRAP_PREFLIGHT_STAGED=PASS",STAGER)
         self.assertIn("wine-bootstrap-preflight.json",WF)
         self.assertIn("CHAROITE_NEXT_BOOTSTRAP_PREFLIGHT_ASSET_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='75' versionName='11.2-next.0.44'",WF)
+        self.assertIn("versionCode='76' versionName='11.2-next.0.45'",WF)
 
 
 if __name__=="__main__":

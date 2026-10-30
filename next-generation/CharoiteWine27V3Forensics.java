@@ -108,7 +108,7 @@ public final class CharoiteWine27V3Forensics {
 
     public static String run(Context context) {
         StringBuilder out = new StringBuilder();
-        out.append("CHAROITE NEXT — READ-ONLY FAILED WINE27 V3 FORENSICS\n");
+        out.append("CHAROITE NEXT — READ-ONLY FAILED WINE27 V3 PE/IMPORT FORENSICS\n");
         out.append("No Wineboot, native execution, wineserver, scratch write or cleanup.\n");
         out.append("Only the exact existing v3 private scratch is inspected.\n");
         out.append("Existing Wine22, prior v1/v2 scratch, games, saves and prefixes: NOT ACCESSED\n");
@@ -131,6 +131,20 @@ public final class CharoiteWine27V3Forensics {
                     "prefix", "prefix/system.reg", "prefix/user.reg",
                     "prefix/userdef.reg", "prefix/.update-timestamp"
             }) status(out, scratch, item);
+
+            // Static inspection only: PE headers and import names from the
+            // already-retained v3 files; Wine is never launched.
+            File hybrid = checked(scratch,"runtime/lib/wine/arm64ec-windows");
+            File regular = checked(scratch,"runtime/lib/wine/arm64-windows");
+            for (String pe : new String[]{
+                    "runtime/lib/wine/arm64-windows/wineboot.exe",
+                    "runtime/lib/wine/arm64ec-windows/ntdll.dll",
+                    "runtime/lib/wine/arm64ec-windows/kernel32.dll",
+                    "runtime/lib/wine/arm64ec-windows/kernelbase.dll"}) {
+                out.append(CharoiteWine27PEAudit.inspect(
+                        checked(scratch,pe),hybrid,regular,pe));
+            }
+            list(out, scratch, "prefix/.wineserver");
             list(out, scratch, "prefix");
             // Wine may initialize a few key subdirectories before the error.
             for (String item : new String[]{"prefix/drive_c", "prefix/dosdevices"})

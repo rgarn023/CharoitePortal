@@ -29,8 +29,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.16"')
-text = text.replace("versionCode 33", "versionCode 47")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.17"')
+text = text.replace("versionCode 33", "versionCode 48")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -257,14 +257,14 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(startupDiagnostics);
 """)
-# Only the initial Activity creation registers the Portal session. The
-# existing Portal may be paused/resumed by Android without re-running boot.
+# Real onCreate registers the Portal and handles the one-time direct-root
+# cold boot fallback for Samsung legacy tasks. No splash on normal resume.
 create_anchor = "        super.onCreate(savedInstanceState);\n        CharoiteEnvironments.initialize(this);"
 assert ui.count(create_anchor) == 1
 ui = ui.replace(create_anchor, (
     "        super.onCreate(savedInstanceState);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".installReentryTracker(this);\n"
+    ".onPortalCreated(this, savedInstanceState);\n"
     "        CharoiteEnvironments.initialize(this);"), 1)
 
 # onResume consumes the one-time cold-start chime only, never shows a splash.

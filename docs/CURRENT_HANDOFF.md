@@ -1431,4 +1431,16 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 
 
 ---
+## 72. October 30, 2026 — 10-second Mystic Crystal C CLOUD + purple LIGHTNING animation PREVIEW (not shipped)
+
+**User request:** The 5-second C-focused energy preview was "on the right track" but needed a **10-second duration**, **cloudy glowing violet energy** surrounding the C and clearly visible **purple electricity**. Must show preview, NOT make live APK changes until approved.
+
+**Changes limited to preview generator / workflow:**
+- `docs/previews/render_crystal_awakening.py` now produces exactly **10 seconds at 24 fps** (`WIDTH=480 HEIGHT=920 SECONDS=10 FPS=24`) with the locked-approved v0.24 composited art and the title plaque static. Cloud-shaped violet energy is built from seeded multiscale moving noise inside a broad mask along the C's outer and inner curves. Three drifting soft violet plumes circulate near the C; several intermittent jagged purple/white electric bolts with side branches crackle along the C path. Lightning builds after a gradual startup, with a modest late crescendo; original artwork does NOT warp, move, stretch, zoom, or rotate. Preview is SILENT and **NOT installed in app**. Generator commits `f91142e3203cafdd3de45d169743d0877451c84f` (10s cloud/bolts) and `55447d1ee95c50af936df19fc99b90bfc00a29af` (strengthened cloud and branching lightning after inspection).
+- `.github/workflows/charoite-preview-video.yml` uploads **one artifact containing both MP4 video and a 5-panel storyboard JPG**, separate from the Next APK build and with isolated docs/previews triggers. Workflow change commit `95b61e9918c493f75dc80085d05241f0b84a8921`.
+- **Final successful [GitHub Actions run 41007919333](https://github.com/rgarn023/CharoitePortal/actions/runs/41007919333)**, commit `55447d1ee95c50af936df19fc99b90bfc00a29af`: [**download final 10-second cloud and lightning concept, artifact 12956012303**](https://github.com/rgarn023/CharoitePortal/actions/runs/41007919333/artifacts/12956012303), name `Charoite-Mystic-C-Cloud-and-Lightning-10s-MP4`, ZIP size **1,096,931 bytes**, nonexpired. Contains `Charoite_Mystic_C_Cloud_and_Lightning_10s.mp4` (**885,381 bytes**) and `Charoite_Mystic_C_Cloud_and_Lightning_10s_Storyboard.jpg` (**251,028 bytes**). Previous softer first 10-second artifact was 12956505726 (run 41007723486); **prefer new stronger one**.
+- The APK remains **Charoite Core Next v0.24 / code 55 / com.charoitx**, verified Actions run **40999653641**, artifact **12953071666**. No app/Wine/prefix/game/save changes; next step is gather user reaction to preview, potentially refine before any boot-screen implementation. Do not assume preview approved.
+
+
+---
 **End of current Charoite Portal handoff.**

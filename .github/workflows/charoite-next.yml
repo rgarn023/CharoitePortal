@@ -388,6 +388,21 @@ jobs:
               assert ntdll[:6]==b"\x7fELF\x02\x01"
               assert struct.unpack_from("<H",ntdll,16)[0]==3
               assert struct.unpack_from("<H",ntdll,18)[0]==183
+              preflight=json.loads(apk.read("assets/charoite-next/wine-bootstrap-preflight.json"))
+              assert preflight["schema_version"]==1
+              assert preflight["android_package"]=="com.charoitx"
+              assert preflight["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert preflight["source_run"]==40898982875
+              assert preflight["component_count"]==22 and preflight["nls_count"]==76
+              for flag in ("launch_ready","installable_as_runtime","prefix_created",
+                           "fex_installed","graphics_verified","device_boot_tested",
+                           "anti_cheat_supported"):
+                  assert preflight[flag] is False
+              assert len(preflight["bundle_manifest_sha256"])==64
+              assert len(preflight["dependency_review_sha256"])==64
+              assert isinstance(preflight["pe_imports_not_bundled"],list)
+              assert isinstance(preflight["android_needed_libraries"],list)
+              print("CHAROITE_NEXT_BOOTSTRAP_PREFLIGHT_ASSET_VERIFIED=PASS")
               assert b"CHAROITE_NTDLL_NATIVE_DIR" in native
               assert len(native)==manifest["size"]
               assert hashlib.sha256(native).hexdigest()==manifest["sha256"]
@@ -403,7 +418,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='65' versionName='11.2-next.0.34'"
+            grep -F "package: name='com.charoitx' versionCode='66' versionName='11.2-next.0.35'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -546,6 +561,8 @@ jobs:
           cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
           cp next-generation/CharoiteNextDiagnostics.java legal-bundle/CharoiteNextDiagnostics.java
           cp next-generation/CharoiteWineNativeProbe.java legal-bundle/CharoiteWineNativeProbe.java
+          cp next-generation/CharoiteWineBootstrapPreflight.java legal-bundle/CharoiteWineBootstrapPreflight.java
+          cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-preflight.json legal-bundle/wine-bootstrap-preflight.json
           cp next-generation/stage_native_wine_loader.py legal-bundle/stage_native_wine_loader.py
           cp upstream/app/src/main/assets/charoite-next/wine-native-probe.json legal-bundle/wine-native-probe.json
           cp next-generation/stage_wine_probe.py legal-bundle/stage_wine_probe.py

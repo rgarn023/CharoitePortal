@@ -76,10 +76,12 @@ class NativeVersionProbeTest(unittest.TestCase):
                        '"WINEPREFIX"', '"HOME"', "Runtime.getRuntime().exec"):
             self.assertNotIn(danger, SERVER_JAVA)
         self.assertIn("CharoiteWineServerProbe.java",PREP)
+        self.assertIn("CharoiteWineBootstrapPreflight.java",PREP)
+        self.assertIn("Audit modern Wine bootstrap prerequisites",PREP)
         self.assertIn("Test source-built wineserver --version",PREP)
 
 
-        for value in ('versionCode 65','11.2-next.0.34',
+        for value in ('versionCode 66','11.2-next.0.35',
                       "CharoiteWineNativeProbe.java",
                       "Test source-built Wine --version","Run Core Next device diagnostics",
                       "new Thread(() ->"):

@@ -348,7 +348,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 MediaPlayer player = new MediaPlayer();
                 movie = player;
                 AssetFileDescriptor afd = getResources().openRawResourceFd(
-                        com.winlator.R.raw.charoite_reference_portal_only_7s);
+                        com.winlator.R.raw.charoite_c_edge_fed_portal_7s);
                 try {
                     player.setDataSource(afd.getFileDescriptor(),
                             afd.getStartOffset(), afd.getLength());

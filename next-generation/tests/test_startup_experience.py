@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 62", PREP)
-        self.assertIn("11.2-next.0.31", PREP)
+        self.assertIn("versionCode 63", PREP)
+        self.assertIn("11.2-next.0.32", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -185,18 +185,23 @@ class StartupExperienceTest(unittest.TestCase):
         import hashlib
         renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
         self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7", renderer)
-        self.assertIn("Charoite_Reference_Portal_Only_7s.mp4", renderer)
+        self.assertIn("Charoite_C_Edge_Fed_Portal_7s.mp4", renderer)
         self.assertIn("charoite_portal_reference_inner.jpg", renderer)
         self.assertNotIn("draw_plaque(", renderer, "Do not replace native title with video plaque")
         self.assertNotIn("crystal_phase(", renderer, "Crystal must never animate")
-        self.assertNotIn("advect_cloud(", renderer, "Only the actual cropped portal may move")
+        self.assertIn("def advect_cloud(source, age, seed=0.):", renderer)
+        self.assertIn("INNER_C_RIM", renderer)
+        self.assertIn("def rim_source(i):", renderer)
+        self.assertIn("def make_clouds(t):", renderer)
+        self.assertIn("mask = opening_mask()", renderer)
+        self.assertIn("4.85", renderer)
         self.assertIn("def render_overlay(t, base, portal_source):", renderer)
         self.assertIn("cv2.remap(portal_source,", renderer)
         self.assertIn("return scene", renderer)
-        self.assertIn('movie_raw = app / "res/raw/charoite_reference_portal_only_7s.mp4"', PREP)
-        self.assertIn("CHAROITE_NEXT_REFERENCE_PORTAL_ONLY_7_SECONDS=PASS", PREP)
+        self.assertIn('movie_raw = app / "res/raw/charoite_c_edge_fed_portal_7s.mp4"', PREP)
+        self.assertIn("CHAROITE_NEXT_C_EDGE_FED_PORTAL_7_SECONDS=PASS", PREP)
         self.assertIn("new CrystalPortalMovie(activity)", BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_reference_portal_only_7s", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_c_edge_fed_portal_7s", BOOT)
         self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
         self.assertIn("player.setVolume(0f, 0f)", BOOT)
         self.assertIn("player.setLooping(false)", BOOT)
@@ -222,19 +227,57 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertEqual(mod.portal_phase(6.35), 0)
         image = mod.make_portal_source()
         self.assertEqual(image.shape, (160, 160, 3))
-        # Base pixels must not change anywhere except the small C opening.
+        # Base pixels must not change beyond the C opening and its feeder zone.
         base = np.full((mod.HEIGHT, mod.WIDTH, 3), 110., dtype=np.float32)
         rendered = mod.render_overlay(3.5, base, image)
-        x0, x1 = mod.PORTAL_X-mod.PORTAL_RX, mod.PORTAL_X+mod.PORTAL_RX
-        y0, y1 = mod.PORTAL_Y-mod.PORTAL_RY, mod.PORTAL_Y+mod.PORTAL_RY
+        x0, x1 = mod.FEED_X0, mod.FEED_X1
+        y0, y1 = mod.FEED_Y0, mod.FEED_Y1
         changes = np.any(rendered != base, axis=2)
-        self.assertTrue(changes[y0:y1,x0:x1].any(), "Reference portal must be visible")
+        self.assertTrue(changes[y0:y1,x0:x1].any(), "Reference vortex and clouds must be visible")
         changes[y0:y1,x0:x1] = False
         self.assertFalse(changes.any(), "No crystal, background or title pixels may change")
         self.assertTrue(np.array_equal(mod.render_overlay(0, base, image), base))
         self.assertTrue(np.array_equal(mod.render_overlay(6.35, base, image), base))
         self.assertGreater(float(np.abs(mod.render_overlay(2.5,base,image) -
                                         mod.render_overlay(3.5,base,image)).sum()), 1000.)
+
+    def test_clouds_feed_c_center_ccw_and_dissipate_with_audio(self):
+        import importlib.util
+        import math
+        import numpy as np
+        script = ROOT.parent / "docs/previews/render_crystal_awakening.py"
+        spec = importlib.util.spec_from_file_location("c_edge_fed_portal", script)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.smoke_phase(0), 0.)
+        self.assertGreater(mod.smoke_phase(2.5), .99)
+        self.assertGreater(mod.smoke_phase(4.8), .99)
+        self.assertLess(mod.smoke_phase(5.5), .6)
+        self.assertEqual(mod.smoke_phase(6.25), 0.)
+        self.assertEqual(mod.portal_phase(6.25), 0.)
+        for i in (0,7,18,32,51):
+            edge = mod.rim_source(i)
+            start=mod.advect_cloud(edge, 0.)
+            later=mod.advect_cloud(edge, .5)
+            def polar(p):
+                return (math.hypot((p[0]-mod.PORTAL_X)/127.,
+                                   (p[1]-mod.PORTAL_Y)/130.),
+                        math.atan2(-(p[1]-mod.PORTAL_Y)/130.,
+                                   (p[0]-mod.PORTAL_X)/127.))
+            r0, theta0 = polar(start)
+            r1, theta1 = polar(later)
+            self.assertLess(r1, r0, "Smoke must be pulled inward")
+            turn=(theta1-theta0+math.pi)%(2*math.pi)-math.pi
+            self.assertGreater(turn, .4, "Smoke must circulate counterclockwise")
+        mask=mod.opening_mask()
+        self.assertGreater(mask.max(),.99)
+        self.assertEqual(mask.shape, (mod.FEED_Y1-mod.FEED_Y0,
+                                      mod.FEED_X1-mod.FEED_X0))
+        black,purple=mod.make_clouds(3.)
+        self.assertGreater(float(black.max()),.01)
+        self.assertGreater(float(purple.max()),.005)
+        # The actual seven-second source audio ends in digital silence.
+        self.assertEqual(audio.sample(6.35), 0.)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
         # Portrait source is a proper 960x1840 composition, not a zoomed

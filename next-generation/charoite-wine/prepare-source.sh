@@ -89,6 +89,9 @@ git diff --check
 grep -Fq 'CHAROITE_WINE26_DATA_DIR' dlls/ntdll/unix/loader.c || {
   echo "Isolated Android Wine data directory patch missing" >&2; exit 14;
 }
+grep -Fq 'CHAROITE_WINE26_DATA_DIR' server/unicode.c || {
+  echo "Isolated Wine server NLS source patch missing" >&2; exit 14;
+}
 grep -Fq 'CHAROITE_WINE27_NATIVE_DIR' loader/main.c || {
   echo "New native Wine26 loader must select matching new cohort ntdll" >&2; exit 14;
 }

@@ -43,6 +43,8 @@ class SourceContract(unittest.TestCase):
         data_patch = (WINE / "patches/0800-android-isolated-wine-data-dir.patch").read_text()
         self.assertIn("CHAROITE_WINE26_DATA_DIR", data_patch)
         self.assertIn("CHAROITE_WINE27_NATIVE_DIR", data_patch)
+        self.assertIn("server/unicode.c", data_patch)
+        self.assertIn("CHAROITE_WINE26_DATA_DIR", SCRIPT)
         self.assertIn("libcharoite_wine27_ntdll.so", data_patch)
         self.assertIn("CHAROITE_WINE27_NATIVE_DIR", SCRIPT)
         self.assertIn("dlls/ntdll/unix/loader.c", data_patch)

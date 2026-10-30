@@ -34,7 +34,7 @@ class PackagedBootstrapTest(unittest.TestCase):
         self.assertEqual(index["archive_size"],7)
         self.assertEqual(index["source_run"],40898982875)
         self.assertEqual(index["windows_imports_not_bundled_count"],2)
-        self.assertEqual(index["archive_asset"],"charoite-next/wine-bootstrap-22.tar.gz")
+        self.assertEqual(index["archive_asset"],"charoite-next/wine-bootstrap-22.bundle")
         for key in ("launch_ready","installable_as_runtime","archive_extracted",
                     "prefix_created","fex_installed","graphics_verified",
                     "device_boot_tested","anti_cheat_supported"):

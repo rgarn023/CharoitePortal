@@ -6,6 +6,8 @@
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
 
+**Latest Charoite Next build:** **v0.21 (code 52, `com.charoitx`)**, GitHub Actions **40995735222 — SUCCESS**; [signed APK artifact 12950938987](https://github.com/rgarn023/CharoitePortal/actions/runs/40995735222/artifacts/12950938987). Source/code SHA `cbed44a6f5c764acf82d1a245f59d193d87a6535`. This is the latest verified **Next** APK; Samsung on-device framing/title still requires feedback. Stable Portal is a different package.
+
 > **MANDATORY:** GitHub's live `main` branch and its actual GitHub Actions state are always the source of truth. This file is a dated snapshot. After every substantive Charoite project response, **update this handoff in GitHub**, with actual changes/tests/build/device findings and specific next steps. Do not leave the user with a handoff that points to an outdated version when the conversation becomes slow. For documentation-only commits use `[skip ci]` to avoid building another 230 MB APK solely for a status note; check whether the previous successful APK still corresponds to the latest **code** commit.
 
 ## 1. Identity and non-negotiable workflow
@@ -1321,6 +1323,27 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 - GitHub Actions **run 40994005472 COMPLETED SUCCESS**, no failed steps, https://github.com/rgarn023/CharoitePortal/actions/runs/40994005472 . 30 Next tests and 138 stable runtime-preview tests passed. Confirmed full-bleed artwork resource, five-second boot and chime resources, APK `com.charoitx` versionCode 51 / `11.2-next.0.20`, same cached signing certificate.
 - GitHub APK artifact **Charoite-Core-Next-Android-APK** ID **12950801630** https://github.com/rgarn023/CharoitePortal/actions/runs/40994005472/artifacts/12950801630 ; ZIP size **241,274,048 bytes**; ZIP SHA256 **ce39b26bb3ab4f500d9e4a2d1eab826f8b05d8562713b8cfdaf00af9e9428fb8** (ZIP only; not inside APK). Licenses artifact ID **12950173759**.
 - GitHub Actions cannot prove precise Samsung on-device visual proportions or crystal glow smoothness. Install 0.20 IN PLACE, no data reset. Verify full-screen image rather than centered icon, no zoom, five-second glow/sparkles + clean sound and direct return with no splash during app switching. If cutting too much of left/right crystalline arc on S26 Ultra portrait, next solution is **a purpose-built portrait extension/outpainting of the approved artwork**, NOT going back to FIT_CENTER with blurred background.
+
+---
+## 66. October 29, 2026 — Next v0.21 relaxed full-screen crop, original crystalline “Charoite Portal” title — VERIFIED SIGNED APK
+
+**User request:** On Next 0.20, show somewhat more of the boot image instead of cutting off so much at the edges. Add “Charoite Portal” as crystal-styled words on the boot screen. User explicitly required ChatGPT to implement and build in GitHub, not merely describe a plan.
+
+**Implemented DIRECTLY in `rgarn023/CharoitePortal` on `main`:**
+- `next-generation/CharoiteNextBootActivity.java`: New full-size single `CrystalArtwork` `ImageView` with `ScaleType.MATRIX`, `ART_CROP_RELIEF = .90f`. Source-approved original artwork remains untouched. It fills the entire Android content in portrait and landscape, but reduces crop ~10% by moderately compressing only the formerly over-cropped dimension. This reveals ~11% more of the picture in that dimension. Note this is a slight, deliberate *aspect adjustment*, NOT new generative outpainting. There is still **no separate square icon card, second blurred backdrop, zoom/scale animation, title panel or loading bar**.
+- New `CrystalWordmark extends View` draws `CHAROITE PORTAL` at approximately 87% screen height in responsive serif typography with dark amethyst outline, pale violet bevel, icy-white→blue→lavender crystalline vertical gradient, subtle violet bloom and two small diamond glints. Drawn in a transparent native view directly over the full-screen artwork. Accessible text `Charoite Portal`; no image or font-file dependency.
+- Updated `CrystalShimmer` source-coordinate alignment to match the changed portrait/landscape matrix, so the existing crystal-tip light glints still sit on the intended crystals. Five-second `BOOT_DURATION_MS=5000`, existing cleaned PCM chime, Samsung direct-root pre-first-draw cold fallback, and no splash replay on Home/Recents/app switching all preserved.
+- Source change commit: `e4f6b2dda99cb0198666f52363492739dd1f949b`; Next 0.21 test/version/workflow changes committed on main, with final code/test commit `cbed44a6f5c764acf82d1a245f59d193d87a6535`.
+- Only experimental Next app `com.charoitx` changes; bumped to **versionName `11.2-next.0.21`**, **versionCode 52**. Does **not** modify stable `com.charoite`, Wine components, prefixes, saves or existing installations.
+
+**CI/build VERIFICATION:**
+- GitHub Actions [run 40995735222](https://github.com/rgarn023/CharoitePortal/actions/runs/40995735222) **COMPLETED SUCCESS**, no failed steps; 30 Next regression tests and 138 original runtime-preview tests passed. Android integrated app compiled and packaged successfully.
+- AAPT verified signed package **`com.charoitx`, code 52, name `11.2-next.0.21`**. Full-bleed/transparent-corner approved boot asset and identical original launcher/master image checks PASS; five-second original chime resource PASS. CI is not a physical phone visual inspection.
+- APK artifact **`Charoite-Core-Next-Android-APK` ID 12950938987**, https://github.com/rgarn023/CharoitePortal/actions/runs/40995735222/artifacts/12950938987 (GitHub reports nonexpired ZIP **241,276,179 bytes**). License artifact ID **12951840030**.
+- Earlier intermediate runs failed due to stale tests (or were cancelled due to newer commits); **40995735222** is the final green build. Documentation-only `[skip ci]` update does not change APK source SHA.
+
+**Next actual Galaxy S26 Ultra check:** Install **v0.21 in place**, no uninstall/reset, and observe the true cold launch: artwork remains full screen and shows more side crystals; crystalline `CHAROITE PORTAL` title is legible low on image; sparkle is aligned; five-second boot and sound work; Home/Recents→return skips boot; genuine relaunch shows it. Ask for screenshot/video only if user feedback identifies a specific visual mismatch. If 10% relaxed crop is insufficient or the mild aspect adjustment seems distorted, consider separately composing a purpose-built portrait canvas preserving artwork (not another small icon on a blur), without changing original approved launcher image.
+
 
 ---
 **End of current Charoite Portal handoff.**

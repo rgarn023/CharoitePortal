@@ -3,13 +3,15 @@ package com.charoitegames.core;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Dialog;
+import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.graphics.drawable.ClipDrawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.Drawable;
-import android.view.animation.LinearInterpolator;
-import android.widget.ProgressBar;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
+import android.os.SystemClock;
+import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.WindowManager;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Collections;
@@ -217,97 +219,139 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** Source-faithful art with transparent corners and a full-screen
-     * violet continuation, never a black square around the icon. */
+    /** Five-second cinematic Charoite reveal, no loading bar.
+     * The full content area shows the approved portal, unframed and enlarged
+     * as far as possible without cropping away its crystal ring. The matching
+     * violet backdrop fills the remaining tall-phone or DeX letterbox area.
+     * Neither image is replaced or repainted; glow is a transparent overlay.
+     */
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
         boot.setBackgroundColor(Color.rgb(43, 18, 83));
-        boot.setContentDescription("Charoite Core starting");
+        boot.setContentDescription("Charoite crystal portal awakening");
         ImageView backdrop = new ImageView(activity);
         backdrop.setImageResource(com.winlator.R.drawable.charoite_next_boot_backdrop);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         boot.addView(backdrop, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        LinearLayout emblem = new LinearLayout(activity);
-        emblem.setOrientation(LinearLayout.VERTICAL);
-        emblem.setGravity(Gravity.CENTER);
-        emblem.setPadding(density(activity, 20), density(activity, 24),
-                density(activity, 20), density(activity, 24));
 
-        ImageView icon = new ImageView(activity);
-        // Exact full-resolution user-supplied asset; also installed as the launcher icon.
-        icon.setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
-        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        icon.setContentDescription("Charoite crystal portal");
-        emblem.addView(icon, new LinearLayout.LayoutParams(
-                density(activity, 278), density(activity, 278)));
+        FrameLayout scene = new FrameLayout(activity);
+        boot.addView(scene, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
 
-        TextView title = new TextView(activity);
-        title.setText("CHAROITE CORE");
-        title.setGravity(Gravity.CENTER);
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(23);
-        title.setLetterSpacing(0.13f);
-        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        LinearLayout.LayoutParams titleParams =
-                new LinearLayout.LayoutParams(-2, -2);
-        titleParams.topMargin = density(activity, 20);
-        emblem.addView(title, titleParams);
+        ImageView artwork = new ImageView(activity);
+        artwork.setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
+        // Avoid CENTER_CROP on the square portal: on a tall phone it removes
+        // the entire left/right crystalline arch. FIT_CENTER preserves it.
+        artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        scene.addView(artwork, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
 
-        TextView subtitle = new TextView(activity);
-        subtitle.setText("NEXT");
-        subtitle.setGravity(Gravity.CENTER);
-        subtitle.setTextColor(Color.rgb(198, 180, 240));
-        subtitle.setTextSize(12);
-        subtitle.setLetterSpacing(0.34f);
-        LinearLayout.LayoutParams subtitleParams =
-                new LinearLayout.LayoutParams(-2, -2);
-        subtitleParams.topMargin = density(activity, 6);
-        emblem.addView(subtitle, subtitleParams);
+        // Gentle glow passes through the center, isolated little glints light
+        // crystal tips, and the artwork breathes by only 3.5 percent.
+        CrystalShimmer shimmer = new CrystalShimmer(activity);
+        shimmer.setClickable(false);
+        shimmer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        scene.addView(shimmer, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
 
-        ProgressBar progress = new ProgressBar(activity, null,
-                android.R.attr.progressBarStyleHorizontal);
-        progress.setIndeterminate(false);
-        progress.setMax(1000);
-        progress.setProgress(0);
-        GradientDrawable track = new GradientDrawable();
-        track.setColor(Color.rgb(31, 19, 55));
-        track.setCornerRadius(density(activity, 8));
-        track.setStroke(density(activity, 1), Color.rgb(126, 77, 198));
-        GradientDrawable fill = new GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{0xff6332C3, 0xffA45DF4, 0xffF5DDFF});
-        fill.setCornerRadius(density(activity, 8));
-        LayerDrawable layers = new LayerDrawable(new Drawable[]{
-                track, new ClipDrawable(fill, Gravity.LEFT, ClipDrawable.HORIZONTAL)});
-        layers.setId(0, android.R.id.background);
-        layers.setId(1, android.R.id.progress);
-        progress.setProgressDrawable(layers);
-        LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(
-                density(activity, 250), density(activity, 9));
-        barParams.topMargin = density(activity, 29);
-        emblem.addView(progress, barParams);
-        ObjectAnimator animation = ObjectAnimator.ofInt(progress, "progress", 0, 1000);
-        animation.setDuration(BOOT_DURATION_MS);
-        animation.setInterpolator(new LinearInterpolator());
-        animation.start();
-
-        TextView hint = new TextView(activity);
-        hint.setText("STARTING CHAROITE CORE");
-        hint.setTextSize(10);
-        hint.setTextColor(0xffCAB4ED);
-        hint.setLetterSpacing(.16f);
-        hint.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(-2, -2);
-        hintParams.topMargin = density(activity, 14);
-        emblem.addView(hint, hintParams);
-
-        FrameLayout.LayoutParams emblemParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
-        boot.addView(emblem, emblemParams);
+        AnimatorSet slowReveal = new AnimatorSet();
+        slowReveal.playTogether(
+                ObjectAnimator.ofFloat(scene, "scaleX", 1.0f, 1.035f),
+                ObjectAnimator.ofFloat(scene, "scaleY", 1.0f, 1.035f));
+        slowReveal.setDuration(BOOT_DURATION_MS);
+        slowReveal.setInterpolator(new AccelerateDecelerateInterpolator());
+        slowReveal.start();
         return boot;
+    }
+
+    /** Original Android-canvas particle layer, no external artwork or video.
+     * Coordinates are relative to the original square picture contained
+     * inside the screen, so glow aligns on portrait and landscape displays.
+     * Only eight small, fixed crystal-tip sparkles are used, not a busy ring.
+     * Invalidations stop after BOOT_DURATION_MS; no background animation.
+     */
+    private static final class CrystalShimmer extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private long firstFrameAt = -1L;
+        private static final float[][] CRYSTAL_TIPS = {
+                {.50f, .072f}, {.715f, .312f}, {.256f, .377f},
+                {.678f, .793f}, {.348f, .766f}, {.521f, .893f},
+                {.767f, .551f}, {.439f, .273f}
+        };
+
+        CrystalShimmer(Context context) {
+            super(context);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (firstFrameAt < 0L) firstFrameAt = SystemClock.uptimeMillis();
+            final long elapsed = Math.max(0L,
+                    SystemClock.uptimeMillis() - firstFrameAt);
+            final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
+            final float side = Math.min(getWidth(), getHeight());
+            if (side <= 0f) return;
+            final float left = (getWidth() - side) * .5f;
+            final float top = (getHeight() - side) * .5f;
+            final float glow = .5f + .5f *
+                    (float)Math.sin(2.0 * Math.PI * t / 3.6f - .7f);
+
+            // Diffuse purple radiance centered inside the crescent gateway.
+            radialGlow(canvas, left + side * .505f, top + side * .46f,
+                    side * .31f, (int)(14 + 19 * glow));
+            // A quiet, icy-white aura around the main upper crystal tip.
+            radialGlow(canvas, left + side * .50f, top + side * .080f,
+                    side * .14f, (int)(18 + 22 * glow));
+
+            final float unit = Math.max(2f, side * .007f);
+            for (int i = 0; i < CRYSTAL_TIPS.length; i++) {
+                float phase = i * 1.77f + .31f;
+                float wave = (float)Math.sin(t * (2.25f + i * .10f) + phase);
+                float twinkle = (float)Math.pow(Math.max(0f, wave), 5);
+                if (twinkle < .08f) continue;
+                float x = left + side * CRYSTAL_TIPS[i][0];
+                float y = top + side * CRYSTAL_TIPS[i][1];
+                float radius = unit * (.95f + 1.25f * twinkle);
+                int alpha = (int)(155 * twinkle);
+                paint.setShader(new RadialGradient(x, y, radius * 3.2f,
+                        new int[]{Color.argb(alpha, 240, 215, 255),
+                                Color.TRANSPARENT}, null, Shader.TileMode.CLAMP));
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(x, y, radius * 3.2f, paint);
+                paint.setShader(null);
+                paint.setColor(Color.argb((int)(220 * twinkle), 255, 248, 255));
+                paint.setStrokeWidth(Math.max(.8f, side * .0012f));
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                canvas.drawLine(x - radius * 2.0f, y, x + radius * 2.0f, y, paint);
+                canvas.drawLine(x, y - radius * 2.7f, x, y + radius * 2.7f, paint);
+            }
+            paint.setShader(null);
+            if (elapsed < BOOT_DURATION_MS && isAttachedToWindow())
+                postInvalidateOnAnimation();
+        }
+
+        private void radialGlow(Canvas canvas, float x, float y,
+                float radius, int alpha) {
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(new RadialGradient(x, y, radius,
+                    new int[]{Color.argb(alpha, 196, 105, 255),
+                            Color.argb(alpha / 3, 166, 82, 242),
+                            Color.TRANSPARENT},
+                    new float[]{0f, .43f, 1f}, Shader.TileMode.CLAMP));
+            canvas.drawCircle(x, y, radius, paint);
+            paint.setShader(null);
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            firstFrameAt = -1L;
+            super.onDetachedFromWindow();
+        }
     }
 
     private static int density(Activity activity, int size) {

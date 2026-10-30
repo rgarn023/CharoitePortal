@@ -31,8 +31,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("render_crystal_portal(",PREP)
         self.assertIn("R.drawable.charoite_next_boot_scene",BOOT)
         self.assertIn("com.charoitx",PREP)
-        self.assertIn("versionCode 45",PREP)
-        self.assertIn("11.2-next.0.14",PREP)
+        self.assertIn("versionCode 46",PREP)
+        self.assertIn("11.2-next.0.15",PREP)
 
     def test_five_seconds_on_initial_open_and_each_foreground_return(self):
         self.assertIn("BOOT_DURATION_MS = 5000L",BOOT)

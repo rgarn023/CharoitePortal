@@ -133,7 +133,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("elapsed < BOOT_DURATION_MS", effect)
         self.assertIn("isAttachedToWindow()", effect)
         self.assertIn("onDetachedFromWindow()", effect)
-        self.assertIn("8 small, fixed crystal-tip sparkles", BOOT)
+        self.assertIn("eight small, fixed crystal-tip sparkles", BOOT)
         self.assertNotIn("ProcessBuilder", effect)
         self.assertNotIn("java.util.Random", effect)
 

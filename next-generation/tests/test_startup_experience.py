@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 55", PREP)
-        self.assertIn("11.2-next.0.24", PREP)
+        self.assertIn("versionCode 56", PREP)
+        self.assertIn("11.2-next.0.25", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -135,8 +135,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("setContentDescription(\"Charoite Portal\")", BOOT)
         self.assertNotIn("ProgressBar", view)
 
-    def test_five_second_boot_once_per_real_session(self):
-        self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
+    def test_ten_second_boot_once_per_real_session(self):
+        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
         self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)", BOOT)
         self.assertIn("CrystalShimmer extends View", BOOT)
         self.assertNotIn("slowReveal.setDuration(", BOOT)
@@ -180,6 +180,40 @@ class StartupExperienceTest(unittest.TestCase):
         resume = BOOT.split("public static void onPortalResumed(Activity portal) {",1)[1].split("\n    }",1)[0]
         self.assertNotIn("createBootView(",resume)
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
+
+    def test_approved_cloud_only_movie_is_packaged_and_fails_safe(self):
+        # The signed Next APK must play the approved silent cloud-only
+        # visual, not the rejected electricity preview or any screen warp.
+        renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
+        self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 10", renderer)
+        self.assertIn("Charoite_Mystic_C_Cloud_Only_10s.mp4", renderer)
+        self.assertIn("cloud_noise(", renderer)
+        self.assertIn("make_cloud_sources(", renderer)
+        self.assertNotIn("def electrify(", renderer)
+        self.assertNotIn("cv2.remap(", renderer)
+        self.assertIn("subprocess.run([sys.executable, str(preview_script)]", PREP)
+        self.assertIn("movie_raw = app / \"res/raw/charoite_mystic_c_cloud_10s.mp4\"", PREP)
+        self.assertIn("shutil.copyfile(movie_generated, movie_raw)", PREP)
+        self.assertIn("CHAROITE_NEXT_CLOUD_ONLY_MOVIE_10_SECONDS=PASS", PREP)
+
+        # Texture-backed video keeps the original art/title under it until
+        # an actual first decoded frame appears; it is never a black splash.
+        self.assertIn("new CrystalCloudMovie(activity)", BOOT)
+        self.assertIn("class CrystalCloudMovie extends TextureView", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_mystic_c_cloud_10s", BOOT)
+        self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
+        self.assertIn("setAlpha(0f)", BOOT)
+        self.assertIn("setAlpha(1f)", BOOT)
+        self.assertIn("getResources().openRawResourceFd(", BOOT)
+        self.assertIn("player.setVolume(0f, 0f)", BOOT)
+        self.assertIn("player.setLooping(false)", BOOT)
+        self.assertIn("getWidth() <= getHeight()", BOOT)
+        self.assertIn("releaseMovie()", BOOT)
+        self.assertIn("matrix.setScale(sx, sy, w / 2f, h / 2f)", BOOT)
+        self.assertIn("BOOT_DURATION_MS = 10000L", BOOT)
+        self.assertNotIn("BOOT_DURATION_MS = 5000L", BOOT)
+        self.assertNotIn("setVideoURI(", BOOT)
+        self.assertNotIn("R.raw.charoite_mystic_c_cloud_and_lightning", BOOT)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
         # Portrait source is a proper 960x1840 composition, not a zoomed

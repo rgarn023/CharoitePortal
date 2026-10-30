@@ -417,35 +417,19 @@ public final class CharoiteNextBootActivity extends Activity {
             final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
             final float w = getWidth(), h = getHeight();
             if (w <= 0f || h <= 0f) return;
-            final float artWidth, artHeight, left, top;
-            if (w <= h) {
-                // match portrait asset's 960x1840 CENTER_CROP plus its
-                // 1536→1020→960 square-source mapping in make_portrait_boot.py.
-                float viewportScale = Math.max(w / PORTRAIT_ART_WIDTH,
-                        h / PORTRAIT_ART_HEIGHT);
-                float sourceScale = viewportScale * 1020f / 1406f;
-                artWidth = 1536f * sourceScale;
-                artHeight = artWidth;
-                left = (w - PORTRAIT_ART_WIDTH * viewportScale) * .5f
-                        + (-30f - 65f * 1020f / 1406f) * viewportScale;
-                top = (h - PORTRAIT_ART_HEIGHT * viewportScale) * .5f
-                        + (398f - 72f * 1020f / 1406f) * viewportScale;
-            } else {
-                float side = Math.max(w, h);
-                artWidth = side;
-                artHeight = side;
-                left = (w - side) * .5f;
-                top = (h - side) * .5f;
-            }
-            final float side = Math.max(artWidth, artHeight);
+            // The portrait is resampled from a SINGLE continuous source.
+            // Map crystal tips through its three vertically stretched source
+            // bands; the v0.22 overlay mapping followed a pasted square and
+            // no longer corresponds to this seamless portrait asset.
+            final float side = Math.min(w, h);
             final float glow = .5f + .5f *
                     (float)Math.sin(2.0 * Math.PI * t / 3.6f - .7f);
 
             // Diffuse purple radiance centered inside the crescent gateway.
-            radialGlow(canvas, left + artWidth * .505f, top + artHeight * .46f,
+            radialGlow(canvas, crystalX(.505f, w, h), crystalY(.46f, w, h),
                     side * .31f, (int)(14 + 19 * glow));
             // A quiet, icy-white aura around the main upper crystal tip.
-            radialGlow(canvas, left + artWidth * .50f, top + artHeight * .080f,
+            radialGlow(canvas, crystalX(.50f, w, h), crystalY(.080f, w, h),
                     side * .14f, (int)(18 + 22 * glow));
 
             final float unit = Math.max(2f, side * .007f);
@@ -454,8 +438,8 @@ public final class CharoiteNextBootActivity extends Activity {
                 float wave = (float)Math.sin(t * (2.25f + i * .10f) + phase);
                 float twinkle = (float)Math.pow(Math.max(0f, wave), 5);
                 if (twinkle < .08f) continue;
-                float x = left + artWidth * CRYSTAL_TIPS[i][0];
-                float y = top + artHeight * CRYSTAL_TIPS[i][1];
+                float x = crystalX(CRYSTAL_TIPS[i][0], w, h);
+                float y = crystalY(CRYSTAL_TIPS[i][1], w, h);
                 float radius = unit * (.95f + 1.25f * twinkle);
                 int alpha = (int)(155 * twinkle);
                 paint.setShader(new RadialGradient(x, y, radius * 3.2f,
@@ -473,6 +457,34 @@ public final class CharoiteNextBootActivity extends Activity {
             paint.setShader(null);
             if (elapsed < BOOT_DURATION_MS && isAttachedToWindow())
                 postInvalidateOnAnimation();
+        }
+
+        private static float crystalX(float fraction, float w, float h) {
+            if (w <= h) {
+                float fit = Math.max(w / PORTRAIT_ART_WIDTH, h / PORTRAIT_ART_HEIGHT);
+                float imageX = (w - PORTRAIT_ART_WIDTH * fit) * .5f;
+                return imageX + (fraction * 1536f - 114f)
+                        * (PORTRAIT_ART_WIDTH / 1308f) * fit;
+            }
+            float side = Math.max(w, h);
+            return (w - side) * .5f + side * fraction;
+        }
+
+        private static float crystalY(float fraction, float w, float h) {
+            if (w <= h) {
+                float fit = Math.max(w / PORTRAIT_ART_WIDTH, h / PORTRAIT_ART_HEIGHT);
+                float sy = fraction * 1536f;
+                float mappedY;
+                if (sy <= 360f)
+                    mappedY = (sy - 113f) * (385f / 247f);
+                else if (sy <= 1160f)
+                    mappedY = 385f + (sy - 360f) * (845f / 800f);
+                else
+                    mappedY = 1230f + (sy - 1160f) * (610f / 274f);
+                return (h - PORTRAIT_ART_HEIGHT * fit) * .5f + mappedY * fit;
+            }
+            float side = Math.max(w, h);
+            return (h - side) * .5f + side * fraction;
         }
 
         private void radialGlow(Canvas canvas, float x, float y,

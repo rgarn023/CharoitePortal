@@ -1241,4 +1241,26 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 - **Device behavior still needs confirmation.** Install 0.16 IN PLACE without uninstall or clearing data, check no black frame at first cold boot; Home→other app→return and Home→Recents→return should go to main immediately without boot/chime; fully finish app and relaunch should show boot with sound. Static code tests and CI do not emulate Samsung One UI task behavior.
 
 ---
+## 62. October 29, 2026 — Charoite Next 0.17 restores boot on genuine launch, prevents app-switch replay (SIGNED APK PASS)
+
+**User report:** After installing Next 0.16, the boot screen no longer came up. Previous request: boot screen must not replay when the application is already open and the user switches between apps. Keep these separate: *new actual app session* requires boot; Home/Recents/app switching of an existing Portal does not.
+
+**Root cause in 0.16:** BootActivity launched Portal after a 5-second delay and immediately called `finish()`, destroying the launcher task root. Samsung/Android could then restore the existing Portal directly, bypassing the launcher BootActivity, and a weak-reference "live Portal" check could suppress a legitimate launcher boot. The absence of a process-aware cold-start fallback after app update compounded this regression.
+
+**Fixes committed DIRECTLY to the existing `main` branch:**
+- `next-generation/CharoiteNextBootActivity.java`: initial BootActivity **no longer finishes itself immediately after starting Portal**. It remains behind Portal as task root so Android retains a consistent launcher route. If the user actually exits Portal, BootActivity resumes with `completed=true`, finishes itself and permits a new five-second boot on next genuine launch. If an existing live Portal is in the *same task*, a redundant launcher instance routes to Portal with `FLAG_ACTIVITY_CLEAR_TOP|FLAG_ACTIVITY_SINGLE_TOP` rather than booting or dumping the user to Home.
+- On actual `TouhouEntryActivity.onCreate` only, `onPortalCreated(this, savedInstanceState)` registers the session and detects an old/restored *direct Portal task root*, which can occur after an APK update and bypass BootActivity. When this is a genuine new activity or version-changed restore rather than a routine configuration change/internal activity, it renders `createBootView` as an unobtrusive five-second root overlay and plays the same cleaned-up crystal audio after completion. The last shown APK versionCode is recorded in internal startup diagnostics; fresh v0.17 code 48 ensures the first restored entry after upgrading from 0.16 can receive the boot fallback.
+- Normal `onResume`, Home, Recents, app switching, and window focus **do not create a boot overlay**. Normal onResume only consumes the one-time startup sound marker for a real previous cold boot. The 0.16 full-bleed, transparent-corner approved artwork and purple backdrop, progress bar, and smooth sound are unchanged.
+- Next-only version bump to **11.2-next.0.17, versionCode 48, `com.charoitx`**; same persistent APK signing key. Stable Charoite Portal, game data, save files, Wine environments, prefixes, and installed Windows games are not modified.
+- Added regression checks that prevent immediately finishing the launcher after starting Portal, assert same-task detection and Android task-root retention, validate old-task direct Portal fallback occurs only on creation with version checking, and prevent warm splash on `onResume`. New startup diagnostics retain a copyable event trace.
+
+**Verified GitHub Actions APK:**
+- Source commit: `a4a910e3c268cc8ac1bf9ae449f40506bf173ea7`.
+- GitHub Actions run **40986855572**, https://github.com/rgarn023/CharoitePortal/actions/runs/40986855572 — **COMPLETED SUCCESS**, no failed steps.
+- **27 Next tests PASS**, **138 stable runtime-preview tests PASS**. Boot artwork full-bleed check PASS, 5-second boot + original clean crystal audio resource PASS, signed APK package `com.charoitx` versionCode 48 `11.2-next.0.17` confirmed; APK signing certificate matches cached key.
+- GitHub Actions APK artifact `Charoite-Core-Next-Android-APK` ID **12947212686**, https://github.com/rgarn023/CharoitePortal/actions/runs/40986855572/artifacts/12947212686 ; ZIP size 241,273,988 bytes; **ZIP SHA-256 1b6acff31869915f222254945596295b9fa465e2110ec75d33c2f58d79da894b** (ZIP digest not inner APK digest). License artifact ID 12947092829.
+
+**Device test:** update Next IN PLACE (do not uninstall/clear storage). After update, ensure five-second boot and cleaned-up crystal chime on genuine launch; closing Portal completely and tapping its icon again should show boot. Home/Recents/other-app→return while Portal remains open must go directly to main screen without splash/sound. GitHub tests cannot prove Samsung One UI routing in hardware; if still absent send `System → Startup / audio diagnostics → Copy report`, especially "Last lifecycle" and "Portal session live".
+
+---
 **End of current Charoite Portal handoff.**

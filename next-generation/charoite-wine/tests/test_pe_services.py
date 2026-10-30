@@ -77,7 +77,10 @@ class ServicesTest(unittest.TestCase):
         self.audit["windows_imports_not_bundled"].remove("secur32.dll");self.save_review()
         with self.assertRaisesRegex(ValueError,"review"):v.verify(self.out,self.review)
     def test_build_provenance_and_ci_output_only(self):
-        for token in ("bcrypt secur32 sechost msvcrt","verify-pe-services.py",
+        for token in ('CROSSCFLAGS="-O2 -g0 -DLTC_NO_ASM"',
+                      '"dlls/bcrypt/aarch64-windows/bcrypt.dll"',
+                      "for name in secur32 sechost msvcrt",
+                      "verify-pe-services.py",
                       "CHAROITE_SERVICES_AUDIT_22_INPUT_VERIFIED",
                       "charoite-source-validation.txt"):
             self.assertIn(token,BUILD)

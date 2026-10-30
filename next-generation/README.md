@@ -42,3 +42,23 @@ The original `com.charoite` data, Wine C: drive, TPDP and other installed games 
 **Downloads:** Open the linked GitHub Actions run, expand **Artifacts**, and select `Charoite-Core-Next-Android-APK`. Unzip, then install the contained APK. Do not uninstall the existing Portal.
 
 **Stable Portal:** [last verified stable APK run 40641148611](https://github.com/rgarn023/CharoitePortal/actions/runs/40641148611), package `com.charoite`. Unchanged.
+
+## Next v0.36 — coherent bootstrap archive bundled in the APK
+
+The experimental `com.charoitx` APK now contains the **complete, pinned,
+independently verified 22-component Wine bootstrap archive with all 76 NLS tables**
+as an inert asset. This is additional to the three individually packaged native
+ELF `--version` probes. CI validates the original cross-build manifest and every
+component hash before staging, then validates that the final signed APK contains
+the exact archive bytes and source manifest digests.
+
+In System, **Verify packaged modern Wine modules** verifies the APK archive
+SHA-256 and size on-device, without extracting, executing, or modifying any
+prefix. Report status truthfully: modules *packaged* does not mean a usable
+Wine runtime. FEX, Android-native module layout, fresh prefix provisioning,
+graphics, Wineboot and game compatibility are **not implemented/verified** by
+this milestone. Stable `com.charoite` remains unchanged.
+
+Next: inspect the v0.36 on-device module report and native wineserver
+`--version`; then implement versioned, hash-gated, Next-only module staging
+and fresh-prefix boot probes with rollback, never touching pre-existing data.

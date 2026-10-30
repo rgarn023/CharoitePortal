@@ -29,8 +29,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.17"')
-text = text.replace("versionCode 33", "versionCode 48")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.18"')
+text = text.replace("versionCode 33", "versionCode 49")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -266,6 +266,19 @@ ui = ui.replace(create_anchor, (
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalCreated(this, savedInstanceState);\n"
     "        CharoiteEnvironments.initialize(this);"), 1)
+
+# The fallback is prepared in onCreate and mounted synchronously in
+# onPostCreate, after the full Portal view is assembled but BEFORE first draw.
+# Inserting this at onResume/postDelayed caused the visible Portal flash.
+assert "void onPostCreate(" not in ui, "Unexpected upstream onPostCreate override"
+post_create_anchor = "    @Override public void onDestroy() {\n"
+assert ui.count(post_create_anchor) == 1
+ui = ui.replace(post_create_anchor, (
+    "    @Override protected void onPostCreate(android.os.Bundle savedInstanceState) {\n"
+    "        super.onPostCreate(savedInstanceState);\n"
+    "        com.charoitegames.core.CharoiteNextBootActivity"
+    ".onPortalPostCreated(this);\n"
+    "    }\n\n" + post_create_anchor), 1)
 
 # onResume consumes the one-time cold-start chime only, never shows a splash.
 resume_anchor = "        super.onResume();\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"

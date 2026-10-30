@@ -392,7 +392,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='54' versionName='11.2-next.0.23'"
+            grep -F "package: name='com.charoitx' versionCode='55' versionName='11.2-next.0.24'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

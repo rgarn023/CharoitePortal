@@ -1,0 +1,45 @@
+name: Charoite Wine Expansion Preflight
+on:
+  push:
+    paths:
+      - '.github/workflows/charoite-wine-expansion-preflight.yml'
+      - 'next-generation/prepare_security_expansion.py'
+      - 'next-generation/tests/test_security_expansion_preflight.py'
+      - 'next-generation/charoite-wine/build-pe-services.sh'
+      - 'next-generation/charoite-wine/verify-pe-services.py'
+      - 'next-generation/charoite-wine/assemble-bootstrap-bundle.py'
+      - 'next-generation/charoite-wine/verify-bootstrap-bundle.py'
+      - 'next-generation/charoite-wine/tests/test_pe_services.py'
+      - 'next-generation/charoite-wine/tests/test_bootstrap_bundle.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-source-compatibility-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python package syntax
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            next-generation/prepare_security_expansion.py \
+            next-generation/charoite-wine/assemble-bootstrap-bundle.py \
+            next-generation/charoite-wine/verify-bootstrap-bundle.py \
+            next-generation/charoite-wine/verify-pe-services.py
+          bash -n next-generation/charoite-wine/build-pe-services.sh
+      - name: Verify portable ARM64EC crypto source wrapper and PE service contracts
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/charoite-wine/tests \
+            -p 'test_*.py' -v
+      - name: Verify 22-to-26 component fail-closed integration gate
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests \
+            -p 'test_security_expansion_preflight.py' -v
+          echo "CHAROITE_NEXT_22_TO_26_COMPATIBILITY_PREFLIGHT=PASS"
+          echo "NO_APK_BUILD_NO_WINEBOOT_NO_PREFIX_MUTATION=PASS"

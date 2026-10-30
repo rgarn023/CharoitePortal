@@ -1407,4 +1407,16 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 
 
 ---
+## 70. October 30, 2026 — GitHub-hosted motion preview (NO app changes)
+
+**User issue:** ChatGPT sandbox MP4/GIF download links returned “Library not found” in Android. This was a delivery/UI problem, not evidence that the Charoite APK was broken. The user wants to see a prospective five-second Crystal Awakening motion preview **before agreeing to any animation changes**.
+
+**Resolution:** Created a small docs-only, separate GitHub Actions workflow for reproducibly rendering a Charoite animation concept from the approved source artwork and v0.24 portrait compositor (no actual boot/app modification):
+- Renderer: `docs/previews/render_crystal_awakening.py` (original approved artwork and native-title approximation, 5-second preview; movement within portal interior, subtle crystal glints and floor/title sheen; this is a concept, not production quality).
+- Workflow: `.github/workflows/charoite-preview-video.yml`, outputs a GitHub Actions MP4 artifact. Bundles `imageio-ffmpeg` because runner did not have system ffmpeg. Duration verified with OpenCV.
+- **Successful [Actions run 41006252337](https://github.com/rgarn023/CharoitePortal/actions/runs/41006252337)**; **download [artifact ID 12955885772](https://github.com/rgarn023/CharoitePortal/actions/runs/41006252337/artifacts/12955885772)**, name `Charoite-Crystal-Awakening-Preview-MP4`, 419,522 bytes ZIP; extracts to `Charoite_Crystal_Awakening_Preview.mp4` (480×920, five seconds, silent concept).
+- Code/preview workflow commit `64521ae7b87bfd377a8352ad9c121a923e9754bb`; the latest **shipping Next v0.24 APK remains unchanged**, from successful source run 40999653641 and artifact 12953071666.
+- For further animation prototypes, give a verified direct GitHub artifact URL rather than sandbox/My Library links, and only implement animation after user reviews and approves it. Do not assume screenshot/preview concept equals final animation quality.
+
+---
 **End of current Charoite Portal handoff.**

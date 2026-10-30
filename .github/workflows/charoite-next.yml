@@ -287,7 +287,7 @@ jobs:
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
           PY
 
-      - name: Verify ten-second silent Mystic C cloud boot and original crystal sound
+      - name: Verify ten-second Mystic C video and matched boot crystal sound
         run: |
           set -euo pipefail
           APK=upstream/app/build/outputs/apk/debug/app-debug.apk
@@ -354,8 +354,8 @@ jobs:
                   assert sound.getnchannels()==1
                   assert sound.getsampwidth()==2
                   assert sound.getframerate()==44100
-                  assert sound.getnframes()==round(44100*4.2)
-              print("CHAROITE_NEXT_TEN_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS")
+                  assert sound.getnframes()==round(44100*10.0)
+              print("CHAROITE_NEXT_TEN_SECOND_BOOT_SYNCED_CRYSTAL_SOUND=PASS")
           PY
 
       - name: Verify source-built Wine native loader is identical inside signed APK
@@ -403,7 +403,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='56' versionName='11.2-next.0.25'"
+            grep -F "package: name='com.charoitx' versionCode='57' versionName='11.2-next.0.26'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

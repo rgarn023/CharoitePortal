@@ -199,3 +199,16 @@ enabling LibTomCrypt's supported portable rotate code. The pinned Wine source,
 security API implementation, architecture checks, and binary hash verification
 are unchanged. The correction needs a fresh GitHub source build to establish
 actual 26-module success; no APK is changed by this experiment.
+
+### Follow-up: generated ARM64EC wrapper fix
+
+[Source CI run 41119319796](https://github.com/rgarn023/CharoitePortal/actions/runs/41119319796)
+also failed on the same bcrypt inline asm: examination of the **actual emitted compiler
+command** showed Wine's generated Makefile disregarded the `CROSSCFLAGS` override.
+The source-build fix now changes ONLY the *temporary, generated ARM64EC compiler
+wrapper* to add `-DLTC_NO_ASM` for `dlls/bcrypt/` compilation input paths,
+and leaves every other compilation command unchanged. The wrapper is
+checked against the expected exact source-build format before alteration;
+the Wine source files and pinned source lineage remain untouched. All
+independent Windows PE architecture, manifest and source SHA checks remain
+mandatory. This correction is **unverified until the new CI run completes**.

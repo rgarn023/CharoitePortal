@@ -31,7 +31,7 @@ class SourceContract(unittest.TestCase):
         active = (WINE / "patches/SERIES").read_text()
         active_patches = [line.strip() for line in active.splitlines()
                           if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(active_patches), 9)
+        self.assertEqual(len(active_patches), 10)
         self.assertEqual(len(active_patches), len(set(active_patches)))
         self.assertEqual(set(active_patches),
                          {p.name for p in patched} -
@@ -40,6 +40,11 @@ class SourceContract(unittest.TestCase):
         self.assertIn("0600-arm64ec-clipboard-winsock-buffers.patch", active_patches)
         self.assertIn("0700-android-apk-native-ntdll-path.patch", active_patches)
         self.assertIn("0800-android-isolated-wine-data-dir.patch", active_patches)
+        self.assertIn("0900-android-isolated-windows-ntdll-pe-path.patch", active_patches)
+        new_patch = (WINE / "patches/0900-android-isolated-windows-ntdll-pe-path.patch").read_text()
+        self.assertIn("CHAROITE_WINE28_PE_DIR", new_patch)
+        self.assertIn("CHAROITE_WINE28_NATIVE_DIR", new_patch)
+        self.assertIn("libcharoite_wine28_ntdll.so", new_patch)
         data_patch = (WINE / "patches/0800-android-isolated-wine-data-dir.patch").read_text()
         self.assertIn("CHAROITE_WINE26_DATA_DIR", data_patch)
         self.assertIn("CHAROITE_WINE27_NATIVE_DIR", data_patch)

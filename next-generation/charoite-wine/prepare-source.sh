@@ -90,13 +90,19 @@ while IFS= read -r rel; do
   git apply --whitespace=error "$patch"
   count=$((count+1))
 done < "$script_dir/patches/SERIES"
-[[ "$count" -eq 9 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
+[[ "$count" -eq 10 ]] || { echo "Unexpected active Charoite patch count: $count" >&2; exit 12; }
 git diff --check
 grep -Fq 'CHAROITE_WINE26_DATA_DIR' dlls/ntdll/unix/loader.c || {
   echo "Isolated Android Wine data directory patch missing" >&2; exit 14;
 }
 grep -Fq 'CHAROITE_WINE26_DATA_DIR' server/unicode.c || {
   echo "Isolated Wine server NLS source patch missing" >&2; exit 14;
+}
+grep -Fq 'CHAROITE_WINE28_PE_DIR' dlls/ntdll/unix/loader.c || {
+  echo "Isolated Windows NTDLL PE path override missing" >&2; exit 14;
+}
+grep -Fq 'CHAROITE_WINE28_NATIVE_DIR' loader/main.c || {
+  echo "Wine28 matched native NTDLL selection missing" >&2; exit 14;
 }
 grep -Fq 'CHAROITE_WINE27_NATIVE_DIR' loader/main.c || {
   echo "New native Wine26 loader must select matching new cohort ntdll" >&2; exit 14;

@@ -43,7 +43,7 @@ class CrystalAudioQualityTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)/"startup.wav"
             frames = crystal.generate(output)
-            self.assertEqual(frames, 185220)
+            self.assertEqual(frames, 441000)  # 10 seconds of 44.1 kHz PCM
             with wave.open(str(output), "rb") as audio:
                 self.assertEqual(audio.getnchannels(), 1)
                 self.assertEqual(audio.getsampwidth(), 2)

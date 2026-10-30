@@ -28,8 +28,8 @@ class ProtonIntegrationAuditTest(unittest.TestCase):
     def test_charoite_patch_count_and_source_guardrails(self):
         patches = [line.strip() for line in SERIES.splitlines()
                    if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(patches), 8)
-        self.assertEqual(len(set(patches)), 8)
+        self.assertEqual(len(patches), 9)
+        self.assertEqual(len(set(patches)), 9)
         self.assertTrue(all((FORK / "patches" / name).is_file() for name in patches))
         for needle in ("0700-android-apk-native-ntdll-path.patch",
                        "0400-arm64ec-atomic-operations.patch",

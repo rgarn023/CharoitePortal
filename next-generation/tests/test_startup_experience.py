@@ -32,8 +32,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 50", PREP)
-        self.assertIn("11.2-next.0.19", PREP)
+        self.assertIn("versionCode 51", PREP)
+        self.assertIn("11.2-next.0.20", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -59,8 +59,8 @@ class StartupExperienceTest(unittest.TestCase):
     def test_five_second_boot_once_per_real_session(self):
         self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
         self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)", BOOT)
-        self.assertIn("AnimatorSet slowReveal = new AnimatorSet()", BOOT)
-        self.assertIn("slowReveal.setDuration(BOOT_DURATION_MS)", BOOT)
+        self.assertIn("CrystalShimmer extends View", BOOT)
+        self.assertNotIn("slowReveal.setDuration(", BOOT)
         self.assertIn("hasLivePortalInSameTask(this)", BOOT)
         self.assertIn("portal.getTaskId() == launcher.getTaskId()", BOOT)
         self.assertIn("onPortalCreated(Activity portal, Bundle state)", BOOT)
@@ -103,37 +103,43 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
+        # Reproduces user video v0.19: square icon floating above purple blur.
+        # The artwork must be the ONLY image, crop-filled, with NO scaling.
         view = BOOT.split("private static FrameLayout createBootView(Activity activity) {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
-        self.assertIn("ImageView.ScaleType.CENTER_CROP", view)
-        self.assertIn("ImageView.ScaleType.FIT_CENTER", view)
+        self.assertEqual(view.count("new ImageView(activity)"), 1)
+        self.assertEqual(view.count("ImageView.ScaleType.CENTER_CROP"), 1)
         self.assertIn("R.drawable.charoite_next_boot_unframed", view)
-        self.assertIn("R.drawable.charoite_next_boot_backdrop", view)
         self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", view)
-        self.assertIn("scene.addView(artwork", view)
-        self.assertIn("scene.addView(shimmer", view)
+        self.assertIn("boot.addView(artwork", view)
+        self.assertIn("boot.addView(shimmer", view)
         self.assertIn("new CrystalShimmer(activity)", view)
-        self.assertIn('ObjectAnimator.ofFloat(scene, "scaleX", 1.0f, 1.035f)', view)
-        self.assertIn('ObjectAnimator.ofFloat(scene, "scaleY", 1.0f, 1.035f)', view)
-        self.assertIn("slowReveal.setDuration(BOOT_DURATION_MS)", view)
-        self.assertIn("slowReveal.start()", view)
+        self.assertNotIn("ImageView.ScaleType.FIT_CENTER", view)
+        self.assertNotIn("R.drawable.charoite_next_boot_backdrop", view)
+        self.assertNotIn("LinearLayout emblem", view)
+        self.assertNotIn("FrameLayout scene", view)
+        self.assertNotIn("scaleX", view)
+        self.assertNotIn("scaleY", view)
+        self.assertNotIn("ObjectAnimator", view)
+        self.assertNotIn("AnimatorSet", view)
         self.assertNotIn("ProgressBar", view)
         self.assertNotIn("progressBarStyleHorizontal", view)
         self.assertNotIn("STARTING CHAROITE CORE", view)
         self.assertNotIn('title.setText(', view)
-        self.assertNotIn("LinearLayout emblem", view)
 
-    def test_crystal_glow_is_gentle_time_bounded_and_aligned_to_artwork(self):
+    def test_crystal_glow_is_gentle_time_bounded_and_aligned_to_cropped_artwork(self):
         effect = BOOT.split("private static final class CrystalShimmer extends View {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
         self.assertIn("CRYSTAL_TIPS", effect)
         self.assertIn("RadialGradient", effect)
-        self.assertIn("Math.min(getWidth(), getHeight())", effect)
+        # ImageView.CENTER_CROP square source scales to max(w,h), not min.
+        self.assertIn("Math.max(getWidth(), getHeight())", effect)
+        self.assertNotIn("Math.min(getWidth(), getHeight())", effect)
         self.assertIn("(getWidth() - side) * .5f", effect)
         self.assertIn("(getHeight() - side) * .5f", effect)
         self.assertIn("postInvalidateOnAnimation()", effect)
         self.assertIn("elapsed < BOOT_DURATION_MS", effect)
         self.assertIn("isAttachedToWindow()", effect)
         self.assertIn("onDetachedFromWindow()", effect)
-        self.assertIn("eight small, fixed crystal-tip sparkles", BOOT)
+        self.assertIn("Eight subdued crystal-tip glints", BOOT)
         self.assertNotIn("ProcessBuilder", effect)
         self.assertNotIn("java.util.Random", effect)
 

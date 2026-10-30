@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seven-second C-crystal glow and inner black-purple portal; preserves approved art.
+"""Seven-second crystal C glowing with inward counterclockwise purple-black smoke vortex.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Crystal_Portal_7s.mp4"
+OUT = ROOT / "Charoite_Crystal_Smoke_Vortex_7s.mp4"
 WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7
 
 
@@ -90,82 +90,121 @@ def resample_curve(points, count=1050):
 
 
 
+
 def smoothstep(a, b, x):
-    x=np.clip((x-a)/(b-a),0,1)
+    x = np.clip((x-a)/(b-a), 0, 1)
     return x*x*(3-2*x)
 
 
-def make_energy_sources(paths):
-    """Precompute a localized facet glow; never paint drifting clouds."""
-    thin = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
-    for curve, _ in paths:
-        pts = np.rint(curve).astype(np.int32).reshape(-1, 1, 2)
-        cv2.polylines(thin, [pts], False, 255, 9, cv2.LINE_AA)
-    narrow = cv2.GaussianBlur(thin, (0, 0), 7).astype(np.float32) / 255
-    wide = cv2.GaussianBlur(thin, (0, 0), 22).astype(np.float32) / 255
-    return narrow, wide
+def crystal_phase(t):
+    return float(smoothstep(.08, 1.35, t) * (1-smoothstep(5.1, 6.3, t)))
 
 
 def portal_phase(t):
-    # The source soundtrack is fully silent at t=6.35. Complete the portal
-    # fade by 6.25 so it never pops away when Android closes the boot at 7s.
-    appear = smoothstep(1.15, 2.65, t)
-    disappear = 1.0 - smoothstep(5.05, 6.25, t)
-    return float(appear * disappear)
+    # Seven-second soundtrack fades to full digital silence by 6.35s.
+    return float(smoothstep(.75, 2.25, t) * (1-smoothstep(5.0, 6.25, t)))
 
 
-def crystal_phase(t):
-    return float(smoothstep(.08, 1.40, t) *
-                 (1.0 - smoothstep(5.12, 6.30, t)))
+def advect_cloud(source, age, seed=0.):
+    """Smoke starts at an actual inner-C edge and spirals inward CCW.
+
+    The Y axis is inverted when calculating theta: increasing theta really
+    does move counterclockwise on the phone display.
+    """
+    cx, cy = 248., 391.
+    dx = (source[0]-cx)/86.
+    dy = -(source[1]-cy)/104.
+    radius0 = max(.12, math.hypot(dx, dy))
+    theta0 = math.atan2(dy, dx)
+    radius = radius0 * math.exp(-.58*age)
+    theta = theta0 + 1.72*age + .16*age*age + .09*math.sin(2.3*age+seed)
+    return (cx+86*radius*math.cos(theta),
+            cy-104*radius*math.sin(theta))
+
+
+def make_energy_sources(paths):
+    """Crystal-facet/edge bloom; precompute from real traced C geometry."""
+    thin = np.zeros((HEIGHT, WIDTH), np.uint8)
+    facet = np.zeros((HEIGHT, WIDTH), np.uint8)
+    for curve, _ in paths:
+        cv2.polylines(thin, [np.rint(curve).astype(np.int32)],
+                      False, 255, 13, cv2.LINE_AA)
+    band = np.vstack([paths[0][0], paths[1][0][::-1]])
+    cv2.fillPoly(facet, [np.rint(band).astype(np.int32)], 255)
+    return (cv2.GaussianBlur(thin, (0, 0), 3).astype(np.float32)/255,
+            cv2.GaussianBlur(thin, (0, 0), 14).astype(np.float32)/255,
+            cv2.GaussianBlur(thin, (0, 0), 32).astype(np.float32)/255,
+            cv2.GaussianBlur(facet, (0, 0), 6).astype(np.float32)/255)
 
 
 def render_overlay(t, base, xx, yy, paths, sources):
-    """C glow and softly shaded inner vortex; NO clouds, lightning or zoom.
+    """Purple/black smoke streamed FROM the C rim, pulled INWARD counterclockwise.
 
-    The portal is a carefully feathered ellipse within the negative space of
-    the original C. It never obscures the title, sky or outer crystal tips.
-    At the first and final frames this returns the untouched approved image.
+    No disk, circular portal lip or global darkening of a geometric ellipse.
+    Smoke itself is made of irregular moving billows; no background remap.
     """
-    narrow, wide = sources
     glow_amount = crystal_phase(t)
     portal_amount = portal_phase(t)
-    if glow_amount == 0.0 and portal_amount == 0.0:
+    if glow_amount == 0 and portal_amount == 0:
         return base
+    thin, mid, wide, facet = sources
+    scene = base.copy()
+    if glow_amount:
+        pulse = .90 + .10*math.sin(t*1.8)**2
+        # The C crystal itself lights up: broad violet bloom, brighter facets
+        # and white-lilac edge highlights, not a faint outline-only change.
+        light = glow_amount*pulse*(1.1*thin + 1.30*mid + 1.5*wide)
+        scene += np.clip(light, 0, 1.4)[:,:,None] * np.array(
+            [80., 43., 118.], np.float32)
+        scene += glow_amount*facet[:,:,None]*np.array(
+            [24., 12., 34.], np.float32)
+        highlight = np.clip(thin*glow_amount*.38, 0, .42)
+        scene = (scene*(1-highlight[:,:,None]) +
+                 np.array([251., 207., 255.], np.float32)*highlight[:,:,None])
 
-    # Gentle, breathing violet-lavender light on the two crystal contours.
-    breathing = 0.94 + 0.06 * math.sin(2.0 * math.pi * .28 * t)
-    bright = glow_amount * breathing * (.72 * narrow + .38 * wide)
-    scene = base + bright[:, :, None] * np.array([105., 49., 150.], np.float32)
+    if portal_amount:
+        dark = np.zeros((HEIGHT, WIDTH), np.uint8)
+        purple = np.zeros((HEIGHT, WIDTH), np.uint8)
+        inner_curve = paths[1][0]
+        # Emit short smoke trails continuously from widely spaced inner C
+        # facets. Each wisp follows a tightening CCW spiral as it is pulled
+        # toward the center. No circular painted fill is ever drawn.
+        for i in range(50):
+            launch = .70 + .098*i
+            age = t - launch
+            if age <= 0 or age >= 2.65:
+                continue
+            source = inner_curve[int(((i*.61803398875) % 1) *
+                                     (len(inner_curve)-1))]
+            seed = i*.83
+            birth = float(smoothstep(0, .30, age))
+            death = float(1-smoothstep(2.15, 2.65, age))
+            weight = birth*death
+            for j in range(10):
+                a = max(0., age-j*.075)
+                x, y = advect_cloud(source, a, seed)
+                x += 2.7*math.sin(i*2.57+j*1.31+a*4)
+                y += 2.9*math.cos(i*1.71+j*.91+a*3.2)
+                opacity = weight*(1-j/12)
+                size = (9+4*math.sin(i*1.73+j*.91)**2)*(.6+.38*a)
+                cv2.circle(dark, (int(x), int(y)), int(size),
+                           int(185*opacity), -1, cv2.LINE_AA)
+                cv2.circle(purple, (int(x+2), int(y-1)),
+                           max(2, int(size*.55)), int(112*opacity),
+                           -1, cv2.LINE_AA)
 
-    if portal_amount > 0:
-        # Coordinates in original 960x1840 artwork: C void near (496, 780).
-        # Confining the radius keeps the portal inside the opening, not over
-        # the facets, its right-hand tips, title plaque or exterior scenery.
-        u = (xx - 248.) / 74.
-        v = (yy - 391.) / 88.
-        radius = np.sqrt(u*u + v*v)
-        angle = np.arctan2(v, u)
-
-        # Soft black-amethyst center blended WITH the existing picture. No
-        # opaque flat black disk and no sharp edge that could suddenly vanish.
-        inside = 1.0 - smoothstep(.77, 1.025, radius)
-        darkness = portal_amount * inside * .83
-        scene = scene * (1.0 - darkness[:, :, None])
-
-        # Two subtly rotating folds, distant violet light inside the vortex.
-        swirl = 0.5 + 0.5 * np.cos(14.0*radius + 2.2*angle - 1.0*t)
-        inner = np.exp(-1.8*radius*radius) * inside
-        folds = portal_amount * inner * (.12 + .15 * swirl)
-        scene += folds[:, :, None] * np.array([57., 20., 128.], np.float32)
-
-        # Luminous inner lip and restrained halo, with extremely slow pulse.
-        # These are smooth ellipses, NEVER jagged lightning/electric branches.
-        lip = np.exp(-.5*((radius - .91)/.065)**2)
-        halo = np.exp(-.5*((radius - 1.04)/.17)**2)
-        pulse = 0.94 + .06 * math.sin(2.0*math.pi*.36*t)
-        edge = portal_amount * pulse * (.41*lip + .22*halo)
-        scene += edge[:, :, None] * np.array([97., 35., 171.], np.float32)
-
+        dark = cv2.GaussianBlur(dark, (0, 0), 6).astype(np.float32)/255
+        purple = cv2.GaussianBlur(purple, (0, 0), 4).astype(np.float32)/255
+        turbulence = (np.sin(xx*.068+yy*.037+2.3*t) *
+                      np.sin(yy*.085-xx*.045-2.9*t))
+        dark = np.clip(dark*(.84+.30*turbulence)*2.55, 0, .9)
+        purple = np.clip(purple*(.84+.24*turbulence)*2.35, 0, .9)
+        # Wisps are physically dark black smoke laced with luminous purple.
+        # Keep the moving smoke from hiding the luminous crystal facets.
+        allow = 1-np.clip(facet*.75, 0, .75)
+        scene *= (1-portal_amount*dark*allow)[:,:,None]
+        scene += (portal_amount*purple*allow)[:,:,None] * np.array(
+            [119., 24., 221.], np.float32)
     return scene
 
 
@@ -202,9 +241,9 @@ def main():
         sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
         for j,still in enumerate(stills):
             sheet.paste(still,(j*240,0))
-        sheet.save(ROOT/"Charoite_Crystal_Portal_7s_Storyboard.jpg",
+        sheet.save(ROOT/"Charoite_Crystal_Smoke_Vortex_7s_Storyboard.jpg",
                    quality=90)
-    print(f"CHAROITE_CRYSTAL_PORTAL_7_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
+    print(f"CHAROITE_CRYSTAL_SMOKE_VORTEX_7_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

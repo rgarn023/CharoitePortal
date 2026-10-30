@@ -300,7 +300,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
     /**
-     * Plays the silent seven-second glowing C and inner black-purple portal.
+     * Plays seven seconds of a strongly glowing crystal C drawing purple-black smoke inward counterclockwise.
      * The native artwork, shimmer and crystal wordmark remain underneath as a
      * fallback if the decoder is slow or unavailable. TextureView prevents
      * SurfaceView from showing a blank/black overlay during preparation.
@@ -350,7 +350,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 MediaPlayer player = new MediaPlayer();
                 movie = player;
                 AssetFileDescriptor afd = getResources().openRawResourceFd(
-                        com.winlator.R.raw.charoite_crystal_portal_7s);
+                        com.winlator.R.raw.charoite_crystal_smoke_vortex_7s);
                 try {
                     player.setDataSource(afd.getFileDescriptor(),
                             afd.getStartOffset(), afd.getLength());

@@ -62,3 +62,30 @@ this milestone. Stable `com.charoite` remains unchanged.
 Next: inspect the v0.36 on-device module report and native wineserver
 `--version`; then implement versioned, hash-gated, Next-only module staging
 and fresh-prefix boot probes with rollback, never touching pre-existing data.
+
+
+## Next v0.37 — consent-gated isolated PE/NLS staging
+
+The S26 Ultra device confirmed the v0.36 complete Wine archive SHA-256 and
+component inventory (22/22 components, 19 Windows PE, 3 native ELF, 76 NLS;
+24 observed PE import gaps). No Wineboot was executed.
+
+The v0.37 APK stages the 19 Windows PE and 76 NLS source-verified modules
+as individual immutable .bin assets alongside the original complete archive.
+A source-linked index pins each module's size and SHA-256. CI verifies all
+95 modules inside the final signed APK.
+
+System -> Stage isolated modern Wine PE/NLS modules is opt-in. It first
+re-verifies the full APK archive and validates the exact file allowlist.
+The staging area is in getNoBackupFilesDir()/charoite-next-isolated-wine/.
+No existing runtime, rootfs, prefix, save or game is accessed or modified.
+On success 95 hashes are checked again and the pending directory is renamed
+to a versioned staged slot. If interrupted, pending data is left quarantined;
+repeated requests verify staged data without overwriting it.
+
+This is NOT a runnable Wine environment. Native ELF, FEX, graphics and
+wineboot remain blocked and unverified. The approved energy boot is unchanged.
+
+Next: resolve missing PE/ABI modules, create a separate native loader
+layout, and attempt an isolated disposable-prefix Wineboot only after
+the new staging and on-device prerequisites are verified.

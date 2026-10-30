@@ -48,6 +48,9 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final AtomicBoolean COLD_ARRIVAL_SOUND_PENDING =
             new AtomicBoolean(false);
     private static final Handler OVERLAY_HANDLER = new Handler(Looper.getMainLooper());
+    private static final String LAST_BOOT_VERSION = "last_boot_version";
+    private static FrameLayout activeColdFallback;
+    private static Activity coldFallbackOwner;
 
     private static final String STARTUP_PREFS = "charoite_next_startup_diagnostics";
     private static volatile String lastLifecycleEvent = "Not yet observed";
@@ -61,7 +64,93 @@ public final class CharoiteNextBootActivity extends Activity {
         Activity portal = currentPortal.get();
         return portal != null && !portal.isFinishing() && !portal.isDestroyed();
     }
+
+    private static boolean hasLivePortalInSameTask(Activity launcher) {
+        Activity portal = currentPortal.get();
+        return portal != null && !portal.isFinishing() && !portal.isDestroyed()
+                && portal.getTaskId() == launcher.getTaskId();
+    }
+
+    private static long installedVersion(Activity activity) {
+        try {
+            return activity.getPackageManager()
+                    .getPackageInfo(activity.getPackageName(), 0).getLongVersionCode();
+        } catch (Exception ignored) {
+            return -1L;
+        }
+    }
+
+    private static void markBootShown(Activity activity) {
+        activity.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE).edit()
+                .putLong(LAST_BOOT_VERSION, installedVersion(activity)).apply();
+    }
+
+    /** Samsung can recreate Portal directly as task root after an APK update,
+     * bypassing the launcher Activity. This handles only actual creation;
+     * switching apps invokes onResume and must never show this fallback. */
+    public static void onPortalCreated(Activity portal, Bundle state) {
+        Activity previous = currentPortal.get();
+        boolean differentLivePortal = previous != null && previous != portal
+                && !previous.isFinishing() && !previous.isDestroyed();
+        installReentryTracker(portal);
+        Intent intent = portal.getIntent();
+        if (intent != null && intent.getBooleanExtra(EXTRA_PLAY_CHIME, false)) return;
+        if (!portal.isTaskRoot() || differentLivePortal || portal.isChangingConfigurations())
+            return;
+        long version = installedVersion(portal);
+        long seen = portal.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE)
+                .getLong(LAST_BOOT_VERSION, -1L);
+        if (state != null && seen == version) return;
+        lastLifecycleEvent = "Fresh Portal created directly; cold boot fallback";
+        saveReport(portal);
+        showColdPortalFallback(portal, 0);
+    }
+
+    private static void showColdPortalFallback(Activity portal, int attempt) {
+        portal.getWindow().getDecorView().postDelayed(() -> {
+            if (portal.isFinishing() || portal.isDestroyed()) return;
+            FrameLayout content = portal.findViewById(android.R.id.content);
+            if (content == null || !content.isAttachedToWindow()) {
+                if (attempt < 12) showColdPortalFallback(portal, attempt + 1);
+                else {
+                    lastLifecycleEvent = "Fresh Portal boot fallback could not attach";
+                    saveReport(portal);
+                }
+                return;
+            }
+            if (activeColdFallback != null) return;
+            FrameLayout splash = createBootView(portal);
+            splash.setClickable(true);
+            splash.setFocusable(true);
+            splash.setElevation(density(portal, 64));
+            content.addView(splash, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            splash.bringToFront();
+            coldFallbackOwner = portal;
+            activeColdFallback = splash;
+            markBootShown(portal);
+            lastLifecycleEvent = "Direct fresh Portal fallback shown for five seconds";
+            saveReport(portal);
+            OVERLAY_HANDLER.postDelayed(() -> {
+                if (coldFallbackOwner != portal || activeColdFallback != splash) return;
+                activeColdFallback = null;
+                coldFallbackOwner = null;
+                if (splash.getParent() instanceof ViewGroup)
+                    ((ViewGroup) splash.getParent()).removeView(splash);
+                if (!portal.isFinishing() && !portal.isDestroyed())
+                    playCrystalChime(portal);
+            }, BOOT_DURATION_MS);
+        }, attempt == 0 ? 80L : 160L);
+    }
     public static void notePortalDestroyed(Activity portal) {
+        if (coldFallbackOwner == portal) {
+            if (activeColdFallback != null
+                    && activeColdFallback.getParent() instanceof ViewGroup)
+                ((ViewGroup) activeColdFallback.getParent()).removeView(activeColdFallback);
+            activeColdFallback = null;
+            coldFallbackOwner = null;
+        }
         if (currentPortal.get() == portal) {
             currentPortal.clear();
             lastLifecycleEvent = "Portal destroyed; new launch can boot";
@@ -219,12 +308,16 @@ public final class CharoiteNextBootActivity extends Activity {
         super.onCreate(savedState);
         // If the Portal already exists, launcher/Recents must not restart
         // the visual sequence or crystal sound just for task switching.
-        if (hasLivePortalSession()) {
-            lastLifecycleEvent = "Already running; boot intentionally skipped";
+        if (hasLivePortalInSameTask(this)) {
+            lastLifecycleEvent = "Already running in same task; boot skipped";
             saveReport(this);
+            Intent portal = new Intent(this, com.winlator.TouhouEntryActivity.class);
+            portal.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(portal);
             finish();
             return;
         }
+        markBootShown(this);
         getWindow().setStatusBarColor(Color.rgb(43, 18, 83));
         getWindow().setNavigationBarColor(Color.rgb(43, 18, 83));
         setContentView(createBootView(this));
@@ -237,9 +330,20 @@ public final class CharoiteNextBootActivity extends Activity {
             main.putExtra(EXTRA_PLAY_CHIME, true);
             startActivity(main);
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-            finish();
+            // Keep this completed launcher beneath Portal as the task root.
+            // Finishing here caused Android to restore Portal directly forever.
         };
         handler.postDelayed(openMain, BOOT_DURATION_MS);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (completed) {
+            // Portal was genuinely exited, not merely backgrounded via Home.
+            lastLifecycleEvent = "Portal exited; launcher task root closed";
+            saveReport(this);
+            finish();
+        }
     }
 
     @Override protected void onDestroy() {

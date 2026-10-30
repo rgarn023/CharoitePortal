@@ -1,4 +1,4 @@
-name: Charoite Mystic C Cloud-Only Five-Second Preview
+name: Charoite Mystic C Cloud-Only Seven-Second Preview
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   generate-preview:
-    name: Generate 5-second mystic glowing clouds only
+    name: Generate 7-second mystic glowing clouds only
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -25,15 +25,15 @@ jobs:
       - name: Render approved Charoite artwork motion concept
         run: |
           python3 docs/previews/render_crystal_awakening.py
-          test -s Charoite_Mystic_C_Cloud_Only_5s.mp4
-          python3 -c "import cv2; v=cv2.VideoCapture('Charoite_Mystic_C_Cloud_Only_5s.mp4'); assert v.isOpened(); fps=v.get(cv2.CAP_PROP_FPS); frames=v.get(cv2.CAP_PROP_FRAME_COUNT); assert abs(frames/fps-5)<.2, (frames,fps); print('PREVIEW_FIVE_SECONDS_PASS')"
-          sha256sum Charoite_Mystic_C_Cloud_Only_5s.mp4
+          test -s Charoite_Mystic_C_Cloud_Only_7s.mp4
+          python3 -c "import cv2; v=cv2.VideoCapture('Charoite_Mystic_C_Cloud_Only_7s.mp4'); assert v.isOpened(); fps=v.get(cv2.CAP_PROP_FPS); frames=v.get(cv2.CAP_PROP_FRAME_COUNT); assert abs(frames/fps-7)<.2, (frames,fps); print('PREVIEW_SEVEN_SECONDS_PASS')"
+          sha256sum Charoite_Mystic_C_Cloud_Only_7s.mp4
       - name: Upload MP4 for direct GitHub download
         uses: actions/upload-artifact@v4
         with:
-          name: Charoite-Mystic-C-Cloud-Only-5s-MP4
+          name: Charoite-Mystic-C-Cloud-Only-7s-MP4
           path: |
-            Charoite_Mystic_C_Cloud_Only_5s.mp4
-            Charoite_Mystic_C_Cloud_Only_5s_Storyboard.jpg
+            Charoite_Mystic_C_Cloud_Only_7s.mp4
+            Charoite_Mystic_C_Cloud_Only_7s_Storyboard.jpg
           retention-days: 30
           if-no-files-found: error

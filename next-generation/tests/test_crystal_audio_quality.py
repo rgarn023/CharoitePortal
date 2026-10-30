@@ -39,11 +39,19 @@ class CrystalAudioQualityTest(unittest.TestCase):
         self.assertLess(abs(crystal.sample(0)), 1e-6)
         self.assertLess(abs(crystal.sample(crystal.DURATION_SECONDS-1/crystal.RATE)), .001)
 
+    def test_deferred_android_audio_start_has_safe_silent_tail(self):
+        # Android starts audio after the splash timer, so the last 650ms
+        # must be completely silent even after modest startup delay.
+        self.assertEqual(crystal.DURATION_SECONDS, 7.0)
+        self.assertGreater(abs(crystal.sample(5.0)), .001)
+        for t in (6.36, 6.65, 6.95, 6.999):
+            self.assertEqual(crystal.sample(t), 0.0)
+
     def test_output_format_is_compatible_with_static_audio_track(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)/"startup.wav"
             frames = crystal.generate(output)
-            self.assertEqual(frames, 220500)  # five seconds at 44.1 kHz PCM
+            self.assertEqual(frames, 308700)  # seven seconds at 44.1 kHz PCM
             with wave.open(str(output), "rb") as audio:
                 self.assertEqual(audio.getnchannels(), 1)
                 self.assertEqual(audio.getsampwidth(), 2)

@@ -287,7 +287,7 @@ jobs:
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
           PY
 
-      - name: Verify five-second Mystic C video and synchronized crystal boot sound
+      - name: Verify seven-second Mystic C video and synchronized crystal boot sound
         run: |
           set -euo pipefail
           APK=upstream/app/build/outputs/apk/debug/app-debug.apk
@@ -322,7 +322,7 @@ jobs:
                       assert max(portrait_art.getpixel(xy)) > 20, "Original icon edge remained"
               print("CHAROITE_NEXT_SEAMLESS_PORTRAIT_BOOT=PASS")
               video_files = [n for n in z.namelist()
-                             if n.endswith("/charoite_mystic_c_cloud_5s.mp4")]
+                             if n.endswith("/charoite_mystic_c_cloud_7s.mp4")]
               assert len(video_files) == 1, "Expected exactly one packaged Mystic C movie"
               video_info = z.getinfo(video_files[0])
               assert video_info.compress_type == zipfile.ZIP_STORED, (
@@ -331,7 +331,7 @@ jobs:
               assert len(video) > 150000 and b"ftyp" in video[:24]
               assert b"avc1" in video, "Mystic C video must be AVC/H.264 for Android"
               assert b"mp4a" not in video, "The Mystic C animation must be SILENT"
-              print("CHAROITE_NEXT_FIVE_SECOND_CLOUD_ONLY_MP4_PACKAGED=PASS")
+              print("CHAROITE_NEXT_SEVEN_SECOND_CLOUD_ONLY_MP4_PACKAGED=PASS")
               with Image.open(io.BytesIO(foreground)) as fg:
                   fg.load()
                   assert fg.mode == "RGBA" and fg.size == (1536, 1536)
@@ -354,8 +354,8 @@ jobs:
                   assert sound.getnchannels()==1
                   assert sound.getsampwidth()==2
                   assert sound.getframerate()==44100
-                  assert sound.getnframes()==round(44100*5.0)
-              print("CHAROITE_NEXT_FIVE_SECOND_BOOT_SYNCED_CRYSTAL_SOUND=PASS")
+                  assert sound.getnframes()==round(44100*7.0)
+              print("CHAROITE_NEXT_SEVEN_SECOND_BOOT_SYNCED_CRYSTAL_SOUND=PASS")
           PY
 
       - name: Verify source-built Wine native loader is identical inside signed APK
@@ -403,7 +403,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='58' versionName='11.2-next.0.27'"
+            grep -F "package: name='com.charoitx' versionCode='59' versionName='11.2-next.0.28'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

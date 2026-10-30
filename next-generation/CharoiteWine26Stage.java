@@ -182,6 +182,37 @@ public final class CharoiteWine26Stage {
         }
     }
 
+    /**
+     * Re-verify already staged Wine26 data with no filesystem mutation.
+     * An absent or incomplete 0.5 slot blocks native version-only tests.
+     */
+    public static String verifyOnly(Context context) {
+        StringBuilder out = new StringBuilder();
+        out.append("CHAROITE NEXT — WINE26 STAGED PE/NLS READ-ONLY VERIFY\n");
+        out.append("Existing Wine22, prefixes, game saves, rootfs: NOT ACCESSED\n");
+        try {
+            JSONObject index = validatedInventory(context);
+            File base = context.getNoBackupFilesDir().getCanonicalFile();
+            File dir = new File(base, ROOT);
+            if (!dir.getCanonicalFile().getParentFile().equals(base)
+                    || !dir.isDirectory())
+                throw new SecurityException("Wine26 private staging root absent");
+            File pending = within(dir, PENDING);
+            if (pending.exists())
+                throw new SecurityException("Incomplete pending Wine26 generation quarantined");
+            File complete = within(dir, FINAL);
+            verify(complete, index.getJSONArray("module_files"));
+            out.append("Source archive SHA-256: PASS\n");
+            out.append("Staged Windows PE: 23/23 SHA-256 PASS\n");
+            out.append("Staged Wine NLS: 76/76 SHA-256 PASS\n");
+            out.append("Native binaries, Wineboot and Windows EXE: NOT EXECUTED\n");
+            out.append("RESULT: PASS — Wine26 99-file data gate; NOT runnable\n");
+        } catch (Exception error) {
+            out.append("RESULT: BLOCKED — ").append(error.getClass().getSimpleName()).append("\n");
+        }
+        return out.toString();
+    }
+
     public static String run(Context context) {
         StringBuilder out=new StringBuilder();
         out.append("CHAROITE NEXT — ISOLATED WINE26 PE/NLS STAGING\n");

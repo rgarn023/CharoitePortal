@@ -60,7 +60,7 @@ class PackagedBootstrapTest(unittest.TestCase):
     def test_readonly_phone_audit_and_verified_ci_archive(self):
         for required in ("verify-bootstrap-bundle.py","module.verify(archive)",
                          "Refusing to overwrite bundled payload",
-                         "Wine bootstrap archive hash mismatch",
+                         "Staged bootstrap archive hash mismatch",
                          "CHAROITE_NEXT_COHERENT_WINE_ARCHIVE_PACKAGED=PASS"):
             self.assertIn(required,STAGER)
         for required in ('PACKAGE = "com.charoitx"', "MessageDigest",

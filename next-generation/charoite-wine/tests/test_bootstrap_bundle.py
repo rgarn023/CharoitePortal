@@ -168,7 +168,7 @@ class BootstrapBundleTest(unittest.TestCase):
         self.manifest["services_dependency_manifest_sha256"]="c"*64
         self.report["bundled_windows_dlls"]=sorted(
             k+".dll" for k in (*ver.PE,*ver.EXTRA_PE,*ver.COM_PE,*ver.SERVICES_PE) if k!="wineboot")
-        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\\n").encode()
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\n").encode()
         self.manifest["dependency_review_sha256"]=ver.digest(self.payloads["dependency-review.json"])
         self.save()
         m,r=ver.verify(self.path)
@@ -193,7 +193,7 @@ class BootstrapBundleTest(unittest.TestCase):
         self.manifest["com_dependency_manifest_sha256"]="b"*64
         self.report["bundled_windows_dlls"]=sorted(
             k+".dll" for k in (*ver.PE,*ver.EXTRA_PE,*ver.COM_PE,*ver.SERVICES_PE) if k!="wineboot")
-        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\\n").encode()
+        self.payloads["dependency-review.json"]=(json.dumps(self.report,sort_keys=True)+"\n").encode()
         self.manifest["dependency_review_sha256"]=ver.digest(self.payloads["dependency-review.json"])
         self.save()
         with self.assertRaisesRegex(ValueError,"services|security"):

@@ -2029,4 +2029,24 @@ wine: created the configuration directory '/data/user/0/com.charoitx/no_backup/c
 
 ---
 
+## 110. October 30, 2026 — v4 exit 127 with no trace; native Windows NTDLL lookup defect found in source
+
+**User's actual v0.46 one-shot v4 device report** (no repeat authorized): all **99** staged PE/NLS source hashes PASS; three same-source native hashes and `--version` probes PASS; fresh scratch copies 22 ARM64EC DLLs + ARM64 wineboot.exe + 76 NLS SHA-256 PASS. V4 uses `WINELOADERNOEXEC=1`, `CHAROITE_WINE27_NATIVE_DIR`, `CHAROITE_WINE26_DATA_DIR`, `WINEDEBUG=-all,err+all,+loaddll,+module,+process,+seh,+server`. Wineboot finished within 25 seconds, log did not exceed 8 MiB, **exit 127**, new private prefix directory exists, **`system.reg` / `user.reg` both absent**. The ENTIRE bounded log was again only:
+
+```text
+wine: created the configuration directory '/data/user/0/com.charoitx/no_backup/charoite-next-wine27-first-prefix-v4-trace/prefix'
+```
+
+The isolated v4 wineserver stop was requested. v1/v2/v3 and v4 evidence retained untouched; Wine22, Portal data, user prefixes, games, saves, rootfs not accessed. No FEX, graphics, Steam, Battle.net, or anti-cheat attempted. **Do not rerun v4 or any older used one-shot scratch.**
+
+**Root cause candidate now backed by exact pinned Wine source:** Verified Charoite v0.45 read-only report showed all six directly imported `wineboot.exe` DLL names present. Studying pinned [The412Banner/proton-wine source `c74acb09...`](https://github.com/The412Banner/proton-wine/tree/c74acb09d51b447f5d5ac56c87608d3ec565a767), its `dlls/ntdll/unix/loader.c` initial `load_ntdll()` uses `dll_dir + get_pe_dir(current_machine) + /ntdll.dll` under APK-native ELF lookup; **that initial Windows NTDLL is NOT selected through the later `WINEDLLPATH` builtin search**. On v3/v4 the APK-native Unix `ntdll.so` resides in the APK-extracted `nativeLibraryDir`, while the hash-verified `ntdll.dll` was copied into private `runtime/lib/wine/arm64ec-windows`. This is an actual **source integration path mismatch**, but it is **not proven to be the sole cause of exit 127**. Native debug logging did not capture a failing module; avoid claiming proven success.
+
+**Source-only patch candidate for new isolated Wine28 source cohort:** [`0900-android-isolated-windows-ntdll-pe-path.patch`](https://github.com/rgarn023/CharoitePortal/blob/main/next-generation/charoite-wine/patches/0900-android-isolated-windows-ntdll-pe-path.patch) added after previously verified 0800 to the 10-entry `patches/SERIES`. Android AArch64-only `CHAROITE_WINE28_PE_DIR` allows exact first Windows `ntdll.dll` to load from a SHA-verified fresh isolated scratch directory, canonical path checked, fail-closed on missing file. New `CHAROITE_WINE28_NATIVE_DIR` allows a new matched APK native `libcharoite_wine28_ntdll.so`, with no forced older fallback when explicitly set. **Neither variable is used in existing v0.46; no APK now contains the new patch's rebuilt source; no new v5 scratch or on-device test executed.**
+
+GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source candidate and ten-patch series; `e5ac698ba852b192f8a15c97f5b0d4543b51bd3d`, `c73a868330837e6c702db6245c5807dfdd113a6a`, and `03a0aaa5d85b7d6dd67fb9164c9af8b91921c098` fixed count/documentation guardrails after early CI failures. First source validation [run **41144363734**](https://github.com/rgarn023/CharoitePortal/actions/runs/41144363734) failed because patch 0900 initially used unmodified Wine 10 source signatures; pinned Proton Wine has different `open_builtin_pe_file(..., FALSE, 0)` signature and spacing. Commit `4e82a95c26e8b6750b1d177cc4a512e4ebfd7a44` rebased 0900 to pinned source; [source validation run **41144474110**](https://github.com/rgarn023/CharoitePortal/actions/runs/41144474110) was **not yet verified as passing at time of this handoff entry**. Do not call the source or Android native cohort validated unless latest CI succeeds. The latest **confirmed installable signed APK** is **v0.46** [run 41143414274 / artifact 13019842894](https://github.com/rgarn023/CharoitePortal/actions/runs/41143414274/artifacts/13019842894); this contains the already-used v4 trial and must not be rerun.
+
+**Engineering next:** Confirm source CI patch check and same-source native/PE cross-build. If it passes, build **NEW** distinct source-pinned Wine28 PE/NLS + native cohort into **separate versioned app-private staging and new APK-native ELF filenames**, preserve old Wine27; verify new `CHAROITE_WINE28_PE_DIR` points only to fresh hash-copied `runtime/lib/wine/arm64ec-windows`. Gate any fresh **v5** one-shot Wineboot behind explicit UI consent, source/native SHA gates, only brand-new `no_backup` scratch, bounded trace. Source compilation is not a device-test pass; do not enable games, Steam, Battle.net, FEX, graphics or anti-cheat.
+
+---
+
 **End of current Charoite Portal handoff.**

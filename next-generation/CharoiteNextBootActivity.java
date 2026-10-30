@@ -51,6 +51,9 @@ public final class CharoiteNextBootActivity extends Activity {
     private static final String LAST_BOOT_VERSION = "last_boot_version";
     private static FrameLayout activeColdFallback;
     private static Activity coldFallbackOwner;
+    // Prepared during onCreate; installed synchronously in onPostCreate,
+    // before Android draws the Portal's first frame.
+    private static Activity pendingColdFallbackOwner;
 
     private static final String STARTUP_PREFS = "charoite_next_startup_diagnostics";
     private static volatile String lastLifecycleEvent = "Not yet observed";
@@ -101,49 +104,56 @@ public final class CharoiteNextBootActivity extends Activity {
         long seen = portal.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE)
                 .getLong(LAST_BOOT_VERSION, -1L);
         if (state != null && seen == version) return;
-        lastLifecycleEvent = "Fresh Portal created directly; cold boot fallback";
+        // Do not post/delay this splash: the prior 80ms delay allowed the
+        // underlying main screen to render and visibly flash before boot.
+        // The UI is finished in Activity.onCreate, so onPostCreate is the
+        // earliest safe point to cover all of its content before first draw.
+        pendingColdFallbackOwner = portal;
+        lastLifecycleEvent = "Direct cold boot prepared before first frame";
         saveReport(portal);
-        showColdPortalFallback(portal, 0);
     }
 
-    private static void showColdPortalFallback(Activity portal, int attempt) {
-        portal.getWindow().getDecorView().postDelayed(() -> {
-            if (portal.isFinishing() || portal.isDestroyed()) return;
-            FrameLayout content = portal.findViewById(android.R.id.content);
-            if (content == null || !content.isAttachedToWindow()) {
-                if (attempt < 12) showColdPortalFallback(portal, attempt + 1);
-                else {
-                    lastLifecycleEvent = "Fresh Portal boot fallback could not attach";
-                    saveReport(portal);
-                }
-                return;
-            }
-            if (activeColdFallback != null) return;
-            FrameLayout splash = createBootView(portal);
-            splash.setClickable(true);
-            splash.setFocusable(true);
-            splash.setElevation(density(portal, 64));
-            content.addView(splash, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
-            splash.bringToFront();
-            coldFallbackOwner = portal;
-            activeColdFallback = splash;
-            markBootShown(portal);
-            lastLifecycleEvent = "Direct fresh Portal fallback shown for five seconds";
+    /** Called synchronously by Portal.onPostCreate, before onStart/onResume
+     * and before Android's first visible frame. Adding to android.R.id.content
+     * here avoids the main-screen flash caused by Handler.postDelayed. */
+    public static void onPortalPostCreated(Activity portal) {
+        if (pendingColdFallbackOwner != portal) return;
+        pendingColdFallbackOwner = null;
+        if (portal.isFinishing() || portal.isDestroyed()) return;
+        FrameLayout content = portal.findViewById(android.R.id.content);
+        if (content == null) {
+            lastLifecycleEvent = "Direct cold boot missing Android content root";
             saveReport(portal);
-            OVERLAY_HANDLER.postDelayed(() -> {
-                if (coldFallbackOwner != portal || activeColdFallback != splash) return;
-                activeColdFallback = null;
-                coldFallbackOwner = null;
-                if (splash.getParent() instanceof ViewGroup)
-                    ((ViewGroup) splash.getParent()).removeView(splash);
-                if (!portal.isFinishing() && !portal.isDestroyed())
-                    playCrystalChime(portal);
-            }, BOOT_DURATION_MS);
-        }, attempt == 0 ? 80L : 160L);
+            return;
+        }
+        if (activeColdFallback != null) return;
+        FrameLayout splash = createBootView(portal);
+        splash.setClickable(true);
+        splash.setFocusable(true);
+        splash.setElevation(density(portal, 64));
+        // The content need not be attached to the window yet. It will attach
+        // with this splash already on top of the Portal UI.
+        content.addView(splash, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        splash.bringToFront();
+        coldFallbackOwner = portal;
+        activeColdFallback = splash;
+        markBootShown(portal);
+        lastLifecycleEvent = "Cold fallback present before first Portal draw";
+        saveReport(portal);
+        OVERLAY_HANDLER.postDelayed(() -> {
+            if (coldFallbackOwner != portal || activeColdFallback != splash) return;
+            activeColdFallback = null;
+            coldFallbackOwner = null;
+            if (splash.getParent() instanceof ViewGroup)
+                ((ViewGroup) splash.getParent()).removeView(splash);
+            if (!portal.isFinishing() && !portal.isDestroyed())
+                playCrystalChime(portal);
+        }, BOOT_DURATION_MS);
     }
     public static void notePortalDestroyed(Activity portal) {
+        if (pendingColdFallbackOwner == portal) pendingColdFallbackOwner = null;
         if (coldFallbackOwner == portal) {
             if (activeColdFallback != null
                     && activeColdFallback.getParent() instanceof ViewGroup)

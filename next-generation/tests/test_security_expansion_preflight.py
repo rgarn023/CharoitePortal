@@ -3,6 +3,7 @@
 These tests do not require source compilation, download an archive, or touch
 existing Android apps, games or prefixes.
 """
+import copy
 import importlib.util
 from pathlib import Path
 import unittest
@@ -35,8 +36,8 @@ def inventory():
           "com_dependency_manifest_sha256":"2"*64,
           "launch_ready":False,"installable":False,"prefix_created":False,
           "device_tested":False,"anti_cheat_supported":False}
-    new={**base,"version":m.NEW_VERSION,"component_count":26,
-         "components":{**old,**added},
+    new={**copy.deepcopy(base),"version":m.NEW_VERSION,"component_count":26,
+         "components":{**copy.deepcopy(old),**added},
          "services_dependency_manifest_sha256":"3"*64,
          "window_imports_unresolved_count":2}
     return base,new,{"windows_imports_not_bundled":["dnsapi.dll","wintrust.dll"]}

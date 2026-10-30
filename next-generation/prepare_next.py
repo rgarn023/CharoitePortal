@@ -6,6 +6,7 @@ Charoite Portal package, sources, keystore and on-device data are untouched.
 """
 from pathlib import Path
 from generate_crystal_startup import generate as generate_crystal_chime
+from make_fullbleed_boot import generate as generate_fullbleed_boot
 import hashlib
 import re
 import shutil
@@ -28,8 +29,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.15"')
-text = text.replace("versionCode 33", "versionCode 46")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.16"')
+text = text.replace("versionCode 33", "versionCode 47")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -135,6 +136,14 @@ boot_art.write_bytes(image_bytes)
 next_launcher_icon = app / "res/drawable-nodpi/charoite_portal_icon.jpg"
 assert next_launcher_icon.exists()
 next_launcher_icon.write_bytes(image_bytes)
+# The launcher icon stays byte-for-byte identical to the supplied master.
+# Only the *boot presentation* gets a transparent, no-black-corners copy
+# and a blurred edge-to-edge violet background of the same artwork.
+boot_unframed = app / "res/drawable-nodpi/charoite_next_boot_unframed.png"
+boot_backdrop = app / "res/drawable-nodpi/charoite_next_boot_backdrop.jpg"
+assert generate_fullbleed_boot(approved_art, boot_unframed, boot_backdrop) == (
+    boot_unframed, boot_backdrop)
+
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
@@ -248,78 +257,45 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(startupDiagnostics);
 """)
-# Explicit Activity restart tracking catches Samsung Home→icon relaunches
-# that do not deliver ACTION_MAIN to the existing Portal instance.
-restart_anchor = "    @Override public void onDestroy() {\n"
-assert ui.count(restart_anchor) == 1
-ui = ui.replace(restart_anchor, (
-    "    @Override protected void onRestart() {\n"
-    "        super.onRestart();\n"
-    "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalRestart(this);\n"
-    "    }\n\n" + restart_anchor), 1)
-
-# The first crystal chime must start after the Portal actually resumes, not
-# in onCreate before the Android window is focused (Samsung would skip audio).
-# The pending launch extra is consumed once; in-app navigation cannot replay it.
-
-# Android's TRIM_MEMORY_UI_HIDDEN is NOT guaranteed on Home/task switching.
-# Track the complete app Activity lifecycle, including other Charoite windows:
-# warm return from Home triggers splash; Portal <-> game does not.
-create_anchor = "        super.onCreate(savedInstanceState);\n        CharoiteEnvironments.initialize(this);"
+# Only the initial Activity creation registers the Portal session. The
+# existing Portal may be paused/resumed by Android without re-running boot.
+create_anchor = "        super.onCreate(savedInstanceState);\\n        CharoiteEnvironments.initialize(this);"
 assert ui.count(create_anchor) == 1
 ui = ui.replace(create_anchor, (
-    "        super.onCreate(savedInstanceState);\n"
+    "        super.onCreate(savedInstanceState);\\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".installReentryTracker(this);\n"
+    ".installReentryTracker(this);\\n"
     "        CharoiteEnvironments.initialize(this);"), 1)
-resume_anchor = "        super.onResume();\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
+
+# onResume consumes the one-time cold-start chime only, never shows a splash.
+resume_anchor = "        super.onResume();\\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
 assert ui.count(resume_anchor) == 1
 ui = ui.replace(resume_anchor, (
-    "        super.onResume();\n"
+    "        super.onResume();\\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalResumed(this);\n"
+    ".onPortalResumed(this);\\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
-# Focus gain, not just onResume, makes rapid Home/Recents re-open reliable.
-# The splash request is not consumed until Android really displays Portal.
-focus_anchor = "    @Override public void onDestroy() {\n"
+
+# Keep first-start audio reliability after Portal window is visible.
+focus_anchor = "    @Override public void onDestroy() {\\n"
 assert ui.count(focus_anchor) == 1
 ui = ui.replace(focus_anchor, (
-    "    @Override public void onWindowFocusChanged(boolean hasFocus) {\n"
-    "        super.onWindowFocusChanged(hasFocus);\n"
+    "    @Override public void onWindowFocusChanged(boolean hasFocus) {\\n"
+    "        super.onWindowFocusChanged(hasFocus);\\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalWindowFocusChanged(this, hasFocus);\n"
-    "    }\n\n" + focus_anchor), 1)
-destroy_anchor = "    @Override public void onDestroy() {\n"
+    ".onPortalWindowFocusChanged(this, hasFocus);\\n"
+    "    }\\n\\n" + focus_anchor), 1)
+
+# A truly finished Portal is a new session; Home/Recents do not destroy it.
+destroy_anchor = "    @Override public void onDestroy() {\\n"
 assert ui.count(destroy_anchor) == 1
 ui = ui.replace(destroy_anchor, (
-    "    @Override protected void onUserLeaveHint() {\n"
-    "        super.onUserLeaveHint();\n"
+    destroy_anchor +
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".noteUserLeaving(this);\n"
-    "    }\n\n"
-    "    @Override protected void onPause() {\n"
-    "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".notePortalPaused(this);\n"
-    "        super.onPause();\n"
-    "    }\n\n"
-    "    @Override protected void onNewIntent(Intent intent) {\n"
-    "        super.onNewIntent(intent);\n"
-    "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".noteLauncherIntent(intent);\n"
-    "        if (intent != null && android.content.Intent.ACTION_MAIN.equals(intent.getAction())"
-    " && intent.hasCategory(android.content.Intent.CATEGORY_LAUNCHER))\n"
-    "            getWindow().getDecorView().post(() -> {\n"
-    "                if (!isFinishing() && !isDestroyed())\n"
-    "                    com.charoitegames.core.CharoiteNextBootActivity"
-    ".showOnBackgroundReentryIfNeeded(this);\n"
-    "            });\n"
-    "    }\n\n" + destroy_anchor), 1)
-activity_result_anchor = "        super.onActivityResult(requestCode, resultCode, data);"
-assert ui.count(activity_result_anchor) == 1
-ui = ui.replace(activity_result_anchor, (
-    "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".noteDocumentPickerReturn(this);\n" + activity_result_anchor), 1)
+    ".notePortalDestroyed(this);\\n"), 1)
+
+# Deliberately do not inject onPause/onRestart/onNewIntent/onUserLeaveHint:
+# those are not launch events, and were the cause of unwanted replay.
 ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
 source.write_text(ui, encoding="utf-8")
 

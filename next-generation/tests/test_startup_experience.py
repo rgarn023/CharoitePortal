@@ -32,8 +32,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 51", PREP)
-        self.assertIn("11.2-next.0.20", PREP)
+        self.assertIn("versionCode 52", PREP)
+        self.assertIn("11.2-next.0.21", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -53,7 +53,8 @@ class StartupExperienceTest(unittest.TestCase):
                     self.assertGreater(max(image.getpixel(xy)), 12)
         self.assertIn("R.drawable.charoite_next_boot_unframed", BOOT)
         self.assertNotIn("R.drawable.charoite_next_boot_backdrop", BOOT)
-        self.assertIn("ImageView.ScaleType.CENTER_CROP", BOOT)
+        self.assertIn("ImageView.ScaleType.MATRIX", BOOT)
+        self.assertIn("ART_CROP_RELIEF = .90f", BOOT)
         self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", BOOT)
 
     def test_five_second_boot_once_per_real_session(self):
@@ -103,17 +104,27 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
-        # Reproduces user video v0.19: square icon floating above purple blur.
-        # The artwork must be the ONLY image, crop-filled, with NO scaling.
+        # A single continuous image fills the screen. Mild crop relief is
+        # allowed, but no tiny centered icon, blurry backing image, or zoom.
         view = BOOT.split("private static FrameLayout createBootView(Activity activity) {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
-        self.assertEqual(view.count("new ImageView(activity)"), 1)
-        self.assertEqual(view.count("ImageView.ScaleType.CENTER_CROP"), 1)
+        self.assertEqual(view.count("new CrystalArtwork(activity)"), 1)
+        self.assertEqual(view.count("ImageView.ScaleType.MATRIX"), 1)
+        self.assertIn("ART_CROP_RELIEF = .90f", view)
+        self.assertIn("Math.max(w, sourceWidth * fullScale * ART_CROP_RELIEF)", view)
+        self.assertIn("Math.max(h, sourceHeight * fullScale * ART_CROP_RELIEF)", view)
+        self.assertIn("new CrystalWordmark(activity)", view)
+        self.assertIn('WORDMARK = "CHAROITE PORTAL"', view)
+        self.assertIn("new LinearGradient(", view)
+        self.assertIn("canvas.drawText(WORDMARK, x, y, lettering)", view)
+        self.assertIn("diamond(canvas,", view)
         self.assertIn("R.drawable.charoite_next_boot_unframed", view)
         self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", view)
         self.assertIn("boot.addView(artwork", view)
         self.assertIn("boot.addView(shimmer", view)
+        self.assertIn("boot.addView(title", view)
         self.assertIn("new CrystalShimmer(activity)", view)
         self.assertNotIn("ImageView.ScaleType.FIT_CENTER", view)
+        self.assertNotIn("ImageView.ScaleType.CENTER_CROP", view)
         self.assertNotIn("R.drawable.charoite_next_boot_backdrop", view)
         self.assertNotIn("LinearLayout emblem", view)
         self.assertNotIn("FrameLayout scene", view)
@@ -130,11 +141,15 @@ class StartupExperienceTest(unittest.TestCase):
         effect = BOOT.split("private static final class CrystalShimmer extends View {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
         self.assertIn("CRYSTAL_TIPS", effect)
         self.assertIn("RadialGradient", effect)
-        # ImageView.CENTER_CROP square source scales to max(w,h), not min.
+        # The glow must follow the same width/height matrix as the art.
         self.assertIn("Math.max(getWidth(), getHeight())", effect)
         self.assertNotIn("Math.min(getWidth(), getHeight())", effect)
-        self.assertIn("(getWidth() - side) * .5f", effect)
-        self.assertIn("(getHeight() - side) * .5f", effect)
+        self.assertIn("Math.max(getWidth(), side * ART_CROP_RELIEF)", effect)
+        self.assertIn("Math.max(getHeight(), side * ART_CROP_RELIEF)", effect)
+        self.assertIn("(getWidth() - artWidth) * .5f", effect)
+        self.assertIn("(getHeight() - artHeight) * .5f", effect)
+        self.assertIn("artWidth * CRYSTAL_TIPS[i][0]", effect)
+        self.assertIn("artHeight * CRYSTAL_TIPS[i][1]", effect)
         self.assertIn("postInvalidateOnAnimation()", effect)
         self.assertIn("elapsed < BOOT_DURATION_MS", effect)
         self.assertIn("isAttachedToWindow()", effect)

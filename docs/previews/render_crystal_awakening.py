@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 
 import cv2
+import imageio_ffmpeg
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -89,7 +90,7 @@ def main():
              *smooth(.11,.2,xn)*(1-smooth(.8,.9,xn))
              *np.clip((lum-110)/110,0,1)**1.5)
 
-    command = ["ffmpeg","-y","-loglevel","error","-f","rawvideo",
+    command = [imageio_ffmpeg.get_ffmpeg_exe(),"-y","-loglevel","error","-f","rawvideo",
                "-pixel_format","rgb24","-video_size",f"{WIDTH}x{HEIGHT}",
                "-framerate",str(FPS),"-i","-","-an","-c:v","libx264",
                "-preset","fast","-crf","21","-pix_fmt","yuv420p",

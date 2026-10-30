@@ -146,6 +146,36 @@ public final class CharoiteWineIsolatedStage {
         }
     }
 
+    /**
+     * Read-only verification of an already staged slot. Does not mkdir, copy,
+     * delete, rename or execute anything; a pending transaction blocks testing.
+     */
+    public static String verifyOnly(Context context) {
+        StringBuilder report = new StringBuilder();
+        report.append("CHAROITE NEXT — STAGED PE/NLS READ-ONLY VERIFY\\n");
+        report.append("Existing prefixes, saves, and rootfs: NOT ACCESSED\\n");
+        try {
+            JSONObject index = validatedInventory(context);
+            File base = context.getNoBackupFilesDir().getCanonicalFile();
+            File directory = new File(base, ROOT);
+            if (!directory.getCanonicalFile().getParentFile().equals(base)
+                    || !directory.isDirectory())
+                throw new SecurityException("Isolated staging directory missing");
+            File pending = within(directory, PENDING);
+            File complete = within(directory, FINAL);
+            if (pending.exists())
+                throw new SecurityException("Incomplete pending staging is quarantined");
+            verifyFiles(complete, index.getJSONArray("files"));
+            report.append("Staged Windows PE: 19/19 verified\\n");
+            report.append("Staged Wine NLS: 76/76 verified\\n");
+            report.append("No native executable or Wine prefix was installed\\n");
+            report.append("RESULT: PASS — staged module data verified; NOT runnable\\n");
+        } catch (Exception error) {
+            report.append("RESULT: BLOCKED — ").append(error.getClass().getSimpleName()).append("\\n");
+        }
+        return report.toString();
+    }
+
     public static String run(Context context) {
         StringBuilder report = new StringBuilder();
         report.append("CHAROITE NEXT — ISOLATED WINE PE/NLS STAGING\n");

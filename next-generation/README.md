@@ -163,3 +163,43 @@ allowlist correctly rejected a synthetic 26-component test fixture
 that omitted the four named service DLLs. The fixture now includes
 `bcrypt`, `msvcrt`, `sechost`, and `secur32`; the production
 module allowlist and original Wine data are unchanged.
+
+
+## Next v0.40 — Same-source Wine26 native loader and wineserver version-only probe
+
+**Actual on-device evidence from user (Galaxy S26 Ultra):** v0.39
+`CHAROITE NEXT — ISOLATED WINE26 PE/NLS STAGING` passed, with
+**23/23 Windows PE** and **76/76 NLS** files hash-verified; complete
+26-component source archive SHA-256 PASS; **20 observed unbundled PE
+imports**, while the original Wine22 stage/loader, installed games,
+saves, prefixes and rootfs were **not accessed**. No Wine26 native ELF
+or Wineboot was executed. This is confirmed **data staging only**.
+
+v0.40 adds a source-locked, separately APK-installed generation of
+the **three native AArch64 ELF files** from the *same, independently
+verified Wine26 26-component archive* (GitHub source run
+[41121328663](https://github.com/rgarn023/CharoitePortal/actions/runs/41121328663),
+artifact `13009171257`): loader, Unix ntdll and wineserver.
+`stage_wine26_native.py` matches the verified full archive already
+packaged as Wine26 inert data, checks all three SHA-256 hashes, Android
+AArch64 ELF64 ET_DYN format, native dependencies and minimum 16KiB
+load alignment, then packages them with **new names** under the
+APK-owned native-library directory. It does **not** replace original
+Wine22 native binaries or staging.
+
+After explicit System → **Test matched Wine26 native startup** consent,
+`CharoiteWine26NativeGate` runs the **read-only** 99-file Wine26
+PE/NLS integrity check, verifies installed native loader, ntdll,
+wineserver hashes against the same-source evidence, then executes
+ONLY those exact APK-installed `wine --version` and
+`wineserver --version`. Environment is sanitized, the timeout is
+7 seconds per process, and exact Wine 10 version strings are required.
+The prior successful Wine22 native probes remain separately available.
+
+Wine26's native version gate **does not start a wineserver session,
+wineboot, a Windows EXE, FEX, graphics, a Wine prefix, or games**.
+**Do not infer launch readiness** if both native versions pass.
+All 20 observed unbundled PE DLL import names and potential additional
+native runtime dependencies remain work for later milestones.
+Retain stable Charoite Portal, `com.charoitx` data and the user-approved
+seven-second crystal boot art/audio.

@@ -1,20 +1,19 @@
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
-@@ -1700,8 +1700,30 @@ static void load_ntdll(void)
-     init_unicode_string( &str, path );
+@@ -2075,9 +2075,29 @@
      InitializeObjectAttributes( &attr, &str, 0, 0, NULL );
+ 
 -    if (build_dir) asprintf( &name, "%s%s/ntdll.dll", ntdll_dir, pe_dir );
 -    else asprintf( &name, "%s%s/ntdll.dll", dll_dir, pe_dir );
+-
 -    if (is_arm64ec()) machine = main_image_info.Machine;
--    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE );
+-    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE, 0 );
 -    if (status == STATUS_DLL_NOT_FOUND)
 -    {
 +#if defined(__ANDROID__) && defined(__aarch64__)
-+    /* Charoite Wine28: the Android APK native ntdll.so directory is read-only
-+     * and does NOT contain its Windows PE ntdll.dll sibling. Only the
-+     * explicitly hash-verified, fresh private PE directory is permitted here.
-+     * The normal Wine ntdll path stays unchanged when override is unset. */
++    /* Charoite Wine28: APK-native Unix ntdll.so does not have a sibling
++     * Windows ntdll.dll. The caller verifies a fresh isolated PE directory. */
 +    if (getenv( "CHAROITE_WINE28_PE_DIR" ))
 +    {
 +        const char *dir = getenv( "CHAROITE_WINE28_PE_DIR" );
@@ -30,25 +29,22 @@ diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 +#endif
 +    if (build_dir) asprintf( &name, "%s%s/ntdll.dll", ntdll_dir, pe_dir );
 +    else asprintf( &name, "%s%s/ntdll.dll", dll_dir, pe_dir );
++
 +    if (is_arm64ec()) machine = main_image_info.Machine;
-+    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE );
++    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE, 0 );
 +#if defined(__ANDROID__) && defined(__aarch64__)
 +    if (getenv( "CHAROITE_WINE28_PE_DIR" ) && status == STATUS_DLL_NOT_FOUND)
 +        fatal_error( "verified isolated Wine28 Windows NTDLL PE was not found\n" );
 +#endif
 +    if (status == STATUS_DLL_NOT_FOUND)
 +    {
-
 diff --git a/loader/main.c b/loader/main.c
 --- a/loader/main.c
 +++ b/loader/main.c
-@@ -250,4 +250,13 @@ static void *load_ntdll( char *argv0 )
- #endif
- 
--#if defined(__ANDROID__) && defined(__aarch64__)
--    /* Charoite Next new source cohort: require a distinct verified ntdll.
+@@ -260,2 +260,12 @@
 +#if defined(__ANDROID__) && defined(__aarch64__)
-+    /* New Wine28 native cohort is opt-in and never resolves back to Wine27. */
++    /* The new source-specific native Wine28 cohort cannot fall back to Wine27
++     * when explicitly selected and missing. */
 +    if (!handle && (path = getenv( "CHAROITE_WINE28_NATIVE_DIR" )))
 +    {
 +        if (path[0] != '/' || strstr( path, ".." ) || strchr( path, ':' )) return NULL;
@@ -56,5 +52,5 @@ diff --git a/loader/main.c b/loader/main.c
 +    }
 +#endif
 +
-+#if defined(__ANDROID__) && defined(__aarch64__)
-+    /* Charoite Next new source cohort: require a distinct verified ntdll.
+     if (!handle && (path = getenv( "WINEDLLPATH" )))
+     {

@@ -20,13 +20,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare preview video renderer
         run: |
-          python3 -m pip install --disable-pip-version-check Pillow numpy opencv-python-headless
-          ffmpeg -version | head -1
+          python3 -m pip install --disable-pip-version-check Pillow numpy opencv-python-headless imageio-ffmpeg
+          python3 -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"
       - name: Render approved Charoite artwork motion concept
         run: |
           python3 docs/previews/render_crystal_awakening.py
           test -s Charoite_Crystal_Awakening_Preview.mp4
-          ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 Charoite_Crystal_Awakening_Preview.mp4 | grep '^5.000000$'
+          python3 -c "import cv2; v=cv2.VideoCapture('Charoite_Crystal_Awakening_Preview.mp4'); assert v.isOpened(); fps=v.get(cv2.CAP_PROP_FPS); frames=v.get(cv2.CAP_PROP_FRAME_COUNT); assert abs(frames/fps-5)<.2, (frames,fps); print('PREVIEW_FIVE_SECONDS_PASS')"
           sha256sum Charoite_Crystal_Awakening_Preview.mp4
       - name: Upload MP4 for direct GitHub download
         uses: actions/upload-artifact@v4

@@ -235,6 +235,22 @@ jobs:
           test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-payload.json
           echo "Wine bootstrap archive is an immutable APK asset, NOT an installed runtime."
 
+      - name: Stage separately verified Wine26 PE/NLS data archive without mixing Wine22
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine26"
+          gh run download 41121328663 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-Coherent-Bootstrap-26-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine26"
+          python3 next-generation/stage_wine26.py \
+            "$RUNNER_TEMP/charoite-wine26/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-26.bundle
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-26-index.json
+          echo "Wine26 23 PE + 76 NLS modules are distinct inert assets; old native Wine unchanged."
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -459,6 +475,37 @@ jobs:
               assert len([x for x in apk.namelist() if x.startswith("assets/charoite-next/wine-modules/")])==95
               print("CHAROITE_NEXT_95_ISOLATED_PE_NLS_ASSETS_VERIFIED=PASS")
               print("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS")
+              wine26=json.loads(apk.read("assets/charoite-next/wine-bootstrap-26-index.json"))
+              wine26raw=apk.read("assets/charoite-next/wine-bootstrap-26.bundle")
+              assert wine26["schema_version"]==1 and wine26["android_package"]=="com.charoitx"
+              assert wine26["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert wine26["source_run"]==41121328663 and wine26["source_artifact"]==13009171257
+              assert wine26["bundle_version"]=="wine10-arm64ec-bootstrap.0.5"
+              assert wine26["archive_asset"]=="charoite-next/wine-bootstrap-26.bundle"
+              assert wine26["archive_size"]==len(wine26raw)
+              assert hashlib.sha256(wine26raw).hexdigest()==wine26["archive_sha256"]
+              assert wine26["component_count"]==26 and wine26["pe_count"]==23
+              assert wine26["native_elf_in_archive"]==3 and wine26["nls_count"]==76
+              assert wine26["module_count"]==99 and len(wine26["module_files"])==99
+              assert wine26["remaining_observed_pe_imports_count"]==20
+              assert len(wine26["remaining_observed_pe_imports"])==20
+              assert all(wine26[flag] is False for flag in (
+                  "launch_ready","installable_as_runtime","native_elf_installed",
+                  "prefix_created","wineboot_tested","fex_installed",
+                  "graphics_verified","anti_cheat_supported"))
+              total=0
+              for entry in wine26["module_files"]:
+                  assert entry["asset"].startswith("charoite-next/wine26-modules/")
+                  blob=apk.read("assets/"+entry["asset"])
+                  assert entry["size"]==len(blob)
+                  assert hashlib.sha256(blob).hexdigest()==entry["sha256"]
+                  assert entry["source"]=="runtime/"+entry["path"]
+                  total+=len(blob)
+              assert total==wine26["modules_total_bytes"] and total<=128*1024*1024
+              assert len([p for p in apk.namelist() if p.startswith("assets/charoite-next/wine26-modules/")])==99
+              print("CHAROITE_NEXT_WINE26_ARCHIVE_APK_SHA256_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE26_99_PE_NLS_APK_ASSETS_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE26_NATIVE_ELF_NOT_INSTALLED=PASS")
               assert b"CHAROITE_NTDLL_NATIVE_DIR" in native
               assert len(native)==manifest["size"]
               assert hashlib.sha256(native).hexdigest()==manifest["sha256"]
@@ -474,7 +521,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='69' versionName='11.2-next.0.38'"
+            grep -F "package: name='com.charoitx' versionCode='70' versionName='11.2-next.0.39'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -620,6 +667,9 @@ jobs:
           cp next-generation/CharoiteWineBootstrapPreflight.java legal-bundle/CharoiteWineBootstrapPreflight.java
           cp next-generation/CharoiteWineIsolatedStage.java legal-bundle/CharoiteWineIsolatedStage.java
           cp next-generation/CharoiteWineBootstrapGate.java legal-bundle/CharoiteWineBootstrapGate.java
+          cp next-generation/CharoiteWine26Stage.java legal-bundle/CharoiteWine26Stage.java
+          cp next-generation/stage_wine26.py legal-bundle/stage_wine26.py
+          cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-26-index.json legal-bundle/wine-bootstrap-26-index.json
           cp next-generation/stage_bootstrap_payload.py legal-bundle/stage_bootstrap_payload.py
           cp upstream/app/src/main/assets/charoite-next/wine-module-staging-index.json legal-bundle/wine-module-staging-index.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-preflight.json legal-bundle/wine-bootstrap-preflight.json

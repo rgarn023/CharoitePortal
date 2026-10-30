@@ -109,7 +109,7 @@ class StartupExperienceTest(unittest.TestCase):
         view = BOOT.split("private static FrameLayout createBootView(Activity activity) {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
         self.assertEqual(view.count("new CrystalArtwork(activity)"), 1)
         self.assertEqual(view.count("ImageView.ScaleType.MATRIX"), 1)
-        self.assertIn("ART_CROP_RELIEF = .90f", view)
+        self.assertIn("ART_CROP_RELIEF = .90f", BOOT)
         self.assertIn("Math.max(w, sourceWidth * fullScale * ART_CROP_RELIEF)", view)
         self.assertIn("Math.max(h, sourceHeight * fullScale * ART_CROP_RELIEF)", view)
         self.assertIn("new CrystalWordmark(activity)", view)

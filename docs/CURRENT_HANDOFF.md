@@ -1912,4 +1912,30 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+## 105. October 30, 2026 — v0.43 on-device patched Wine27 PE/NLS staging PASS
+
+**User-supplied Galaxy device report (October 30, 2026):**
+
+```text
+CHAROITE NEXT — ISOLATED WINE27 PE/NLS STAGING
+Scope: source-verified new generation; Windows module DATA ONLY
+Original Wine22 staging, existing prefixes, games, saves, rootfs: NOT ACCESSED
+Native ELF in Wine27 archive: INERT; NOT INSTALLED OR EXECUTED
+Wineboot, wineserver session, Windows EXE, FEX, graphics: NOT ATTEMPTED
+Full 26-component source archive SHA-256: PASS
+Windows PE data: 23/23 staged and verified
+Wine NLS data: 76/76 staged and verified
+Observed unbundled PE import names: 20
+Original Wine22/native-loader cohort: UNCHANGED
+RESULT: PASS — source-coherent Wine27 data staged; NOT runnable
+```
+
+**Interpretation:** v0.43 source archive and 99 Windows PE/NLS assets have now been successfully verified and staged to their *separate* 0.6-generation, app-private data slot **on the user's device**. This is **not** the version-only native gate, NTDLL execution, wineserver execution, an initialized prefix, or a game runtime. The report attests that earlier Wine22 staging, existing prefixes, installed games and saves were not accessed.
+
+**Next action for user (no APK/code change yet):** In `Charoite Next → System` tap **Verify new patched Wine native cohort**. Share the entire report including the three APK-native source SHA gate results, Wine/wineserver version probe results, and any `BLOCKED` / `FAIL` / linker output. **Only if native gate passes** proceed to the explicit consent screen for **Test new v3 isolated Wineboot**; it must be executed at most once because the scratch is one-shot and never cleared or overwritten. Do not start Windows apps, graphics, FEX, Battle.net or Steam. The 20 observed unbundled PE imports are not independently proven fatal.
+
+**Canonical latest verified APK remains v0.43:** [GitHub Actions successful run 41137841735](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735), [artifact 13017520822](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735/artifacts/13017520822). No new APK has been built from this report.
+
+---
+
 **End of current Charoite Portal handoff.**

@@ -157,3 +157,9 @@ report. **Do not run Wineboot using these data files** until native
 ELF/PE cohort compatibility and all required modules are independently
 validated for the same generation in a future build. The stable
 Charoite Portal and existing 7-second crystal energy boot are unchanged.
+
+**CI fixture correction:** the first v0.39 build's fail-closed unit
+allowlist correctly rejected a synthetic 26-component test fixture
+that omitted the four named service DLLs. The fixture now includes
+`bcrypt`, `msvcrt`, `sechost`, and `secur32`; the production
+module allowlist and original Wine data are unchanged.

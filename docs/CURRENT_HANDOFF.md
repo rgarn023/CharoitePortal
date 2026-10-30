@@ -1686,4 +1686,21 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 88. October 30, 2026 — Native Wine bootstrap gate PASS on Galaxy; source-built PE security extension
+
+**User-supplied on-device v0.38 result, confirmed:** Samsung Galaxy S26 Ultra reported **staged 19/19 Windows PE, 76/76 NLS verified**, source-hash verified Android native `ntdll` and `wine` ELF; `wine --version` exit code **0**, output **wine-10.0**; source-hash verified `wineserver` ELF, `wineserver --version` exit code **0**, output **Wine 10.0**. Final `RESULT: PASS — version-only prerequisites, NOT a runnable Wine environment`. No existing prefixes, rootfs, games, saves accessed. No wineserver session, new prefix, wineboot, Windows EXE, FEX, graphic or input support tested. All three device gates passed; do not conflate with Windows runtime launch.
+
+**Next source-level work committed to GitHub on `main`:** Source-pinned additional ARM64EC security/service/runtime API library build targets selected from the original 22-component dependency-review list (24 Windows import names not bundled): **`bcrypt.dll`, `secur32.dll`, `sechost.dll`, `msvcrt.dll`**. This is source CI work only, not a phone APK or an installed runner.
+
+- New `next-generation/charoite-wine/build-pe-services.sh`: builds from the exact patched/pinned Wine 10 ARM64EC/Android CI tree, requires original 22-component import review, builds each Windows PE from the same source, records `llvm-readobj` ARM64EC headers and DLL imports, writes source-linked per-module SHA manifest. Never edits Android app data or starts Wine.
+- New `verify-pe-services.py` rejects wrong-source/wrong ABI, modified binaries, extra files, malformed input and false launch readiness; new source unit tests `tests/test_pe_services.py`.
+- `assemble-bootstrap-bundle.py` supports `--include-services` after the original startup and COM provenance, retaining all 76 NLS, and builds **candidate 26-component** archive version `wine10-arm64ec-bootstrap.0.5`; `verify-bootstrap-bundle.py` independently checks exact 26 components, original source hashes, archive content, imported DLL gap inventory, and new service source-manifest SHA.
+- `.github/workflows/charoite-wine-source.yml` appends two **experimental CI-only** artifacts: `Charoite-Wine-ARM64EC-PE-Security-Services-Experimental` and `Charoite-Wine-Coherent-Bootstrap-26-Experimental`, **only if CI passes**. Original 22-component artifact remains available and all prior schema versions supported. New 26-component regression tests reject missing source attribution and tampered DLLs.
+- Commits: build `489a36d9`, verifier `da1c1eb5`, packager `1723cc49`, archive validator `1ab0f7b7`, CI workflow `1253c924`, service tests `e977744e`, archive tests `10f43ba4` and newline fix `372d8a43`, build-triggering README commit **`dabd4e539e55d265c4e6dfaab205a74cbd4e6611`**.
+
+**New CI status at initial handoff:** [GitHub Actions source run **41116591592**](https://github.com/rgarn023/CharoitePortal/actions/runs/41116591592) was **IN PROGRESS**. No new source binaries or 26-component artifact should be claimed until that run completes green and artifacts are checked. Next phase: confirm compiler/ABI tests and exact observed *new* import gaps; revise missing module selection if build errors appear; only then package approved binaries in a separately versioned Next APK and stage them isolated. No `com.charoitx` app-version increment or new APK in this source-only milestone. Last working phone APK remains **Next v0.38**, [run 41114787960 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/41114787960), [artifact 13004693430](https://github.com/rgarn023/CharoitePortal/actions/runs/41114787960/artifacts/13004693430), 188 tests pass. Stable Portal / games / saves / Wine prefixes and seven-second crystal energy boot remain unchanged.
+
+---
+
 **End of current Charoite Portal handoff.**

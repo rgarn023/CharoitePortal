@@ -76,7 +76,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("super.onResume()", BOOT)
         # The root boot Activity must not finish immediately after opening
         # Portal; otherwise Samsung can resume Portal forever without boot.
-        launch = BOOT.split("startActivity(main);",1)[1].split("handler.postDelayed(openMain",1)[0]
+        launch = BOOT.split("startActivity(main);",1)[1].split("};\n        handler.postDelayed(openMain",1)[0]
         self.assertNotIn("finish();", launch)
         fallback = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("private static void showColdPortalFallback",1)[0]
         self.assertIn("showColdPortalFallback(portal, 0)", fallback)

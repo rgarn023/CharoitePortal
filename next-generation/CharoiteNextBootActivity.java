@@ -42,12 +42,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * Charoite Next-only launch screen: approved crystal art with a silent, 10-second
- * cloud-only Mystic C movie and a synchronized ten-second crystal sound.
+ * Charoite Next-only launch screen: approved crystal art with a silent, 5-second
+ * cloud-only Mystic C movie and a synchronized five-second crystal sound.
  * No Wine/prefix work occurs and no chime plays after Portal appears.
  */
 public final class CharoiteNextBootActivity extends Activity {
-    public static final long BOOT_DURATION_MS = 10000L;
+    public static final long BOOT_DURATION_MS = 5000L;
     private static final String EXTRA_PLAY_CHIME =
             "com.charoitegames.core.NEXT_PLAY_CRYSTAL_CHIME";
     // The live Portal is the session: Home/Recents do not destroy it.
@@ -185,7 +185,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
     /** Existing integration hook: Portal focus must NEVER replay the boot sound. */
     public static void onPortalWindowFocusChanged(Activity portal, boolean focused) {
-        // No-op. The ten-second atmosphere starts only on a genuine boot.
+        // No-op. The five-second atmosphere starts only on a genuine boot.
     }
 
     private static void saveReport(Context ctx) {
@@ -210,7 +210,7 @@ public final class CharoiteNextBootActivity extends Activity {
         return "CHAROITE NEXT — STARTUP DIAGNOSTICS\n"
                 + "Splash art: approved gateway with black outside corners removed\n"
                 + "Boot: once per genuine launch, never on app switching\n"
-                + "Boot duration: 10000 ms (cloud-only Mystic C)\n"
+                + "Boot duration: 5000 ms (cloud-only Mystic C)\n"
                 + "Last lifecycle: " + prefs.getString("last_event", lastLifecycleEvent) + "\n"
                 + "Portal session live: " + hasLivePortalSession() + "\n"
                 + "Last boot audio: " + prefs.getString("last_audio", lastAudioResult) + "\n"
@@ -292,7 +292,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
     /**
-     * Plays the EXACT silent 10-second approved cloud-only Mystic C video.
+     * Plays the approved silent five-second cloud-only Mystic C video.
      * The native artwork, shimmer and crystal wordmark remain underneath as a
      * fallback if the decoder is slow or unavailable. TextureView prevents
      * SurfaceView from showing a blank/black overlay during preparation.
@@ -336,7 +336,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 MediaPlayer player = new MediaPlayer();
                 movie = player;
                 AssetFileDescriptor afd = getResources().openRawResourceFd(
-                        com.winlator.R.raw.charoite_mystic_c_cloud_10s);
+                        com.winlator.R.raw.charoite_mystic_c_cloud_5s);
                 try {
                     player.setDataSource(afd.getFileDescriptor(),
                             afd.getStartOffset(), afd.getLength());
@@ -670,7 +670,7 @@ public final class CharoiteNextBootActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(43, 18, 83));
         getWindow().setNavigationBarColor(Color.rgb(43, 18, 83));
         setContentView(createBootView(this));
-        // Begin the crystal resonance with the visible ten-second splash,
+        // Begin the crystal resonance with the visible five-second splash,
         // rather than waiting to play after the main screen opens.
         playCrystalChime(this);
 
@@ -809,12 +809,12 @@ public final class CharoiteNextBootActivity extends Activity {
                 }
                 activeCrystalAudioTrack = track;
                 track.play();
-                lastAudioResult = "STARTED: ten-second boot crystal ambience (" + written + " bytes)";
+                lastAudioResult = "STARTED: five-second boot crystal ambience (" + written + " bytes)";
                 saveReport(activity);
                 OVERLAY_HANDLER.postDelayed(() -> {
                     if (activeCrystalAudioTrack == track) {
                         stopBootSound(activity);
-                        lastAudioResult = "PASS: ten-second crystal boot sound completed";
+                        lastAudioResult = "PASS: five-second crystal boot sound completed";
                         saveReport(activity);
                     }
                 }, BOOT_DURATION_MS + 200L);
@@ -834,7 +834,7 @@ public final class CharoiteNextBootActivity extends Activity {
                     player.setOnCompletionListener(mp -> {
                         if (activeCrystalMediaPlayer == mp) {
                             stopBootSound(activity);
-                            lastAudioResult = "PASS: fallback ten-second boot sound completed";
+                            lastAudioResult = "PASS: fallback five-second boot sound completed";
                             saveReport(activity);
                         }
                     });
@@ -847,7 +847,7 @@ public final class CharoiteNextBootActivity extends Activity {
                         return true;
                     });
                     player.start();
-                    lastAudioResult = "STARTED: fallback MediaPlayer ten-second boot sound";
+                    lastAudioResult = "STARTED: fallback MediaPlayer five-second boot sound";
                     saveReport(activity);
                 } catch (Exception fallbackFailure) {
                     lastAudioResult = "FAILED: PCM " + pcmFailure.getClass().getSimpleName()

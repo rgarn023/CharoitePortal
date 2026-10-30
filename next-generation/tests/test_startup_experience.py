@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 61", PREP)
-        self.assertIn("11.2-next.0.30", PREP)
+        self.assertIn("versionCode 62", PREP)
+        self.assertIn("11.2-next.0.31", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -181,95 +181,60 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertNotIn("createBootView(",resume)
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
-    def test_seven_second_crystal_portal_movie_is_packaged_and_fails_safe(self):
-        # A crystal glow plus black-purple portal replaces cloudy energy.
+    def test_reference_portal_only_is_packaged_and_original_title_is_preserved(self):
+        import hashlib
         renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
         self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 7", renderer)
-        self.assertIn("Charoite_Crystal_Smoke_Vortex_7s.mp4", renderer)
-        self.assertIn("def portal_phase(t):", renderer)
-        self.assertIn("def advect_cloud(source, age, seed=0.):", renderer)
-        self.assertIn("inner_curve = paths[1][0]", renderer)
-        self.assertIn("theta0 + 1.72*age", renderer)
-        self.assertNotIn("darkness = portal_amount * inside", renderer)
-        self.assertNotIn("lip = np.exp", renderer)
-        self.assertIn("def crystal_phase(t):", renderer)
-        self.assertIn("def render_overlay(t, base, xx, yy, paths, sources):", renderer)
-        self.assertIn("make_energy_sources(paths)", renderer)
-        self.assertNotIn("def cloud_noise(", renderer)
-        self.assertNotIn("make_cloud_sources(", renderer)
-        self.assertNotIn("def electrify(", renderer)
-        self.assertNotIn("cv2.remap(", renderer)
-        self.assertIn("subprocess.run([sys.executable, str(preview_script)]", PREP)
-        self.assertIn('movie_raw = app / "res/raw/charoite_crystal_smoke_vortex_7s.mp4"', PREP)
-        self.assertIn("shutil.copyfile(movie_generated, movie_raw)", PREP)
-        self.assertIn("CHAROITE_NEXT_CRYSTAL_SMOKE_VORTEX_7_SECONDS=PASS", PREP)
-
-        # TextureView covers the still image only after a decoded frame; its
-        # own fade prevents a late decoder from cutting to an unfinished frame.
+        self.assertIn("Charoite_Reference_Portal_Only_7s.mp4", renderer)
+        self.assertIn("charoite_portal_reference_inner.jpg", renderer)
+        self.assertNotIn("draw_plaque(", renderer, "Do not replace native title with video plaque")
+        self.assertNotIn("crystal_phase(", renderer, "Crystal must never animate")
+        self.assertNotIn("advect_cloud(", renderer, "Only the actual cropped portal may move")
+        self.assertIn("def render_overlay(t, base, portal_source):", renderer)
+        self.assertIn("cv2.remap(portal_source,", renderer)
+        self.assertIn("return scene", renderer)
+        self.assertIn('movie_raw = app / "res/raw/charoite_reference_portal_only_7s.mp4"', PREP)
+        self.assertIn("CHAROITE_NEXT_REFERENCE_PORTAL_ONLY_7_SECONDS=PASS", PREP)
         self.assertIn("new CrystalPortalMovie(activity)", BOOT)
-        self.assertIn("class CrystalPortalMovie extends TextureView", BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_crystal_smoke_vortex_7s", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_reference_portal_only_7s", BOOT)
         self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
-        self.assertIn("setAlpha(0f)", BOOT)
-        self.assertIn("setAlpha(1f)", BOOT)
-        self.assertIn("getResources().openRawResourceFd(", BOOT)
         self.assertIn("player.setVolume(0f, 0f)", BOOT)
         self.assertIn("player.setLooping(false)", BOOT)
         self.assertIn("getWidth() <= getHeight()", BOOT)
-        self.assertIn("releaseMovie()", BOOT)
-        self.assertIn("matrix.setScale(sx, sy, w / 2f, h / 2f)", BOOT)
+        self.assertIn("fadingForBootEnd", BOOT)
         self.assertIn("BOOT_DURATION_MS = 7000L", BOOT)
         self.assertIn("portalMovie.postDelayed(portalMovie::fadeForBootEnd, BOOT_DURATION_MS - 950L)", BOOT)
-        self.assertIn("fadingForBootEnd", BOOT)
-        self.assertIn("animate().alpha(0f).setDuration(750L)", BOOT)
-        self.assertNotIn("BOOT_DURATION_MS = 10000L", BOOT)
-        self.assertNotIn("setVideoURI(", BOOT)
-        self.assertNotIn("R.raw.charoite_mystic_c_cloud_7s", BOOT)
+        # The Java title must render ABOVE the video: exactly one native title.
+        boot = BOOT.split("private static FrameLayout createBootView(Activity activity) {",1)[1].split("private static final class CrystalArtwork",1)[0]
+        self.assertEqual(boot.count("new CrystalWordmark(activity)"), 1)
+        self.assertLess(boot.index("boot.addView(portalMovie"), boot.index("boot.addView(title"))
+        self.assertNotIn("new CrystalCloudMovie", BOOT)
 
-    def test_portal_stays_inside_c_and_vanishes_before_audio_ends(self):
+    def test_portal_pastes_only_user_reference_into_c_without_touching_title(self):
         import importlib.util
         import numpy as np
         source = ROOT.parent / "docs/previews/render_crystal_awakening.py"
-        spec = importlib.util.spec_from_file_location("crystal_portal_shader", source)
+        spec = importlib.util.spec_from_file_location("reference_portal_only", source)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         self.assertEqual(mod.portal_phase(0), 0)
-        self.assertGreater(mod.portal_phase(3.5), 0.9)
+        self.assertGreater(mod.portal_phase(3.5), .99)
         self.assertEqual(mod.portal_phase(6.35), 0)
-        self.assertEqual(mod.crystal_phase(6.35), 0)
-        y, x = np.mgrid[0:mod.HEIGHT, 0:mod.WIDTH].astype(np.float32)
-        base = np.full((mod.HEIGHT, mod.WIDTH, 3), 100., dtype=np.float32)
-        paths = [mod.resample_curve(mod.OUTER), mod.resample_curve(mod.INNER)]
-        sources = mod.make_energy_sources(paths)
-        opening = mod.render_overlay(3.6, base, x, y, paths, sources)
-        self.assertLess(float(opening[391, 248].mean()), 85.,
-                        "Dark swirling smoke must be visible inside C")
-        self.assertTrue(np.array_equal(opening[850, 240], base[850, 240]),
-                        "Wordmark and lower art must remain untouched")
-        self.assertTrue(np.array_equal(mod.render_overlay(0, base, x, y, paths, sources), base))
-        self.assertTrue(np.array_equal(mod.render_overlay(6.35, base, x, y, paths, sources), base))
-
-    def test_counterclockwise_inward_cloud_advection(self):
-        import importlib.util
-        import math
-        source = ROOT.parent / "docs/previews/render_crystal_awakening.py"
-        spec = importlib.util.spec_from_file_location("smoke_vortex", source)
-        smoke = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(smoke)
-        # At age zero, clouds are emitted from the C's inner rim.
-        source_xy = (321., 391.)
-        start = smoke.advect_cloud(source_xy, 0.)
-        later = smoke.advect_cloud(source_xy, .65)
-        self.assertAlmostEqual(start[0], source_xy[0], delta=.01)
-        self.assertAlmostEqual(start[1], source_xy[1], delta=.01)
-        self.assertLess(later[1], start[1],
-                        "In screen coordinates, moving upward from right is CCW")
-        center = (248., 391.)
-        r0 = math.hypot((start[0]-center[0])/86.,(start[1]-center[1])/104.)
-        r1 = math.hypot((later[0]-center[0])/86.,(later[1]-center[1])/104.)
-        self.assertLess(r1, r0, "Clouds must be pulled inward")
-        self.assertEqual(smoke.portal_phase(6.35), 0.)
-        self.assertEqual(smoke.crystal_phase(6.35), 0.)
+        image = mod.make_portal_source()
+        self.assertEqual(image.shape, (192, 192, 3))
+        # Base pixels must not change anywhere except the small C opening.
+        base = np.full((mod.HEIGHT, mod.WIDTH, 3), 110., dtype=np.float32)
+        rendered = mod.render_overlay(3.5, base, image)
+        x0, x1 = mod.PORTAL_X-mod.PORTAL_RX, mod.PORTAL_X+mod.PORTAL_RX
+        y0, y1 = mod.PORTAL_Y-mod.PORTAL_RY, mod.PORTAL_Y+mod.PORTAL_RY
+        changes = np.any(rendered != base, axis=2)
+        self.assertTrue(changes[y0:y1,x0:x1].any(), "Reference portal must be visible")
+        changes[y0:y1,x0:x1] = False
+        self.assertFalse(changes.any(), "No crystal, background or title pixels may change")
+        self.assertTrue(np.array_equal(mod.render_overlay(0, base, image), base))
+        self.assertTrue(np.array_equal(mod.render_overlay(6.35, base, image), base))
+        self.assertGreater(float(np.abs(mod.render_overlay(2.5,base,image) -
+                                        mod.render_overlay(3.5,base,image)).sum()), 1000.)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
         # Portrait source is a proper 960x1840 composition, not a zoomed

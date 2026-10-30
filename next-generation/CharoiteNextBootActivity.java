@@ -255,17 +255,6 @@ public final class CharoiteNextBootActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // Draw the title as part of the full-screen composition, not as a
-        // separate logo image. The gradient/beveled violet-white letters and
-        // tiny diamond glints have no UI panel or progress-bar background.
-        CrystalWordmark title = new CrystalWordmark(activity);
-        title.setClickable(false);
-        title.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        title.setContentDescription("Charoite Portal");
-        boot.addView(title, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
         // Full-frame silent crystal-portal animation, with a static-image
         // fallback underneath. TextureView stays transparent until Android
         // actually renders its first video frame: no black video flash.
@@ -279,6 +268,15 @@ public final class CharoiteNextBootActivity extends Activity {
         // Fade back to the native crystal artwork ahead of Android navigation,
         // even when first video-frame decode starts late.
         portalMovie.postDelayed(portalMovie::fadeForBootEnd, BOOT_DURATION_MS - 950L);
+        // The title must ALWAYS be the same native view: the video contains
+        // zero title pixels and is deliberately behind CrystalWordmark.
+        CrystalWordmark title = new CrystalWordmark(activity);
+        title.setClickable(false);
+        title.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        title.setContentDescription("Charoite Portal");
+        boot.addView(title, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         return boot;
     }
 
@@ -300,7 +298,7 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
     /**
-     * Plays seven seconds of a strongly glowing crystal C drawing purple-black smoke inward counterclockwise.
+     * Plays seven seconds of the actual reference vortex, animated only in the static C opening.
      * The native artwork, shimmer and crystal wordmark remain underneath as a
      * fallback if the decoder is slow or unavailable. TextureView prevents
      * SurfaceView from showing a blank/black overlay during preparation.
@@ -350,7 +348,7 @@ public final class CharoiteNextBootActivity extends Activity {
                 MediaPlayer player = new MediaPlayer();
                 movie = player;
                 AssetFileDescriptor afd = getResources().openRawResourceFd(
-                        com.winlator.R.raw.charoite_crystal_smoke_vortex_7s);
+                        com.winlator.R.raw.charoite_reference_portal_only_7s);
                 try {
                     player.setDataSource(afd.getFileDescriptor(),
                             afd.getStartOffset(), afd.getLength());

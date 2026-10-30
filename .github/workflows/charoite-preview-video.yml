@@ -1,4 +1,4 @@
-name: Charoite Crystal C Counterclockwise Smoke Vortex Preview
+name: Charoite User Reference Portal-Only Seven-Second Preview
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   generate-preview:
-    name: Generate 7-second inward counterclockwise black-purple smoke vortex
+    name: Generate user-reference portal only, preserving static C and title
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -25,15 +25,15 @@ jobs:
       - name: Render approved Charoite artwork motion concept
         run: |
           python3 docs/previews/render_crystal_awakening.py
-          test -s Charoite_Crystal_Smoke_Vortex_7s.mp4
-          python3 -c "import cv2; v=cv2.VideoCapture('Charoite_Crystal_Smoke_Vortex_7s.mp4'); assert v.isOpened(); fps=v.get(cv2.CAP_PROP_FPS); frames=v.get(cv2.CAP_PROP_FRAME_COUNT); assert abs(frames/fps-7)<.2, (frames,fps); print('PREVIEW_SEVEN_SECONDS_PASS')"
-          sha256sum Charoite_Crystal_Smoke_Vortex_7s.mp4
+          test -s Charoite_Reference_Portal_Only_7s.mp4
+          python3 -c "import cv2; v=cv2.VideoCapture('Charoite_Reference_Portal_Only_7s.mp4'); assert v.isOpened(); fps=v.get(cv2.CAP_PROP_FPS); frames=v.get(cv2.CAP_PROP_FRAME_COUNT); assert abs(frames/fps-7)<.2, (frames,fps); print('PREVIEW_SEVEN_SECONDS_PASS')"
+          sha256sum Charoite_Reference_Portal_Only_7s.mp4
       - name: Upload MP4 for direct GitHub download
         uses: actions/upload-artifact@v4
         with:
-          name: Charoite-Crystal-Smoke-Vortex-7s-MP4
+          name: Charoite-Reference-Portal-Only-7s-MP4
           path: |
-            Charoite_Crystal_Smoke_Vortex_7s.mp4
-            Charoite_Crystal_Smoke_Vortex_7s_Storyboard.jpg
+            Charoite_Reference_Portal_Only_7s.mp4
+            Charoite_Reference_Portal_Only_7s_Storyboard.jpg
           retention-days: 30
           if-no-files-found: error

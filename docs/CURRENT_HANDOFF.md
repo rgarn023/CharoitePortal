@@ -1650,4 +1650,22 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 86. October 30, 2026 — Next v0.37: isolated PE/NLS staging (CI pending)
+
+**User on-device v0.36 validation:** On Galaxy S26 Ultra, **System → Verify packaged modern Wine modules** reported all **22/22** source-built Wine components, **19 PE + 3 native ELF**, **76 NLS**, SHA-256 **PASS**, **24 observed PE import gaps**, no extraction, no prefixes accessed, no FEX/graphics, **NOT RUNNABLE**. This user-reported device check closes the archive-integrity milestone, **not** Wineboot or engine launch.
+
+**New work committed directly to existing main through connected GitHub tools:** Next v0.37 source commits from `ffe6d3c6` (source-attested module assets/index), `ff4f2f22` (opt-in isolated Android PE/NLS stager), `abf6e4c6` (UI and version), `6a89f9d8` (engine label), `df6c0b75` (APK content verification), `5adbf29a` (new tests), contract assertion updates `57bade22`, `f1fdbc54`, `27f1ef0f`, `a48841d4`; **code build-triggering commit `6a80f177ade33ff6d1eac7ff584226b123574f83`** updated README.
+
+- Version `11.2-next.0.37` code `68`, separate Android package `com.charoitx` and established signing identity, stable `com.charoite` untouched.
+- New staged individual opaque `.bin` assets for **19 Windows PE + 76 NLS** items, each individually hashed against the source-verified pinned 22-component archive, alongside the unchanged coherent `.bundle`. `wine-module-staging-index.json` declares immutable exact 95-file, path, size, SHA allowlist. Workflow checks every file and total inside final APK, no native ELF installed as part of this step.
+- New **System → Stage isolated modern Wine PE/NLS modules** asks for explicit user approval, checks the full pinned archive and staging inventory, copies only validated Windows modules to `getNoBackupFilesDir()/charoite-next-isolated-wine/` `*.pending` folder, re-verifies all SHA-256, atomically renames the staged folder, or leaves incomplete data quarantined without deletion, overwrite or executable launch. Existing complete staged data is SHA-verified on repeated clicks. It never touches rootfs, another environment, existing Wine prefix, game or save.
+- The modern runtime remains **NOT INSTALLED / NOT LAUNCH-READY**: Native ELF executable layout, FEX translation, 24 observed PE import gaps, graphics, Wineboot, Battle.net, Steam and gameplay remain untested/unresolved. No Wineboot or Windows app launch performed.
+
+**Next APK Actions build:** [run 41113003291](https://github.com/rgarn023/CharoitePortal/actions/runs/41113003291) from code SHA `6a80f177ade33ff6d1eac7ff584226b123574f83` was **IN PROGRESS** on last check, no uploaded artifact yet. Do not claim v0.37 passed or link an imaginary artifact. Verify green tests, packaged hashes, correct APK identity/signing and uploaded artifact; fix any failure directly on `main`. Last confirmed signed APK v0.36: [run 41111015893 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/41111015893), [artifact 13004036367](https://github.com/rgarn023/CharoitePortal/actions/runs/41111015893/artifacts/13004036367).
+
+**Next device evidence:** Once signed v0.37 is verified, install over existing Next without uninstall/clearing data; run **System → Stage isolated modern Wine PE/NLS modules → Stage / Verify → Copy report** and separately **Test source-built wineserver --version**. Do not attempt Wineboot, FEX, Windows game execution until fresh, disposable-prefix and native startup prerequisites are satisfied.
+
+---
+
 **End of current Charoite Portal handoff.**

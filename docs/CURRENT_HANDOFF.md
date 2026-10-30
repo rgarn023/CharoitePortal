@@ -6,7 +6,7 @@
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
 
-**Latest Charoite Next build:** **v0.26 (`com.charoitx`, version code 57)** — [GitHub Actions run **41010804094 SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/41010804094), [signed APK artifact **12957437681**](https://github.com/rgarn023/CharoitePortal/actions/runs/41010804094/artifacts/12957437681). Final code/CI source SHA `0f6b7114ba7a7fe7aa59ccebb41dc0c4892f3d1a`; 34 Next and 138 stable regression tests passed. The ten-second original crystal sound now plays DURING the boot animation and ends before main Portal; actual Galaxy S26 Ultra audio/video synchronization awaits user check.
+**Latest Charoite Next build:** **v0.27 (com.charoitx, version code 58)** — [GitHub Actions run 41012589220 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/41012589220), [signed APK artifact 12957897855](https://github.com/rgarn023/CharoitePortal/actions/runs/41012589220/artifacts/12957897855). Final build SHA 9349127ac51737958e0d656d561f51de0f689632; 34 Next and 138 stable regression tests passed. Both cloudy Mystic C animation and crystal sound last exactly five seconds, with gentle ending fades; device verification remains necessary.
 
 > **MANDATORY:** GitHub's live `main` branch and its actual GitHub Actions state are always the source of truth. This file is a dated snapshot. After every substantive Charoite project response, **update this handoff in GitHub**, with actual changes/tests/build/device findings and specific next steps. Do not leave the user with a handoff that points to an outdated version when the conversation becomes slow. For documentation-only commits use `[skip ci]` to avoid building another 230 MB APK solely for a status note; check whether the previous successful APK still corresponds to the latest **code** commit.
 
@@ -1495,6 +1495,21 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 
 **Device validation still required:** Install v0.26 over v0.25 (DO NOT clear storage or uninstall). Verify crystal tone audible immediately over entire 10-second purple cloud boot on Galaxy S26 Ultra, fades before Portal homepage, no second sound on main, no boot sound replay on app switches, Samsung direct-root boot after upgrade and no black flash. CI verifies code, generated waveforms, APK resources and signing, not actual Samsung speaker output or timing; if out of sync, use CharoiteNextStartup diagnostics/logs and adjust actual Android start/stop lifecycle without changing approved art or music aesthetic. Stable Portal `com.charoite`, Wine/game data, prefixes and saves untouched.
 
+
+---
+## 76. October 30, 2026 — Next v0.27 five-second crystal cloud and boot audio
+
+**User request:** Shorten BOTH previously approved cloudy purple Mystic crystal C animation and crystal audio to five seconds, with a seamless start and transition. ChatGPT committed changes directly to GitHub main.
+
+**Implemented:**
+- docs/previews/render_crystal_awakening.py: five-second silent cloud-only MP4, 120 frames at 24fps, 480x920. Cloud ramp builds for 0.95s, drifts around C and smoothly dims over its final 0.78s to restore the approved unmoving image. No electricity, image distortion, flashing or zooming. Outputs Charoite_Mystic_C_Cloud_Only_5s.mp4 and five-second storyboard. Commit bfe23a93a2d113a13dd3de5d31ce4716c9c689ac.
+- next-generation/generate_crystal_startup.py: original mysterious crystal voices remastered to exactly five seconds (220,500 samples at 44,100Hz); reaches digital silence smoothly during final second. Commit d920e4f44da98cc5dfa53996f78e6362318557a9.
+- next-generation/CharoiteNextBootActivity.java: BOOT_DURATION_MS=5000L for normal launcher and Samsung direct-root fallback; five-second resource R.raw.charoite_mystic_c_cloud_5s. Boot soundtrack starts with splash and stops at transition, never repeats on Home/Recents or after main appears. Commit 8d814df0bf2e1a22c0d46e3cdd0dd3257b475abf.
+- next-generation/prepare_next.py: bundles five-second sound and video, validates 120-frame, 24fps portrait video; release 11.2-next.0.27, Android versionCode 58. Commit 2c54f041b877195fc4c2e67efd8bb4235a32dc36. Also updated startup/audio-quality/native version tests, Next APK workflow validation and standalone preview workflow. Build source commit 9349127ac51737958e0d656d561f51de0f689632. Preview workflow commit 5cd3e2ea48ec9d2e2c997abaf8816c43cbe006ec.
+
+**Verified APK:** GitHub Actions run [41012589220](https://github.com/rgarn023/CharoitePortal/actions/runs/41012589220) COMPLETED SUCCESS (no failed steps); 34 Next and 138 stable tests pass. Logs: CHAROITE_NEXT_CLOUD_ONLY_MOVIE_5_SECONDS=PASS, CHAROITE_NEXT_FIVE_SECOND_CLOUD_ONLY_MP4_PACKAGED=PASS, CHAROITE_NEXT_FIVE_SECOND_BOOT_SYNCED_CRYSTAL_SOUND=PASS. Gradle BUILD SUCCESSFUL, signed Android package com.charoitx / versionCode 58 / versionName 11.2-next.0.27 verified. **Direct [Next v0.27 APK artifact 12957897855](https://github.com/rgarn023/CharoitePortal/actions/runs/41012589220/artifacts/12957897855)**; ZIP size 242,832,927 bytes; artifact name Charoite-Core-Next-Android-APK, nonexpired. Licenses artifact 12958256942. Independent five-second video preview run 41012594168 SUCCESS.
+
+**Preservation:** Install over existing Next v0.26; do not uninstall or clear storage. Stable Charoite Portal com.charoite and game data/Wine prefixes/saves unchanged. On-phone Galaxy S26 Ultra audio/movie first-frame synchronization remains unverified; if video decoding delays cloud onset, adjust Android playback timing based on user observations. No claim of physical-device verification from CI alone.
 
 ---
 **End of current Charoite Portal handoff.**

@@ -154,3 +154,34 @@ No anti-cheat evasion, integrity-check tampering, hidden injection, kernel-drive
 - Stable app **Charoite Portal**: `com.charoite`, verified Actions run `40641148611`; preserved.
 - Next app **Charoite Next**: `com.charoitx`, separate debug signing key and private data; current experimental APK initially contains the proven legacy Wine/Box64 engine plus an explicitly **not-ready** modern runner registry.
 - **Charoite Wine binaries are not included yet.** Do not treat the future engine label as evidence of a completed Wine fork.
+
+
+## October 30, 2026 — 26-component security/service PE source-build candidate
+
+The user's actual Galaxy S26 Ultra report for Next v0.38 confirms:
+- Existing staged Windows modules **19/19 PE and 76/76 NLS SHA-verified**.
+- Source-built ARM64 native Wine **`wine --version` exit 0, `wine-10.0`**.
+- Source-built ARM64 native **`wineserver --version` exit 0, `Wine 10.0`**.
+- No Wine session, prefix, Wineboot, FEX, graphics or Windows EXE yet.
+
+The next independent source CI experiment targets four *measured* missing
+ARM64EC Windows PE imports from the 22-component bundle:
+`bcrypt.dll`, `secur32.dll`, `sechost.dll`, and `msvcrt.dll`.
+`build-pe-services.sh` builds their exact `dlls/<name>/aarch64-windows/<name>.dll`
+targets **from the same prepared and patched Wine source tree**; the
+source and upstream patch attributions are preserved. The fail-closed
+`verify-pe-services.py` checks every ARM64X/ARM64EC PE dual view,
+size, SHA-256, exact ABI, audited import provenance, and NOT-READY flags.
+
+If all modules compile and pass verification, the source workflow produces an
+additional 26-component + 76-NLS **coherent archive** with version
+`wine10-arm64ec-bootstrap.0.5`, dedicated source manifest hash,
+and a freshly measured Windows import gap list. It retains the old validated
+22-component fallback archive. Missing-import counts may change or grow after
+new libraries expose more references. The new archive is **CI-only** until
+proven and specifically integrated in a subsequent separately versioned
+Next APK. The existing v0.38 app is unchanged and the built Wine engine
+remains **not launch ready**.
+
+No data is installed to a phone, no prefix is created, and no game/anti-cheat
+behavior is claimed by this source-build experiment.

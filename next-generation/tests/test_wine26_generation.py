@@ -18,11 +18,15 @@ def sample():
     for name in ("wine","wineserver","ntdll_unix"):
         components[name]={"path":f"runtime/bin/{name}",
                           "format":"ELF","size":256,"sha256":"a"*64}
-    for i in range(22):
+    for i in range(18):
         name=f"p{i:02d}"
         components[name]={"path":f"runtime/pe/arm64ec/{name}.dll",
                           "format":"PE","machine":"0xA641",
                           "size":100+i,"sha256":"b"*64}
+    for name in ("bcrypt","msvcrt","sechost","secur32"):
+        components[name]={"path":f"runtime/pe/arm64ec/{name}.dll",
+                          "format":"PE","machine":"0xA641",
+                          "size":220,"sha256":"d"*64}
     components["wineboot"]={"path":"runtime/pe/arm64/wineboot.exe",
                              "format":"PE","size":102,"sha256":"c"*64}
     nls={f"n_{i:02d}.nls":{"path":f"runtime/nls/n_{i:02d}.nls",
@@ -62,14 +66,14 @@ class Wine26GenerationContract(unittest.TestCase):
             if kind=="source":new["source_commit"]="wrong"
             if kind=="version":new["version"]="wine10-arm64ec-bootstrap.0.4"
             if kind=="sourcefiles":new["source_files"]={}
-            if kind=="added":new["components"].pop("p21")
-            if kind=="elf":new["components"]["p21"]["format"]="ELF"
-            if kind=="exe":new["components"]["p21"]["path"]="runtime/bin/evil.exe"
+            if kind=="added":new["components"].pop("p17")
+            if kind=="elf":new["components"]["p17"]["format"]="ELF"
+            if kind=="exe":new["components"]["p17"]["path"]="runtime/bin/evil.exe"
             if kind=="num":new["component_count"]=22
             if kind=="gap":new["window_imports_unresolved_count"]=19
             if kind=="ready":new["launch_ready"]=True
-            if kind=="dup":new["components"]["p21"]["path"]=new["components"]["p20"]["path"]
-            if kind=="oversize":new["components"]["p21"]["size"]=m.MAX_MODULE+1
+            if kind=="dup":new["components"]["p17"]["path"]=new["components"]["p16"]["path"]
+            if kind=="oversize":new["components"]["p17"]["size"]=m.MAX_MODULE+1
             with self.subTest(kind=kind),self.assertRaises(ValueError):
                 m.make_index(new,review,b"audited source archive",old)
 

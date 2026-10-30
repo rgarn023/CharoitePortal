@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.46"')
-text = text.replace("versionCode 33", "versionCode 77")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.47"')
+text = text.replace("versionCode 33", "versionCode 78")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -140,7 +140,10 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine27PrefixProbe.java",
                  "CharoiteWine27V3Forensics.java",
                  "CharoiteWine27PEAudit.java",
-                 "CharoiteWine27V4Trace.java"):
+                 "CharoiteWine27V4Trace.java",
+                 "CharoiteWine28Stage.java",
+                 "CharoiteWine28NativeGate.java",
+                 "CharoiteWine28V5Trace.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -741,6 +744,120 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine27V4Trace);
+
+        android.widget.Button wine28Stage = new android.widget.Button(this);
+        wine28Stage.setText("Stage source-patched Wine28 modules (0.7 isolated)");
+        wine28Stage.setAllCaps(false);
+        wine28Stage.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage independent Wine28 PE/NLS modules?")
+                .setMessage("Reads the source-verified Wine28 APK archive and "
+                    + "SHA-checks 23 Windows PE modules and 76 NLS files before "
+                    + "staging in a NEW private 0.7 directory. Earlier Wine22, "
+                    + "Wine26, Wine27, v1/v2/v3/v4 scratch, user prefixes, "
+                    + "games and saves are not touched. No Wine execution.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage Wine28 data only", (d, which) -> {
+                    wine28Stage.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28Stage.run(this);
+                        runOnUiThread(() -> {
+                            wine28Stage.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 staging")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 staging", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28Stage").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28Stage);
+
+        android.widget.Button wine28Native = new android.widget.Button(this);
+        wine28Native.setText("Verify matched Wine28 native cohort");
+        wine28Native.setAllCaps(false);
+        wine28Native.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Verify source-matched Wine28 native hashes?")
+                .setMessage("Re-verifies all 99 new PE/NLS files and three "
+                    + "new native ELF hashes. Executes only source-built "
+                    + "Wine and wineserver --version with a clean environment. "
+                    + "No Wineboot, Windows application, prefix or server session.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Verify Wine28 version only", (d, which) -> {
+                    wine28Native.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28NativeGate.run(this);
+                        runOnUiThread(() -> {
+                            wine28Native.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 native gate")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 native gate", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28NativeGate").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28Native);
+
+        android.widget.Button wine28V5 = new android.widget.Button(this);
+        wine28V5.setText("Test new v5 Wine28 PE-NTDLL bootstrap (one-shot)");
+        wine28V5.setAllCaps(false);
+        wine28V5.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run ONE fresh Wine28 v5 prefix initialization?")
+                .setMessage("Only after the new Wine28 99-file staging and "
+                    + "three native hashes plus version checks PASS, copies "
+                    + "these files into NEW v5 scratch and attempts Wineboot -i "
+                    + "using corrected NTDLL PE/native paths. Tracing is bounded "
+                    + "by an 8 MiB log cap and a 25-second execution deadline. "
+                    + "May fail and use storage. NEVER overwrites or deletes "
+                    + "v1/v2/v3/v4 scratch or any game, save, rootfs or user "
+                    + "prefix. Do not retry if v5 scratch already exists.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run ONE Wine28 v5 bootstrap", (dialog, which) -> {
+                    wine28V5.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28V5Trace.run(this);
+                        runOnUiThread(() -> {
+                            wine28V5.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 v5 isolated Wineboot")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (d, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 v5 Wineboot", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28V5Trace").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28V5);
+
 
 
         android.widget.Button startupDiagnostics = new android.widget.Button(this);

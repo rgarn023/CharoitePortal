@@ -46,20 +46,21 @@ diff --git a/loader/main.c b/loader/main.c
 diff --git a/server/unicode.c b/server/unicode.c
 --- a/server/unicode.c
 +++ b/server/unicode.c
-@@ -275,2 +275,16 @@ static char *get_nls_dir(void)
- static char *get_nls_dir(void)
- {
+@@ -345,1 +345,17 @@ struct fd *load_intl_file(void)
 +#if defined(__ANDROID__) && defined(__aarch64__)
-+    /* Use the exact same caller-verified NLS cohort as the native ntdll. */
-+    const char *isolated = getenv( "CHAROITE_WINE26_DATA_DIR" );
-+    if (isolated)
++    /* Fall back to the caller-hash-verified new Wine data cohort only. */
++    if (!fd && getenv( "CHAROITE_WINE26_DATA_DIR" ))
 +    {
-+        char *name, *resolved;
-+        if (isolated[0] != '/' || strstr( isolated, "/../" ) || strstr( isolated, "/./" )) return NULL;
-+        if (asprintf( &name, "%s/nls", isolated ) == -1) return NULL;
-+        resolved = realpath( name, NULL );
-+        free( name );
-+        return resolved;
++        const char *dir = getenv( "CHAROITE_WINE26_DATA_DIR" );
++        char *nls;
++        if (dir[0] != '/' || strstr( dir, "/../" ) || strstr( dir, "/./" ))
++            fatal_error( "invalid isolated wineserver NLS directory\n" );
++        if (asprintf( &nls, "%s/nls/l_intl.nls", dir ) == -1)
++            fatal_error( "failed to construct isolated wineserver NLS path\n" );
++        fd = open_fd( NULL, nls, nt_name, O_RDONLY, &mode, FILE_READ_DATA,
++                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                      FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT );
++        free( nls );
 +    }
 +#endif
-+
+     if (!fd) fatal_error( "failed to load l_intl.nls\n" );

@@ -25,6 +25,9 @@ diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
          wineloader = build_path( bin_dir, basename );
      }
 
+diff --git a/loader/main.c b/loader/main.c
+--- a/loader/main.c
++++ b/loader/main.c
 @@ -244,3 +244,13 @@ static void *load_ntdll( char *argv0 )
  #endif
  

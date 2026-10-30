@@ -30,12 +30,44 @@ assert not (expected & set(d.get("bundled_windows_dlls",[])))
 print("CHAROITE_SERVICES_AUDIT_22_INPUT_VERIFIED=PASS")
 PY
 cd "$build"
-# LibTomCrypt selects x86 rotate inline assembly when ARM64EC advertises
-# x86_64 compatibility preprocessor defines. Its "c" register constraint
-# cannot be assembled for AArch64/ARM64EC. Use the upstream-supported portable
-# rotate implementation for bcrypt only; do NOT silence compiler diagnostics
-# or mutate the pinned source. The bytecode and PE ABI remain audited below.
-make -j2 CROSSCFLAGS="-O2 -g0 -DLTC_NO_ASM" "dlls/bcrypt/aarch64-windows/bcrypt.dll"
+# The generated Wine Makefile hardcodes ARM64EC compiler invocations and
+# ignores CROSSCFLAGS overrides. ARM64EC's hybrid defines select LibTomCrypt's
+# x86 inline rotates, which are invalid for an ARM64EC compiler ('c' register).
+# Gate the supported -DLTC_NO_ASM portable rotates in the ephemeral compiler
+# wrapper ONLY while compiling bcrypt inputs. This does not modify the pinned
+# Wine/LibTomCrypt source or loosen output ABI and SHA verification.
+wrapper="$build/../charoite-arm64ec-toolwrap/arm64ec-w64-mingw32-clang"
+[[ -x "$wrapper" && ! -L "$wrapper" ]] || {
+  echo "Missing source-built ARM64EC tool wrapper" >&2; exit 5;
+}
+python3 - "$wrapper" <<'PY'
+from pathlib import Path
+import sys
+wrapper=Path(sys.argv[1])
+data=wrapper.read_text(encoding="utf-8")
+lines=data.splitlines()
+if (len(lines)!=2 or lines[0]!="#!/usr/bin/env bash"
+        or not lines[1].startswith("exec ") or
+        lines[1].count('"$@"')!=1 or
+        "arm64ec-w64-windows-gnu" not in lines[1] or
+        "-DLTC_NO_ASM" in lines[1]):
+    raise SystemExit("Unexpected generated ARM64EC tool wrapper; fail closed")
+cmd=lines[1]
+portable=cmd.replace('"$@"','-DLTC_NO_ASM "$@"')
+wrapper.write_text(
+    "#!/usr/bin/env bash\\n"
+    "case \" $* \" in\\n"
+    "  *\"dlls/bcrypt/\"*)\\n"
+    f"    {portable}\\n"
+    "    ;;\\n"
+    "  *)\\n"
+    f"    {cmd}\\n"
+    "    ;;\\n"
+    "esac\\n",
+    encoding="utf-8")
+print("CHAROITE_ARM64EC_BCRYPT_PORTABLE_ROTATES_WRAPPER=PASS")
+PY
+make -j2 "dlls/bcrypt/aarch64-windows/bcrypt.dll"
 for name in secur32 sechost msvcrt; do
   make -j2 "dlls/$name/aarch64-windows/$name.dll"
 done

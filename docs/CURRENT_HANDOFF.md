@@ -1304,4 +1304,23 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Device acceptance:** Install 0.19 **in place** over 0.18, never uninstall/clear storage. Genuine cold launch should display unclipped full-screen Charoite art, soft glow/twinkling, subtle zoom without bar/text for five seconds, then clean crystal sound/Portal. Switching to another app/back while Portal is open should NOT replay. Samsung runtime visual smoothness and alignment cannot be proved in GitHub CI; if artistic effect appears too busy or janky, adjust amplitude, glint frequency or canvas layer, not core lifecycle.
 
 ---
+## 65. October 29, 2026 — Charoite Next 0.20 ACTUAL full-screen portal image boot; no zoom; signed APK green
+
+**User correction:** Version 0.19 was wrong: screen recording `173638.mp4` clearly shows the approved square Charoite image as a rounded-square card centered over a large blurry purple wallpaper, which slowly grows. User explicitly wants the approved **picture itself** to be the main entire-screen boot artwork, not an inset icon, and asked ChatGPT to **make the changes directly in connected GitHub**. Do not tell the user GitHub access is unavailable: use the `functions.exec` GitHub tools.
+
+**Implemented on main:**
+- `next-generation/CharoiteNextBootActivity.java` `createBootView()`: removed separate backdrop ImageView and nested scene frame as visual elements; placed one full-viewport `ImageView` using `R.drawable.charoite_next_boot_unframed` and `ImageView.ScaleType.CENTER_CROP` with MATCH_PARENT width/height directly in the boot root. On tall phone displays, center-crop of the square original does remove left/right artwork, but it **does not** look like a floating square icon, and there is no second blurred wallpaper. The image covers the entire boot content.
+- Eliminated `AnimatorSet` / 1.035x scene scaleX/scaleY zoom and all visible bar/text elements. The only animation left is native `CrystalShimmer` (subtle five-second violet glows and crystal-tip glints).
+- Corrected `CrystalShimmer` art alignment from `side=Math.min(width,height)` (fits centered square) to `side=Math.max(width,height)` (matches ImageView CENTER_CROP); positions now track the actual full-screen cropped source in portrait and landscape. No extra bitmap, background loops or resource changes.
+- Reused the approved high-resolution master (the existing exact 1536px image), transparent-corner derived asset, existing five-second BootActivity and synchronous no-flash fallback, cleaned-up startup crystal chime, and cold-boot-only/no app-switch-replay logic. Existing stable Portal `com.charoite`, Wine runtime, game saves, and prefixes **not modified**.
+- Bumped only Charoite Next `com.charoitx` to **versionName `11.2-next.0.20`, versionCode 51**. Signed with the same persistent Next key.
+- Updated `next-generation/tests/test_startup_experience.py` to enforce exactly one full-screen ImageView, CENTER_CROP, no FIT_CENTER, no separate blurred background, no centered scene, no scaleX/scaleY, and correctly mapped shimmer with `max(width,height)`. `test_native_wine_smoke.py`, `prepare_next.py` and `.github/workflows/charoite-next.yml` check version 51. An initial CI attempt failed solely due to an obsolete assertion expecting the removed backdrop; amended by `aa79b0a2bcc240a70b8c8892e2d57edf9fa1e33c`. Use ONLY the green final run below.
+
+**VERIFIED APK:**
+- Final source commit `aa79b0a2bcc240a70b8c8892e2d57edf9fa1e33c`.
+- GitHub Actions **run 40994005472 COMPLETED SUCCESS**, no failed steps, https://github.com/rgarn023/CharoitePortal/actions/runs/40994005472 . 30 Next tests and 138 stable runtime-preview tests passed. Confirmed full-bleed artwork resource, five-second boot and chime resources, APK `com.charoitx` versionCode 51 / `11.2-next.0.20`, same cached signing certificate.
+- GitHub APK artifact **Charoite-Core-Next-Android-APK** ID **12950801630** https://github.com/rgarn023/CharoitePortal/actions/runs/40994005472/artifacts/12950801630 ; ZIP size **241,274,048 bytes**; ZIP SHA256 **ce39b26bb3ab4f500d9e4a2d1eab826f8b05d8562713b8cfdaf00af9e9428fb8** (ZIP only; not inside APK). Licenses artifact ID **12950173759**.
+- GitHub Actions cannot prove precise Samsung on-device visual proportions or crystal glow smoothness. Install 0.20 IN PLACE, no data reset. Verify full-screen image rather than centered icon, no zoom, five-second glow/sparkles + clean sound and direct return with no splash during app switching. If cutting too much of left/right crystalline arc on S26 Ultra portrait, next solution is **a purpose-built portrait extension/outpainting of the approved artwork**, NOT going back to FIT_CENTER with blurred background.
+
+---
 **End of current Charoite Portal handoff.**

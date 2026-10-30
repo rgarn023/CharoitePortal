@@ -40,7 +40,7 @@ jobs:
         run: python3 -m unittest discover -s runtime-preview/tests -p 'test_*.py' -v
 
       - name: Install image processing tools for Next-only splash art
-        run: python3 -m pip install --user --break-system-packages --disable-pip-version-check Pillow==11.3.0
+        run: python3 -m pip install --user --break-system-packages --disable-pip-version-check Pillow==11.3.0 numpy opencv-python-headless imageio-ffmpeg
 
       - name: Verify Next multi-engine isolation tests
         run: python3 -m unittest discover -s next-generation/tests -p 'test_*.py' -v
@@ -287,7 +287,7 @@ jobs:
               print("CHAROITE_NEXT_APK_DIAGNOSTIC_ASSET_VERIFIED=PASS")
           PY
 
-      - name: Verify five-second Charoite Core icon boot and original crystal sound
+      - name: Verify ten-second silent Mystic C cloud boot and original crystal sound
         run: |
           set -euo pipefail
           APK=upstream/app/build/outputs/apk/debug/app-debug.apk
@@ -321,6 +321,17 @@ jobs:
                   for xy in ((0,0), (959,0), (0,1839), (959,1839)):
                       assert max(portrait_art.getpixel(xy)) > 20, "Original icon edge remained"
               print("CHAROITE_NEXT_SEAMLESS_PORTRAIT_BOOT=PASS")
+              video_files = [n for n in z.namelist()
+                             if n.endswith("/charoite_mystic_c_cloud_10s.mp4")]
+              assert len(video_files) == 1, "Expected exactly one packaged Mystic C movie"
+              video_info = z.getinfo(video_files[0])
+              assert video_info.compress_type == zipfile.ZIP_STORED, (
+                  "Android openRawResourceFd requires uncompressed MP4")
+              video = z.read(video_files[0])
+              assert len(video) > 150000 and b"ftyp" in video[:24]
+              assert b"avc1" in video, "Mystic C video must be AVC/H.264 for Android"
+              assert b"mp4a" not in video, "The Mystic C animation must be SILENT"
+              print("CHAROITE_NEXT_TEN_SECOND_CLOUD_ONLY_MP4_PACKAGED=PASS")
               with Image.open(io.BytesIO(foreground)) as fg:
                   fg.load()
                   assert fg.mode == "RGBA" and fg.size == (1536, 1536)
@@ -344,7 +355,7 @@ jobs:
                   assert sound.getsampwidth()==2
                   assert sound.getframerate()==44100
                   assert sound.getnframes()==round(44100*4.2)
-              print("CHAROITE_NEXT_FIVE_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS")
+              print("CHAROITE_NEXT_TEN_SECOND_BOOT_AND_CRYSTAL_CHIME=PASS")
           PY
 
       - name: Verify source-built Wine native loader is identical inside signed APK
@@ -392,7 +403,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='55' versionName='11.2-next.0.24'"
+            grep -F "package: name='com.charoitx' versionCode='56' versionName='11.2-next.0.25'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

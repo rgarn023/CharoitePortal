@@ -78,6 +78,12 @@ while IFS= read -r rel; do
   patch="$script_dir/patches/$rel"
   [[ -f "$patch" ]] || { echo "Missing Charoite patch in series: $rel" >&2; exit 12; }
   if ! git apply --check "$patch"; then
+    if [[ "$rel" == 0800-* ]]; then
+      echo "Observed post-prerequisite server NLS source context:" >&2
+      grep -n -C 6 -E "get_nls_dir|load_intl_file|l_intl.nls|unicode" server/unicode.c | head -n 90 >&2 || :
+      echo "Observed post-prerequisite loader NLS source context:" >&2
+      grep -n -C 2 -F "data_dir = build_relative_path" dlls/ntdll/unix/loader.c >&2 || :
+    fi
     echo "Charoite Wine source patch needs rebase: $rel" >&2
     exit 13
   fi

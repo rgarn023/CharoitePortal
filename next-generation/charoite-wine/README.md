@@ -212,3 +212,18 @@ checked against the expected exact source-build format before alteration;
 the Wine source files and pinned source lineage remain untouched. All
 independent Windows PE architecture, manifest and source SHA checks remain
 mandatory. This correction is **unverified until the new CI run completes**.
+
+### Third CI failure: shared LibTomCrypt assembly (October 30)
+
+[Source run 41120261606](https://github.com/rgarn023/CharoitePortal/actions/runs/41120261606)
+reached the added bcrypt module; its own `bcrypt_main.c` compiled with the
+temporary ARM64EC wrapper, but compilation of shared
+`libs/tomcrypt/src/ciphers/aes/aes.c` still selected incompatible x86
+inline-assembly rotations. The source build now applies the supported
+`-DLTC_NO_ASM` option to **all ARM64EC compiler invocations for the final
+security/service module phase** (after assembly and independent verification
+of the pre-existing 22-module baseline). It modifies only the ephemeral
+compiler wrapper, not pinned source or installed apps. A new regression test
+actually executes the wrapper rewrite against a safe mock compiler command,
+checks its Bash syntax and confirms repeat rewriting is refused. The
+corrected 26-component source build remains unverified pending CI.

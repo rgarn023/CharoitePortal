@@ -231,7 +231,7 @@ jobs:
           python3 next-generation/stage_bootstrap_payload.py \
             "$RUNNER_TEMP/charoite-wine-native-probe/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
-          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-22.tar.gz
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-22.bundle
           test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-payload.json
           echo "Wine bootstrap archive is an immutable APK asset, NOT an installed runtime."
 
@@ -414,13 +414,13 @@ jobs:
               assert isinstance(preflight["android_needed_libraries"],list)
               print("CHAROITE_NEXT_BOOTSTRAP_PREFLIGHT_ASSET_VERIFIED=PASS")
               payload=json.loads(apk.read("assets/charoite-next/wine-bootstrap-payload.json"))
-              archive=apk.read("assets/charoite-next/wine-bootstrap-22.tar.gz")
+              archive=apk.read("assets/charoite-next/wine-bootstrap-22.bundle")
               assert payload["schema_version"]==1
               assert payload["android_package"]=="com.charoitx"
               assert payload["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
               assert payload["source_run"]==40898982875
               assert payload["source_artifact"]==12908731604
-              assert payload["archive_asset"]=="charoite-next/wine-bootstrap-22.tar.gz"
+              assert payload["archive_asset"]=="charoite-next/wine-bootstrap-22.bundle"
               assert payload["component_count"]==22 and payload["pe_component_count"]==19
               assert payload["native_component_count"]==3 and payload["nls_count"]==76
               assert len(archive)==payload["archive_size"]

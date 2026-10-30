@@ -52,6 +52,64 @@ def make_index(manifest, report, raw, manifest_raw, report_raw):
         "scope": "Verified immutable APK archive only; no executable runtime installed",
     }
 
+MODULE_INDEX = "charoite-next/wine-module-staging-index.json"
+MODULE_DIR = "charoite-next/wine-modules"
+MAX_MODULE_BYTES = 32 * 1024 * 1024
+MAX_MODULE_SUM = 128 * 1024 * 1024
+
+def make_module_index(manifest, archive_sha):
+    """An exact allowlist of source-audited Windows PE and NLS data only."""
+    records = []
+    components = manifest.get("components")
+    nls = manifest.get("nls_files")
+    if not isinstance(components, dict) or not isinstance(nls, dict):
+        raise ValueError("Missing independently audited module inventory")
+    for item in components.values():
+        if item.get("format") == "PE":
+            records.append(item)
+    records.extend(nls.values())
+    if len(records) != 95 or len(nls) != 76:
+        raise ValueError("Wrong PE/NLS staging count")
+    files = []
+    total = 0
+    for item in records:
+        source = item.get("path", "")
+        if source.startswith("runtime/pe/arm64ec/") and source.endswith(".dll"):
+            relative = source.removeprefix("runtime/")
+        elif source == "runtime/pe/arm64/wineboot.exe":
+            relative = source.removeprefix("runtime/")
+        elif source.startswith("runtime/nls/") and source.endswith(".nls"):
+            relative = source.removeprefix("runtime/")
+        else:
+            raise ValueError("Unsafe Wine PE/NLS source path: " + source)
+        if (relative.count("/") > 2 or ".." in relative
+                or not all(c.isalnum() or c in "/._-" for c in relative)):
+            raise ValueError("Invalid staged relative path")
+        size, sha = item.get("size"), item.get("sha256")
+        if (not isinstance(size, int) or not 0 < size <= MAX_MODULE_BYTES
+                or not isinstance(sha, str) or len(sha) != 64
+                or any(c not in "0123456789abcdef" for c in sha)):
+            raise ValueError("Unsafe staged module digest or size")
+        total += size
+        files.append({"path": relative, "source": source, "size": size, "sha256": sha,
+                      "asset": MODULE_DIR + "/" + relative.replace("/", "_") + ".bin"})
+    files.sort(key=lambda f: f["path"])
+    if (total > MAX_MODULE_SUM or len(set(f["path"] for f in files)) != 95
+            or len(set(f["asset"] for f in files)) != 95):
+        raise ValueError("Staged module layout exceeds bounds or contains duplicates")
+    return {
+        "schema_version": 1, "android_package": "com.charoitx",
+        "wine_source_sha": WINE_SHA, "source_run": RUN,
+        "archive_sha256": archive_sha,
+        "pe_count": 19, "nls_count": 76, "file_count": 95,
+        "total_bytes": total, "files": files,
+        "scope": "Isolated read-only PE/NLS data; no native ELF extraction or prefix",
+        "launch_ready": False, "native_elf_installed": False,
+        "prefix_created": False, "wineboot_tested": False,
+        "anti_cheat_supported": False,
+    }
+
+
 def stage(archive, upstream):
     archive, upstream = Path(archive).resolve(), Path(upstream).resolve()
     app = upstream / "app/src/main"
@@ -82,6 +140,24 @@ def stage(archive, upstream):
     index_dest.write_text(json.dumps(index, indent=2, sort_keys=True)+"\n", encoding="utf-8")
     if digest(dest.read_bytes()) != index["archive_sha256"]:
         raise ValueError("Staged bootstrap archive hash mismatch")
+    module_index = make_module_index(manifest, index["archive_sha256"])
+    module_file = app / "assets" / MODULE_INDEX
+    module_folder = app / "assets" / MODULE_DIR
+    if module_file.exists() or module_folder.exists():
+        raise ValueError("Refusing to overwrite module staging data")
+    module_folder.mkdir(parents=True, exist_ok=False)
+    import tarfile
+    with tarfile.open(archive, "r:gz") as tar:
+        for entry in module_index["files"]:
+            member = tar.getmember(entry["source"])
+            if not member.isfile() or member.size != entry["size"]:
+                raise ValueError("Unexpected staged Wine module type or size")
+            data = tar.extractfile(member).read()
+            if digest(data) != entry["sha256"]:
+                raise ValueError("Staged PE/NLS data differs from audited source")
+            (app / "assets" / entry["asset"]).write_bytes(data)
+    module_file.write_text(json.dumps(module_index, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+    print("CHAROITE_NEXT_ISOLATED_PE_NLS_ASSETS_VERIFIED=PASS")
     print("CHAROITE_NEXT_COHERENT_WINE_ARCHIVE_PACKAGED=PASS")
     print("CHAROITE_NEXT_WINE_ARCHIVE_SIZE="+str(index["archive_size"]))
     print("CHAROITE_NEXT_WINE_ARCHIVE_SHA256="+index["archive_sha256"])

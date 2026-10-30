@@ -30,7 +30,13 @@ assert not (expected & set(d.get("bundled_windows_dlls",[])))
 print("CHAROITE_SERVICES_AUDIT_22_INPUT_VERIFIED=PASS")
 PY
 cd "$build"
-for name in bcrypt secur32 sechost msvcrt; do
+# LibTomCrypt selects x86 rotate inline assembly when ARM64EC advertises
+# x86_64 compatibility preprocessor defines. Its "c" register constraint
+# cannot be assembled for AArch64/ARM64EC. Use the upstream-supported portable
+# rotate implementation for bcrypt only; do NOT silence compiler diagnostics
+# or mutate the pinned source. The bytecode and PE ABI remain audited below.
+make -j2 CROSSCFLAGS="-O2 -g0 -DLTC_NO_ASM" "dlls/bcrypt/aarch64-windows/bcrypt.dll"
+for name in secur32 sechost msvcrt; do
   make -j2 "dlls/$name/aarch64-windows/$name.dll"
 done
 mkdir "$out"

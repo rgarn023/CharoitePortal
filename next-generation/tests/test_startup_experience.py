@@ -32,8 +32,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 47", PREP)
-        self.assertIn("11.2-next.0.16", PREP)
+        self.assertIn("versionCode 48", PREP)
+        self.assertIn("11.2-next.0.17", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -61,13 +61,32 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("handler.postDelayed(openMain, BOOT_DURATION_MS)", BOOT)
         self.assertIn("ObjectAnimator.ofInt(progress", BOOT)
         self.assertIn("animation.setDuration(BOOT_DURATION_MS)", BOOT)
-        self.assertIn("hasLivePortalSession()", BOOT)
-        self.assertIn('Already running; boot intentionally skipped', BOOT)
+        self.assertIn("hasLivePortalInSameTask(this)", BOOT)
+        self.assertIn("portal.getTaskId() == launcher.getTaskId()", BOOT)
+        self.assertIn("onPortalCreated(Activity portal, Bundle state)", BOOT)
+        self.assertIn("showColdPortalFallback(portal, 0)", BOOT)
+        self.assertIn("markBootShown(this)", BOOT)
+        self.assertIn("LAST_BOOT_VERSION", BOOT)
+        self.assertIn("installedVersion(portal)", BOOT)
+        self.assertIn("if (state != null && seen == version) return;", BOOT)
+        self.assertIn("portal.isTaskRoot()", BOOT)
+        self.assertIn("activeColdFallback", BOOT)
+        self.assertIn("Portal exited; launcher task root closed", BOOT)
+        self.assertIn("if (completed)", BOOT)
+        self.assertIn("super.onResume()", BOOT)
+        # The root boot Activity must not finish immediately after opening
+        # Portal; otherwise Samsung can resume Portal forever without boot.
+        launch = BOOT.split("startActivity(main);",1)[1].split("handler.postDelayed(openMain",1)[0]
+        self.assertNotIn("finish();", launch)
+        fallback = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("private static void showColdPortalFallback",1)[0]
+        self.assertIn("showColdPortalFallback(portal, 0)", fallback)
+        self.assertIn("portal.isChangingConfigurations()", fallback)
+        self.assertIn('Already running in same task; boot skipped', BOOT)
         self.assertIn("currentPortal.get()", BOOT)
         self.assertIn("portal.isDestroyed()", BOOT)
         self.assertIn("notePortalDestroyed(this)", PREP)
         self.assertIn(".onPortalResumed(this)", PREP)
-        self.assertIn(".installReentryTracker(this)", PREP)
+        self.assertIn(".onPortalCreated(this, savedInstanceState)", PREP)
         self.assertNotIn("showOnBackgroundReentryIfNeeded", BOOT)
         self.assertNotIn("activeReentryOverlay", BOOT)
         self.assertNotIn("REENTRY_NEEDED", BOOT)
@@ -78,6 +97,23 @@ class StartupExperienceTest(unittest.TestCase):
         resume = BOOT.split("public static void onPortalResumed(Activity portal) {",1)[1].split("\n    }",1)[0]
         self.assertNotIn("createBootView(",resume)
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
+
+    def test_direct_task_fallback_occurs_only_on_creation(self):
+        # Regression for 0.16: finishing the launcher while Portal remains
+        # alive prevented the next genuinely fresh task from showing splash.
+        direct = BOOT.split("public static void onPortalCreated(Activity portal, Bundle state) {",1)[1].split("private static void showColdPortalFallback",1)[0]
+        self.assertIn("onPortalCreated", BOOT)
+        self.assertIn("state != null && seen == version", direct)
+        self.assertIn("showColdPortalFallback(portal, 0)", direct)
+        self.assertIn("portal.isTaskRoot()", direct)
+        self.assertIn("installedVersion", direct)
+        self.assertIn("intent.getBooleanExtra(EXTRA_PLAY_CHIME, false)", direct)
+        resume = BOOT.split("public static void onPortalResumed(Activity portal) {",1)[1].split("\n    }",1)[0]
+        self.assertNotIn("showColdPortalFallback", resume)
+        self.assertNotIn("createBootView(", resume)
+        # New Portal starts from the launcher; switching apps is just resume.
+        self.assertNotIn(".notePortalPaused(this)", PREP)
+        self.assertNotIn(".noteUserLeaving(this)", PREP)
 
     def test_first_cold_launch_keeps_the_clean_crystal_sound(self):
         self.assertIn("COLD_ARRIVAL_SOUND_PENDING", BOOT)

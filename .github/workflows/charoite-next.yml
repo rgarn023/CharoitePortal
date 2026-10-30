@@ -225,6 +225,16 @@ jobs:
           test -s upstream/app/src/main/jniLibs/arm64-v8a/libcharoite_wineserver.so
           echo "Wine ELF staged ONLY for native Android --version, not as a gaming runtime."
 
+      - name: Bundle all 22 audited Wine components and 76 NLS tables as inert Next APK assets
+        run: |
+          set -euo pipefail
+          python3 next-generation/stage_bootstrap_payload.py \
+            "$RUNNER_TEMP/charoite-wine-native-probe/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-22.tar.gz
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-payload.json
+          echo "Wine bootstrap archive is an immutable APK asset, NOT an installed runtime."
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -403,6 +413,26 @@ jobs:
               assert isinstance(preflight["pe_imports_not_bundled"],list)
               assert isinstance(preflight["android_needed_libraries"],list)
               print("CHAROITE_NEXT_BOOTSTRAP_PREFLIGHT_ASSET_VERIFIED=PASS")
+              payload=json.loads(apk.read("assets/charoite-next/wine-bootstrap-payload.json"))
+              archive=apk.read("assets/charoite-next/wine-bootstrap-22.tar.gz")
+              assert payload["schema_version"]==1
+              assert payload["android_package"]=="com.charoitx"
+              assert payload["wine_source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert payload["source_run"]==40898982875
+              assert payload["source_artifact"]==12908731604
+              assert payload["archive_asset"]=="charoite-next/wine-bootstrap-22.tar.gz"
+              assert payload["component_count"]==22 and payload["pe_component_count"]==19
+              assert payload["native_component_count"]==3 and payload["nls_count"]==76
+              assert len(archive)==payload["archive_size"]
+              assert hashlib.sha256(archive).hexdigest()==payload["archive_sha256"]
+              assert payload["bundle_manifest_sha256"]==preflight["bundle_manifest_sha256"]
+              assert payload["dependency_review_sha256"]==preflight["dependency_review_sha256"]
+              assert payload["windows_imports_not_bundled_count"]==len(preflight["pe_imports_not_bundled"])
+              for flag in ("launch_ready","installable_as_runtime","archive_extracted",
+                           "prefix_created","fex_installed","graphics_verified",
+                           "device_boot_tested","anti_cheat_supported"):
+                  assert payload[flag] is False
+              print("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS")
               assert b"CHAROITE_NTDLL_NATIVE_DIR" in native
               assert len(native)==manifest["size"]
               assert hashlib.sha256(native).hexdigest()==manifest["sha256"]
@@ -418,7 +448,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='66' versionName='11.2-next.0.35'"
+            grep -F "package: name='com.charoitx' versionCode='67' versionName='11.2-next.0.36'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

@@ -46,7 +46,7 @@ diff --git a/loader/main.c b/loader/main.c
 diff --git a/server/unicode.c b/server/unicode.c
 --- a/server/unicode.c
 +++ b/server/unicode.c
-@@ -275,5 +275,18 @@ static char *get_nls_dir(void)
+@@ -275,5 +275,19 @@ static char *get_nls_dir(void)
  static char *get_nls_dir(void)
  {
      char *p, *dir, *ret;

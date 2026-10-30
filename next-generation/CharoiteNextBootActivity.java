@@ -6,6 +6,9 @@ import android.app.Dialog;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.Typeface;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
@@ -219,43 +222,156 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** Actual full-screen artwork, not a centered square launcher icon.
-     * The source is the user-approved 1536px image with black exterior corners
-     * made transparent. CENTER_CROP fills every pixel of the Android content
-     * surface; on tall portrait screens its sides necessarily crop, rather
-     * than putting the entire square artwork in a small centered card.
-     * The only motion is crystal light, never an image scaling animation.
-     */
+    // Reveal ~11% more of the original artwork at the cropped edges, while
+    // retaining a SINGLE edge-to-edge image. Android's normal CENTER_CROP
+    // hides too much of a square illustration on a tall Samsung phone.
+    // Keep the full screen covered: portrait relaxes the horizontal crop;
+    // landscape relaxes the vertical crop. No blurred wallpaper/card/zoom.
+    private static final float ART_CROP_RELIEF = .90f;
+
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
         boot.setBackgroundColor(Color.rgb(43, 18, 83));
         boot.setContentDescription("Charoite crystal portal awakening");
-        ImageView artwork = new ImageView(activity);
-        artwork.setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
-        artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        artwork.setContentDescription("Full-screen Charoite crystal gateway");
+        CrystalArtwork artwork = new CrystalArtwork(activity);
         boot.addView(artwork, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // Add restrained glints and crystal light to the SAME full-screen
-        // image. There is no separate icon card, blurred wallpaper, zoom,
-        // progress bar, headline or title.
         CrystalShimmer shimmer = new CrystalShimmer(activity);
         shimmer.setClickable(false);
         shimmer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         boot.addView(shimmer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Draw the title as part of the full-screen composition, not as a
+        // separate logo image. The gradient/beveled violet-white letters and
+        // tiny diamond glints have no UI panel or progress-bar background.
+        CrystalWordmark title = new CrystalWordmark(activity);
+        title.setClickable(false);
+        title.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        title.setContentDescription("Charoite Portal");
+        boot.addView(title, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         return boot;
     }
 
-    /** Native translucent crystal glints on the FULL-SCREEN cropped image.
-     * Android ImageView CENTER_CROP maps the original square to a square
-     * of side max(width,height), centered and cropped by the viewport.
-     * Use the exact same mapping for sparkles; min(width,height) would
-     * falsely align them to an inset square card.
-     * Eight subdued crystal-tip glints, time-limited to the 5-second boot.
+    private static final class CrystalArtwork extends ImageView {
+        CrystalArtwork(Context context) {
+            super(context);
+            setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
+            setScaleType(ImageView.ScaleType.MATRIX);
+            setContentDescription("Full-screen Charoite crystal gateway");
+        }
+        @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            if (w <= 0 || h <= 0 || getDrawable() == null) return;
+            float sourceWidth = getDrawable().getIntrinsicWidth();
+            float sourceHeight = getDrawable().getIntrinsicHeight();
+            if (sourceWidth <= 0 || sourceHeight <= 0) return;
+            float fullScale = Math.max(w / sourceWidth, h / sourceHeight);
+            float displayWidth = Math.max(w, sourceWidth * fullScale * ART_CROP_RELIEF);
+            float displayHeight = Math.max(h, sourceHeight * fullScale * ART_CROP_RELIEF);
+            Matrix matrix = new Matrix();
+            matrix.setScale(displayWidth / sourceWidth, displayHeight / sourceHeight);
+            matrix.postTranslate((w - displayWidth) * .5f, (h - displayHeight) * .5f);
+            setImageMatrix(matrix);
+        }
+    }
+
+    /** A native crystal-cut typographic treatment with luminous facets;
+     * the art itself does not zoom or move. */
+    private static final class CrystalWordmark extends View {
+        private static final String WORDMARK = "CHAROITE PORTAL";
+        private final Paint lettering = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint sparkle = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private long firstFrameAt = -1L;
+
+        CrystalWordmark(Context context) {
+            super(context);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth(), h = getHeight();
+            if (w <= 0f || h <= 0f) return;
+            if (firstFrameAt < 0L) firstFrameAt = SystemClock.uptimeMillis();
+            long elapsed = Math.max(0L, SystemClock.uptimeMillis() - firstFrameAt);
+            float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
+            float size = Math.min(w * .070f, h * .095f);
+            float x = w * .50f, y = h * .87f;
+            lettering.reset();
+            lettering.setAntiAlias(true);
+            lettering.setTypeface(Typeface.create("serif", Typeface.BOLD));
+            lettering.setTextAlign(Paint.Align.CENTER);
+            lettering.setTextSize(size);
+            float measured = lettering.measureText(WORDMARK);
+            if (measured > w * .88f) lettering.setTextSize(size * w * .88f / measured);
+            size = lettering.getTextSize();
+            float textWidth = lettering.measureText(WORDMARK);
+
+            // Deep-violet glass outline with a cool pale rim, then facets
+            // shifting from icy-white to lilac to deep polished amethyst.
+            lettering.setStyle(Paint.Style.STROKE);
+            lettering.setStrokeJoin(Paint.Join.ROUND);
+            lettering.setStrokeWidth(Math.max(2f, size * .13f));
+            lettering.setColor(Color.argb(245, 29, 7, 75));
+            lettering.setShadowLayer(size * .28f, 0f, 0f, Color.argb(170, 173, 111, 255));
+            canvas.drawText(WORDMARK, x, y, lettering);
+            lettering.clearShadowLayer();
+            lettering.setStrokeWidth(Math.max(1f, size * .045f));
+            lettering.setColor(Color.argb(225, 203, 178, 255));
+            canvas.drawText(WORDMARK, x, y, lettering);
+
+            lettering.setStyle(Paint.Style.FILL);
+            lettering.setShader(new LinearGradient(0f, y - size, 0f, y + size * .15f,
+                    new int[]{Color.rgb(246, 252, 255), Color.rgb(175, 219, 255),
+                            Color.rgb(209, 152, 255), Color.rgb(106, 50, 190)},
+                    new float[]{0f, .36f, .64f, 1f}, Shader.TileMode.CLAMP));
+            canvas.drawText(WORDMARK, x, y, lettering);
+            lettering.setShader(null);
+
+            // Two quiet diamond glints frame the crystal lettering; sparkle
+            // amplitude changes gently within the same five-second boot.
+            float glow = .45f + .55f * (float)Math.pow(
+                    Math.max(0f, Math.sin(t * 2.1f)), 2f);
+            diamond(canvas, x - textWidth * .54f, y - size * .42f,
+                    Math.max(2f, size * .095f), glow);
+            diamond(canvas, x + textWidth * .54f, y - size * .22f,
+                    Math.max(2f, size * .075f), glow * .85f);
+            if (elapsed < BOOT_DURATION_MS && isAttachedToWindow())
+                postInvalidateOnAnimation();
+        }
+        private void diamond(Canvas canvas, float x, float y, float radius, float glow) {
+            sparkle.setStyle(Paint.Style.FILL);
+            sparkle.setColor(Color.argb((int)(200 * glow), 236, 221, 255));
+            android.graphics.Path facets = new android.graphics.Path();
+            facets.moveTo(x, y - radius * 2.8f);
+            facets.lineTo(x + radius * .62f, y);
+            facets.lineTo(x, y + radius * 2.8f);
+            facets.lineTo(x - radius * .62f, y);
+            facets.close();
+            canvas.drawPath(facets, sparkle);
+            facets.reset();
+            facets.moveTo(x - radius * 2.1f, y);
+            facets.lineTo(x, y - radius * .53f);
+            facets.lineTo(x + radius * 2.1f, y);
+            facets.lineTo(x, y + radius * .53f);
+            facets.close();
+            canvas.drawPath(facets, sparkle);
+        }
+        @Override protected void onDetachedFromWindow() {
+            firstFrameAt = -1L;
+            super.onDetachedFromWindow();
+        }
+    }
+
+    /** Native translucent crystal glints mapped to the less-cropped image.
+     * Match CrystalArtwork's matrix in either orientation, so the light
+     * stays on the crystal tips rather than drifting off the artwork.
+     * Eight subdued crystal-tip glints, time-limited to five seconds.
      */
     private static final class CrystalShimmer extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -279,16 +395,18 @@ public final class CharoiteNextBootActivity extends Activity {
             final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
             final float side = Math.max(getWidth(), getHeight());
             if (side <= 0f) return;
-            final float left = (getWidth() - side) * .5f;
-            final float top = (getHeight() - side) * .5f;
+            final float artWidth = Math.max(getWidth(), side * ART_CROP_RELIEF);
+            final float artHeight = Math.max(getHeight(), side * ART_CROP_RELIEF);
+            final float left = (getWidth() - artWidth) * .5f;
+            final float top = (getHeight() - artHeight) * .5f;
             final float glow = .5f + .5f *
                     (float)Math.sin(2.0 * Math.PI * t / 3.6f - .7f);
 
             // Diffuse purple radiance centered inside the crescent gateway.
-            radialGlow(canvas, left + side * .505f, top + side * .46f,
+            radialGlow(canvas, left + artWidth * .505f, top + artHeight * .46f,
                     side * .31f, (int)(14 + 19 * glow));
             // A quiet, icy-white aura around the main upper crystal tip.
-            radialGlow(canvas, left + side * .50f, top + side * .080f,
+            radialGlow(canvas, left + artWidth * .50f, top + artHeight * .080f,
                     side * .14f, (int)(18 + 22 * glow));
 
             final float unit = Math.max(2f, side * .007f);
@@ -297,8 +415,8 @@ public final class CharoiteNextBootActivity extends Activity {
                 float wave = (float)Math.sin(t * (2.25f + i * .10f) + phase);
                 float twinkle = (float)Math.pow(Math.max(0f, wave), 5);
                 if (twinkle < .08f) continue;
-                float x = left + side * CRYSTAL_TIPS[i][0];
-                float y = top + side * CRYSTAL_TIPS[i][1];
+                float x = left + artWidth * CRYSTAL_TIPS[i][0];
+                float y = top + artHeight * CRYSTAL_TIPS[i][1];
                 float radius = unit * (.95f + 1.25f * twinkle);
                 int alpha = (int)(155 * twinkle);
                 paint.setShader(new RadialGradient(x, y, radius * 3.2f,

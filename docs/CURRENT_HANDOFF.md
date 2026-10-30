@@ -1780,4 +1780,13 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+---
+
+## 94. October 30, 2026 — v0.40 handoff resumed, live CI check
+
+**Connected GitHub handoff resumed:** Re-fetched the current `main` handoff and inspected the v0.40 native gate, source-staging script and Next build workflow. GitHub Actions [run 41124755206](https://github.com/rgarn023/CharoitePortal/actions/runs/41124755206), code SHA `3f4c13e17831e3ae1af5df47d8287388a470d757`, showed status **IN_PROGRESS** (no conclusion yet) when checked; its `build-runtime-preview` job had reached **Build integrated Windows runtime preview**, and **no APK artifact was available**. Do not claim v0.40 APK success before full run, signing and artifact verification. The newer `main` head includes handoff documentation changes; it is not itself a new APK build. The last validated signed Next APK remains v0.39 (run 41122977199, artifact 13009028227), with user-confirmed Wine26 staged-data PASS. Stable Portal `com.charoite`, installed games, saves, prefixes and approved boot visuals remain unchanged.
+
+**Exact next step:** Read the final outcome of run 41124755206 and its build step/artifact. If green, verify the uploaded signed `com.charoitx` v0.40 APK (versionCode 71, source identity and unchanged signer). Then the user may install over v0.39 without uninstalling or clearing data and copy **System → Test matched Wine26 native startup → Run Wine26 version tests → Copy report**. If red, inspect the first failing step and correct only the experimental code on `main`. No wineboot, Windows EXE, FEX, game, graphical session or prefix migration is authorized at this stage.
+
 **End of current Charoite Portal handoff.**

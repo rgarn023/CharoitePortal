@@ -1204,4 +1204,22 @@ This **confirms** the opt-in Android APK native ntdll loader fix operates on phy
 **Physical device verification still required:** Update existing Next in place, never uninstall/clear data. Confirm the first 5s boot then a crystal startup sound after main Portal displays; then rapidly tap Home and re-open via app icon multiple times without any 30-second delay, and Home→Recents. Verify internal game/file picker dialogs do not replay. If still absent, in System → Startup / audio diagnostics → Copy report, get the precise `Last lifecycle`, `Pending replay`, `Last audio` and `Media volume`; don't assume source contracts simulate Samsung hardware. Preserve separate modern Wine experiments and stable Portal.
 
 ---
+## 60. October 29, 2026 — Charoite Next 0.15 startup-crystal sound click/static reduction (SIGNED APK VERIFIED)
+
+**User report:** Charoite Next 0.14 appears to boot and replay correctly, but the startup crystal sound has static/crackling. The supplied 11.3-second screen recording `173619.mp4` contains **H.264 video only and NO AUDIO STREAM**, so the noise heard on device could not be directly captured or attributed to playback hardware.
+
+**Concrete source defect diagnosed (NOT speculative):** `next-generation/generate_crystal_startup.py` previously adds a delayed reflection at 0.36 seconds after each oscillator onset without a fade-in:
+`if elapsed > .36: ... amp*.105*exp(...)*sin(2*pi*hz*reflection+.72)`. Because `sin(.72)` is nonzero, the echo appears instantaneously in the PCM waveform, creating a discontinuity around 0.36, 0.60, 1.14, and 1.54 seconds. A numerical waveform probe found a first abrupt step ~0.0181 (full-scale units) at 0.36 sec; the overall peak was ~0.287, so **no full-scale digital clipping**. Abrupt echo onsets can sound like clicks or crackle; whether this exactly matches the user's perceived "static" remains unconfirmed without audio-bearing recording.
+
+**Implemented:** Direct commit to `main` `ca9a93ff30beb1f3d3e18fce7bace01b8a075c5c`. Introduce a 140ms `smoothstep(reflection/.14)` echo attack, reduce echo amplitude (.105→.085), soften metallic detuned overtones (.82/.16/.07 → .90/.095/.025 with frequencies 2.003/3.006 multipliers). Keeps original 4.2s slow mysterious crystal feel while avoiding sudden sample transitions. **Unchanged:** Android `AudioTrack` playback/MediaPlayer fallback, boot image, boot lifecycle, Wine/native modules, game data/prefixes/saves and unrelated core systems.
+
+**Regression:** New `next-generation/tests/test_crystal_audio_quality.py` tests actual signal's second-difference near each echo onset, finite unclipped output, and expected standard 44-byte RIFF WAV/44.1kHz/16-bit mono compatible with Android's current AudioTrack playback. Local numerical probe shows echo second differences far below the 0.004 threshold (new first ~0.00002 vs old ~0.015 jump), peak about 0.299 and tail near zero.
+
+**Build:**
+- Charoite Next **`11.2-next.0.15` versionCode 46**, package **`com.charoitx`**. Source/CI commit `91ceee278d3adb634bbc4062306a60f44d68c782`, only main branch.
+- **GitHub Actions run 40977885525 — SUCCESS**, https://github.com/rgarn023/CharoitePortal/actions/runs/40977885525, no failed steps. **26 Next regression tests passed**, plus **138 stable runtime-preview regression tests passed**. All new echo tests passed. APK original artwork and startup chime resource verified. APK identity `com.charoitx` versionCode 46 and same persistent signing certificate confirmed.
+- **APK ZIP artifact ID 12943088768**, `Charoite-Core-Next-Android-APK`, https://github.com/rgarn023/CharoitePortal/actions/runs/40977885525/artifacts/12943088768; ZIP size 237,285,563 bytes; ZIP SHA-256 `241c8817488caa860d88d2e9fd3a0356b4061696a8d2178688ff901f68d79ef9` (archive hash, NOT inner APK hash). Licenses artifact ID 12943133535.
+- **Device acceptance remains untested:** install 0.15 IN PLACE (never clear data), verify boot returns and new sound is cleaner. If static continues, get audio-enabled recording, Android startup diagnostics and inspect whether AudioTrack resampling, audio focus, sound effects or actual device playback contribute. The previous supplied recording had no audio and cannot prove the precise audio defect.
+
+---
 **End of current Charoite Portal handoff.**

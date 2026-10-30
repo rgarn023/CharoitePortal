@@ -219,61 +219,43 @@ public final class CharoiteNextBootActivity extends Activity {
     }
 
 
-    /** Five-second cinematic Charoite reveal, no loading bar.
-     * The full content area shows the approved portal, unframed and enlarged
-     * as far as possible without cropping away its crystal ring. The matching
-     * violet backdrop fills the remaining tall-phone or DeX letterbox area.
-     * Neither image is replaced or repainted; glow is a transparent overlay.
+    /** Actual full-screen artwork, not a centered square launcher icon.
+     * The source is the user-approved 1536px image with black exterior corners
+     * made transparent. CENTER_CROP fills every pixel of the Android content
+     * surface; on tall portrait screens its sides necessarily crop, rather
+     * than putting the entire square artwork in a small centered card.
+     * The only motion is crystal light, never an image scaling animation.
      */
     private static FrameLayout createBootView(Activity activity) {
         FrameLayout boot = new FrameLayout(activity);
         boot.setBackgroundColor(Color.rgb(43, 18, 83));
         boot.setContentDescription("Charoite crystal portal awakening");
-        ImageView backdrop = new ImageView(activity);
-        backdrop.setImageResource(com.winlator.R.drawable.charoite_next_boot_backdrop);
-        backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        boot.addView(backdrop, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
-        FrameLayout scene = new FrameLayout(activity);
-        boot.addView(scene, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
         ImageView artwork = new ImageView(activity);
         artwork.setImageResource(com.winlator.R.drawable.charoite_next_boot_unframed);
-        // Avoid CENTER_CROP on the square portal: on a tall phone it removes
-        // the entire left/right crystalline arch. FIT_CENTER preserves it.
-        artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        scene.addView(artwork, new FrameLayout.LayoutParams(
+        artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        artwork.setContentDescription("Full-screen Charoite crystal gateway");
+        boot.addView(artwork, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // Gentle glow passes through the center, isolated little glints light
-        // crystal tips, and the artwork breathes by only 3.5 percent.
+        // Add restrained glints and crystal light to the SAME full-screen
+        // image. There is no separate icon card, blurred wallpaper, zoom,
+        // progress bar, headline or title.
         CrystalShimmer shimmer = new CrystalShimmer(activity);
         shimmer.setClickable(false);
         shimmer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        scene.addView(shimmer, new FrameLayout.LayoutParams(
+        boot.addView(shimmer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-
-        AnimatorSet slowReveal = new AnimatorSet();
-        slowReveal.playTogether(
-                ObjectAnimator.ofFloat(scene, "scaleX", 1.0f, 1.035f),
-                ObjectAnimator.ofFloat(scene, "scaleY", 1.0f, 1.035f));
-        slowReveal.setDuration(BOOT_DURATION_MS);
-        slowReveal.setInterpolator(new AccelerateDecelerateInterpolator());
-        slowReveal.start();
         return boot;
     }
 
-    /** Original Android-canvas particle layer, no external artwork or video.
-     * Coordinates are relative to the original square picture contained
-     * inside the screen, so glow aligns on portrait and landscape displays.
-     * Only eight small, fixed crystal-tip sparkles are used, not a busy ring.
-     * Invalidations stop after BOOT_DURATION_MS; no background animation.
+    /** Native translucent crystal glints on the FULL-SCREEN cropped image.
+     * Android ImageView CENTER_CROP maps the original square to a square
+     * of side max(width,height), centered and cropped by the viewport.
+     * Use the exact same mapping for sparkles; min(width,height) would
+     * falsely align them to an inset square card.
+     * Eight subdued crystal-tip glints, time-limited to the 5-second boot.
      */
     private static final class CrystalShimmer extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -295,7 +277,7 @@ public final class CharoiteNextBootActivity extends Activity {
             final long elapsed = Math.max(0L,
                     SystemClock.uptimeMillis() - firstFrameAt);
             final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
-            final float side = Math.min(getWidth(), getHeight());
+            final float side = Math.max(getWidth(), getHeight());
             if (side <= 0f) return;
             final float left = (getWidth() - side) * .5f;
             final float top = (getHeight() - side) * .5f;

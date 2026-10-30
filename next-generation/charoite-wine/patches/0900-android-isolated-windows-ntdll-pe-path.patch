@@ -1,19 +1,11 @@
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
-@@ -2075,9 +2075,29 @@
-     InitializeObjectAttributes( &attr, &str, 0, 0, NULL );
+@@ -2186,3 +2186,19 @@
  
--    if (build_dir) asprintf( &name, "%s%s/ntdll.dll", ntdll_dir, pe_dir );
--    else asprintf( &name, "%s%s/ntdll.dll", dll_dir, pe_dir );
--
--    if (is_arm64ec()) machine = main_image_info.Machine;
--    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE, 0 );
--    if (status == STATUS_DLL_NOT_FOUND)
--    {
 +#if defined(__ANDROID__) && defined(__aarch64__)
-+    /* Charoite Wine28: APK-native Unix ntdll.so does not have a sibling
-+     * Windows ntdll.dll. The caller verifies a fresh isolated PE directory. */
++    /* The APK's native ELF directory has no Windows PE sibling.
++     * Only the explicit, source-hash-verified scratch PE directory is used. */
 +    if (getenv( "CHAROITE_WINE28_PE_DIR" ))
 +    {
 +        const char *dir = getenv( "CHAROITE_WINE28_PE_DIR" );
@@ -27,17 +19,16 @@ diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 +    }
 +    else
 +#endif
-+    if (build_dir) asprintf( &name, "%s%s/ntdll.dll", ntdll_dir, pe_dir );
-+    else asprintf( &name, "%s%s/ntdll.dll", dll_dir, pe_dir );
-+
-+    if (is_arm64ec()) machine = main_image_info.Machine;
-+    status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE, 0 );
+     if (build_dir) asprintf( &name, "%s%s/ntdll.dll", ntdll_dir, pe_dir );
+     else asprintf( &name, "%s%s/ntdll.dll", dll_dir, pe_dir );
+@@ -2190,3 +2206,7 @@
+     if (is_arm64ec()) machine = main_image_info.Machine;
+     status = open_builtin_pe_file( name, &attr, &module, &size, &info, 0, 0, machine, FALSE, 0 );
 +#if defined(__ANDROID__) && defined(__aarch64__)
 +    if (getenv( "CHAROITE_WINE28_PE_DIR" ) && status == STATUS_DLL_NOT_FOUND)
 +        fatal_error( "verified isolated Wine28 Windows NTDLL PE was not found\n" );
 +#endif
-+    if (status == STATUS_DLL_NOT_FOUND)
-+    {
+     if (status == STATUS_DLL_NOT_FOUND)
 diff --git a/loader/main.c b/loader/main.c
 --- a/loader/main.c
 +++ b/loader/main.c

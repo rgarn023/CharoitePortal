@@ -259,40 +259,40 @@ ui = ui.replace(anchor, anchor + """
 """)
 # Only the initial Activity creation registers the Portal session. The
 # existing Portal may be paused/resumed by Android without re-running boot.
-create_anchor = "        super.onCreate(savedInstanceState);\\n        CharoiteEnvironments.initialize(this);"
+create_anchor = "        super.onCreate(savedInstanceState);\n        CharoiteEnvironments.initialize(this);"
 assert ui.count(create_anchor) == 1
 ui = ui.replace(create_anchor, (
-    "        super.onCreate(savedInstanceState);\\n"
+    "        super.onCreate(savedInstanceState);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".installReentryTracker(this);\\n"
+    ".installReentryTracker(this);\n"
     "        CharoiteEnvironments.initialize(this);"), 1)
 
 # onResume consumes the one-time cold-start chime only, never shows a splash.
-resume_anchor = "        super.onResume();\\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
+resume_anchor = "        super.onResume();\n        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"
 assert ui.count(resume_anchor) == 1
 ui = ui.replace(resume_anchor, (
-    "        super.onResume();\\n"
+    "        super.onResume();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalResumed(this);\\n"
+    ".onPortalResumed(this);\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
 
 # Keep first-start audio reliability after Portal window is visible.
-focus_anchor = "    @Override public void onDestroy() {\\n"
+focus_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(focus_anchor) == 1
 ui = ui.replace(focus_anchor, (
-    "    @Override public void onWindowFocusChanged(boolean hasFocus) {\\n"
-    "        super.onWindowFocusChanged(hasFocus);\\n"
+    "    @Override public void onWindowFocusChanged(boolean hasFocus) {\n"
+    "        super.onWindowFocusChanged(hasFocus);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".onPortalWindowFocusChanged(this, hasFocus);\\n"
-    "    }\\n\\n" + focus_anchor), 1)
+    ".onPortalWindowFocusChanged(this, hasFocus);\n"
+    "    }\n\n" + focus_anchor), 1)
 
 # A truly finished Portal is a new session; Home/Recents do not destroy it.
-destroy_anchor = "    @Override public void onDestroy() {\\n"
+destroy_anchor = "    @Override public void onDestroy() {\n"
 assert ui.count(destroy_anchor) == 1
 ui = ui.replace(destroy_anchor, (
     destroy_anchor +
     "        com.charoitegames.core.CharoiteNextBootActivity"
-    ".notePortalDestroyed(this);\\n"), 1)
+    ".notePortalDestroyed(this);\n"), 1)
 
 # Deliberately do not inject onPause/onRestart/onNewIntent/onUserLeaveHint:
 # those are not launch events, and were the cause of unwanted replay.

@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 64", PREP)
-        self.assertIn("11.2-next.0.33", PREP)
+        self.assertIn("versionCode 65", PREP)
+        self.assertIn("11.2-next.0.34", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -185,25 +185,28 @@ class StartupExperienceTest(unittest.TestCase):
         import hashlib
         renderer = (ROOT.parent / "docs/previews/render_crystal_awakening.py").read_text(encoding="utf-8")
         self.assertIn("WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 30, 7", renderer)
-        self.assertIn("Charoite_C_Glow_Reference_Portal_7s.mp4", renderer)
+        self.assertIn("Charoite_C_Energy_Reference_Portal_7s.mp4", renderer)
         self.assertIn("charoite_user_edited_portal_v33.webp", renderer)
         self.assertNotIn("draw_plaque(", renderer, "Do not replace native title with video plaque")
         self.assertIn("def crystal_phase(t):", renderer)
         self.assertIn("def crystal_glow_layers():", renderer)
         self.assertIn("OUTER_C_RIM", renderer)
-        self.assertIn("def advect_cloud(source, age, seed=0.):", renderer)
+        self.assertIn("def advect_energy(source, age, seed=0.):", renderer)
         self.assertIn("INNER_C_RIM", renderer)
         self.assertIn("def rim_source(i):", renderer)
-        self.assertIn("def make_clouds(t):", renderer)
+        self.assertIn("def make_energy_streams(t):", renderer)
+        self.assertNotIn("def make_clouds(", renderer)
+        self.assertNotIn("cv2.circle(black", renderer)
+        self.assertIn("cv2.polylines(filaments", renderer)
         self.assertIn("mask = opening_mask()", renderer)
         self.assertIn("4.85", renderer)
         self.assertIn("def render_overlay(t, base, portal_source):", renderer)
         self.assertIn("cv2.remap(portal_source,", renderer)
         self.assertIn("return scene", renderer)
-        self.assertIn('movie_raw = app / "res/raw/charoite_c_glow_reference_portal_7s.mp4"', PREP)
-        self.assertIn("CHAROITE_NEXT_C_GLOW_REFERENCE_PORTAL_7_SECONDS=PASS", PREP)
+        self.assertIn('movie_raw = app / "res/raw/charoite_c_energy_reference_portal_7s.mp4"', PREP)
+        self.assertIn("CHAROITE_NEXT_C_ENERGY_REFERENCE_PORTAL_7_SECONDS=PASS", PREP)
         self.assertIn("new CrystalPortalMovie(activity)", BOOT)
-        self.assertIn("com.winlator.R.raw.charoite_c_glow_reference_portal_7s", BOOT)
+        self.assertIn("com.winlator.R.raw.charoite_c_energy_reference_portal_7s", BOOT)
         self.assertIn("MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START", BOOT)
         self.assertIn("player.setVolume(0f, 0f)", BOOT)
         self.assertIn("player.setLooping(false)", BOOT)
@@ -243,6 +246,10 @@ class StartupExperienceTest(unittest.TestCase):
         material,aura,highlight=mod.crystal_glow_layers()
         self.assertGreater(float(material.max()),.95)
         self.assertGreater(float(highlight.max()),.05)
+        # The new stronger bloom must visibly brighten the same C mask.
+        a = mod.render_overlay(3.5,base,image)
+        glow_zone = (mod.crystal_glow_layers()[2]>.30)
+        self.assertGreater(float((a[glow_zone]-base[glow_zone]).mean()),20.)
         changes[y0:y1,x0:x1] = False
         self.assertFalse(changes.any(), "Title, sky and unrelated scenery must remain unchanged")
         self.assertTrue(np.array_equal(mod.render_overlay(0, base, image), base))
@@ -250,7 +257,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertGreater(float(np.abs(mod.render_overlay(2.5,base,image) -
                                         mod.render_overlay(3.5,base,image)).sum()), 1000.)
 
-    def test_clouds_feed_c_center_ccw_and_dissipate_with_audio(self):
+    def test_energy_ribbons_feed_c_center_ccw_and_fade_with_audio(self):
         import importlib.util
         import math
         import numpy as np
@@ -258,17 +265,17 @@ class StartupExperienceTest(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("c_edge_fed_portal", script)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        self.assertEqual(mod.smoke_phase(0), 0.)
-        self.assertGreater(mod.smoke_phase(2.5), .99)
-        self.assertGreater(mod.smoke_phase(4.8), .99)
-        self.assertLess(mod.smoke_phase(5.5), .6)
-        self.assertEqual(mod.smoke_phase(6.25), 0.)
+        self.assertEqual(mod.energy_phase(0), 0.)
+        self.assertGreater(mod.energy_phase(2.5), .99)
+        self.assertGreater(mod.energy_phase(4.8), .99)
+        self.assertLess(mod.energy_phase(5.5), .6)
+        self.assertEqual(mod.energy_phase(6.25), 0.)
         self.assertEqual(mod.portal_phase(6.25), 0.)
         self.assertEqual(mod.crystal_phase(6.30), 0.)
         for i in (0,7,18,32,51):
             edge = mod.rim_source(i)
-            start=mod.advect_cloud(edge, 0.)
-            later=mod.advect_cloud(edge, .5)
+            start=mod.advect_energy(edge, 0.)
+            later=mod.advect_energy(edge, .5)
             def polar(p):
                 return (math.hypot((p[0]-mod.PORTAL_X)/127.,
                                    (p[1]-mod.PORTAL_Y)/130.),
@@ -276,16 +283,20 @@ class StartupExperienceTest(unittest.TestCase):
                                    (p[0]-mod.PORTAL_X)/127.))
             r0, theta0 = polar(start)
             r1, theta1 = polar(later)
-            self.assertLess(r1, r0, "Smoke must be pulled inward")
+            self.assertLess(r1, r0, "Energy must be pulled inward")
             turn=(theta1-theta0+math.pi)%(2*math.pi)-math.pi
-            self.assertGreater(turn, .4, "Smoke must circulate counterclockwise")
+            self.assertGreater(turn, .4, "Energy must circulate counterclockwise")
         mask=mod.opening_mask()
         self.assertGreater(mask.max(),.99)
         self.assertEqual(mask.shape, (mod.FEED_Y1-mod.FEED_Y0,
                                       mod.FEED_X1-mod.FEED_X0))
-        black,purple=mod.make_clouds(3.)
-        self.assertGreater(float(black.max()),.01)
-        self.assertGreater(float(purple.max()),.005)
+        halo, filaments, sparks=mod.make_energy_streams(3.)
+        self.assertGreater(float(halo.max()),.01)
+        self.assertGreater(float(filaments.max()),.02)
+        self.assertGreater(float(sparks.max()),.02)
+        self.assertGreater(float(np.count_nonzero(filaments>.06)),100)
+        self.assertTrue(np.all(halo>=0.))
+        self.assertTrue(np.all(filaments>=0.))
         # The actual seven-second source audio ends in digital silence.
         self.assertEqual(audio.sample(6.35), 0.)
 

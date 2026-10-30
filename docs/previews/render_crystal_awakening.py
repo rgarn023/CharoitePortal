@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Seven-second crystal C glow and expanded counterclockwise vortex sampled from the user-approved edited image.
+"""Seven-second brilliant crystalline C and inward-flowing violet energy feeding the reference vortex.
 
 The original crystal C geometry, full-screen scenery and native Android wordmark
-remain fixed. Only restrained violet light on the C, inward cloud wisps and the
+remain fixed. Only strong luminous violet light on the C, flowing energy ribbons and the
 portal texture change; the boot art and title never switch. In
 particular, never bake a second wordmark into the video: Android's
 CrystalWordmark view is drawn ABOVE this silent video, at all times.
@@ -19,7 +19,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_C_Glow_Reference_Portal_7s.mp4"
+OUT = ROOT / "Charoite_C_Energy_Reference_Portal_7s.mp4"
 SOURCE = ROOT / "next-generation/assets/charoite_user_edited_portal_v33.webp"
 WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 30, 7
 
@@ -86,14 +86,14 @@ INNER_C_RIM = np.array([
     (263.,510.), (305.,497.)
 ], dtype=np.float32)
 
-# This narrow ROI contains the inward-moving clouds plus the reference
-# vortex. Everything beyond it, including the C's crystalline facets,
-# the landscape and the native Android title, remains an exact base copy.
+# This localized aperture contains flowing energy feeding the portal.
+# The C itself glows via a separate geometry-matched bloom; the original
+# background, title and underlying C geometry remain untouched.
 FEED_X0, FEED_Y0, FEED_X1, FEED_Y1 = 111, 262, 408, 569
 
 
-def smoke_phase(t):
-    """Clouds start first; begin dissipating exactly at the audio fade."""
+def energy_phase(t):
+    """Energy grows from the C's rim, then fades with the audio tail."""
     return float(smoothstep(.22, 1.20, t) *
                  (1. - smoothstep(4.85, 6.25, t)))
 
@@ -108,8 +108,8 @@ def rim_source(i):
             float(np.interp(target, arc, INNER_C_RIM[:, 1])))
 
 
-def advect_cloud(source, age, seed=0.):
-    """Move from the C's inner rim TOWARD the portal with CCW angular flow.
+def advect_energy(source, age, seed=0.):
+    """Move luminous ribbons from the C's inner rim toward the portal CCW.
 
     The crystal point itself isn't painted: first move 5px into the opening.
     With screen-Y inverted, increasing theta is visually counterclockwise.
@@ -148,112 +148,112 @@ def opening_mask():
 
 
 def crystal_phase(t):
-    """Gentle C glow synchronizes with the formation and audio-tail fade."""
+    """Unmistakable crystal bloom rises with the energy and fades with audio."""
     return float(smoothstep(.12, 1.20, t) *
                  (1.-smoothstep(4.85, 6.30, t)))
 
 
 def crystal_glow_layers():
-    """Glow follows ONLY the existing C crystal's facets and rims."""
-    import functools
-    # Precomputed once per movie-render process rather than per-frame.
+    """Strong but geometry-matched crystal illumination, without any redesign.
+
+    The crystal's actual inner/outer edges are bright lilac-white and cast
+    broad violet bloom. No motion, stretching or modification to source art.
+    """
     if hasattr(crystal_glow_layers, "_cache"):
         return crystal_glow_layers._cache
     fill = np.zeros((HEIGHT,WIDTH),np.uint8)
-    traced = np.vstack([OUTER_C_RIM,INNER_C_RIM[::-1]])
-    cv2.fillPoly(fill,[np.rint(traced).astype(np.int32)],255)
-    edges=np.zeros_like(fill)
+    band = np.vstack([OUTER_C_RIM, INNER_C_RIM[::-1]])
+    cv2.fillPoly(fill,[np.rint(band).astype(np.int32)],255)
+    edge = np.zeros_like(fill)
     for rim in (OUTER_C_RIM, INNER_C_RIM):
-        cv2.polylines(edges,[np.rint(rim).astype(np.int32)],False,255,6,cv2.LINE_AA)
-    # The low-level material glow is shaped by C itself, not a circle.
-    material=cv2.GaussianBlur(fill,(0,0),7).astype(np.float32)/255.
-    aura=cv2.GaussianBlur(edges,(0,0),12).astype(np.float32)/255.
-    highlights=cv2.GaussianBlur(edges,(0,0),3.5).astype(np.float32)/255.
-    result=(material,aura,highlights)
-    crystal_glow_layers._cache=result
+        cv2.polylines(edge,[np.rint(rim).astype(np.int32)],False,255,10,cv2.LINE_AA)
+    material = cv2.GaussianBlur(fill,(0,0),5).astype(np.float32)/255.
+    aura = cv2.GaussianBlur(edge,(0,0),20).astype(np.float32)/255.
+    highlights = cv2.GaussianBlur(edge,(0,0),2).astype(np.float32)/255.
+    result = (material,aura,highlights)
+    crystal_glow_layers._cache = result
     return result
 
 
-def make_clouds(t):
-    """Many staggered smoke releases: purple highlights and dark billows.
 
-    New smoke stops being emitted during the soundtrack's ending fade.
-    Existing wisps continue winding inward while their alpha/contrast and
-    coherence dissipate; there is no circular fade mask or abrupt cut.
+def make_energy_streams(t):
+    """Continuous electric ribbons, not puffs, fog, smoke or dark circles.
+
+    Staggered strands physically join the C's inner facets to the vortex.
+    Thin luminous cores, halo and moving bright pulses travel along
+    contracting CCW paths; no black compositing is used for these streams.
     """
     hh, ww = FEED_Y1-FEED_Y0, FEED_X1-FEED_X0
-    black = np.zeros((hh, ww), np.uint8)
-    violet = np.zeros_like(black)
-    for i in range(88):
-        launch = .15 + i*.053
-        age = t-launch
-        if age <= 0 or age >= 2.8 or launch >= 4.85:
-            continue
+    halo = np.zeros((hh,ww),np.uint8)
+    filaments = np.zeros_like(halo)
+    sparks = np.zeros_like(halo)
+    growth = float(smoothstep(.2, 2.0, t))
+    for i in range(32):
         source = rim_source(i)
-        birth = float(smoothstep(0., .28, age))
-        death = float(1.-smoothstep(2.15,2.8,age))
-        strength = birth*death
-        for j in range(10):
-            trailing_age = max(0.,age-j*.074)
-            x,y = advect_cloud(source, trailing_age, i*.73)
-            # Mild curling/noise to produce irregular CLOUDS, never
-            # straight tracer lines or rigid concentric rings.
-            x += 2.6*math.sin(2.7*i+j*1.3+age*3.7)
-            y += 2.2*math.cos(1.9*i+j*1.1+age*3.1)
-            x -= FEED_X0
-            y -= FEED_Y0
-            opacity = strength*(1.-j/13.)
-            size = (8.4+3.*math.sin(i*1.73+j*.93)**2)*(1.+.12*trailing_age)
-            if -20 < x < ww+20 and -20 < y < hh+20:
-                cv2.circle(black,(int(x),int(y)),max(2,int(size)),
-                           min(255,int(200*opacity)),-1,cv2.LINE_AA)
-                cv2.circle(violet,(int(x+2),int(y-2)),max(2,int(size*.70)),
-                           min(255,int(170*opacity)),-1,cv2.LINE_AA)
-    # Bloom into soft, layered cloud masses with a few detailed purple wisps.
-    late = float(smoothstep(4.85,6.25,t))
-    black = cv2.GaussianBlur(black, (0,0), 4.+late*5.).astype(np.float32)/255.
-    violet = cv2.GaussianBlur(violet, (0,0), 2.8+late*5.).astype(np.float32)/255.
-    return black, violet
+        seed=i*.81
+        max_age = .13 + 1.98*growth
+        points=[]
+        for j in range(31):
+            age = max_age*j/30.
+            x,y = advect_energy(source,age,seed)
+            # Gentle flowing wave along the strand; it stays rooted at C.
+            wobble=3.3*math.sin(age*5.1-i*.61+t*1.4)*(age/max_age)*(.9-age/3.)
+            x+=wobble*math.sin(age*1.9+seed)
+            y+=wobble*math.cos(age*1.9+seed)
+            points.append((int(x-FEED_X0),int(y-FEED_Y0)))
+        path=np.asarray(points,np.int32).reshape(-1,1,2)
+        # A few bright continuous strands are preferable to a blurry cloud.
+        cv2.polylines(halo,[path],False,115+(i%4)*18,7,cv2.LINE_AA)
+        cv2.polylines(filaments,[path],False,178+(i%3)*25,2,cv2.LINE_AA)
+
+        # Light travels from C to the portal: each pulse advances inward.
+        travel = (.32*t + .107*i) % 1.
+        pulse_age=.12+max_age*travel
+        px,py=advect_energy(source,pulse_age,seed)
+        px-=FEED_X0
+        py-=FEED_Y0
+        cv2.circle(sparks,(int(px),int(py)),3,255,-1,cv2.LINE_AA)
+        cv2.circle(sparks,(int(px),int(py)),6,125,-1,cv2.LINE_AA)
+
+    broad = cv2.GaussianBlur(halo,(0,0),8).astype(np.float32)/255.
+    fine = cv2.GaussianBlur(filaments,(0,0),1.2).astype(np.float32)/255.
+    particles = cv2.GaussianBlur(sparks,(0,0),2).astype(np.float32)/255.
+    return broad, fine, particles
+
+
 
 def render_overlay(t, base, portal_source):
-    """Composite ONLY cloud feeder streams and the reference portal within C.
+    """Glow only the C; animate reference vortex and electric energy in C.
 
-    All other pixels remain identical to the derived original portrait.
-    Android's unchanged native title is always rendered above this movie.
+    The portrait art itself and Android-native title remain the same pixels.
+    All light and vortex layers reach zero before the seven-second dismissal.
     """
     portal_opacity = portal_phase(t)
-    cloud_opacity = smoke_phase(t)
-    glow_opacity=crystal_phase(t)
-    if portal_opacity == 0. and cloud_opacity == 0. and glow_opacity == 0.:
+    energy_opacity = energy_phase(t)
+    glow_opacity = crystal_phase(t)
+    if portal_opacity == 0. and energy_opacity == 0. and glow_opacity == 0.:
         return base
     scene = base.copy()
     if glow_opacity:
-        material,aura,highlights=crystal_glow_layers()
-        breathe=.93+.07*math.sin(t*1.7)**2
-        # Warm violet luminance comes from the existing C crystal geometry.
-        # The wider bloom lights its neighboring air without moving scenery.
-        energy=glow_opacity*breathe
-        scene += (material*.48+aura*2.3)[:,:,None]*energy * np.array(
-            [52.,25.,91.],np.float32)
+        material,aura,highlights = crystal_glow_layers()
+        breathe = .91 + .09*math.sin(t*1.6)**2
+        energy = glow_opacity*breathe
+        # Strong visible aura wrapping the crystal's true C contours.
+        scene += (material*.38+aura*3.2)[:,:,None]*energy*np.array(
+            [119.,54.,185.],np.float32)
+        # Bring the edge and facet highlights toward violet-white, rather
+        # than merely tinting already-saturated purple material.
+        whiten = np.clip(highlights*energy*.88,0.,.88)
+        scene = scene*(1.-whiten[:,:,None])+np.array(
+            [250.,218.,255.],np.float32)*whiten[:,:,None]
         scene += highlights[:,:,None]*energy*np.array(
-            [78.,62.,108.],np.float32)
+            [44.,35.,66.],np.float32)
+
     x0,y0,x1,y1 = FEED_X0,FEED_Y0,FEED_X1,FEED_Y1
     target = scene[y0:y1,x0:x1]
     mask = opening_mask()
-
-    if cloud_opacity > 0:
-        black,violet = make_clouds(t)
-        # A soft, slightly turbulent black-purple cloud layer originates
-        # at the C's inside edge, then curls inward to feed the vortex.
-        darkness = np.clip(black*2.15*cloud_opacity*mask,0.,.78)
-        glow = np.clip(violet*1.55*cloud_opacity*mask,0.,.92)
-        target *= (1.-darkness[:,:,None])
-        target += glow[:,:,None]*np.array([125.,31.,215.],np.float32)
-
     if portal_opacity > 0:
-        # Inverse map the user's actual purple/black vortex photo.
-        # The center rotates CCW while its luminous rim remains aligned;
-        # fade with the cloud feeder as the soundtrack fades from 4.85s.
+        # Keep exact reference texture and expanded vortex placement.
         xx,yy = np.mgrid[0:2*PORTAL_RY,0:2*PORTAL_RX][::-1]
         xx=xx.astype(np.float32)
         yy=yy.astype(np.float32)
@@ -268,15 +268,25 @@ def render_overlay(t, base, portal_source):
         warped=cv2.remap(portal_source,src_x,src_y,cv2.INTER_LINEAR,
                          borderMode=cv2.BORDER_REFLECT)
         alpha=(1.-smoothstep(.87,.995,radius))*portal_opacity
-        # This soft alpha is not a painted circle: every color comes from
-        # the actual user's reference. Keep C facets outside the mask.
         px0=PORTAL_X-PORTAL_RX-FEED_X0
         py0=PORTAL_Y-PORTAL_RY-FEED_Y0
         patch=target[py0:py0+2*PORTAL_RY,px0:px0+2*PORTAL_RX]
         aperture=mask[py0:py0+2*PORTAL_RY,px0:px0+2*PORTAL_RX]
         alpha*=aperture
         patch[:]=patch*(1.-alpha[:,:,None])+warped*alpha[:,:,None]
+
+    if energy_opacity > 0:
+        # Draw the energy ABOVE the vortex so streams visibly merge into it.
+        # Alpha-aperture prevents the animated lines covering C material.
+        broad,fine,particles = make_energy_streams(t)
+        broad=np.clip(broad*energy_opacity*mask*2.9,0.,.85)
+        fine=np.clip(fine*energy_opacity*mask*1.45,0.,.95)
+        particles=np.clip(particles*energy_opacity*mask*1.9,0.,1.)
+        target += broad[:,:,None]*np.array([100.,32.,186.],np.float32)
+        target += fine[:,:,None]*np.array([190.,116.,232.],np.float32)
+        target += particles[:,:,None]*np.array([140.,111.,228.],np.float32)
     return scene
+
 
 
 def main():
@@ -308,8 +318,8 @@ def main():
     contact = Image.new("RGB", (720, 920))
     for index, img in enumerate(storyboard):
         contact.paste(img, ((index%3)*240, (index//3)*460))
-    contact.save(ROOT / "Charoite_C_Glow_Reference_Portal_7s_Storyboard.jpg", quality=89)
-    print("CHAROITE_C_GLOW_REFERENCE_PORTAL_7_SECONDS=PASS", OUT.stat().st_size)
+    contact.save(ROOT / "Charoite_C_Energy_Reference_Portal_7s_Storyboard.jpg", quality=89)
+    print("CHAROITE_C_ENERGY_REFERENCE_PORTAL_7_SECONDS=PASS", OUT.stat().st_size)
 
 
 if __name__ == "__main__":

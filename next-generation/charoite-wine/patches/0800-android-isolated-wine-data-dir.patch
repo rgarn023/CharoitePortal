@@ -1,7 +1,7 @@
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
-@@ -528,8 +528,25 @@ static void init_paths( char *argv[] )
+@@ -528,6 +528,22 @@ static void init_paths( char *argv[] )
          }
  #endif
          if (!bin_dir) bin_dir = build_relative_path( dll_dir, LIBDIR "/wine", BINDIR );

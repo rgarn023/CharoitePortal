@@ -24,6 +24,12 @@ The original `com.charoite` data, Wine C: drive, TPDP and other installed games 
 
 **This is a development bundle, not an installable Wine runner or Android APK.** It is explicitly marked `launch_ready=false`. It does **not** replace the Next APK or original Portal, and it has not been run on the Galaxy S26 Ultra. A complete Wine/GE-Proton runtime, FEX, Vulkan graphics, dedicated prefix and device tests are still necessary for Battle.net and Steam. See [Charoite Wine details](charoite-wine/README.md) and [current GitHub handoff](../docs/CURRENT_HANDOFF.md).
 
+## Latest experimental build and next compatibility milestone
+
+**Next v0.35, signed Android APK:** [GitHub Actions run 41105956380](https://github.com/rgarn023/CharoitePortal/actions/runs/41105956380), [signed APK artifact 13000548951](https://github.com/rgarn023/CharoitePortal/actions/runs/41105956380/artifacts/13000548951). 41 Next and 138 stable tests passed, Android package `com.charoitx` code 66. Install over existing Next without clearing data. The v0.34 glow / inward-flowing crystal energy boot design remains unchanged.
+
+**Next-only System → Audit modern Wine bootstrap prerequisites** reads a fail-closed, source-verified report derived from the pinned 22-component/76-NLS Wine bootstrap archive. Reports unbundled Windows imports, audited Android native dependencies and explicit missing FEX/graphics/prefix/device steps. **No Wineboot, new Windows prefix or game execution is attempted; modern runner still NOT READY.** Next milestone is resolving the reported bootstrap gaps, assembling an isolated versioned Wine+FEX runtime slot and testing on Galaxy without touching the stable Portal or the user's existing game environments.
+
 ## Device validation roadmap
 
 1. Install Next **alongside** stable Portal; confirm both icons/apps and each edition's private data are independent.

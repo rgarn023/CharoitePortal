@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.37"')
-text = text.replace("versionCode 33", "versionCode 68")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.38"')
+text = text.replace("versionCode 33", "versionCode 69")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -123,6 +123,9 @@ shutil.copy2(source_dir / "CharoiteWinePayloadAudit.java", payload_java)
 stage_java = app / "java/com/charoitegames/core/CharoiteWineIsolatedStage.java"
 assert not stage_java.exists()
 shutil.copy2(source_dir / "CharoiteWineIsolatedStage.java", stage_java)
+gate_java = app / "java/com/charoitegames/core/CharoiteWineBootstrapGate.java"
+assert not gate_java.exists()
+shutil.copy2(source_dir / "CharoiteWineBootstrapGate.java", gate_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -373,6 +376,42 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(stageWineData);
+        android.widget.Button nativeGate = new android.widget.Button(this);
+        nativeGate.setText("Test native Wine startup prerequisites");
+        nativeGate.setAllCaps(false);
+        nativeGate.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Test source-built Wine and wineserver?")
+                .setMessage("Checks the existing isolated 95-file staging area, then " +
+                    "runs only the APK-installed, hash-verified native Wine loader " +
+                    "and wineserver with --version. No Wine prefix is created, " +
+                    "no Windows EXE or game is launched, and no existing game data " +
+                    "is read or changed. A pass does not make Wineboot ready.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run version tests", (d, which) -> {
+                    nativeGate.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWineBootstrapGate.run(this);
+                        runOnUiThread(() -> {
+                            nativeGate.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Native Bootstrap Gate")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Native Bootstrap Gate", report));
+                                })
+                                .setNegativeButton("Close", null)
+                                .show();
+                        });
+                    }, "CharoiteWineBootstrapGate").start();
+                }).show();
+        });
+        nextCoreCard.addView(nativeGate);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

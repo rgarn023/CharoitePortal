@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.36"')
-text = text.replace("versionCode 33", "versionCode 67")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.37"')
+text = text.replace("versionCode 33", "versionCode 68")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -120,6 +120,9 @@ shutil.copy2(source_dir / "CharoiteWineBootstrapPreflight.java", preflight_java)
 payload_java = app / "java/com/charoitegames/core/CharoiteWinePayloadAudit.java"
 assert not payload_java.exists()
 shutil.copy2(source_dir / "CharoiteWinePayloadAudit.java", payload_java)
+stage_java = app / "java/com/charoitegames/core/CharoiteWineIsolatedStage.java"
+assert not stage_java.exists()
+shutil.copy2(source_dir / "CharoiteWineIsolatedStage.java", stage_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -334,6 +337,42 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWinePayloadAudit").start();
         });
         nextCoreCard.addView(modulePayload);
+        android.widget.Button stageWineData = new android.widget.Button(this);
+        stageWineData.setText("Stage isolated modern Wine PE/NLS modules");
+        stageWineData.setAllCaps(false);
+        stageWineData.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage verified Wine data?")
+                .setMessage("Copies 19 Windows PE files and 76 NLS tables into a new " +
+                    "private Charoite Next staging directory. This can use additional " +
+                    "device storage. It does NOT start Wine, create a Wine prefix, " +
+                    "install native executables, or access existing games and saves. " +
+                    "If staging is interrupted, incomplete data is quarantined and " +
+                    "is never used for launching.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage / Verify", (d, which) -> {
+                    stageWineData.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWineIsolatedStage.run(this);
+                        runOnUiThread(() -> {
+                            stageWineData.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Isolated Wine Data")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Isolated Wine Staging", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWineIsolatedStage").start();
+                }).show();
+        });
+        nextCoreCard.addView(stageWineData);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

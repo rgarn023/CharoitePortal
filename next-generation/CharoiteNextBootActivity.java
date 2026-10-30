@@ -417,10 +417,8 @@ public final class CharoiteNextBootActivity extends Activity {
             final float t = Math.min(elapsed / 1000f, BOOT_DURATION_MS / 1000f);
             final float w = getWidth(), h = getHeight();
             if (w <= 0f || h <= 0f) return;
-            // The portrait is resampled from a SINGLE continuous source.
-            // Map crystal tips through its three vertically stretched source
-            // bands; the v0.22 overlay mapping followed a pasted square and
-            // no longer corresponds to this seamless portrait asset.
+            // The central crystal has exactly uniform X/Y scaling in the
+            // portrait canvas; glints follow original crystal-tip coordinates.
             final float side = Math.min(w, h);
             final float glow = .5f + .5f *
                     (float)Math.sin(2.0 * Math.PI * t / 3.6f - .7f);
@@ -473,14 +471,11 @@ public final class CharoiteNextBootActivity extends Activity {
         private static float crystalY(float fraction, float w, float h) {
             if (w <= h) {
                 float fit = Math.max(w / PORTRAIT_ART_WIDTH, h / PORTRAIT_ART_HEIGHT);
-                float sy = fraction * 1536f;
-                float mappedY;
-                if (sy <= 360f)
-                    mappedY = (sy - 113f) * (385f / 247f);
-                else if (sy <= 1160f)
-                    mappedY = 385f + (sy - 360f) * (845f / 800f);
-                else
-                    mappedY = 1230f + (sy - 1160f) * (610f / 274f);
+                // Same 960/1308 uniform scale in X and Y. Only the
+                // atmosphere above and glass below the approved illustration
+                // are extended; none of the gateway's dimensions are changed.
+                float sourceY = fraction * 1536f;
+                float mappedY = 410f + (sourceY - 113f) * (960f / 1308f);
                 return (h - PORTRAIT_ART_HEIGHT * fit) * .5f + mappedY * fit;
             }
             float side = Math.max(w, h);

@@ -2,6 +2,8 @@
 import hashlib
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 import struct
 import tempfile
@@ -76,6 +78,24 @@ class ServicesTest(unittest.TestCase):
         self.manifest["launch_ready"]=False;self.save()
         self.audit["windows_imports_not_bundled"].remove("secur32.dll");self.save_review()
         with self.assertRaisesRegex(ValueError,"review"):v.verify(self.out,self.review)
+    def test_portable_wrapper_rewrite_is_executable_and_source_is_untouched(self):
+        start = BUILD.index('python3 - "$wrapper" <<\'PY\'')
+        program = BUILD[start:].split("\\n",1)[1].split("\\nPY\\n",1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            wrapper = Path(directory)/"arm64ec-w64-mingw32-clang"
+            original = '#!/usr/bin/env bash\\nexec "/tmp/clang" --target=arm64ec-w64-windows-gnu --sysroot="/tmp" "$@"\\n'
+            wrapper.write_text(original)
+            subprocess.run([sys.executable, "-c", program, str(wrapper)],
+                           check=True, capture_output=True, text=True)
+            updated = wrapper.read_text()
+            self.assertEqual(len(updated.splitlines()),2)
+            self.assertEqual(updated.count("-DLTC_NO_ASM"),1)
+            self.assertIn('exec "/tmp/clang"',updated)
+            subprocess.run(["bash","-n",str(wrapper)],check=True)
+            with self.assertRaises(subprocess.CalledProcessError):
+                subprocess.run([sys.executable, "-c", program, str(wrapper)],
+                               check=True, capture_output=True)
+
     def test_build_provenance_and_ci_output_only(self):
         for token in ('CHAROITE_ARM64EC_PORTABLE_TOMCRYPT_WRAPPER=PASS',
                       '-DLTC_NO_ASM',

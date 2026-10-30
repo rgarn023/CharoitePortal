@@ -1703,4 +1703,21 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 89. October 30, 2026 — Next source Wine 26-component ARM64EC bcrypt compiler correction
+
+**This turn's user request:** Continue development directly on connected GitHub, keep main branch, stable Portal and experimental Next device data untouched.
+
+**Source experiment run #41116591592 FAILURE:** The independent source validation, host wineserver and Android native wineserver jobs passed. The ARM64EC job built and independently packaged the existing 22-component archive but failed at the first of four new DLLs, `bcrypt`. CI log: `libs/tomcrypt/src/headers/tomcrypt_macros.h:261/269: error: invalid input constraint 'c' in asm`, compiling `dlls/bcrypt/arm64ec-windows/bcrypt_main.o`. ARM64EC's x64 hybrid preprocessor defines select incompatible x86 rotate assembly. No 26-component artifact produced.
+
+**First fix/rebuild run #41119319796 also FAILED:** Added `CROSSCFLAGS="-O2 -g0 -DLTC_NO_ASM"` on bcrypt make command, but the actual generated Makefile ignored it: emitted ARM64EC compiler command still lacked portable flag; exact same two assembly-constraint diagnostics. Other source, host server and Android server jobs passed; the 22-component archive still built and was uploaded as artifact 13008481412, but no new four modules were certified.
+
+**Second correction now committed on existing main:** `next-generation/charoite-wine/build-pe-services.sh` verifies the exact generated temporary `arm64ec-w64-mingw32-clang` wrapper structure before rewriting that **build-only wrapper**, inserting upstream-supported `-DLTC_NO_ASM` **only for `dlls/bcrypt/` source compile paths**. It preserves normal compiler command for every other source; no pinned Wine or LibTomCrypt source code modified, no ABI/hash/checks bypassed, no installed app data touched. Unit regression `next-generation/charoite-wine/tests/test_pe_services.py` updated accordingly. Commits `65c2606f` original ignored make override, `aca908d3` tests, `a15e7f23` real wrapper fix, `aa509f0d` correct generated wrapper line endings, `64881813` tests, build-triggering README SHA **`e12f00aaf0899ad6f8b42b241645d53e88f07cb5`**.
+
+**Latest CI:** [Charoite Wine ARM64EC source run **41120261606**](https://github.com/rgarn023/CharoitePortal/actions/runs/41120261606), triggered from above README commit and was **QUEUED / IN PROGRESS**, final outcome not verified when recorded. **Do not claim it passed**; check GitHub job status, exact compile errors, resulting new service modules and 26-component archive artifacts before proceeding. If it succeeds, inspect independent SHA / ARM64EC header / import-gap reports and build a separately versioned Next integration; if it fails, fix the actual log cause without weakening source controls.
+
+**Working phone state unchanged:** signed Charoite Next v0.38 `com.charoitx`, [successful APK run 41114787960](https://github.com/rgarn023/CharoitePortal/actions/runs/41114787960), [artifact 13004693430](https://github.com/rgarn023/CharoitePortal/actions/runs/41114787960/artifacts/13004693430). User confirmed staged 95 files and both native `wine --version`, `wineserver --version` exit 0, with no prefix, wineboot, FEX or graphics. Stable Portal and seven-second boot remain untouched.
+
+---
+
 **End of current Charoite Portal handoff.**

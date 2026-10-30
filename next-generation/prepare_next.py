@@ -28,8 +28,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.14"')
-text = text.replace("versionCode 33", "versionCode 45")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.15"')
+text = text.replace("versionCode 33", "versionCode 46")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because

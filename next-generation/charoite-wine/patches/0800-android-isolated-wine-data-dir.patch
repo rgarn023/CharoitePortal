@@ -42,3 +42,27 @@ diff --git a/loader/main.c b/loader/main.c
 +#endif
 +
      if (!handle && (path = getenv( "WINEDLLPATH" )))
+
+diff --git a/server/unicode.c b/server/unicode.c
+--- a/server/unicode.c
++++ b/server/unicode.c
+@@ -275,5 +275,18 @@ static char *get_nls_dir(void)
+ static char *get_nls_dir(void)
+ {
+     char *p, *dir, *ret;
++
++#if defined(__ANDROID__) && defined(__aarch64__)
++    /* Use the same private verified NLS cohort as native ntdll. */
++    const char *isolated = getenv( "CHAROITE_WINE26_DATA_DIR" );
++    if (isolated)
++    {
++        char *nls_path;
++        if (isolated[0] != '/' || strstr( isolated, "/../" ) || strstr( isolated, "/./" )) return NULL;
++        if (asprintf( &nls_path, "%s/nls", isolated ) == -1) return NULL;
++        ret = realpath( nls_path, NULL );
++        free( nls_path );
++        return ret;
++    }
++#endif
+ #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__)
+     dir = realpath( "/proc/self/exe", NULL );

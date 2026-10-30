@@ -17,6 +17,9 @@ spec.loader.exec_module(audio)
 art_spec = importlib.util.spec_from_file_location("boot_art", ROOT / "make_fullbleed_boot.py")
 art = importlib.util.module_from_spec(art_spec)
 art_spec.loader.exec_module(art)
+portrait_spec = importlib.util.spec_from_file_location("portrait_art", ROOT / "make_portrait_boot.py")
+portrait_art = importlib.util.module_from_spec(portrait_spec)
+portrait_spec.loader.exec_module(portrait_art)
 
 
 class StartupExperienceTest(unittest.TestCase):
@@ -32,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 52", PREP)
-        self.assertIn("11.2-next.0.21", PREP)
+        self.assertIn("versionCode 53", PREP)
+        self.assertIn("11.2-next.0.22", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -53,9 +56,39 @@ class StartupExperienceTest(unittest.TestCase):
                     self.assertGreater(max(image.getpixel(xy)), 12)
         self.assertIn("R.drawable.charoite_next_boot_unframed", BOOT)
         self.assertNotIn("R.drawable.charoite_next_boot_backdrop", BOOT)
-        self.assertIn("ImageView.ScaleType.MATRIX", BOOT)
-        self.assertIn("ART_CROP_RELIEF = .90f", BOOT)
+        self.assertIn("ImageView.ScaleType.CENTER_CROP", BOOT)
+        self.assertIn("PORTRAIT_ART_WIDTH = 960f", BOOT)
+        self.assertIn("charoite_next_boot_portrait", BOOT)
         self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", BOOT)
+
+    def test_true_portrait_asset_eliminates_visible_icon_frame(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "portrait.jpg"
+            portrait_art.generate(ART, target)
+            with Image.open(target) as image:
+                image.load()
+                self.assertEqual(image.size, (960,1840))
+                self.assertEqual(image.mode, "RGB")
+                # The four corners no longer use the old black rounded
+                # square of the launcher icon; the extension fills them.
+                for xy in ((0,0),(959,0),(0,1839),(959,1839)):
+                    self.assertGreater(max(image.getpixel(xy)), 20)
+                # The approved art stays in the central source region.
+                self.assertGreater(max(image.getpixel((480,930))), 40)
+        self.assertIn("generate_portrait_boot(approved_art, boot_portrait)", PREP)
+        self.assertIn("make_portrait_boot", PREP)
+
+    def test_crystal_title_has_contrasting_dark_faceted_plaque(self):
+        view = BOOT.split("private static final class CrystalWordmark extends View {",1)[1].split("private static final class CrystalShimmer",1)[0]
+        self.assertIn('WORDMARK = "CHAROITE PORTAL"', view)
+        self.assertIn("panel.setShader(new LinearGradient(", view)
+        self.assertIn("canvas.drawRoundRect(plateLeft, plateTop", view)
+        self.assertIn("Color.argb(247, 12, 6, 42)", view)
+        self.assertIn("canvas.drawText(WORDMARK, x, y, lettering)", view)
+        self.assertIn("diamond(canvas,", view)
+        self.assertIn("setContentDescription(\"Charoite Portal\")", BOOT)
+        self.assertNotIn("ProgressBar", view)
 
     def test_five_second_boot_once_per_real_session(self):
         self.assertIn("BOOT_DURATION_MS = 5000L", BOOT)
@@ -104,14 +137,15 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("playArrivalChimeIfRequested(portal)",resume)
 
     def test_cinematic_full_screen_crystal_reveal_has_no_loading_bar(self):
-        # A single continuous image fills the screen. Mild crop relief is
-        # allowed, but no tiny centered icon, blurry backing image, or zoom.
+        # Portrait source is a proper 960x1840 composition, not a zoomed
+        # square icon or a second floating image on blurred wallpaper.
         view = BOOT.split("private static FrameLayout createBootView(Activity activity) {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
         self.assertEqual(view.count("new CrystalArtwork(activity)"), 1)
-        self.assertEqual(view.count("ImageView.ScaleType.MATRIX"), 1)
-        self.assertIn("ART_CROP_RELIEF = .90f", BOOT)
-        self.assertIn("Math.max(w, sourceWidth * fullScale * ART_CROP_RELIEF)", view)
-        self.assertIn("Math.max(h, sourceHeight * fullScale * ART_CROP_RELIEF)", view)
+        self.assertEqual(view.count("ImageView.ScaleType.CENTER_CROP"), 1)
+        self.assertIn("R.drawable.charoite_next_boot_portrait", view)
+        self.assertIn("R.drawable.charoite_next_boot_unframed", view)
+        self.assertIn("setImageResource(w <= h", view)
+        self.assertNotIn("ImageView.ScaleType.MATRIX", view)
         self.assertIn("new CrystalWordmark(activity)", view)
         self.assertIn('WORDMARK = "CHAROITE PORTAL"', view)
         self.assertIn("new LinearGradient(", view)
@@ -124,7 +158,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("boot.addView(title", view)
         self.assertIn("new CrystalShimmer(activity)", view)
         self.assertNotIn("ImageView.ScaleType.FIT_CENTER", view)
-        self.assertNotIn("ImageView.ScaleType.CENTER_CROP", view)
+        self.assertNotIn("ART_CROP_RELIEF", view)
         self.assertNotIn("R.drawable.charoite_next_boot_backdrop", view)
         self.assertNotIn("LinearLayout emblem", view)
         self.assertNotIn("FrameLayout scene", view)
@@ -141,13 +175,12 @@ class StartupExperienceTest(unittest.TestCase):
         effect = BOOT.split("private static final class CrystalShimmer extends View {",1)[1].split("private static int density(Activity activity, int size)",1)[0]
         self.assertIn("CRYSTAL_TIPS", effect)
         self.assertIn("RadialGradient", effect)
-        # The glow must follow the same width/height matrix as the art.
-        self.assertIn("Math.max(getWidth(), getHeight())", effect)
-        self.assertNotIn("Math.min(getWidth(), getHeight())", effect)
-        self.assertIn("Math.max(getWidth(), side * ART_CROP_RELIEF)", effect)
-        self.assertIn("Math.max(getHeight(), side * ART_CROP_RELIEF)", effect)
-        self.assertIn("(getWidth() - artWidth) * .5f", effect)
-        self.assertIn("(getHeight() - artHeight) * .5f", effect)
+        # Map crystal-tip coordinates to the original center of the
+        # generated 960x1840 image rather than the old square icon.
+        self.assertIn("PORTRAIT_ART_WIDTH", effect)
+        self.assertIn("PORTRAIT_ART_HEIGHT", effect)
+        self.assertIn("sourceScale = viewportScale * 1020f / 1406f", effect)
+        self.assertIn("398f - 72f * 1020f / 1406f", effect)
         self.assertIn("artWidth * CRYSTAL_TIPS[i][0]", effect)
         self.assertIn("artHeight * CRYSTAL_TIPS[i][1]", effect)
         self.assertIn("postInvalidateOnAnimation()", effect)

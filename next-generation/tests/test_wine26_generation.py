@@ -98,7 +98,7 @@ class Wine26GenerationContract(unittest.TestCase):
         self.assertIn("Stage expanded Wine 26-module data",PREP)
         self.assertIn("versionCode 78",PREP)
         self.assertIn("11.2-next.0.47",PREP)
-        self.assertIn("0.46 (opt-in fresh v4 traced Wineboot, games blocked",ENGINE)
+        self.assertIn("0.47 (independent Wine28 source-matched v5 opt-in",ENGINE)
         self.assertIn("stage_wine26.py",WORKFLOW)
         self.assertIn("CHAROITE_NEXT_WINE26_99_PE_NLS_APK_ASSETS_VERIFIED=PASS",WORKFLOW)
         self.assertIn("versionCode='78' versionName='11.2-next.0.47'",WORKFLOW)

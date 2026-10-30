@@ -57,7 +57,7 @@ class NativeGateContract(unittest.TestCase):
                   "CharoiteWineBootstrapGate.run(this)",
                   "versionCode 78","11.2-next.0.47"):
             self.assertIn(s,PREP)
-        self.assertIn('0.46 (opt-in fresh v4 traced Wineboot, games blocked',ENGINE)
+        self.assertIn('0.47 (independent Wine28 source-matched v5 opt-in',ENGINE)
         self.assertIn("versionCode='78' versionName='11.2-next.0.47'",WORKFLOW)
         self.assertIn("CharoiteWineBootstrapGate.java legal-bundle",WORKFLOW)
 

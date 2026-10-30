@@ -30,12 +30,14 @@ assert not (expected & set(d.get("bundled_windows_dlls",[])))
 print("CHAROITE_SERVICES_AUDIT_22_INPUT_VERIFIED=PASS")
 PY
 cd "$build"
-# The generated Wine Makefile hardcodes ARM64EC compiler invocations and
-# ignores CROSSCFLAGS overrides. ARM64EC's hybrid defines select LibTomCrypt's
-# x86 inline rotates, which are invalid for an ARM64EC compiler ('c' register).
-# Gate the supported -DLTC_NO_ASM portable rotates in the ephemeral compiler
-# wrapper ONLY while compiling bcrypt inputs. This does not modify the pinned
-# Wine/LibTomCrypt source or loosen output ABI and SHA verification.
+# The generated Wine Makefile hardcodes ARM64EC compiler invocations.
+# Its hybrid compiler sees x86_64 preprocessor defines; both bcrypt_main.c
+# AND its libs/tomcrypt dependencies can select x86 rotate assembly invalid
+# for ARM64EC ('c' register constraint). During this FINAL four-module source
+# CI stage only (after the verified 22-file archive is already assembled),
+# add the upstream-supported LTC_NO_ASM portable implementation to ALL ARM64EC
+# compiler calls in the ephemeral, pinned-build wrapper. Do not modify
+# Wine/LibTomCrypt source, skip ABI/hash checks, or touch Android data.
 wrapper="$build/../charoite-arm64ec-toolwrap/arm64ec-w64-mingw32-clang"
 [[ -x "$wrapper" && ! -L "$wrapper" ]] || {
   echo "Missing source-built ARM64EC tool wrapper" >&2; exit 5;
@@ -52,20 +54,9 @@ if (len(lines)!=2 or lines[0]!="#!/usr/bin/env bash"
         "arm64ec-w64-windows-gnu" not in lines[1] or
         "-DLTC_NO_ASM" in lines[1]):
     raise SystemExit("Unexpected generated ARM64EC tool wrapper; fail closed")
-cmd=lines[1]
-portable=cmd.replace('"$@"','-DLTC_NO_ASM "$@"')
-wrapper.write_text(
-    "#!/usr/bin/env bash\n"
-    "case \" $* \" in\n"
-    "  *\"dlls/bcrypt/\"*)\n"
-    f"    {portable}\n"
-    "    ;;\n"
-    "  *)\n"
-    f"    {cmd}\n"
-    "    ;;\n"
-    "esac\n",
-    encoding="utf-8")
-print("CHAROITE_ARM64EC_BCRYPT_PORTABLE_ROTATES_WRAPPER=PASS")
+portable=lines[1].replace('"$@"','-DLTC_NO_ASM "$@"')
+wrapper.write_text("#!/usr/bin/env bash\n"+portable+"\n",encoding="utf-8")
+print("CHAROITE_ARM64EC_PORTABLE_TOMCRYPT_WRAPPER=PASS")
 PY
 make -j2 "dlls/bcrypt/aarch64-windows/bcrypt.dll"
 for name in secur32 sechost msvcrt; do

@@ -52,7 +52,7 @@ class StartupExperienceTest(unittest.TestCase):
                 for xy in ((0,0),(899,0),(0,1599),(899,1599)):
                     self.assertGreater(max(image.getpixel(xy)), 12)
         self.assertIn("R.drawable.charoite_next_boot_unframed", BOOT)
-        self.assertIn("R.drawable.charoite_next_boot_backdrop", BOOT)
+        self.assertNotIn("R.drawable.charoite_next_boot_backdrop", BOOT)
         self.assertIn("ImageView.ScaleType.CENTER_CROP", BOOT)
         self.assertIn("ViewGroup.LayoutParams.MATCH_PARENT", BOOT)
 

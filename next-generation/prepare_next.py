@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.40"')
-text = text.replace("versionCode 33", "versionCode 71")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.41"')
+text = text.replace("versionCode 33", "versionCode 72")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -132,6 +132,9 @@ shutil.copy2(source_dir / "CharoiteWine26Stage.java", wine26_java)
 wine26_native_java = app / "java/com/charoitegames/core/CharoiteWine26NativeGate.java"
 assert not wine26_native_java.exists()
 shutil.copy2(source_dir / "CharoiteWine26NativeGate.java", wine26_native_java)
+wine26_prefix_java = app / "java/com/charoitegames/core/CharoiteWine26PrefixProbe.java"
+assert not wine26_prefix_java.exists()
+shutil.copy2(source_dir / "CharoiteWine26PrefixProbe.java", wine26_prefix_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -492,6 +495,45 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine26Native);
+        android.widget.Button wine26Prefix = new android.widget.Button(this);
+        wine26Prefix.setText("Test isolated Wine26 prefix bootstrap");
+        wine26Prefix.setAllCaps(false);
+        wine26Prefix.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run first isolated Wine26 Wineboot test?")
+                .setMessage("Only after verifying the full 99-file staged Wine26 data " +
+                    "and all 3 APK native hashes and version probes, copies a " +
+                    "source-verified set into a brand-new app-private test folder " +
+                    "and tries Wineboot -i with its own NEW Wine prefix and " +
+                    "wineserver. It may use extra storage, can fail or time out, " +
+                    "and RETAINS diagnostic files rather than automatically " +
+                    "deleting them. Never touches existing prefixes, Wine22, " +
+                    "games or saves. Does NOT test FEX, graphics, or gaming.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run isolated Wineboot probe", (dialog, which) -> {
+                    wine26Prefix.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine26PrefixProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine26Prefix.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine26 isolated prefix")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (d, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine26 isolated Wineboot", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine26PrefixProbe").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine26Prefix);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

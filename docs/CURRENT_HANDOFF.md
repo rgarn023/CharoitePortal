@@ -1800,4 +1800,16 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 **Scope of this response:** No experimental Java/runtime code edits were necessary because build, tests and signing passed. Only `docs/CURRENT_HANDOFF.md` updated under `[skip ci]` to avoid a redundant 300 MB APK build. The signed APK is tied to the cited **code SHA**, not the newer documentation-only main HEAD.
 
+---
+
+## 96. October 30, 2026 — device verifies Wine26 native PASS; v0.41 isolated first-prefix probe candidate
+
+**Actual Galaxy S26 Ultra results from user (v0.40):** Full source archive SHA-256 PASS; 23/23 Wine26 PE and 76/76 NLS files SHA-256 PASS; three native ELF hashes PASS; source run 41121328663; wine-10.0 from native Wine26 loader and Wine 10.0 from wineserver, both native exit codes 0. RESULT: PASS — matched Wine26 native --version gate; NOT runnable. Original Wine22, games, saves, prefixes and rootfs were not accessed. 20 observed imported DLL names remain unbundled. This confirms native --version on phone but **does not demonstrate Wineboot, games or a working Windows environment**.
+
+**Experimental Next v0.41 source candidate:** Adds new CharoiteWine26PrefixProbe.java and consent button in System: Test isolated Wine26 prefix bootstrap. Probe first re-verifies 99 source-hashed staged files and the three native ELF SHA+version gates; only then creates a fresh single-use noBackupFilesDir()/charoite-next-wine26-first-prefix-v1 sandbox, never overwrites an existing sandbox, hashes/copies 22 ARM64EC DLLs + ARM64 wineboot.exe + 76 NLS source files, and runs a bounded 25-second APK-native Wine26 loader plus wineboot.exe -i with an entirely new WINEPREFIX/HOME/TMP/XDG and source-matched wineserver. A wineserver stop attempt uses the isolated prefix only. No FEX, graphics, games, Battle.net, anti-cheat or existing user game prefix. Partial diagnostic data is retained; never automatically erased. The 20 unbundled PE imports might prevent a successful boot; report actual first failure. This is a user-controlled diagnostic, not a gaming runtime.
+
+**Build/CI:** Version 11.2-next.0.41 / versionCode 72 / com.charoitx, original Next signer and seven-second approved boot preserved. Added source and unittest contract, updated old test version guards, included source in legal artifact. v0.41 has not yet passed CI and is not device-tested. Do not claim APK success until build/tests/signing/99-file integrity/artifact are verified on GitHub.
+
+**Next:** Inspect GitHub Actions for new code SHA. If it fails, fix the exact failing step on main. Once signed v0.41 is proven, user may update without uninstalling or clearing data and explicitly choose the first-prefix probe; then paste report. Stable com.charoite and all legacy data unchanged.
+
 **End of current Charoite Portal handoff.**

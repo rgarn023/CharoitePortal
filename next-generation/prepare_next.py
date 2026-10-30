@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.38"')
-text = text.replace("versionCode 33", "versionCode 69")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.39"')
+text = text.replace("versionCode 33", "versionCode 70")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -126,6 +126,9 @@ shutil.copy2(source_dir / "CharoiteWineIsolatedStage.java", stage_java)
 gate_java = app / "java/com/charoitegames/core/CharoiteWineBootstrapGate.java"
 assert not gate_java.exists()
 shutil.copy2(source_dir / "CharoiteWineBootstrapGate.java", gate_java)
+wine26_java = app / "java/com/charoitegames/core/CharoiteWine26Stage.java"
+assert not wine26_java.exists()
+shutil.copy2(source_dir / "CharoiteWine26Stage.java", wine26_java)
 boot_java = app / "java/com/charoitegames/core/CharoiteNextBootActivity.java"
 assert not boot_java.exists()
 shutil.copy2(source_dir / "CharoiteNextBootActivity.java", boot_java)
@@ -412,6 +415,43 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(nativeGate);
+        android.widget.Button wine26Stage = new android.widget.Button(this);
+        wine26Stage.setText("Stage expanded Wine 26-module data");
+        wine26Stage.setAllCaps(false);
+        wine26Stage.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage the new Wine 10 source generation?")
+                .setMessage("Verifies the new full 26-component source-built archive, " +
+                    "then stages only 23 Windows PE modules and 76 NLS tables " +
+                    "in a DIFFERENT private, versioned slot. Existing Wine22 " +
+                    "data, native loader, installed games, saves and prefixes " +
+                    "remain unchanged. This uses additional device storage. " +
+                    "Native Wine executables, wineboot, FEX and graphics stay " +
+                    "disabled. This is NOT a runnable Windows engine.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage / Verify Wine26", (d, which) -> {
+                    wine26Stage.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine26Stage.run(this);
+                        runOnUiThread(() -> {
+                            wine26Stage.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine26 data staging")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dialog, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine26 source staging", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine26Stage").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine26Stage);
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);

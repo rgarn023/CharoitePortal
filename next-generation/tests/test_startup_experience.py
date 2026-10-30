@@ -221,7 +221,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertGreater(mod.portal_phase(3.5), .99)
         self.assertEqual(mod.portal_phase(6.35), 0)
         image = mod.make_portal_source()
-        self.assertEqual(image.shape, (192, 192, 3))
+        self.assertEqual(image.shape, (160, 160, 3))
         # Base pixels must not change anywhere except the small C opening.
         base = np.full((mod.HEIGHT, mod.WIDTH, 3), 110., dtype=np.float32)
         rendered = mod.render_overlay(3.5, base, image)

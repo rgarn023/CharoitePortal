@@ -49,7 +49,7 @@ def make_portal_source():
     """Real swirled violet/black cloud texture cropped from the user screenshot."""
     with Image.open(SOURCE) as image:
         image.load()
-        assert image.size == (192, 192), "Unexpected reference crop geometry"
+        assert image.size == (160, 160), "Unexpected reference crop geometry"
         return np.asarray(image.convert("RGB"), dtype=np.float32)
 
 
@@ -89,8 +89,8 @@ def render_overlay(t, base, portal_source):
     # texture spins inward. The source portal's authentic spiral survives.
     twist = .78 * t * np.maximum(0., 1.-radius)**1.3
     sample_angle = theta - twist
-    src_x = (96. + 91.*radius*np.cos(sample_angle)).astype(np.float32)
-    src_y = (96. - 91.*radius*np.sin(sample_angle)).astype(np.float32)
+    src_x = (80. + 76.*radius*np.cos(sample_angle)).astype(np.float32)
+    src_y = (80. - 76.*radius*np.sin(sample_angle)).astype(np.float32)
     warped = cv2.remap(portal_source, src_x, src_y, cv2.INTER_LINEAR,
                        borderMode=cv2.BORDER_REFLECT)
 

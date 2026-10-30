@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ten-second Charoite v0.24 CLOUD-ONLY CONCEPT preview; never changes app assets.
+"""Five-second Charoite CLOUD-ONLY boot animation; never changes app assets.
 
 This produces an MP4 preview directly in GitHub Actions so it can be
 downloaded through GitHub rather than ChatGPT's unreliable sandbox links.
@@ -17,8 +17,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_10s.mp4"
-WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 10
+OUT = ROOT / "Charoite_Mystic_C_Cloud_Only_5s.mp4"
+WIDTH, HEIGHT, FPS, SECONDS = 480, 920, 24, 5
 
 
 def draw_plaque(canvas):
@@ -121,16 +121,16 @@ def make_cloud_sources(paths):
 
 def overlay(t, xx, yy, paths, sources):
     fine,broad,noise_a,noise_b=sources
-    ramp=smoothstep(.15,2.1,t)
-    # A bright but gentle crescendo at the end; no full-screen flash.
-    finale=1+.22*math.exp(-.5*((t-9.25)/.34)**2)
-    tail=1-.88*smoothstep(9.72,10.0,t)
+    ramp=smoothstep(.0,.95,t)
+    # Cloud light and audio follow the same five-second timeline; no flash.
+    finale=1+.14*math.exp(-.5*((t-4.0)/.36)**2)
+    tail=1-smoothstep(4.22,5.0,t)
     envelope=ramp*finale*tail
 
     # Animate the CLOUD textures, never the original illustration. The
     # two drifting noise fields make wispy violet fog curl around the C.
-    dx=int(12*t+9*math.sin(t*.57))
-    dy=int(-13*t+5*math.sin(t*.72))
+    dx=int(22*t+9*math.sin(t*.85))
+    dy=int(-24*t+5*math.sin(t*.96))
     a=np.roll(noise_a,(dy,dx),(0,1))
     b=np.roll(noise_b,(-dy*2,dx//2),(0,1))
     cloud=np.clip((a*.78+b*.55-.31)*3.2,0,1)
@@ -146,7 +146,7 @@ def overlay(t, xx, yy, paths, sources):
     # Gaussian plumes, no drawn tracer lines or screen-scale distortions.
     cloud_mass=np.zeros((HEIGHT,WIDTH),dtype=np.float32)
     for k,(path,norm) in enumerate((paths[0],paths[1],paths[0])):
-        phase=(t*(.047+.013*k)+(.09,.55,.77)[k])%1
+        phase=(t*(.09+.027*k)+(.09,.55,.77)[k])%1
         center=int(phase*(len(path)-1))
         p=path[center]
         offset=(11 if k!=1 else -7)+7*math.sin(1.25*t+k*2)
@@ -175,7 +175,7 @@ def main():
              "-i","-","-an","-c:v","libx264","-preset","fast",
              "-crf","18","-pix_fmt","yuv420p","-movflags","+faststart",str(OUT)]
     proc=subprocess.Popen(command,stdin=subprocess.PIPE)
-    frames=(0,2.5,5,7.5,9.25)
+    frames=(0,1,2,3,4.5)
     stills=[]
     for n in range(FPS*SECONDS):
         t=n/FPS
@@ -197,9 +197,9 @@ def main():
         sheet=Image.new("RGB",(240*len(stills),460),(9,8,27))
         for j,still in enumerate(stills):
             sheet.paste(still,(j*240,0))
-        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_10s_Storyboard.jpg",
+        sheet.save(ROOT/"Charoite_Mystic_C_Cloud_Only_5s_Storyboard.jpg",
                    quality=90)
-    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_10_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
+    print(f"CHAROITE_MYSTIC_C_CLOUD_ONLY_5_SECONDS=PASS {OUT.name} {OUT.stat().st_size} bytes")
 
 
 if __name__=="__main__":

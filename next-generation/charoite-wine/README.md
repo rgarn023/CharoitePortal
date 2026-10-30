@@ -229,3 +229,14 @@ compiler wrapper, not pinned source or installed apps. A new regression test
 actually executes the wrapper rewrite against a safe mock compiler command,
 checks its Bash syntax and confirms repeat rewriting is refused. The
 corrected 26-component source build remains unverified pending CI.
+
+
+## 0900 — Android isolated Windows NTDLL PE lookup (source candidate, October 30, 2026)
+
+The observed v0.46 v4 one-shot on-device Wineboot still exited **127** after creating an isolated `WINEPREFIX`; the verified 99 PE/NLS files and 3 native ELFs passed hashes, and **all six direct Wineboot import DLL names were present**, but the prefix had no `system.reg`. Normal `WINEDEBUG` channels emitted no additional messages. These observations do not prove a particular fatal module.
+
+**Patch 0900** (new source fix, not yet device-proven) addresses a structural inconsistency identified in the pinned Wine 10 startup source: `dlls/ntdll/unix/loader.c` initializes its very first Windows `ntdll.dll` from `dll_dir/aarch64-windows/ntdll.dll` (the APK-native directory), independently of the `WINEDLLPATH` search. Charoite staged the hash-verified Windows PE file under a *different app-private scratch* `runtime/lib/wine/arm64ec-windows/ntdll.dll`; the native Android ELF must remain APK-owned due to executable-file loading rules. Without a path override this startup load is not source-proven to reach that PE.
+
+The new Android AArch64-only explicit environment variable `CHAROITE_WINE28_PE_DIR` directs **only the initial Windows NTDLL PE lookup** to the caller-verified, fresh private PE directory. It validates an absolute, canonical directory without dot traversal and refuses a missing PE file without falling back to another generation. The old standard Wine behavior is unchanged when unset. A separate `CHAROITE_WINE28_NATIVE_DIR` chooses `libcharoite_wine28_ntdll.so` from a future isolated APK-native cohort, without selecting the old Wine27 NTDLL. The patch is applied after 0800, and the 10 active source-series entries remain distinct from the retained 0001 vendor reference.
+
+**Current status:** Source patch staged for fail-closed GitHub validation and complete same-source cross-build; it is **not** part of v0.46, not installed, and not proven to fix exit 127. No new on-phone v5 prefix attempt is authorized or shipped yet. Existing v1/v2/v3/v4 scratch evidence, Wine22, user prefixes, games and saves must not be modified.

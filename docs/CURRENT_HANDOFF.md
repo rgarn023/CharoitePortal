@@ -1668,4 +1668,22 @@ Third [Next APK run 41111015893](https://github.com/rgarn023/CharoitePortal/acti
 
 ---
 
+
+## 87. October 30, 2026 — User-verified v0.37 staging; Next v0.38 native bootstrap version gate
+
+**Actual Galaxy S26 Ultra report from user:** `CHAROITE NEXT — ISOLATED WINE PE/NLS STAGING`, **19/19 PE components verified**, **76/76 NLS tables verified**, `RESULT: PASS — isolated source-built data staged; NOT runnable`. User's report explicitly confirms **no access to existing prefixes, games, saves or rootfs**, native ELF/FEX/graphics **not installed**, no executable permission, wine/wineserver session/wineboot **not started**. The earlier user-confirmed v0.36 immutable full archive SHA-256 PASS remains valid. This confirms staged-data integrity only, **not a runnable modern Wine engine**.
+
+**Latest code (v0.38) directly committed to `main`:**
+- `CharoiteWineIsolatedStage.verifyOnly(Context)` provides read-only staged 95-file SHA-256 re-verification, blocks on pending/incomplete state, with no mkdir/write/delete/rename/executable launch. Uses existing pinned source and manifest checks.
+- New `CharoiteWineBootstrapGate.java` runs **only after explicit user confirmation**. It verifies staged PE/NLS data first, then source-hash-gated APK-installed `wine --version`, then `wineserver --version`, stopping on any failing prerequisite; each execution inherits a sanitized empty Wine environment from the prior verified probe classes, with timeout; no `HOME`, `WINEPREFIX`, prefix, wineboot, Windows EXE or game.
+- `prepare_next.py` adds System → **Test native Wine startup prerequisites** with consent dialog and copy report. Experimental identity `com.charoitx`, v`11.2-next.0.38`, versionCode `69`, same Next signing key; stable Portal and approved seven-second boot art/audio unchanged.
+- `CharoiteNextRuntime.java` correctly indicates native version-only probe is not game launchability. New tests in `test_native_bootstrap_gate.py`, existing version-contract tests updated, `.github/workflows/charoite-next.yml` verifies v0.38 identity and includes new Java source attribution.
+- Commits: read-only staging verifier `61a8971a`, gate class `876d2018`, newline correction `9c4130b8`, UI/version `8baf408a`, runtime label `93d9cf14`, tests `0f0eaf9e`, workflow `219cc25d`, version assertions `b01dd6eb`/`096d4ad2`/`620ad50f`/`881cb4e9`/`dfeb9858`, build-triggering README **`e99f1c6b1751003a5e77c1c407eb4d0708f69f14`**.
+
+**Build in progress:** [GitHub Actions run **41114787960**](https://github.com/rgarn023/CharoitePortal/actions/runs/41114787960) was in progress with no verified signed v0.38 APK when this note was written. **DO NOT claim green or invent an artifact until checking actual job + artifact.** Last verified signed APK is v0.37, [run 41113003291 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/41113003291), [APK artifact 13004138717](https://github.com/rgarn023/CharoitePortal/actions/runs/41113003291/artifacts/13004138717), 47 Next + 138 stable tests = 185 total.
+
+**Next phone step after verified v0.38:** install over existing experimental `com.charoitx` without uninstall or data clearing. Under **System → Test native Wine startup prerequisites → Run version tests → Copy report**, provide output to determine whether both source-built native loader and native wineserver versions run while staged 95/95 modules remain verified. This is NOT a prefix or Wineboot test. Next phase must resolve observed 24 PE import gaps, then implement separately versioned native ELF runtime configuration and disposable fresh-prefix Wineboot with rollback, plus FEX/graphics when ready.
+
+---
+
 **End of current Charoite Portal handoff.**

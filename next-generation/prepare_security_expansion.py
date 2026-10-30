@@ -103,6 +103,11 @@ def make_index(old,new,review,old_raw,new_raw,run,artifact):
             "anti_cheat_supported":False}
 
 def stage(old_archive,new_archive,upstream,run,artifact):
+    # Check caller-supplied paths BEFORE canonicalizing so a symbolic link
+    # cannot conceal an unreviewed archive or host build tree.
+    if (Path(old_archive).is_symlink() or Path(new_archive).is_symlink()
+            or Path(upstream).is_symlink()):
+        raise ValueError("Symbolic links forbidden in Wine source CI inputs")
     old_archive=Path(old_archive).resolve()
     new_archive=Path(new_archive).resolve()
     upstream=Path(upstream).resolve()

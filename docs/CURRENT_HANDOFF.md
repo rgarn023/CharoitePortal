@@ -6,7 +6,7 @@
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
 
-**Latest verified Charoite Next signed APK:** **v0.43 (`com.charoitx`, versionCode 74, versionName `11.2-next.0.43`)** — patched, opt-in **isolated Wine26-source / Wine27 native cohort v3 prefix diagnostic**. [GitHub Actions run **41137841735 COMPLETED SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735) on **actual code SHA `9926388e177dc0387ccca26d68414ef8949f638f`**; [signed APK artifact **13017520822**](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735/artifacts/13017520822), nonexpired GitHub ZIP **341,481,218 bytes**; source/license artifact **13017440850**. **138 stable + 68 Next = 206 regressions PASS**. Gradle BUILD SUCCESSFUL; original cached Next signing certificate matches **SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`**; Wine22/earlier Wine26 package assets and hashes preserved; new 26-component source bundle, 99 PE/NLS assets, and 3 patched native ELF SHA gates PASS. The approved seven-second crystal/portal boot was preserved. **On-device v0.43 prefix bootstrap has NOT been attempted or verified.** Older v0.42 v2 phone Wineboot failed (exit 127) because NLS files were read from the APK native library path; v1/v2 failed scratch and user installations remain untouched. v0.43 adds fresh 0.6 staging and a separately user-confirmed one-shot v3 Wineboot probe using patched native NLS lookup. **Never claim a functional Windows prefix, FEX, graphics, games, Steam, Battle.net or anti-cheat support.** Stable Portal `com.charoite`, games, saves and existing Wine prefixes remain untouched.
+**Latest verified Charoite Next signed APK:** **v0.43 (`com.charoitx`, versionCode 74, versionName `11.2-next.0.43`)** — patched, opt-in **isolated Wine26-source / Wine27 native cohort v3 prefix diagnostic**. [GitHub Actions run **41137841735 COMPLETED SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735) on **actual code SHA `9926388e177dc0387ccca26d68414ef8949f638f`**; [signed APK artifact **13017520822**](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735/artifacts/13017520822), nonexpired GitHub ZIP **341,481,218 bytes**; source/license artifact **13017440850**. **138 stable + 68 Next = 206 regressions PASS**. Gradle BUILD SUCCESSFUL; original cached Next signing certificate matches **SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`**; Wine22/earlier Wine26 package assets and hashes preserved; new 26-component source bundle, 99 PE/NLS assets, and 3 patched native ELF SHA gates PASS. The approved seven-second crystal/portal boot was preserved. **On-device v0.43 Wine27 PE/NLS staging and the matched Wine27 native `--version` gate both PASS; no v3 prefix bootstrap has yet been attempted or verified.** Older v0.42 v2 phone Wineboot failed (exit 127) because NLS files were read from the APK native library path; v1/v2 failed scratch and user installations remain untouched. v0.43 adds fresh 0.6 staging and a separately user-confirmed one-shot v3 Wineboot probe using patched native NLS lookup. **Never claim a functional Windows prefix, FEX, graphics, games, Steam, Battle.net or anti-cheat support.** Stable Portal `com.charoite`, games, saves and existing Wine prefixes remain untouched.
 
 > **MANDATORY:** GitHub's live `main` branch and its actual GitHub Actions state are always the source of truth. This file is a dated snapshot. After every substantive Charoite project response, **update this handoff in GitHub**, with actual changes/tests/build/device findings and specific next steps. Do not leave the user with a handoff that points to an outdated version when the conversation becomes slow. For documentation-only commits use `[skip ci]` to avoid building another 230 MB APK solely for a status note; check whether the previous successful APK still corresponds to the latest **code** commit.
 
@@ -1935,6 +1935,45 @@ RESULT: PASS — source-coherent Wine27 data staged; NOT runnable
 **Next action for user (no APK/code change yet):** In `Charoite Next → System` tap **Verify new patched Wine native cohort**. Share the entire report including the three APK-native source SHA gate results, Wine/wineserver version probe results, and any `BLOCKED` / `FAIL` / linker output. **Only if native gate passes** proceed to the explicit consent screen for **Test new v3 isolated Wineboot**; it must be executed at most once because the scratch is one-shot and never cleared or overwritten. Do not start Windows apps, graphics, FEX, Battle.net or Steam. The 20 observed unbundled PE imports are not independently proven fatal.
 
 **Canonical latest verified APK remains v0.43:** [GitHub Actions successful run 41137841735](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735), [artifact 13017520822](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735/artifacts/13017520822). No new APK has been built from this report.
+
+---
+
+## 106. October 30, 2026 — on-device Wine27 native gate PASS; explicit one-shot v3 Wineboot next
+
+**New actual user-supplied Galaxy S26 Ultra device report:**
+
+```text
+CHAROITE NEXT — MATCHED WINE27 NATIVE BOOTSTRAP GATE
+Scope: 99-file staged data reverify; 3 same-source native ELF hashes;
+source-built Wine27 and wineserver --version ONLY
+Existing Wine22, game saves, prefixes, rootfs: NOT ACCESSED
+Wineboot, Windows EXE, FEX, graphics, server session: NOT ATTEMPTED
+
+CHAROITE NEXT — WINE27 STAGED PE/NLS READ-ONLY VERIFY
+Existing Wine22, prefixes, game saves, rootfs: NOT ACCESSED
+Source archive SHA-256: PASS
+Staged Windows PE: 23/23 SHA-256 PASS
+Staged Wine NLS: 76/76 SHA-256 PASS
+Native binaries, Wineboot and Windows EXE: NOT EXECUTED
+RESULT: PASS — Wine27 99-file data gate; NOT runnable
+
+Wine27 native loader hash: PASS
+Wine27 native ntdll hash: PASS
+Wine27 native wineserver hash: PASS
+Native ELF source run: 41130899651
+Wine27 loader output: wine-10.0
+Wine27 wineserver output: Wine 10.0
+Both version-only native exits: 0
+Unbundled Windows PE imports: 20
+RESULT: PASS — matched Wine27 native --version gate; NOT runnable
+New Wine27 prefix and wineboot: NOT ATTEMPTED
+```
+
+**Interpreted factual progress:** v0.43 has now passed BOTH mandatory on-device gates: previously source-verified 23 PE + 76 NLS staged in new 0.6 cohort, and now all three same-source native ELF hashes plus native Wine loader and wineserver `--version` successfully exited 0. The new native loader and wineserver can execute version-only code on this phone. This **does not** prove `ntdll.so` initialization or PE wineboot; version-only probes did not start a wineserver session, create a prefix, install the runtime, run Windows EXEs, load graphics, use FEX, or support any game. The 20 unbundled PE import names remain observed only, not established fatal.
+
+**Next user-authorized diagnostic available in already-built v0.43 APK, no new GitHub code or APK needed:** In Next → **System**, tap **Test new v3 isolated Wineboot**; review the consent dialog and, if agreeing, tap **Run one-time v3 Wineboot probe**. It creates ONLY a fresh `charoite-next-wine27-first-prefix-v3` scratch generation under app-private no-backup storage; checks preceding data/native hash/version gates; copies 22 ARM64EC DLL + ARM64 wineboot.exe + 76 NLS with SHA checks; sets `CHAROITE_WINE27_NATIVE_DIR` to the source-matched new native ELF directory, `CHAROITE_WINE26_DATA_DIR` to verified `runtime/share/wine` inside this new scratch, and `WINEPREFIX` to a new prefix under scratch; runs only Wineboot `-i` bounded by 25s, and requests wineserver stop scoped to this new prefix. It reports Wineboot output/exit, whether new private prefix and `system.reg` exist, and PASS only if exit 0 and both `system.reg` and `user.reg` exist. User must share FULL output verbatim; if it fails, preserve v3 scratch and DO NOT rerun or clear the new/old scratch, rootfs, games, saves or prefixes. If it passes, prefix initialization is a milestone, **not** Windows game readiness.
+
+**Preservation policy:** No uninstall, data clear, migrating, rewriting, or reuse of v1/v2 scratch, stable Portal `com.charoite`, existing Wine22/26, installed games, saves or prefixes. The experimental Next v0.43 `com.charoitx` [signed APK run 41137841735/artifact 13017520822](https://github.com/rgarn023/CharoitePortal/actions/runs/41137841735/artifacts/13017520822) remains current. Next engineering intervention must be driven by actual v3 report: missing NLS, native linker/NTDLL, PE dependencies, wineserver, or registry initialization failure as observed, not hypothesized.
 
 ---
 

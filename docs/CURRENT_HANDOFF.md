@@ -2213,4 +2213,18 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 124. October 30, 2026 — implemented experimental isolated Wine28 v9 built-in Wineboot lookup, pending CI
+
+**v8 actual phone failure (already recorded in section 123):** source-match hashes PASS, live foreground wineserver socket/lock, ARM64 Wineboot/NTDLL PE images mapped, but Wine automatic internal `wineboot --init` failed before outer `wineboot.exe --help`. `kernel32.dll` still c0000135, PE exit code 53; corrected search root and verified staged kernel32 file alone were insufficient. `apisetschema.dll` remains missing. No v8 scratch modified or retried. All v1-v8 data protected.
+
+**Pinned source rationale:** `dlls/ntdll/unix/env.c` builds initial process parameters by calling `run_wineboot()` with `WINEBOOTSTRAPMODE=1`, creating `C:\windows\system32\wineboot.exe --init` BEFORE the requested outer `--help` runs. In Wine ARM64 loader, built-in DLL/EXE search uses `/aarch64-windows` appended to WINEDLLDIR roots derived from `WINEDLLPATH`. Old v8 had ARM64 `wineboot.exe` only in `arm64-windows`, not in the built-in ARM64 leaf. Missing internal Wineboot can allow bootstrap-mode teardown and cause subsequent `kernel32 c0000135` even if that kernel32 file is present. **Hypothesis not proven**, may be other fatal dependency or code issues.
+
+**New Next v0.52 code:** `CharoiteWine28V9BuiltinBootstrapProbe.java` is an opt-in, single-use v9 diagnostic. NEW private `no_backup/charoite-next-wine28-pe-help-v9-builtin-boot` scratch only, refuses repeat after scratch exists. Verifies 99 PE/NLS assets, 3 source-matched native Wine28 hashes/version probes. Copies exactly 22 ARM64X DLLs under `runtime/lib/wine/aarch64-windows`, 76 NLS and source-verified ARM64 `wineboot.exe` under `runtime/lib/wine/arm64-windows`, PLUS **SECOND independent SHA-256 verified copy** of SAME ARM64 Wineboot at `runtime/lib/wine/aarch64-windows/wineboot.exe`. `WINEDLLPATH` points to parent `runtime/lib/wine`; original native ELF and PE NTDLL override unchanged. Foreground wineserver -f -d limited to 5s socket/lock startup; outer source-matched `wineboot.exe --help` limited to 12s with capped PE/server logs. **WINE MAY AUTOMATICALLY EXECUTE INTERNAL `wineboot --init` in the NEW disposable v9 prefix**, may create v9-only registry/drive files. This is explicitly warned in UI `System → Test Wine28 built-in Wineboot lookup (one-shot v9)`; user must consent. Neither new v9 diagnostic nor code modifications read/alter v1-v8, Portal, stable Wine22, installed games, user prefixes or saves. Preserve scratch even on failure. No automatic deletion, no game runtime or supported Windows apps claimed.
+
+**CI status as of authoring:** new source commit `3b5be4858a3d9c0890e82db81b5ff57c53699d47`; Next version 0.52, app versionCode 83, same package `com.charoitx`, add safety regressions and source attribution. CI must prove test suite, Gradle, Wine28 hashes and existing signing cert before calling APK verified.
+
+**Next:** verify run and direct signed GitHub Actions APK artifact; install APK *over* existing Next without clearing/uninstalling, consent to ONE v9 new scratch test, copy entire log. No v9 device execution yet.
+
+---
+
 **End of current Charoite Portal handoff.**

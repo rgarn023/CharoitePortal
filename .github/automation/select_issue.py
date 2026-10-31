@@ -29,6 +29,15 @@ def eligible(issue, comments, branch_exists=False):
         report_id, data = validate(issue.get("title", ""), issue.get("body", ""))
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
         return None
+    # The accepted phone envelope has an EXACT, pre-defined structure.
+    # Untrusted appended issue text is never allowed to become agent input.
+    body = issue["body"]
+    raw = body.splitlines()[2]
+    expected = ("Automated Charoite Next phone diagnosis. Sanitized JSON only.\n\n"
+                + raw + "\n\nReport ID " + report_id
+                + ". Wine v9 was not executed or retried.")
+    if body != expected:
+        return None
     if not (data["internal_child_failed"] and data["pe_kernel32_missing"]):
         return None
     authenticated = False

@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-REPO = ROOT.parents[0]
+ROOT = Path(__file__).resolve().parents[1]
+REPO = ROOT.parents[1]
 def load(name):
     spec = importlib.util.spec_from_file_location(name, ROOT / (name + ".py"))
     module = importlib.util.module_from_spec(spec)

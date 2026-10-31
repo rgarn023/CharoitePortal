@@ -56,8 +56,8 @@ public final class CharoiteWine28V9Forensics {
                 || s.contains("status=c0000135")
                 || s.contains("status=c000000f")
                 || s.contains("error:") || s.contains("failed")
-                || s.contains(" = NO_SUCH_FILE")
-                || s.contains(" = NOT_IMPLEMENTED");
+                || s.contains(" = no_such_file")
+                || s.contains(" = not_implemented");
     }
 
     private static void inspect(StringBuilder out, File scratch, String filename,

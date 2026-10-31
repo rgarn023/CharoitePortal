@@ -861,9 +861,10 @@ jobs:
           done
           cp next-generation/stage_wine27.py legal-bundle/stage_wine27.py
           cp next-generation/stage_wine27_native.py legal-bundle/stage_wine27_native.py
-          for file in CharoiteWine28Stage.java CharoiteWine28NativeGate.java CharoiteWine28V5Trace.java CharoiteWine28V5Forensics.java CharoiteWine28V6ServerProbe.java CharoiteWine28V7PeHelpProbe.java CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java CharoiteWine28V9Forensics.java; do
+          for file in CharoiteWine28Stage.java CharoiteWine28NativeGate.java CharoiteWine28V5Trace.java CharoiteWine28V5Forensics.java CharoiteWine28V6ServerProbe.java CharoiteWine28V7PeHelpProbe.java CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java; do
             cp "next-generation/$file" "legal-bundle/$file"
           done
+          cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-28-index.json legal-bundle/wine-bootstrap-28-index.json

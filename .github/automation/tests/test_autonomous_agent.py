@@ -106,7 +106,8 @@ class WorkflowContract(unittest.TestCase):
         for term in ("vars.CHAROITE_AGENT_ENABLED == 'true'",
                      "secrets.OPENAI_API_KEY", "openai/codex-action@v1",
                      "permission-profile: ':workspace'",
-                     "schedule:", "workflow_dispatch:",
+                     "workflow_dispatch:", "paid_api_consent:",
+                     "inputs.paid_api_consent == true",
                      "cancel-in-progress: false", "contents: read",
                      "persist-credentials: false",
                      "select_issue.py", "guard_patch.py export",
@@ -115,6 +116,7 @@ class WorkflowContract(unittest.TestCase):
                      "gh pr create --draft", "issues: write",
                      "git apply --index"):
             self.assertIn(term, AGENT)
+        self.assertNotIn("  schedule:", AGENT)
         self.assertEqual(AGENT.count("secrets.OPENAI_API_KEY"), 1)
         self.assertNotIn("git push origin HEAD:main", AGENT)
         self.assertNotIn("gh pr merge", AGENT)

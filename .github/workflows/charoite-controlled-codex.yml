@@ -1,14 +1,19 @@
 name: Charoite Next Controlled Codex Fix Agent
+# COST-SAFE: no schedule. The paid Codex workflow can run ONLY by manual
+# dispatch with BOTH explicit paid consent and the separate repository flag.
+# Normal phone reports/CI never invoke OpenAI API.
 on:
-  schedule:
-    # When explicitly enabled, inspect at most ONE validated report per run.
-    - cron: '17 */3 * * *'
   workflow_dispatch:
     inputs:
       issue_number:
         description: 'Optional already-validated phone issue number'
         required: false
         type: string
+      paid_api_consent:
+        description: 'I explicitly authorize separately billed OpenAI API use for this ONE run'
+        required: true
+        default: false
+        type: boolean
 
 # Public repo stays public. No new mobile Wine execution or APK installation.
 permissions: {}
@@ -18,8 +23,8 @@ concurrency:
 
 jobs:
   find_verified_report:
-    # Opt-in kill-switch. Absent by default: NO AI/API charges.
-    if: vars.CHAROITE_AGENT_ENABLED == 'true'
+    # No automatic invocation. Both flags MUST be true for any paid work.
+    if: vars.CHAROITE_AGENT_ENABLED == 'true' && inputs.paid_api_consent == true
     runs-on: ubuntu-latest
     timeout-minutes: 4
     permissions:

@@ -1,6 +1,6 @@
 # Charoite Next — Opt-in automated phone diagnostics (first milestone)
 
-Status: signed Next Android APK **v0.56 VERIFIED** (Actions 41162857377, 237 tests PASS, com.charoitx versionCode 87, signing unchanged). **Phone upload end-to-end VERIFIED:** sanitized [Issue #1](https://github.com/rgarn023/CharoitePortal/issues/1) was uploaded from the Galaxy; [Actions intake 41163400308](https://github.com/rgarn023/CharoitePortal/actions/runs/41163400308) validated/classified Wineboot child startup failure and posted a bot comment. v0.56 resolved AndroidKeyStore IV initialization and dialog contrast. Modern Wine28 remains unbootable; controlled agent development workflow is now installed but disabled pending separate API credential and repository enable variable.
+Status: signed Next Android APK **v0.56 VERIFIED** (Actions 41162857377, 237 tests PASS, com.charoitx versionCode 87, signing unchanged). **Phone upload end-to-end VERIFIED:** sanitized [Issue #1](https://github.com/rgarn023/CharoitePortal/issues/1) was uploaded from the Galaxy; [Actions intake 41163400308](https://github.com/rgarn023/CharoitePortal/actions/runs/41163400308) validated/classified Wineboot child startup failure and posted a bot comment. v0.56 resolved AndroidKeyStore IV initialization and dialog contrast. Modern Wine28 remains unbootable. **Current decision: no separately billed OpenAI API usage.** Continue through chat-led GitHub development, free-of-OpenAI-API issue classification and normal CI. The former scheduled Codex workflow is now manual-only, doubly opt-in and not required.
 
 ## Purpose
 Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new System tab button, "Automatic phone diagnostics (GitHub opt-in)", prepares a strictly allowlisted, read-only report and, after explicit enrollment, sends it automatically to PUBLIC GitHub Issues in rgarn023/CharoitePortal.
@@ -34,9 +34,10 @@ Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new Sys
 ## Disable or revoke
 Open the same System reporter settings, choose Disable / Close to remove the stored encrypted token and cancel scheduled reporting. To invalidate the credential globally, revoke the token in GitHub Settings > Developer settings > Personal access tokens. If app data is cleared or the keystore key is lost, re-enroll with a new token (never clear data solely to configure reporting).
 
-## Remaining milestones for near hands-off 1.0 development
+## Remaining milestones — no paid AI API route
 - **DONE / VERIFIED:** signed v0.56 APK, real phone upload (Issue #1), GitHub Actions validated intake (run 41163400308).
-- Expand allowlisted reports to new approved isolated test generations (never rerun consumed scratch).
-- **CODE INSTALLED, NOT ENABLED:** the controlled Codex GitHub Actions pipeline can select validated reports and propose draft code-fix PRs after the repository owner sets `OPENAI_API_KEY` and `CHAROITE_AGENT_ENABLED=true`. See [.github/automation/README.md](https://github.com/rgarn023/CharoitePortal/blob/main/.github/automation/README.md). Actual Codex execution and draft PR creation still UNVERIFIED.
+- **CURRENT DEVELOPMENT MODE:** continue Wine28 loader investigation and code fixes during active ChatGPT conversations through connected GitHub; run CI and publish signed GitHub Actions APK artifacts. No paid API secret or repo variable needed. Existing phone diagnostics/triage keep working.
+- **COST CONTROL:** the experimental Codex workflow has NO recurring schedule. Manual paid operation requires three explicit owner choices (secret, enabling variable and dispatch consent); leave all unset. See [.github/automation/README.md](https://github.com/rgarn023/CharoitePortal/blob/main/.github/automation/README.md).
+- Expand allowlisted reports to new explicitly approved isolated test generations; never rerun consumed v1–v9 scratch.
 - Add verified APK update notices and user-safe installation. Full unattended app installation is NOT promised on Android.
 - Gate eventual 1.0 against a tested compatibility matrix including Wine prefix bootstrap, Windows app launch, x86/x64 translation, graphics, audio, input, game installs and safe persistence.

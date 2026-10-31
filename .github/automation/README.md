@@ -1,65 +1,32 @@
-# Charoite Next — controlled agent workflow
+# Charoite Next — cost-free, chat-led development (CURRENT)
 
-**Current status:** Source and offline guards are installed. The actual Codex
-API call and PR creation are **OFF** unless the repository owner explicitly
-enables them. The phone's existing GitHub issue upload/triage keeps working.
+**Decision (October 30, 2026):** The owner chose to avoid separately billed OpenAI API usage. The normal development route is **semi-automated and uses NO OpenAI API key**.
 
-## Owner's one-time setup (NEVER put API keys in an issue or APK)
+- **Already verified:** Charoite Next v0.56 sends explicitly opted-in, sanitized read-only phone diagnostics to public GitHub Issue #1; GitHub Actions validates and classifies them without invoking OpenAI API.
+- **ChatGPT in an active conversation:** inspects the repository and classified issue, researches the Wine28 failure, edits code directly on `main` using connected GitHub tools, and checks Actions build/test results. ChatGPT does not keep developing between chats.
+- **GitHub Actions:** runs static regressions and can build signed APK artifacts from ordinary source updates. Avoid unneeded CI runs for documentation-only changes by using `[skip ci]`.
+- **User:** installs verified APK updates in place and explicitly approves any new isolated Wine experiment. Never rerun v1–v9 scratch or touch prefixes, games, saves or rootfs.
+- **No API key needed.** Do NOT configure `OPENAI_API_KEY` or `CHAROITE_AGENT_ENABLED` for this free workflow.
 
-1. Obtain a separately billed OpenAI API key at
-   https://platform.openai.com/api-keys (ChatGPT subscriptions do not
-   automatically supply API billing).
-2. Open https://github.com/rgarn023/CharoitePortal/settings/secrets/actions
-   and add a **repository Actions secret** named `OPENAI_API_KEY`. Never
-   insert the key in source, an Android app, issue, chat message or workflow
-   variable.
-3. In https://github.com/rgarn023/CharoitePortal/settings/actions
-   check whether GitHub Actions is permitted to **create pull requests**
-   using the built-in `GITHUB_TOKEN`. If this restriction prevents draft
-   PR creation, enable that repository setting; no automatic approvals or
-   merges are performed.
-4. Only after reviewing the scope/cost controls, create a repository
-   Actions **variable** named `CHAROITE_AGENT_ENABLED` with the literal
-   value `true` at
-   https://github.com/rgarn023/CharoitePortal/settings/variables/actions .
-   Set it to `false` or delete it at any time to disable AI calls.
+## Paid agent parked, not active
 
-Once enabled, GitHub periodically checks **at most one** eligible, owner-
-submitted, schema-verified and GitHub-bot-classified diagnostic issue every
-three hours. For an eligible issue, the repository's Codex Action investigates
-the known Wine28 child-process loader problem and may propose a small patch.
-Only allowlisted Wine Java, versioned Wine patches and matching tests may
-cross the patch boundary. The next job re-checks the patch independently and
-may open a **DRAFT** pull request. There is no automatic merging or release,
-no automatic Android installation, and no Wine execution or scratch cleanup.
+The experimental `.github/workflows/charoite-controlled-codex.yml` is retained for possible future use but **its scheduled trigger has been REMOVED**. It can now reach a Codex API action only after an owner deliberately:
+1. Obtains and adds a separately billed `OPENAI_API_KEY` repository secret;
+2. Sets the repository Actions variable `CHAROITE_AGENT_ENABLED=true`; **and**
+3. Manually dispatches the workflow and checks `paid_api_consent=true` for that specific run.
 
-If Codex finds insufficient evidence and produces no change, the issue is
-marked as analyzed and is not charged again automatically. A draft PR branch
-or a previous agent-result comment also blocks repeated analysis.
+None of these steps is necessary or recommended for current cost-free development. No autonomous paid developer, auto-merge, auto-release, Wine execution or unattended phone install runs in this mode. GitHub Actions platform quotas and mobile/network charges are separate from OpenAI API billing.
 
-## Workflow files
+## Existing safe automation files
 
-- `charoite-agent-pr-check.yml` — static Next tests on draft pull requests,
-  read-only GitHub permissions, no device/Wine execution or signing secrets.
+- `charoite-agent-selftest.yml` — offline security/patch scope contract tests; no API, no Wine.
+- `charoite-agent-pr-check.yml` — static Next tests for draft PRs; no API or signing key.
+- `select_issue.py` — selects only owner-authored, schema-verified, GitHub-bot-classified reports.
+- `guard_patch.py` — validates minimal Wine source/patch/test changes, rejecting sensitive paths.
+- `charoite-controlled-codex.yml` — dormant, **manual-only** separately billed option, not the current development path.
 
-- `charoite-controlled-codex.yml` — scheduled and manually dispatchable,
-  guarded by the repository variable. The OpenAI API key exists ONLY in
-  the Codex action step, never in the PR-writing job.
-- `select_issue.py` — accepts only real `rgarn023` phone issues whose exact
-  canonical JSON and hashed ID were validated by GitHub Actions.
-- `guard_patch.py` — checks path allowlist, mode, sizes, count, diff/check,
-  rejects deletion/binary/symlink, and re-verifies after applying the patch.
-- `charoite-agent-selftest.yml` — offline, **no secret**, no AI spending,
-  no Wine execution; tests eligibility, allowed paths and workflow structure.
+## Current engineering focus
 
-## Safety and status
+Wine28 ARM64 wineboot internal child still fails `get_new_process_info success=0 exit_code=1`; parent `kernel32.dll c0000135` remains unresolved. Affected v9 evidence is read-only and preserved. Investigate pinned loader paths/import resolution using repository source and safely selected diagnostics, then design a separately approved NEW scratch-generation test only when justified.
 
-Do NOT rerun v1–v9 Wine tests. Preserve the original stable Portal, Wine22,
-all games, prefixes, saved data and rootfs. The modern Wine28 startup
-`get_new_process_info success=0 exit_code=1` and `kernel32 c0000135`
-remain unresolved until a real, independently verified fix is tested.
-The GitHub repository remains PUBLIC. Every draft PR requires review.
-The system cannot run device hardware checks or install APKs silently.
-
-The confirmed phone diagnostic is Issue #1:
-https://github.com/rgarn023/CharoitePortal/issues/1 .
+The public repo remains https://github.com/rgarn023/CharoitePortal; device evidence: https://github.com/rgarn023/CharoitePortal/issues/1 ; current canonical handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md .

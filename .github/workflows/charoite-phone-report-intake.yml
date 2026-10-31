@@ -1,0 +1,37 @@
+name: Charoite Next Phone Report Intake
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  classify-device-report:
+    if: startsWith(github.event.issue.title, '[device-report] Wine28 v9 ') && github.event.issue.user.login == 'rgarn023'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate bounded report and classify failure
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import importlib.util
+          from pathlib import Path
+          path = "next-generation/triage_phone_report.py"
+          spec = importlib.util.spec_from_file_location("charoite_intake", path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          result = module.triage(os.environ["ISSUE_TITLE"], os.environ["ISSUE_BODY"])
+          Path("/tmp/charoite-phone-triage-comment.txt").write_text(result, encoding="utf-8")
+          print(result)
+          PY
+      - name: Comment with safe deterministic classification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/charoite-phone-triage-comment.txt

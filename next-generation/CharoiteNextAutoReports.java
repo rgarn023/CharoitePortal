@@ -184,10 +184,42 @@ public final class CharoiteNextAutoReports {
                 StandardCharsets.UTF_8);
     }
 
+    /** Every reason here is safe to display: no part of the secret is echoed. */
+    private static final class TokenInputException extends Exception {
+        TokenInputException(String explanation) { super(explanation); }
+    }
+
+    private static String normalizeFineGrainedToken(String input) throws TokenInputException {
+        if (input == null || input.trim().isEmpty())
+            throw new TokenInputException(
+                    "Paste the actual GitHub fine-grained personal access token, not its name.");
+        String value = input.trim();
+        // Password managers sometimes copy the Authorization header or a
+        // quoted secret. Accept only these harmless wrappers, not arbitrary URLs.
+        if (value.regionMatches(true, 0, "Bearer ", 0, 7))
+            value = value.substring(7).trim();
+        if (value.length() >= 2 && value.startsWith("\"")
+                && value.endsWith("\""))
+            value = value.substring(1, value.length() - 1).trim();
+        if (value.startsWith("ghp_"))
+            throw new TokenInputException(
+                    "This is a classic token (ghp_). Create a fine-grained token with Issues: read/write.");
+        if (value.startsWith("http://") || value.startsWith("https://"))
+            throw new TokenInputException(
+                    "You pasted a web address. GitHub shows the token value once when it is generated.");
+        if (!value.startsWith("github_pat_"))
+            throw new TokenInputException(
+                    "Expected a fine-grained token starting github_pat_. Use the value copied when GitHub created it.");
+        // Format checks deliberately do not guess GitHub's exact token length.
+        // GitHub's API, not this app, verifies authenticity and permissions.
+        if (!value.matches("github_pat_[A-Za-z0-9_]{10,256}"))
+            throw new TokenInputException(
+                    "The fine-grained token looks incomplete or contains invalid characters. Copy its entire value.");
+        return value;
+    }
+
     private static void configure(Context ctx, String githubToken) throws Exception {
-        String cleaned = githubToken.trim();
-        if (!cleaned.matches("github_pat_[A-Za-z0-9_]{30,}"))
-            throw new IllegalArgumentException("Requires a fine-grained GitHub token");
+        String cleaned = normalizeFineGrainedToken(githubToken);
         sanitizedReport(ctx);
         String encrypted = protect(cleaned);
         if (!prefs(ctx).edit().putString(TOKEN, encrypted)
@@ -290,10 +322,12 @@ public final class CharoiteNextAutoReports {
                 + "rgarn023/CharoitePortal with Issues: read/write. The token is "
                 + "encrypted with Android Keystore, never bundled in an APK. "
                 + "A summary (not raw phone traces) becomes a PUBLIC issue.\n\n"
+                + "GitHub displays the token VALUE only once when it is generated. "
+                + "Paste that value here (it begins github_pat_), not its name or URL. "
                 + "Preview first; uploads are disabled until you opt in.");
         panel.addView(description);
         EditText token = new EditText(activity);
-        token.setHint("Fine-grained Issues token");
+        token.setHint("Paste GitHub token beginning github_pat_");
         token.setSingleLine(true);
         token.setInputType(InputType.TYPE_CLASS_TEXT
                 | InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -312,8 +346,17 @@ public final class CharoiteNextAutoReports {
                     dialog.dismiss();
                     new Thread(() -> send(activity.getApplicationContext()),
                             "CharoiteFirstReport").start();
+                } catch (TokenInputException ex) {
+                    // Only our static user-guidance strings are displayed.
+                    description.setText("Not enabled: " + ex.getMessage()
+                            + "\\n\\nThe repository stays public. No report was sent.");
+                    token.setError(ex.getMessage());
                 } catch (Exception ex) {
-                    token.setError("Could not enable: " + ex.getClass().getSimpleName());
+                    description.setText("Not enabled: could not read the preserved v9 "
+                            + "report or securely save the token. Open Preview first. "
+                            + "Technical type: " + ex.getClass().getSimpleName()
+                            + ". No report was sent.");
+                    token.setError("Reporting is not enabled.");
                 }
             });
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x ->

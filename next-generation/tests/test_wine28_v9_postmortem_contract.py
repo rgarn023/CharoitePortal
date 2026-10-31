@@ -16,6 +16,8 @@ class Wine28V9PostmortemContract(unittest.TestCase):
             'No Wine/Wineboot/wineserver execution',
             'env=[redacted]', 'read-only', 'new_process()',
             'kernel32.dll', 'apisetschema.dll',
+            's.contains(" = no_such_file")',
+            's.contains(" = not_implemented")',
             'Wineboot remains unproven'):
             self.assertIn(marker.lower(), F.lower())
         for forbidden in (

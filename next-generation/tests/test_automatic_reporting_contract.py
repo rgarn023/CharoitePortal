@@ -29,6 +29,20 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
             self.assertIn(marker, AUTO)
         self.assertNotIn('Bearer github_pat_A', AUTO)
         self.assertNotIn('setInstanceFollowRedirects(true)', AUTO)
+    def test_keystore_generates_nonce_and_dialog_contrast(self):
+        # Regression: Samsung AndroidKeyStore rejects caller-provided GCM IV
+        # when randomizedEncryptionRequired(true) is part of the key spec.
+        self.assertIn('setRandomizedEncryptionRequired(true)', AUTO)
+        self.assertIn('c.init(Cipher.ENCRYPT_MODE, key());', AUTO)
+        self.assertIn('byte[] iv = c.getIV();', AUTO)
+        self.assertIn('new GCMParameterSpec(128, iv)', AUTO)  # decrypt only
+        self.assertNotIn('new SecureRandom().nextBytes(iv)', AUTO)
+        self.assertNotIn('c.init(Cipher.ENCRYPT_MODE, key(), new GCMParameterSpec', AUTO)
+        self.assertIn('dialog.getWindow().setBackgroundDrawable(', AUTO)
+        self.assertIn('description.setTextColor(android.graphics.Color.WHITE)', AUTO)
+        self.assertIn('token.setTextColor(android.graphics.Color.WHITE)', AUTO)
+        self.assertIn('token.setHintTextColor(android.graphics.Color.LTGRAY)', AUTO)
+        self.assertIn('InvalidAlgorithmParameterException', AUTO)
     def test_fixed_public_endpoint_allowlist_data_and_no_running_wine(self):
         for item in ('https://api.github.com/repos/rgarn023/CharoitePortal/issues',
                      'getNoBackupFilesDir()', 'v9-wine-pe-help.log',
@@ -53,13 +67,13 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                      'CharoiteNextAutoReports.schedule(this)', 'JobService',
                      'android.permission.BIND_JOB_SERVICE',
                      'Automatic phone diagnostics (GitHub opt-in)',
-                     'versionCode 86', '11.2-next.0.55'):
+                     'versionCode 87', '11.2-next.0.56'):
             if item == 'JobService':
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
-        self.assertIn('0.55 (clear GitHub token setup errors', RUNTIME)
-        self.assertIn("versionCode='86' versionName='11.2-next.0.55'", WF)
+        self.assertIn('0.56 (AndroidKeyStore IV + dialog contrast fixed', RUNTIME)
+        self.assertIn("versionCode='87' versionName='11.2-next.0.56'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 
 if __name__=="__main__":

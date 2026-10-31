@@ -2107,4 +2107,16 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 115. October 30, 2026 — Wine28 v5 first-prefix exit-127; read-only v0.48 forensic build pending
+
+**Actual Galaxy S26 Ultra v0.47 report:** v5 one-shot Wine28 Wineboot `-i` finished within 25 seconds with **exit 127**. New v5 private prefix folder created, but **system.reg and user.reg both absent**. Bounded output contained only `wine: created the configuration directory .../charoite-next-wine28-first-prefix-v5-ntdll-fix/prefix`. No timeout or 8 MiB log overflow. Source archive, 99 staged PE/NLS files, 3 native ELF hashes and 2 native version probes all PASS; scratch copy 22 ARM64EC DLL + 1 ARM64 wineboot.exe + 76 NLS SHA-256 PASS. Environment selected `WINELOADERNOEXEC=1`, source-matched `CHAROITE_WINE28_NATIVE_DIR`, SHA-verified `CHAROITE_WINE28_PE_DIR`, private `CHAROITE_WINE26_DATA_DIR`; isolated wineserver stop requested. Existing v1/v2/v3/v4 scratch, Wine22, stable Portal, games, user prefixes, saves and rootfs NOT ACCESSED. **Never repeat v5 or delete scratch.**
+
+**Interpretation:** Prefix creation but no registries means NO usable Windows prefix. Exit 127 and a solitary log line do **not** establish the failing PE DLL, Unix library, loader handoff, or server. The 20 unbundled PE import names are not proven fatal; the Patch 0900 fix has not been established as working on device.
+
+**New engineering change awaiting CI validation:** Add `next-generation/CharoiteWine28V5Forensics.java`, using canonical-path/symlink safeguards to read **only** the existing v5 scratch's file presence, prefix directory entries, static PE machine/direct-import data using existing bounded PE parser, and bounded log heads/tails. **No Wine execution, writes, reattempt, new scratch/prefix or cleanup.** Add explicitly confirmed, copyable **System → Inspect failed Wine28 v5 bootstrap (read-only)** button. Next metadata **11.2-next.0.48** / versionCode **79**, same `com.charoitx` package and signing; updated all previous version assertions and adds new safety regression test; include source attribution. This is a diagnostic—not a Wineboot fix. Do not claim APK built until CI succeeds.
+
+**Next:** Inspect next GitHub Actions run and verify signed APK, regressions and signing continuity before providing its actual artifact ID. Install updated Next APK over existing data without uninstall or clearing. On phone use ONLY the read-only v5 inspection, paste full report; retain v1–v5 evidence. No v6 Wineboot or FEX/graphics/Steam/Battle.net/anti-cheat capability established.
+
+---
+
 **End of current Charoite Portal handoff.**

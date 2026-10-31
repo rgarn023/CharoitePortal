@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.47"')
-text = text.replace("versionCode 33", "versionCode 78")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.48"')
+text = text.replace("versionCode 33", "versionCode 79")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -143,7 +143,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine27V4Trace.java",
                  "CharoiteWine28Stage.java",
                  "CharoiteWine28NativeGate.java",
-                 "CharoiteWine28V5Trace.java"):
+                 "CharoiteWine28V5Trace.java",
+                 "CharoiteWine28V5Forensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -857,6 +858,44 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine28V5);
+
+        android.widget.Button wine28V5Forensics = new android.widget.Button(this);
+        wine28V5Forensics.setText("Inspect failed Wine28 v5 bootstrap (read-only)");
+        wine28V5Forensics.setAllCaps(false);
+        wine28V5Forensics.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Inspect retained Wine28 v5 evidence?")
+                .setMessage("Reads only the existing already-used v5 scratch: "
+                    + "file presence, static PE headers/direct imports, bounded "
+                    + "directory names and limited Wineboot/wineserver logs. "
+                    + "No native Wine execution, new prefix, writes or cleanup; "
+                    + "no prior v1/v2/v3/v4 scratch, Portal, games or saves. "
+                    + "The report may contain app-private file paths.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Inspect v5 without changing files", (d, which) -> {
+                    wine28V5Forensics.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28V5Forensics.run(this);
+                        runOnUiThread(() -> {
+                            wine28V5Forensics.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 v5 read-only postmortem")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 v5 read-only postmortem", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28V5Forensics").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28V5Forensics);
 
 
 

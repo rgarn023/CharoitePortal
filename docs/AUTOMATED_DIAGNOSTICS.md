@@ -1,12 +1,13 @@
 # Charoite Next — Opt-in automated phone diagnostics (first milestone)
 
-Status: signed Next Android APK v0.55 VERIFIED by GitHub Actions 41159472198 (236 tests PASS, package com.charoitx versionCode 86, unchanged signing certificate); phone-side token enrollment and actual GitHub issue upload are NOT yet verified. Earlier v0.54 strict-format failure is corrected in v0.55.
+Status: signed Next Android APK **v0.56 VERIFIED** by GitHub Actions **41162857377** (237 tests PASS, package com.charoitx versionCode 87, signing certificate unchanged). Phone-side Keystore enrollment and actual GitHub issue upload still UNVERIFIED. v0.56 fixes the AndroidKeyStore randomized-GCM-IV exception and the nearly invisible white-on-white dialog in v0.55. V0.54 token-format validation error was corrected earlier.
 
 ## Purpose
 Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new System tab button, "Automatic phone diagnostics (GitHub opt-in)", prepares a strictly allowlisted, read-only report and, after explicit enrollment, sends it automatically to PUBLIC GitHub Issues in rgarn023/CharoitePortal.
 
 ## Troubleshooting the Enable button
 
+- If v0.55 showed **Could not enable: InvalidAlgorithmParameterException**, this was a Charoite Android Keystore implementation bug, **not a bad token**. Update in place to **v0.56**; the app now lets Android Keystore generate its own GCM IV and displays the dialog on a readable dark background. **Do NOT regenerate the same token again** solely for this error, and never share its value in chat.
 - In Next v0.54, **Could not enable: IllegalArgumentException** is the app's own over-restrictive token-format rejection; it happens BEFORE any upload. No need to uninstall/clear data or paste a credential into chat.
 - Next **v0.55** makes this actionable: empty field, URL, classic `ghp_` token, non-fine-grained value and incomplete token show distinct safe messages. It accepts a complete `github_pat_` fine-grained token with an ordinary password-manager `Bearer ` or quote wrapper. GitHub API, not the app's local pattern, verifies the value and permission.
 - Paste **the actual generated token value** (starts `github_pat_`) into the phone, NOT the token NAME, creation link, or Settings page. GitHub only shows the value when it is generated. If the value was not saved, regenerate a token and revoke the old one rather than trying to recover it.
@@ -14,7 +15,7 @@ Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new Sys
 - Never share any real token or a screenshot showing its value in chat, public GitHub issues, or logs.
 
 ## One-time device enrollment
-1. Install the verified Charoite Core Next v0.55 APK over com.charoitx (GitHub Actions artifact https://github.com/rgarn023/CharoitePortal/actions/runs/41159472198/artifacts/13026397631). Do not uninstall or clear storage; leave com.charoite (stable Portal) alone.
+1. Install the verified Charoite Core Next v0.56 APK over com.charoitx (GitHub Actions artifact https://github.com/rgarn023/CharoitePortal/actions/runs/41162857377/artifacts/13027808207). Do not uninstall or clear storage; leave com.charoite (stable Portal) alone.
 2. Visit https://github.com/settings/personal-access-tokens/new while signed into the GitHub account authorized to create issues in rgarn023/CharoitePortal. Create a fine-grained token restricted to this one repository with the ONLY added repository permission "Issues: Read and write". Use a reasonable expiration. Do NOT give the token Contents, Actions, Administration or Workflows permission.
 3. On the phone, in Charoite Next > System > "Automatic phone diagnostics (GitHub opt-in)", select Preview to inspect the precise data (JSON) that would become public.
 4. Enter the fine-grained token DIRECTLY ON THE PHONE. Never paste it into ChatGPT, a GitHub issue, an APK or a commit. Tap Enable.

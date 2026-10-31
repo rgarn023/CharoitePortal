@@ -2287,4 +2287,16 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 130. October 30, 2026 — autonomy goal and practical limits
+
+**Latest user clarification:** The desired reason for automatic phone diagnostics, GitHub reporting and an ongoing development system is to **speed the Charoite Core Next path to 1.0 with as little user involvement as possible**. Aim to eliminate manual log copy/paste, repetitive build checks and manually reporting every failed experiment. Repository stays **PUBLIC**, phone diagnostics are acceptable with sanitization; do not assume public publishing authorizes leaking secrets or personal data.
+
+**Concrete architecture:** Add an opted-in Next Android diagnostic collector with a schema, validation/redaction, bounded persistent offline/retry queue and an authenticated upload relay. Store or publish only sanitized diagnostic summaries, using public GitHub issues or Actions-compatible report triggers when appropriate. Avoid embedding credentials in the APK. GitHub Actions already builds, runs tests, checks signing and uploads APK artifacts on new source changes, but has **no attached phone test runner**, no current automatic reporting from Android, no persistent autonomous developer, and no unattended Android APK installer. Add an explicit backend and a **separately configured persistent development agent** to consume report IDs, analyze failures and propose/commit fixes, trigger CI and evaluate results. Build a phone-side verified update notification/check and controlled device-test mechanism. Never claim a standard ChatGPT chat continues working after the session ends. GitHub Actions cannot prove on-device Wine runtime functionality by itself.
+
+**Phasing:** (1) Automatic device diagnostic reporting with visible upload/off switch; (2) authenticated intake, structured failure indexing and CI notification; (3) persistent developer workflow capable of fixing code with tests/review/rollback; (4) secure update delivery and new opt-in bounded test generations; (5) measured closed-loop iterations and a realistic supported-app 1.0 test matrix. Require user involvement for initial enrollment/credentials and privacy review, occasional new destructive-risk test approvals, Android installation/update approvals when required, and exceptional device issues. Do **not** turn on arbitrary remote code execution, unattended destructive tests, auto-delete old scratch or auto-change stable Wine22/Portal prefixes, games, saves and rootfs. Leave v1-v9 evidence unchanged. No automation is currently implemented or enabled; this response is a plan only.
+
+**Next implementation task:** Design and implement the optional phone diagnostic reporting path first, then connect it to the PUBLIC GitHub repository through a safe authenticated relay. Keep v0.53 as the currently verified signed Next baseline; v9's child `get_new_process_info success=0 exit_code=1` and `kernel32 c0000135` remain unresolved.
+
+---
+
 **End of current Charoite Portal handoff.**

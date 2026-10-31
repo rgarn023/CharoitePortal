@@ -25,7 +25,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -165,13 +164,18 @@ public final class CharoiteNextAutoReports {
         return gen.generateKey();
     }
     private static String protect(String plain) throws Exception {
-        byte[] iv = new byte[12];
-        new SecureRandom().nextBytes(iv);
+        // AndroidKeyStore with randomized encryption REQUIRED must generate
+        // its own GCM IV. Providing a caller-made IV raises
+        // InvalidAlgorithmParameterException on supported Android devices.
+        // Read the provider-generated IV ONLY after successful init/encryption.
         Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-        c.init(Cipher.ENCRYPT_MODE, key(), new GCMParameterSpec(128, iv));
+        c.init(Cipher.ENCRYPT_MODE, key());
+        byte[] encrypted = c.doFinal(plain.getBytes(StandardCharsets.UTF_8));
+        byte[] iv = c.getIV();
+        if (iv == null || iv.length != 12)
+            throw new SecurityException("Invalid AndroidKeyStore GCM nonce");
         return Base64.getEncoder().encodeToString(iv) + ":"
-                + Base64.getEncoder().encodeToString(
-                        c.doFinal(plain.getBytes(StandardCharsets.UTF_8)));
+                + Base64.getEncoder().encodeToString(encrypted);
     }
     private static String unprotect(String saved) throws Exception {
         String[] pieces = saved.split(":", -1);
@@ -316,7 +320,11 @@ public final class CharoiteNextAutoReports {
         panel.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (16 * activity.getResources().getDisplayMetrics().density);
         panel.setPadding(pad, pad / 2, pad, pad / 2);
+        // The inherited activity theme mixes white dialog backgrounds with
+        // nearly white text. Explicit dark surfaces keep setup readable.
+        panel.setBackgroundColor(android.graphics.Color.rgb(31, 26, 45));
         TextView description = new TextView(activity);
+        description.setTextColor(android.graphics.Color.WHITE);
         description.setText(status(activity) + "\n\n"
                 + "One-time setup: a fine-grained GitHub token scoped ONLY to "
                 + "rgarn023/CharoitePortal with Issues: read/write. The token is "
@@ -328,6 +336,8 @@ public final class CharoiteNextAutoReports {
         panel.addView(description);
         EditText token = new EditText(activity);
         token.setHint("Paste GitHub token beginning github_pat_");
+        token.setTextColor(android.graphics.Color.WHITE);
+        token.setHintTextColor(android.graphics.Color.LTGRAY);
         token.setSingleLine(true);
         token.setInputType(InputType.TYPE_CLASS_TEXT
                 | InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -339,6 +349,10 @@ public final class CharoiteNextAutoReports {
                 .setNeutralButton("Preview", null)
                 .setNegativeButton("Disable / Close", null).create();
         dialog.setOnShowListener(v -> {
+            if (dialog.getWindow() != null)
+                dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                        android.graphics.Color.rgb(31, 26, 45)));
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x -> {
                 try {
                     configure(activity, token.getText().toString());
@@ -352,9 +366,14 @@ public final class CharoiteNextAutoReports {
                             + "\n\nThe repository stays public. No report was sent.");
                     token.setError(ex.getMessage());
                 } catch (Exception ex) {
-                    description.setText("Not enabled: could not read the preserved v9 "
-                            + "report or securely save the token. Open Preview first. "
-                            + "Technical type: " + ex.getClass().getSimpleName()
+                    String type = ex.getClass().getSimpleName();
+                    description.setText("Not enabled: "
+                            + ("InvalidAlgorithmParameterException".equals(type)
+                                ? "AndroidKeyStore could not initialize encryption. "
+                                  + "Please use the newest Charoite Next update."
+                                : "Could not read preserved v9 evidence or securely "
+                                  + "save the protected token. Open Preview first.")
+                            + " Technical type: " + type
                             + ". No report was sent.");
                     token.setError("Reporting is not enabled.");
                 }

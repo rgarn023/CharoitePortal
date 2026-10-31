@@ -1,0 +1,27 @@
+name: Charoite Agent Draft PR Static Verification
+on:
+  pull_request:
+    paths:
+      - 'next-generation/CharoiteWine*.java'
+      - 'next-generation/charoite-wine/patches/**'
+      - 'next-generation/tests/test_wine*.py'
+  workflow_dispatch:
+
+# Deliberately no signing key, token, uploads, Wine/device execution or merge.
+permissions:
+  contents: read
+
+jobs:
+  validate-proposal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install test imports (not Wine)
+        run: python3 -m pip install --user --break-system-packages --disable-pip-version-check Pillow==11.3.0 numpy opencv-python-headless imageio-ffmpeg
+      - name: Run Android-Next static regression contracts
+        run: python3 -m unittest discover -s next-generation/tests -p 'test_*.py' -v
+      - name: Assert this workflow did not use signing keys or a phone
+        run: echo 'CHAROITE_AGENT_PROPOSAL_STATIC_TESTS=PASS'

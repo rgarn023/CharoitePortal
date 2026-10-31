@@ -17,7 +17,17 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                      'setPersisted(false)', 'if (!enabled(ctx)) return',
                      'Last result:', 'showSettings(Activity activity)'):
             self.assertIn(item, AUTO)
-        self.assertNotIn('github_pat_', AUTO.replace('github_pat_[A-Za-z0-9_]{30,}', ''))
+        # The on-screen help must explicitly explain which token GitHub expects.
+        # It must not leak or embed an actual token value.
+        for marker in ('github_pat_[A-Za-z0-9_]{10,256}',
+                       'normalizeFineGrainedToken', 'TokenInputException',
+                       'Paste the actual GitHub fine-grained personal access token',
+                       'You pasted a web address',
+                       'This is a classic token (ghp_)',
+                       'No report was sent',
+                       'token.setError(ex.getMessage())'):
+            self.assertIn(marker, AUTO)
+        self.assertNotIn('Bearer github_pat_A', AUTO)
         self.assertNotIn('setInstanceFollowRedirects(true)', AUTO)
     def test_fixed_public_endpoint_allowlist_data_and_no_running_wine(self):
         for item in ('https://api.github.com/repos/rgarn023/CharoitePortal/issues',
@@ -43,13 +53,13 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                      'CharoiteNextAutoReports.schedule(this)', 'JobService',
                      'android.permission.BIND_JOB_SERVICE',
                      'Automatic phone diagnostics (GitHub opt-in)',
-                     'versionCode 85', '11.2-next.0.54'):
+                     'versionCode 86', '11.2-next.0.55'):
             if item == 'JobService':
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
-        self.assertIn('0.54 (opt-in auto phone diagnostics', RUNTIME)
-        self.assertIn("versionCode='85' versionName='11.2-next.0.54'", WF)
+        self.assertIn('0.55 (clear GitHub token setup errors', RUNTIME)
+        self.assertIn("versionCode='86' versionName='11.2-next.0.55'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 
 if __name__=="__main__":

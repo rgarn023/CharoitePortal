@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.51"')
-text = text.replace("versionCode 33", "versionCode 82")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.52"')
+text = text.replace("versionCode 33", "versionCode 83")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -147,7 +147,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V5Forensics.java",
                  "CharoiteWine28V6ServerProbe.java",
                  "CharoiteWine28V7PeHelpProbe.java",
-                 "CharoiteWine28V8LayoutProbe.java"):
+                 "CharoiteWine28V8LayoutProbe.java",
+                 "CharoiteWine28V9BuiltinBootstrapProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1029,6 +1030,53 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine28V8Layout);
+        android.widget.Button wine28V9Builtin = new android.widget.Button(this);
+        wine28V9Builtin.setText("Test Wine28 built-in Wineboot lookup (one-shot v9)");
+        wine28V9Builtin.setAllCaps(false);
+        wine28V9Builtin.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run ONE isolated Wine28 v9 built-in Wineboot probe?")
+                .setMessage("v8 had correct PE kernel32 location, but Wine's "
+                    + "automatic internal wineboot --init failed and requested "
+                    + "--help ended with kernel32 c0000135. Source code shows "
+                    + "the internal auto-init executable must be found at "
+                    + "WINEDLLPATH/aarch64-windows/wineboot.exe. This NEW v9 "
+                    + "test creates its own private scratch and duplicates "
+                    + "the verified ARM64 Wineboot into that builtin location, "
+                    + "with independent SHA-256 verification. IMPORTANT: "
+                    + "Wine WILL automatically attempt wineboot --init in "
+                    + "the NEW disposable v9 prefix before our requested "
+                    + "wineboot --help, and may create private registry/drive "
+                    + "files. Its live server and PE process have bounded "
+                    + "timeouts/logs. It does NOT run games and NEVER touches "
+                    + "v1-v8 scratch, existing user Wine prefixes, Portal, "
+                    + "rootfs, games or saves. Authorize ONCE; v9 scratch "
+                    + "is preserved and must NEVER be retried or deleted.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run ONE new v9 Wineboot lookup test", (d, which) -> {
+                    wine28V9Builtin.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28V9BuiltinBootstrapProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine28V9Builtin.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 v9 DLL layout")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 v9 DLL-layout probe", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28V9BuiltinBootstrapProbe").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28V9Builtin);
 
 
 

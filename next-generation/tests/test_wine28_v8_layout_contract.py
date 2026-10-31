@@ -38,7 +38,7 @@ class Wine28V8LayoutContract(unittest.TestCase):
                   'CharoiteWine28V8LayoutProbe.run(this)',
                   'versionCode 83', '11.2-next.0.52'):
             self.assertIn(x,UI)
-        self.assertIn('CharoiteWine28V8LayoutProbe.java; do',WF)
+        self.assertIn('CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java; do',WF)
         self.assertIn("versionCode='83' versionName='11.2-next.0.52'",WF)
 if __name__=="__main__":
     unittest.main()

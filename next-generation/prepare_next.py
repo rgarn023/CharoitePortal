@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.52"')
-text = text.replace("versionCode 33", "versionCode 83")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.53"')
+text = text.replace("versionCode 33", "versionCode 84")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -148,7 +148,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V6ServerProbe.java",
                  "CharoiteWine28V7PeHelpProbe.java",
                  "CharoiteWine28V8LayoutProbe.java",
-                 "CharoiteWine28V9BuiltinBootstrapProbe.java"):
+                 "CharoiteWine28V9BuiltinBootstrapProbe.java",
+                 "CharoiteWine28V9Forensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1079,6 +1080,33 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine28V9Builtin);
 
 
+
+        android.widget.Button wine28V9Forensics = new android.widget.Button(this);
+        wine28V9Forensics.setText("Inspect preserved Wine28 v9 logs (read-only)");
+        wine28V9Forensics.setAllCaps(false);
+        wine28V9Forensics.setOnClickListener(v -> {
+            wine28V9Forensics.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine28V9Forensics.run(this);
+                runOnUiThread(() -> {
+                    wine28V9Forensics.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — v9 preserved Wine28 evidence")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next v9 READ-ONLY postmortem", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine28V9Forensics").start();
+        });
+        nextCoreCard.addView(wine28V9Forensics);
 
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");

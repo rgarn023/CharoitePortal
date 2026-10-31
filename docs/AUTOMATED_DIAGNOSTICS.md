@@ -5,6 +5,14 @@ Status: implemented in Next Android source v0.54; device behavior and signed APK
 ## Purpose
 Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new System tab button, "Automatic phone diagnostics (GitHub opt-in)", prepares a strictly allowlisted, read-only report and, after explicit enrollment, sends it automatically to PUBLIC GitHub Issues in rgarn023/CharoitePortal.
 
+## Troubleshooting the Enable button
+
+- In Next v0.54, **Could not enable: IllegalArgumentException** is the app's own over-restrictive token-format rejection; it happens BEFORE any upload. No need to uninstall/clear data or paste a credential into chat.
+- Next **v0.55** makes this actionable: empty field, URL, classic `ghp_` token, non-fine-grained value and incomplete token show distinct safe messages. It accepts a complete `github_pat_` fine-grained token with an ordinary password-manager `Bearer ` or quote wrapper. GitHub API, not the app's local pattern, verifies the value and permission.
+- Paste **the actual generated token value** (starts `github_pat_`) into the phone, NOT the token NAME, creation link, or Settings page. GitHub only shows the value when it is generated. If the value was not saved, regenerate a token and revoke the old one rather than trying to recover it.
+- For GitHub HTTP 401, confirm token validity/expiration; 403 typically indicates inadequate repository access, permission or policy. The reporter stores these response status codes only, not credentials or response bodies. Check the reporter's "Last result" when reopening it.
+- Never share any real token or a screenshot showing its value in chat, public GitHub issues, or logs.
+
 ## One-time device enrollment
 1. Install the verified Charoite Core Next v0.54 APK over com.charoitx when it is available. Do not uninstall or clear storage; leave com.charoite (stable Portal) alone.
 2. Visit https://github.com/settings/personal-access-tokens/new while signed into the GitHub account authorized to create issues in rgarn023/CharoitePortal. Create a fine-grained token restricted to this one repository with the ONLY added repository permission "Issues: Read and write". Use a reasonable expiration. Do NOT give the token Contents, Actions, Administration or Workflows permission.

@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.50"')
-text = text.replace("versionCode 33", "versionCode 81")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.51"')
+text = text.replace("versionCode 33", "versionCode 82")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -146,7 +146,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V5Trace.java",
                  "CharoiteWine28V5Forensics.java",
                  "CharoiteWine28V6ServerProbe.java",
-                 "CharoiteWine28V7PeHelpProbe.java"):
+                 "CharoiteWine28V7PeHelpProbe.java",
+                 "CharoiteWine28V8LayoutProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -981,6 +982,53 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine28V7Help);
+
+        android.widget.Button wine28V8Layout = new android.widget.Button(this);
+        wine28V8Layout.setText("Test corrected Wine28 ARM64 DLL paths (one-shot v8)");
+        wine28V8Layout.setAllCaps(false);
+        wine28V8Layout.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run ONE isolated Wine28 v8 DLL-layout probe?")
+                .setMessage("v7 reached Windows PE NTDLL but failed kernel32.dll "
+                    + "with c0000135. Wine's ARM64 DLL lookup expects "
+                    + "WINEDLLPATH to identify a parent whose /aarch64-windows "
+                    + "subfolder contains the DLLs. This experiment creates "
+                    + "a NEW v8 scratch, re-verifies all 99 Wine28 files and "
+                    + "matched native binaries, stages hybrid PE DLLs in the "
+                    + "correct aarch64-windows location, starts only a NEW "
+                    + "foreground wineserver and requests wineboot.exe --help. "
+                    + "IMPORTANT: Wine can AUTOMATICALLY run internal wineboot "
+                    + "--init as part of first startup in the NEW v8 prefix, "
+                    + "even when --help was requested. The test can create "
+                    + "new v8-only prefix files. No game, user Wine prefix, "
+                    + "older v1-v7 scratch or Portal installation is read, "
+                    + "deleted, migrated or reused. 5s server/12s PE deadlines. "
+                    + "Never repeat once v8 scratch exists.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run ONE new v8 DLL-layout test", (d, which) -> {
+                    wine28V8Layout.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28V8LayoutProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine28V8Layout.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 v8 DLL layout")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 v8 DLL-layout probe", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28V8LayoutProbe").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28V8Layout);
 
 
 

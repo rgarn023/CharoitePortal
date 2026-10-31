@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "0.50 (Wine28 foreground-server plus PE help handshake; gaming blocked)";
+    public static final String VERSION = "0.51 (Wine28 corrected PE lookup root v8; gaming blocked)";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";

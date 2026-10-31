@@ -39,6 +39,9 @@ or a previous agent-result comment also blocks repeated analysis.
 
 ## Workflow files
 
+- `charoite-agent-pr-check.yml` — static Next tests on draft pull requests,
+  read-only GitHub permissions, no device/Wine execution or signing secrets.
+
 - `charoite-controlled-codex.yml` — scheduled and manually dispatchable,
   guarded by the repository variable. The OpenAI API key exists ONLY in
   the Codex action step, never in the PR-writing job.

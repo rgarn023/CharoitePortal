@@ -21,6 +21,7 @@ selector = load("select_issue")
 guard = load("guard_patch")
 AGENT = (REPO / ".github/workflows/charoite-controlled-codex.yml").read_text()
 SELF = (REPO / ".github/workflows/charoite-agent-selftest.yml").read_text()
+PR_CI = (REPO / ".github/workflows/charoite-agent-pr-check.yml").read_text()
 
 
 def fixture():
@@ -120,6 +121,11 @@ class WorkflowContract(unittest.TestCase):
         self.assertNotIn("gh workflow run", AGENT)
         self.assertNotIn("auto_merge", AGENT)
         self.assertIn("unittest discover", SELF)
+        self.assertIn("pull_request:", PR_CI)
+        self.assertIn("contents: read", PR_CI)
+        self.assertIn("next-generation/tests", PR_CI)
+        self.assertNotIn("OPENAI_API_KEY", PR_CI)
+        self.assertNotIn("gh pr merge", PR_CI)
 
 
 if __name__ == "__main__":

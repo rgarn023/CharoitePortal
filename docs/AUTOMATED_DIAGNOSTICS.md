@@ -1,6 +1,6 @@
 # Charoite Next — Opt-in automated phone diagnostics (first milestone)
 
-Status: signed Next Android APK **v0.56 VERIFIED** by GitHub Actions **41162857377** (237 tests PASS, package com.charoitx versionCode 87, signing certificate unchanged). Phone-side Keystore enrollment and actual GitHub issue upload still UNVERIFIED. v0.56 fixes the AndroidKeyStore randomized-GCM-IV exception and the nearly invisible white-on-white dialog in v0.55. V0.54 token-format validation error was corrected earlier.
+Status: signed Next Android APK **v0.56 VERIFIED** (Actions 41162857377, 237 tests PASS, com.charoitx versionCode 87, signing unchanged). **Phone upload end-to-end VERIFIED:** sanitized [Issue #1](https://github.com/rgarn023/CharoitePortal/issues/1) was uploaded from the Galaxy; [Actions intake 41163400308](https://github.com/rgarn023/CharoitePortal/actions/runs/41163400308) validated/classified Wineboot child startup failure and posted a bot comment. v0.56 resolved AndroidKeyStore IV initialization and dialog contrast. Modern Wine28 remains unbootable; controlled agent development workflow is now installed but disabled pending separate API credential and repository enable variable.
 
 ## Purpose
 Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new System tab button, "Automatic phone diagnostics (GitHub opt-in)", prepares a strictly allowlisted, read-only report and, after explicit enrollment, sends it automatically to PUBLIC GitHub Issues in rgarn023/CharoitePortal.
@@ -35,8 +35,8 @@ Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new Sys
 Open the same System reporter settings, choose Disable / Close to remove the stored encrypted token and cancel scheduled reporting. To invalidate the credential globally, revoke the token in GitHub Settings > Developer settings > Personal access tokens. If app data is cleared or the keystore key is lost, re-enroll with a new token (never clear data solely to configure reporting).
 
 ## Remaining milestones for near hands-off 1.0 development
-- Verify the signed APK and actual phone issue upload + GitHub Actions triage.
+- **DONE / VERIFIED:** signed v0.56 APK, real phone upload (Issue #1), GitHub Actions validated intake (run 41163400308).
 - Expand allowlisted reports to new approved isolated test generations (never rerun consumed scratch).
-- Configure a persistent authorized AI development workflow that can review issues and propose code changes. Ordinary ChatGPT messages and CI do not provide a persistent AI developer.
+- **CODE INSTALLED, NOT ENABLED:** the controlled Codex GitHub Actions pipeline can select validated reports and propose draft code-fix PRs after the repository owner sets `OPENAI_API_KEY` and `CHAROITE_AGENT_ENABLED=true`. See [.github/automation/README.md](https://github.com/rgarn023/CharoitePortal/blob/main/.github/automation/README.md). Actual Codex execution and draft PR creation still UNVERIFIED.
 - Add verified APK update notices and user-safe installation. Full unattended app installation is NOT promised on Android.
 - Gate eventual 1.0 against a tested compatibility matrix including Wine prefix bootstrap, Windows app launch, x86/x64 translation, graphics, audio, input, game installs and safe persistence.

@@ -49,7 +49,7 @@ class Wine28IsolatedV5(unittest.TestCase):
              "Test new v5 Wine28 PE-NTDLL bootstrap",
              "Run ONE Wine28 v5 bootstrap",
              "CharoiteWine28V5Trace.run(this)",
-             "versionCode 79","11.2-next.0.48"):
+             "versionCode 80","11.2-next.0.49"):
             self.assertIn(needle,PREP)
         for needle in ("41144679591","13019349525","stage_wine28.py",
              "stage_wine28_native.py",
@@ -57,7 +57,7 @@ class Wine28IsolatedV5(unittest.TestCase):
              "libcharoite_wine28_ntdll.so","wine-bootstrap-27.bundle",
              "wine-bootstrap-28.bundle"):
             self.assertIn(needle,WORKFLOW)
-        self.assertIn("versionCode='79' versionName='11.2-next.0.48'",WORKFLOW)
+        self.assertIn("versionCode='80' versionName='11.2-next.0.49'",WORKFLOW)
 
 if __name__=="__main__":
     unittest.main()

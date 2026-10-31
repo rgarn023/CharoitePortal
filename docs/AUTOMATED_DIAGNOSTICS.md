@@ -1,6 +1,6 @@
 # Charoite Next — Opt-in automated phone diagnostics (first milestone)
 
-Status: implemented in Next Android source v0.54; device behavior and signed APK are NOT yet verified until GitHub Actions and phone testing pass.
+Status: signed Next Android APK v0.55 VERIFIED by GitHub Actions 41159472198 (236 tests PASS, package com.charoitx versionCode 86, unchanged signing certificate); phone-side token enrollment and actual GitHub issue upload are NOT yet verified. Earlier v0.54 strict-format failure is corrected in v0.55.
 
 ## Purpose
 Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new System tab button, "Automatic phone diagnostics (GitHub opt-in)", prepares a strictly allowlisted, read-only report and, after explicit enrollment, sends it automatically to PUBLIC GitHub Issues in rgarn023/CharoitePortal.
@@ -14,7 +14,7 @@ Eliminate manual copying of Wine28 v9 forensic results into ChatGPT. The new Sys
 - Never share any real token or a screenshot showing its value in chat, public GitHub issues, or logs.
 
 ## One-time device enrollment
-1. Install the verified Charoite Core Next v0.54 APK over com.charoitx when it is available. Do not uninstall or clear storage; leave com.charoite (stable Portal) alone.
+1. Install the verified Charoite Core Next v0.55 APK over com.charoitx (GitHub Actions artifact https://github.com/rgarn023/CharoitePortal/actions/runs/41159472198/artifacts/13026397631). Do not uninstall or clear storage; leave com.charoite (stable Portal) alone.
 2. Visit https://github.com/settings/personal-access-tokens/new while signed into the GitHub account authorized to create issues in rgarn023/CharoitePortal. Create a fine-grained token restricted to this one repository with the ONLY added repository permission "Issues: Read and write". Use a reasonable expiration. Do NOT give the token Contents, Actions, Administration or Workflows permission.
 3. On the phone, in Charoite Next > System > "Automatic phone diagnostics (GitHub opt-in)", select Preview to inspect the precise data (JSON) that would become public.
 4. Enter the fine-grained token DIRECTLY ON THE PHONE. Never paste it into ChatGPT, a GitHub issue, an APK or a commit. Tap Enable.

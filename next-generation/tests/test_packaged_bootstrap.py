@@ -76,12 +76,12 @@ class PackagedBootstrapTest(unittest.TestCase):
         self.assertIn("CharoiteWinePayloadAudit.java",PREP)
         self.assertIn("Verify packaged modern Wine modules",PREP)
         self.assertIn("new Thread(() ->",PREP)
-        self.assertIn("versionCode 84",PREP)
-        self.assertIn("11.2-next.0.53",PREP)
-        self.assertIn("0.53 (read-only Wine28 v9 postmortem",ENGINE)
+        self.assertIn("versionCode 85",PREP)
+        self.assertIn("11.2-next.0.54",PREP)
+        self.assertIn("0.54 (opt-in auto phone diagnostics",ENGINE)
         self.assertIn("stage_bootstrap_payload.py",WF)
         self.assertIn("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='84' versionName='11.2-next.0.53'",WF)
+        self.assertIn("versionCode='85' versionName='11.2-next.0.54'",WF)
 
 if __name__=="__main__":
     unittest.main()

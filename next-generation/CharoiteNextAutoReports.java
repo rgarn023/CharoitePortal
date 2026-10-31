@@ -349,7 +349,7 @@ public final class CharoiteNextAutoReports {
                 } catch (TokenInputException ex) {
                     // Only our static user-guidance strings are displayed.
                     description.setText("Not enabled: " + ex.getMessage()
-                            + "\\n\\nThe repository stays public. No report was sent.");
+                            + "\n\nThe repository stays public. No report was sent.");
                     token.setError(ex.getMessage());
                 } catch (Exception ex) {
                     description.setText("Not enabled: could not read the preserved v9 "

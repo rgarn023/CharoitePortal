@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.53"')
-text = text.replace("versionCode 33", "versionCode 84")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.54"')
+text = text.replace("versionCode 33", "versionCode 85")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -70,6 +70,19 @@ boot = ET.Element("activity", {
 })
 boot.append(filters)
 application.insert(0, boot)
+# Opt-in GitHub issue uploader: no automatic execution without consent.
+# The Android JobService only reads bounded preserved v9 logs; never runs Wine.
+if not any(p.get(ns + "name") == "android.permission.INTERNET"
+           for p in tree.getroot().findall("uses-permission")):
+    tree.getroot().insert(0, ET.Element("uses-permission",
+                                      {ns + "name": "android.permission.INTERNET"}))
+assert not any(s.get(ns + "name") == "com.charoitegames.core.CharoiteNextAutoReports$UploadJob"
+               for s in application.findall("service"))
+ET.SubElement(application, "service", {
+    ns + "name": "com.charoitegames.core.CharoiteNextAutoReports$UploadJob",
+    ns + "permission": "android.permission.BIND_JOB_SERVICE",
+    ns + "exported": "false",
+})
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 
 for p in (app / "res").glob("values*/strings.xml"):
@@ -108,6 +121,9 @@ shutil.copy2(source_dir / "CharoiteNextRuntime.java", next_java)
 next_diagnostics = app / "java/com/charoitegames/core/CharoiteNextDiagnostics.java"
 assert not next_diagnostics.exists()
 shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
+report_java = app / "java/com/charoitegames/core/CharoiteNextAutoReports.java"
+assert not report_java.exists()
+shutil.copy2(source_dir / "CharoiteNextAutoReports.java", report_java)
 native_probe_java = app / "java/com/charoitegames/core/CharoiteWineNativeProbe.java"
 assert not native_probe_java.exists()
 shutil.copy2(source_dir / "CharoiteWineNativeProbe.java", native_probe_java)
@@ -1108,6 +1124,13 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(wine28V9Forensics);
 
+        android.widget.Button autoReporter = new android.widget.Button(this);
+        autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");
+        autoReporter.setAllCaps(false);
+        autoReporter.setOnClickListener(v ->
+            com.charoitegames.core.CharoiteNextAutoReports.showSettings(this));
+        nextCoreCard.addView(autoReporter);
+
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);
@@ -1138,7 +1161,8 @@ ui = ui.replace(create_anchor, (
     "        super.onCreate(savedInstanceState);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalCreated(this, savedInstanceState);\n"
-    "        CharoiteEnvironments.initialize(this);"), 1)
+    "        CharoiteEnvironments.initialize(this);\n"
+    "        com.charoitegames.core.CharoiteNextAutoReports.schedule(this);"), 1)
 
 # The fallback is prepared in onCreate and mounted synchronously in
 # onPostCreate, after the full Portal view is assembled but BEFORE first draw.

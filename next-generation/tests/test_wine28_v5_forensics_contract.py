@@ -35,9 +35,9 @@ class Wine28V5ReadOnlyForensics(unittest.TestCase):
                   "Inspect failed Wine28 v5 bootstrap (read-only)",
                   "Inspect v5 without changing files",
                   "CharoiteWine28V5Forensics.run(this)",
-                  "versionCode 80","11.2-next.0.49"):
+                  "versionCode 81","11.2-next.0.50"):
             self.assertIn(s,UI)
         self.assertIn("CharoiteWine28V5Forensics.java CharoiteWine28V6ServerProbe.java; do",WF)
-        self.assertIn("versionCode='80' versionName='11.2-next.0.49'",WF)
+        self.assertIn("versionCode='81' versionName='11.2-next.0.50'",WF)
 if __name__=="__main__":
     unittest.main()

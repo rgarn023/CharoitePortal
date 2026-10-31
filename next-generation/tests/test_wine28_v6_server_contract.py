@@ -34,9 +34,9 @@ class Wine28V6ServerOnlyContract(unittest.TestCase):
                        'Test isolated Wine28 wineserver only (one-shot v6)',
                        'Run ONE v6 server-only test',
                        'CharoiteWine28V6ServerProbe.run(this)',
-                       'versionCode 80', '11.2-next.0.49'):
+                       'versionCode 81', '11.2-next.0.50'):
             self.assertIn(needle,PREP)
         self.assertIn('CharoiteWine28V6ServerProbe.java; do',WF)
-        self.assertIn("versionCode='80' versionName='11.2-next.0.49'",WF)
+        self.assertIn("versionCode='81' versionName='11.2-next.0.50'",WF)
 if __name__=="__main__":
     unittest.main()

@@ -707,7 +707,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='80' versionName='11.2-next.0.49'"
+            grep -F "package: name='com.charoitx' versionCode='81' versionName='11.2-next.0.50'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -861,7 +861,7 @@ jobs:
           done
           cp next-generation/stage_wine27.py legal-bundle/stage_wine27.py
           cp next-generation/stage_wine27_native.py legal-bundle/stage_wine27_native.py
-          for file in CharoiteWine28Stage.java CharoiteWine28NativeGate.java CharoiteWine28V5Trace.java CharoiteWine28V5Forensics.java CharoiteWine28V6ServerProbe.java; do
+          for file in CharoiteWine28Stage.java CharoiteWine28NativeGate.java CharoiteWine28V5Trace.java CharoiteWine28V5Forensics.java CharoiteWine28V6ServerProbe.java CharoiteWine28V7PeHelpProbe.java; do
             cp "next-generation/$file" "legal-bundle/$file"
           done
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py

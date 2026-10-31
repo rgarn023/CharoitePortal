@@ -2155,4 +2155,16 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 119. October 30, 2026 — targeted Wine28 v7 PE-help handshake after verified native server v6 PASS
+
+**Actual device v6 verified:** Wine28 standalone `wineserver -f -d` created live Unix socket and regular lock within 8 seconds, stayed alive until bounded stop; 99 PE/NLS and 3 native source hashes PASS, 2 new NLS copies SHA PASS. Native log shows wineserver starting and server-side synchronization; no Windows PE or Wineboot attempted. All v1-v6 scratch, stable Portal and user data must be preserved. V5 `wineboot.exe -i` still exit 127 before registry creation, exact cause unknown.
+
+**Pinned source audit:** `programs/wineboot/wineboot.c` explicitly accepts `--help` and prints `Usage: wineboot [options]` in its `usage()` path; invoking `wineboot.exe --help` requests Windows PE startup but NOT the `-i` prefix initialization switch. `dlls/ntdll/unix/loader.c` can run standalone foreground server or start its own server, and returns a failed server's exit status. V6 PASS narrows but does not eliminate loader-to-server handshake vs PE NTDLL/ARM64X startup problems. Missing `drive_c` in v5 alone does not locate the specific failing routine.
+
+**Engineering change — CI pending when authored:** Next v0.50 `com.charoitx` versionCode 81 adds `CharoiteWine28V7PeHelpProbe.java` and opt-in `System → Test isolated Wine28 PE help handshake (one-shot v7)`. Verifies all Wine28 99 PE/NLS, native matched 3 ELF and version-only gates; creates NEW non-reusable `no_backup/charoite-next-wine28-pe-help-v7` scratch; copies 22 ARM64EC/ARM64X DLLs + ARM64 wineboot.exe + 76 NLS with SHA checks, creates a NEW empty private prefix, starts ONLY source-matched native wineserver `-f -d`, waits up to 5s to see fresh lock/socket, then (ONLY IF live server is observed) starts the source-matched native loader with `wineboot.exe --help` (Windows PE launch, no `-i`) for at most 12s. Logs capped at 2MiB PE/256KiB server, process terminated if still alive, scratch retained even on failure. This IS a Windows PE execution attempt requiring explicit on-phone opt-in; not a full Wineboot init, cannot prove Windows game readiness. Never reads/writes v1-v6 scratch, stable Portal, rootfs, user prefixes, installed games or saves. Never retry if v7 scratch exists. Adds source attribution and CI safety regressions.
+
+**Next:** Verify complete v0.50 GitHub Actions regression, Gradle, source hash/signing/packaging before linking actual APK artifact. User installs new Next over existing without data clear, opts into ONE v7 PE help diagnostic, and sends full report. Do not interpret new native/PE results as Wineboot or FEX/graphics readiness. If v7 fails, inspect both server and PE logs before a new generation.
+
+---
+
 **End of current Charoite Portal handoff.**

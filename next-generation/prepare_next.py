@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.49"')
-text = text.replace("versionCode 33", "versionCode 80")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.50"')
+text = text.replace("versionCode 33", "versionCode 81")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -145,7 +145,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28NativeGate.java",
                  "CharoiteWine28V5Trace.java",
                  "CharoiteWine28V5Forensics.java",
-                 "CharoiteWine28V6ServerProbe.java"):
+                 "CharoiteWine28V6ServerProbe.java",
+                 "CharoiteWine28V7PeHelpProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -937,6 +938,49 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine28V6Server);
+
+        android.widget.Button wine28V7Help = new android.widget.Button(this);
+        wine28V7Help.setText("Test isolated Wine28 PE help handshake (one-shot v7)");
+        wine28V7Help.setAllCaps(false);
+        wine28V7Help.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Run ONE Wine28 v7 Windows PE help probe?")
+                .setMessage("This is a NEW fresh v7 experiment, NOT a retry of v5/v6. "
+                    + "It verifies the matched 99-file Wine28 cohort, copies only "
+                    + "source-verified files to new private scratch, and starts the "
+                    + "APK-native wineserver in foreground. Only after observing "
+                    + "its new socket/lock it launches the matched ARM64 "
+                    + "wineboot.exe with --help ONLY (Windows PE execution); "
+                    + "it never runs -i, installs games or requests a full prefix. "
+                    + "Server startup is bounded 5s and PE help 12s, with capped "
+                    + "logs. May still create private prefix files. Never accesses "
+                    + "or removes old v1-v6 scratch, Wine22, games, saves or user "
+                    + "prefixes. Never retry if v7 scratch exists.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run ONE v7 PE help test", (d, which) -> {
+                    wine28V7Help.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine28V7PeHelpProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine28V7Help.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine28 v7 PE help handshake")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine28 v7 PE help", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine28V7PeHelpProbe").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine28V7Help);
 
 
 

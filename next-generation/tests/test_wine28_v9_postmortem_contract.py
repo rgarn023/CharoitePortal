@@ -34,7 +34,7 @@ class Wine28V9PostmortemContract(unittest.TestCase):
             'versionCode 84',
             '11.2-next.0.53'):
             self.assertIn(marker, PREP)
-        self.assertIn('CharoiteWine28V9Forensics.java; do', WF)
+        self.assertIn('cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java', WF)
         self.assertIn("versionCode='84' versionName='11.2-next.0.53'", WF)
 
 if __name__=="__main__":

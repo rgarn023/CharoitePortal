@@ -52,8 +52,8 @@ class IntakeTests(unittest.TestCase):
             raw = json.dumps(v2, separators=(",", ":"))
             report_id = hashlib.sha256(raw.encode()).hexdigest()[:24]
             next_title = M.PREFIX + report_id
-            next_body = ("Automated Charoite Next phone diagnosis. Sanitized JSON only.\\n\\n"
-                         + raw + "\\n\\nReport ID " + report_id
+            next_body = ("Automated Charoite Next phone diagnosis. Sanitized JSON only.\n\n"
+                         + raw + "\n\nReport ID " + report_id
                          + ". Wine v9 was not executed or retried.")
             parsed_id, report = M.validate(next_title, next_body)
             self.assertEqual(parsed_id, report_id)

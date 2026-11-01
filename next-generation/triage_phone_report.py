@@ -71,10 +71,10 @@ def triage(title: str, body: str) -> str:
     page_note = ""
     if "host_page_size_bytes" in report:
         page = report["host_page_size_bytes"]
-        page_note = ("- Android host memory page size: " + str(page) + " bytes\\n"
+        page_note = ("- Android host memory page size: " + str(page) + " bytes\n"
                      + "- Wine 10.0 ARM64 4 KiB page prerequisite: "
                      + ("satisfied" if page == 4096 else "NOT satisfied")
-                     + " (not proof of Wineboot root cause)\\n")
+                     + " (not proof of Wineboot root cause)\n")
     return (
         "Automated Charoite Next diagnostic intake: **validated**.\n\n"
         + "- Report ID: " + report_id + "\n"

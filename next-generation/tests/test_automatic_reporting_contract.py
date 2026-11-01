@@ -62,6 +62,15 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
         self.assertIn('JSONObject issue = new JSONObject()', AUTO)
         self.assertIn('status != 201', AUTO)
         self.assertIn('connection', AUTO.lower().replace('httpurlconnection', 'connection'))
+    def test_v2_page_size_probe_is_bounded_read_only_platform_metadata(self):
+        self.assertIn('charoite-next.phone-diagnostics.v2', AUTO)
+        self.assertIn('android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)', AUTO)
+        self.assertIn('j.put("host_page_size_bytes", (int) hostPageSize)', AUTO)
+        self.assertIn('hostPageSize < 4096 || hostPageSize > 65536', AUTO)
+        self.assertIn('Unexpected Android page size; no upload', AUTO)
+        self.assertNotIn('Build.SERIAL', AUTO)
+        self.assertNotIn('Settings.Secure.ANDROID_ID', AUTO)
+
     def test_manifest_ui_version_and_attribution(self):
         for item in ('"CharoiteNextAutoReports.java"', 'CharoiteNextAutoReports.showSettings(this)',
                      'CharoiteNextAutoReports.schedule(this)', 'JobService',

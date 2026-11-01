@@ -104,13 +104,22 @@ public final class CharoiteNextAutoReports {
         String pe = readExisting(base, "v9-wine-pe-help.log", 2 * 1024 * 1024);
         String server = readExisting(base, "v9-foreground-wineserver.log", 256 * 1024);
         JSONObject j = new JSONObject();
-        j.put("schema", "charoite-next.phone-diagnostics.v1");
+        // V2 adds only an Android host ABI prerequisite, with no identifiers.
+        // Historical V1 reports remain valid in GitHub's intake.
+        j.put("schema", "charoite-next.phone-diagnostics.v2");
         j.put("package", PACKAGE);
         j.put("generation", "wine28-v9-readonly");
         j.put("read_only", true);
         j.put("collector_executed_wine", false);
         j.put("pe_bytes", pe.getBytes(StandardCharsets.UTF_8).length);
         j.put("server_bytes", server.getBytes(StandardCharsets.UTF_8).length);
+        // Wine 10.0 ARM64's documented Windows ABI requires 4096-byte pages.
+        // This numeric Android OS query reads no private files, Wine or prefixes.
+        long hostPageSize = android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);
+        if (hostPageSize < 4096 || hostPageSize > 65536
+                || (hostPageSize & (hostPageSize - 1)) != 0)
+            throw new SecurityException("Unexpected Android page size; no upload");
+        j.put("host_page_size_bytes", (int) hostPageSize);
         j.put("server_new_process_calls", count(server, "new_process( "));
         j.put("server_new_process_success", has(server, "new_process() = 0 {"));
         j.put("internal_child_failed", has(server,

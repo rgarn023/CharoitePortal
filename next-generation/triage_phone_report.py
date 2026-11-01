@@ -8,7 +8,7 @@ import json
 import sys
 
 PREFIX = "[device-report] Wine28 v9 "
-FIELDS = {
+FIELDS_V1 = {
     "schema": str, "package": str, "generation": str,
     "read_only": bool, "collector_executed_wine": bool,
     "pe_bytes": int, "server_bytes": int,
@@ -18,6 +18,8 @@ FIELDS = {
     "internal_wineboot_init": bool, "prefix_read": bool,
     "games_or_saves_read": bool,
 }
+# Preserve exact compatibility with already uploaded V1 issue reports.
+FIELDS_V2 = {**FIELDS_V1, "host_page_size_bytes": int}
 
 
 def validate(title: str, body: str):
@@ -28,13 +30,18 @@ def validate(title: str, body: str):
         raise ValueError("Unexpected report envelope")
     raw = rows[2]
     report = json.loads(raw)
-    if not isinstance(report, dict) or set(report) != set(FIELDS):
+    if not isinstance(report, dict):
+        raise ValueError("Unexpected JSON report")
+    schema = report.get("schema")
+    fields = (FIELDS_V1 if schema == "charoite-next.phone-diagnostics.v1"
+              else FIELDS_V2 if schema == "charoite-next.phone-diagnostics.v2"
+              else None)
+    if fields is None or set(report) != set(fields):
         raise ValueError("Unknown or missing report keys")
-    for k, t in FIELDS.items():
+    for k, t in fields.items():
         if type(report[k]) is not t:
             raise ValueError("Invalid report field type: " + k)
-    if (report["schema"] != "charoite-next.phone-diagnostics.v1"
-            or report["package"] != "com.charoitx"
+    if (report["package"] != "com.charoitx"
             or report["generation"] != "wine28-v9-readonly"
             or not report["read_only"] or report["collector_executed_wine"]
             or report["prefix_read"] or report["games_or_saves_read"]):
@@ -43,6 +50,10 @@ def validate(title: str, body: str):
               "server_no_such_file"):
         if report[k] < 0 or report[k] > 2 * 1024 * 1024:
             raise ValueError("Invalid report size or count")
+    if schema == "charoite-next.phone-diagnostics.v2":
+        page_size = report["host_page_size_bytes"]
+        if page_size < 4096 or page_size > 65536 or page_size & (page_size - 1):
+            raise ValueError("Invalid Android page size")
     report_id = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
     if title != PREFIX + report_id or ("Report ID " + report_id) not in body:
         raise ValueError("Mismatched report ID")
@@ -57,6 +68,13 @@ def triage(title: str, body: str) -> str:
         blocker = "PE loader could not load kernel32.dll"
     else:
         blocker = "No known Wineboot failure pattern found"
+    page_note = ""
+    if "host_page_size_bytes" in report:
+        page = report["host_page_size_bytes"]
+        page_note = ("- Android host memory page size: " + str(page) + " bytes\\n"
+                     + "- Wine 10.0 ARM64 4 KiB page prerequisite: "
+                     + ("satisfied" if page == 4096 else "NOT satisfied")
+                     + " (not proof of Wineboot root cause)\\n")
     return (
         "Automated Charoite Next diagnostic intake: **validated**.\n\n"
         + "- Report ID: " + report_id + "\n"
@@ -64,6 +82,7 @@ def triage(title: str, body: str) -> str:
         + "- Classification: " + blocker + "\n"
         + "- Kernel32 load error: "
         + ("yes" if report["pe_kernel32_missing"] else "no") + "\n"
+        + page_note
         + "- Wine executed by collector: **no**\n"
         + "- Engineering review required; **do not rerun v9**.\n\n"
         + "Deterministic classification only; no AI-driven fixes were made."

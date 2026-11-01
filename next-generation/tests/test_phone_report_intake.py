@@ -42,6 +42,40 @@ class IntakeTests(unittest.TestCase):
         for row in bad:
             with self.assertRaises(ValueError):
                 M.validate(title,row)
+
+    def test_v2_reports_host_page_size_without_exposing_device_identity(self):
+        title, body = fixture()
+        baseline = json.loads(body.splitlines()[2])
+        for page in (4096, 16384, 65536):
+            v2 = dict(baseline, schema="charoite-next.phone-diagnostics.v2",
+                      host_page_size_bytes=page)
+            raw = json.dumps(v2, separators=(",", ":"))
+            report_id = hashlib.sha256(raw.encode()).hexdigest()[:24]
+            next_title = M.PREFIX + report_id
+            next_body = ("Automated Charoite Next phone diagnosis. Sanitized JSON only.\\n\\n"
+                         + raw + "\\n\\nReport ID " + report_id
+                         + ". Wine v9 was not executed or retried.")
+            parsed_id, report = M.validate(next_title, next_body)
+            self.assertEqual(parsed_id, report_id)
+            self.assertEqual(report["host_page_size_bytes"], page)
+            triage = M.triage(next_title, next_body)
+            self.assertIn(str(page) + " bytes", triage)
+            self.assertIn("satisfied" if page == 4096 else "NOT satisfied", triage)
+            for private in ("phone_model", "hardware_serial", "user_path", "raw_logs"):
+                self.assertNotIn(private, raw)
+            for bad_page in (0, 2048, 5000, 131072):
+                broken = raw.replace('"host_page_size_bytes":' + str(page),
+                                     '"host_page_size_bytes":' + str(bad_page))
+                broken_id = hashlib.sha256(broken.encode()).hexdigest()[:24]
+                with self.assertRaises(ValueError):
+                    M.validate(M.PREFIX + broken_id,
+                               next_body.replace(raw, broken).replace(report_id, broken_id))
+            with self.assertRaises(ValueError):
+                dropped = json.dumps({k: value for k, value in v2.items()
+                                      if k != "host_page_size_bytes"}, separators=(",", ":"))
+                dropped_id = hashlib.sha256(dropped.encode()).hexdigest()[:24]
+                M.validate(M.PREFIX + dropped_id,
+                           next_body.replace(raw, dropped).replace(report_id, dropped_id))
     def test_workflow_only_handles_owners_device_reports(self):
         for marker in ("issues:", "types: [opened]",
                        "github.event.issue.user.login == 'rgarn023'",

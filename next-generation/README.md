@@ -1,3 +1,5 @@
+**Current verified Next APK (November 1, 2026):** [Charoite Core Next v0.57 Actions run 41359028808](https://github.com/rgarn023/CharoitePortal/actions/runs/41359028808), [signed APK artifact 13104826317](https://github.com/rgarn023/CharoitePortal/actions/runs/41359028808/artifacts/13104826317), package `com.charoitx`, versionCode 88, original signing identity unchanged. CI 138 stable + 101 Next = 239 tests passed. Adds ONLY an opt-in, read-only host page-size integer to the sanitized phone diagnostics (schema v2, historical v1 still accepted) to check Wine 10.0 ARM64's 4 KiB page-size prerequisite. The new phone result and Wine28 bootstrap remain **unverified**. Update over the existing Next app; do not uninstall, clear storage, rerun v9 or disturb stable `com.charoite`. GitHub public; no OpenAI API charges.
+
 # Charoite Core Next (experimental)
 
 **First CI-verified, side-by-side Android development APK:** [GitHub Actions run 40649258138](https://github.com/rgarn023/CharoitePortal/actions/runs/40649258138)

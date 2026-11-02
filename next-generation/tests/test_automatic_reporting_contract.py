@@ -98,7 +98,7 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
             else:
                 self.assertIn(item, PREP)
         self.assertIn('0.58 (automatic v2 diagnostic refresh + safe Close', RUNTIME)
-        self.assertIn("versionCode='88' versionName='11.2-next.0.57'", WF)
+        self.assertIn("versionCode='89' versionName='11.2-next.0.58'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 
 if __name__=="__main__":

@@ -47,6 +47,7 @@ public final class CharoiteNextAutoReports {
     private static final String TOKEN = "encrypted_github_issue_token";
     private static final String LAST_ACK = "last_acknowledged_report_id";
     private static final String LAST_STATUS = "last_result_status";
+    private static final String LAST_LAUNCH_ATTEMPT = "last_launch_attempt_ms";
     private static final String ALIAS = "charoite-next-github-issues-v1";
     private static final String GITHUB_ISSUES =
             "https://api.github.com/repos/rgarn023/CharoitePortal/issues";
@@ -153,6 +154,10 @@ public final class CharoiteNextAutoReports {
     public static String status(Context ctx) {
         return (enabled(ctx) ? "Enabled" : "Disabled")
                 + "\nDestination: PUBLIC github.com/rgarn023/CharoitePortal/issues"
+                + "\nReport schema: v2 (includes host-page size)"
+                + "\nAndroid page size: "
+                + android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
+                + " bytes (read-only OS value)"
                 + "\nUploads: limited v9 diagnostic indicators only; no raw traces."
                 + "\nLast result: " + prefs(ctx).getString(LAST_STATUS, "not sent")
                 + "\nNever runs or reruns Wine.";
@@ -259,6 +264,23 @@ public final class CharoiteNextAutoReports {
         }
     }
 
+    /** Already enrolled users get one immediate check when opening Next.
+     * No network or background job unless explicit existing opt-in is active.
+     * Periodic JobScheduler remains the fallback for offline/retry cases.
+     * Deliberately never runs any Wine command or touches an old scratch.
+     */
+    public static void sendOnLaunch(Context ctx) {
+        if (!enabled(ctx)) return;
+        SharedPreferences p = prefs(ctx);
+        long now = System.currentTimeMillis();
+        long previous = p.getLong(LAST_LAUNCH_ATTEMPT, 0L);
+        // Avoid repeated attempts when Android recreates the activity.
+        if (previous > 0 && now >= previous && now - previous < PERIOD_MS) return;
+        p.edit().putLong(LAST_LAUNCH_ATTEMPT, now).apply();
+        Context app = ctx.getApplicationContext();
+        new Thread(() -> send(app), "CharoiteOptInDiagnosticStartup").start();
+    }
+
     private static String record(SharedPreferences p, String message) {
         p.edit().putString(LAST_STATUS, message).apply();
         return message;
@@ -334,14 +356,20 @@ public final class CharoiteNextAutoReports {
         panel.setBackgroundColor(android.graphics.Color.rgb(31, 26, 45));
         TextView description = new TextView(activity);
         description.setTextColor(android.graphics.Color.WHITE);
+        final boolean wasEnabled = enabled(activity);
         description.setText(status(activity) + "\n\n"
-                + "One-time setup: a fine-grained GitHub token scoped ONLY to "
-                + "rgarn023/CharoitePortal with Issues: read/write. The token is "
-                + "encrypted with Android Keystore, never bundled in an APK. "
-                + "A summary (not raw phone traces) becomes a PUBLIC issue.\n\n"
-                + "GitHub displays the token VALUE only once when it is generated. "
-                + "Paste that value here (it begins github_pat_), not its name or URL. "
-                + "Preview first; uploads are disabled until you opt in.");
+                + (wasEnabled
+                    ? "Reporting is already enabled. Tap Send now to check for a new "
+                      + "sanitized report without re-entering your token. "
+                      + "Already uploaded reports are not posted again. "
+                      + "Closing this dialog keeps reporting enabled."
+                    : "One-time setup: a fine-grained GitHub token scoped ONLY to "
+                      + "rgarn023/CharoitePortal with Issues: read/write. The token is "
+                      + "encrypted with Android Keystore, never bundled in an APK. "
+                      + "A summary (not raw phone traces) becomes a PUBLIC issue.\n\n"
+                      + "GitHub displays the token VALUE only once when it is generated. "
+                      + "Paste that value here (it begins github_pat_), not its name or URL. "
+                      + "Preview first; uploads are disabled until you opt in."));
         panel.addView(description);
         EditText token = new EditText(activity);
         token.setHint("Paste GitHub token beginning github_pat_");
@@ -350,19 +378,37 @@ public final class CharoiteNextAutoReports {
         token.setSingleLine(true);
         token.setInputType(InputType.TYPE_CLASS_TEXT
                 | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        if (wasEnabled) token.setVisibility(android.view.View.GONE);
         panel.addView(token);
+        android.widget.Button disableButton = new android.widget.Button(activity);
+        disableButton.setText("Disable reporting (confirmation required)");
+        disableButton.setAllCaps(false);
+        if (wasEnabled) panel.addView(disableButton);
         AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle("Automated diagnostics — opt-in")
                 .setView(panel)
-                .setPositiveButton("Enable", null)
+                .setPositiveButton(wasEnabled ? "Send now" : "Enable", null)
                 .setNeutralButton("Preview", null)
-                .setNegativeButton("Disable / Close", null).create();
+                .setNegativeButton("Close", null).create();
         dialog.setOnShowListener(v -> {
             if (dialog.getWindow() != null)
                 dialog.getWindow().setBackgroundDrawable(
                     new android.graphics.drawable.ColorDrawable(
                         android.graphics.Color.rgb(31, 26, 45)));
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x -> {
+                if (wasEnabled) {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                    new Thread(() -> {
+                        String result = send(activity.getApplicationContext());
+                        activity.runOnUiThread(() -> {
+                            if (!dialog.isShowing()) return;
+                            description.setText(status(activity) + "\n\nManual attempt: "
+                                    + result + "\nClosing this dialog keeps reporting enabled.");
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                        });
+                    }, "CharoiteManualDiagnosticUpload").start();
+                    return;
+                }
                 try {
                     configure(activity, token.getText().toString());
                     token.setText("");
@@ -392,10 +438,20 @@ public final class CharoiteNextAutoReports {
                             .setTitle("Exact public report contents")
                             .setMessage(preview(activity))
                             .setPositiveButton("Close", null).show());
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(x -> {
-                if (enabled(activity)) disable(activity);
-                dialog.dismiss();
-            });
+            // Close never revokes the protected token or cancels the job.
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                    .setOnClickListener(x -> dialog.dismiss());
+            if (wasEnabled) disableButton.setOnClickListener(x ->
+                new AlertDialog.Builder(activity)
+                    .setTitle("Disable Charoite phone reporting?")
+                    .setMessage("This removes the saved reporting token and cancels "
+                            + "future uploads. It does not delete existing GitHub issues.")
+                    .setPositiveButton("Disable reporting", (confirm, which) -> {
+                        disable(activity);
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton("Keep enabled", null)
+                    .show());
         });
         dialog.show();
     }

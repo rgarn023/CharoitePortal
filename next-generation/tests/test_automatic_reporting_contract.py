@@ -71,17 +71,30 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
         self.assertNotIn('Build.SERIAL', AUTO)
         self.assertNotIn('Settings.Secure.ANDROID_ID', AUTO)
 
+    def test_safe_close_send_now_and_opt_in_launch_refresh(self):
+        self.assertIn('sendOnLaunch(Context ctx)', AUTO)
+        self.assertIn('if (!enabled(ctx)) return;', AUTO)
+        self.assertIn('last_launch_attempt_ms', AUTO)
+        self.assertIn('new Thread(() -> send(app)', AUTO)
+        self.assertIn('wasEnabled ? "Send now" : "Enable"', AUTO)
+        self.assertIn('.setNegativeButton("Close", null)', AUTO)
+        self.assertIn('setOnClickListener(x -> dialog.dismiss())', AUTO)
+        self.assertIn('Disable reporting (confirmation required)', AUTO)
+        self.assertIn('.setPositiveButton("Disable reporting"', AUTO)
+        self.assertNotIn('if (enabled(activity)) disable(activity);', AUTO)
+        self.assertIn('CharoiteNextAutoReports.sendOnLaunch(this)', PREP)
+
     def test_manifest_ui_version_and_attribution(self):
         for item in ('"CharoiteNextAutoReports.java"', 'CharoiteNextAutoReports.showSettings(this)',
                      'CharoiteNextAutoReports.schedule(this)', 'JobService',
                      'android.permission.BIND_JOB_SERVICE',
                      'Automatic phone diagnostics (GitHub opt-in)',
-                     'versionCode 88', '11.2-next.0.57'):
+                     'versionCode 89', '11.2-next.0.58'):
             if item == 'JobService':
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
-        self.assertIn('0.57 (Wine28 host page-size reporting', RUNTIME)
+        self.assertIn('0.58 (automatic v2 diagnostic refresh + safe Close', RUNTIME)
         self.assertIn("versionCode='88' versionName='11.2-next.0.57'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 

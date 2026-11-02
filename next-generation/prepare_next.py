@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.57"')
-text = text.replace("versionCode 33", "versionCode 88")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.58"')
+text = text.replace("versionCode 33", "versionCode 89")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -1162,7 +1162,8 @@ ui = ui.replace(create_anchor, (
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalCreated(this, savedInstanceState);\n"
     "        CharoiteEnvironments.initialize(this);\n"
-    "        com.charoitegames.core.CharoiteNextAutoReports.schedule(this);"), 1)
+    "        com.charoitegames.core.CharoiteNextAutoReports.schedule(this);\n"
+    "        com.charoitegames.core.CharoiteNextAutoReports.sendOnLaunch(this);"), 1)
 
 # The fallback is prepared in onCreate and mounted synchronously in
 # onPostCreate, after the full Portal view is assembled but BEFORE first draw.

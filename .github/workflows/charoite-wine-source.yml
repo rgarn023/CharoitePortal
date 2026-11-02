@@ -453,3 +453,22 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-services-extended/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Compile original Wine10 ARM64 API-set data module (CI source only)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-apiset-bootstrap.sh \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-apiset-schema"
+          python3 next-generation/charoite-wine/verify-apiset-bootstrap.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-apiset-schema"
+
+      - name: Publish API-set source proof only, not an installable runtime
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-APISet-Schema-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-apiset-schema/
+          retention-days: 14
+          if-no-files-found: error

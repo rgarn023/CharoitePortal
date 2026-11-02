@@ -151,13 +151,20 @@ public final class CharoiteNextAutoReports {
                     + " (no data changed)";
         }
     }
+    private static String pageSizeForDisplay() {
+        try {
+            return Long.toString(android.system.Os.sysconf(
+                    android.system.OsConstants._SC_PAGESIZE));
+        } catch (Exception ignored) {
+            return "unavailable";
+        }
+    }
     public static String status(Context ctx) {
         return (enabled(ctx) ? "Enabled" : "Disabled")
                 + "\nDestination: PUBLIC github.com/rgarn023/CharoitePortal/issues"
                 + "\nReport schema: v2 (includes host-page size)"
                 + "\nAndroid page size: "
-                + android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
-                + " bytes (read-only OS value)"
+                + pageSizeForDisplay() + " bytes (read-only OS value)"
                 + "\nUploads: limited v9 diagnostic indicators only; no raw traces."
                 + "\nLast result: " + prefs(ctx).getString(LAST_STATUS, "not sent")
                 + "\nNever runs or reruns Wine.";

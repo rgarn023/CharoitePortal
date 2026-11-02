@@ -2442,4 +2442,14 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 140. November 2, 2026 — v2 phone diagnostic arrived, 4 KiB host page verified; no new Wine run
+
+**Observed PUBLIC GitHub evidence (not a simulation):** After the user reported not seeing "Send now," the repository's issues API returned NEW [phone diagnostic Issue #2](https://github.com/rgarn023/CharoitePortal/issues/2), created November 2 05:58:59 UTC. It contains `charoite-next.phone-diagnostics.v2` with `host_page_size_bytes: 4096`, preserved original v9 PE log 7,945 bytes/server log 23,519 bytes, `internal_child_failed: true`, `pe_kernel32_missing: true`, `pe_apiset_failed: true`, `server_new_process_success: true`, `collector_executed_wine: false`, and `prefix_read: false`/`games_or_saves_read: false`. The [GitHub Actions intake 41397134310](https://github.com/rgarn023/CharoitePortal/actions/runs/41397134310) completed SUCCESS and bot comment validated the exact v2 report, reporting **4 KiB prerequisite satisfied** and **Wineboot child process initialization failed**. No new Wineboot, wineserver or Windows program was run. This verifies Android host page size is 4096, rather than 16384; page-size mismatch is NOT the immediate ABI blocker in this case. It does not prove a specific kernel32/PE import/child-process root cause.
+
+**"Send now" clarification:** This is a v0.58 UI button **only when its reporter detects an existing enabled enrollment**. Older v0.57 or a currently disabled reporter shows no Send now. Because the new v2 phone report already arrived, there is no need to regenerate a token, manually copy a report, or perform additional Wine tests merely to get page-size evidence. Public GitHub issue creation cannot establish which app version is presently installed: v0.57 and v0.58 both generate v2 payloads, but only v0.58 adds the button. If desired the user can update in place to the verified v0.58 signed APK without uninstalling or clearing data.
+
+**Next engineering priority:** Continue read-only Wine 10.0 ARM64 source/PE import and Android internal child-loader investigation, focusing on `get_new_process_info success=0 exit_code=1`, `kernel32.dll c0000135` and `apisetschema.dll` resolution. Avoid adding speculative fixes or rerunning v1–v9. Any new isolated execution requires a separately justified, explicitly approved new scratch generation. Existing stable Portal/Wine22, games, saves, prefixes and rootfs preserved. PUBLIC repository, no separately billed OpenAI API.
+
+---
+
 **End of current Charoite Portal handoff.**

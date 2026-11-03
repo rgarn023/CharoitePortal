@@ -28,14 +28,15 @@ class ProtonIntegrationAuditTest(unittest.TestCase):
     def test_charoite_patch_count_and_source_guardrails(self):
         patches = [line.strip() for line in SERIES.splitlines()
                    if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(patches), 10)
-        self.assertEqual(len(set(patches)), 10)
+        self.assertEqual(len(patches), 11)
+        self.assertEqual(len(set(patches)), 11)
         self.assertTrue(all((FORK / "patches" / name).is_file() for name in patches))
         for needle in ("0700-android-apk-native-ntdll-path.patch",
                        "0400-arm64ec-atomic-operations.patch",
-                       "0200-android-machine-id-fallback.patch"):
+                       "0200-android-machine-id-fallback.patch",
+                       "1000-android-isolated-apiset-pe-path.patch"):
             self.assertIn(needle, patches)
-        self.assertIn('[[ "$count" -eq 10 ]]', PREP)
+        self.assertIn('[[ "$count" -eq 11 ]]', PREP)
         self.assertIn("git apply --check", PREP)
         self.assertIn("git diff --check", PREP)
 

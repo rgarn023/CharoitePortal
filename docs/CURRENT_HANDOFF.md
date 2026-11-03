@@ -2504,4 +2504,18 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 145. November 3, 2026 — Wine29 native fail-closed source gate committed; runtime still inert
+
+**User's next-step request:** Advance toward a real isolated Charoite Next Wine29 native loader without touching stable Portal, games/saves/prefixes/rootfs, old Wine28 v1-v9 evidence or paid OpenAI API.
+
+**Committed to public `main`:** `next-generation/charoite-wine/verify-wine29-native-isolation.py` and `next-generation/charoite-wine/tests/test_wine29_native_isolation.py`, commit [3b24a2a](https://github.com/rgarn023/CharoitePortal/commit/3b24a2a637012c5c10e228dbeb58b58a9573a5a0). New CI-only/read-only preflight accepts **only a FUTURE separately rebuilt source-coherent `wine10-arm64ec-bootstrap.0.7`** 27-component / 76-NLS archive for `com.charoitx`, never the currently deployed immutable `.0.6` Wine29 data cohort. It reuses full archive verification and requires matching SHA-256, actual Android AArch64 ELF machine ID and 16 KiB LOAD alignment, all three exact native ELF records from that source, dedicated `CHAROITE_WINE29_NATIVE_DIR`, `CHAROITE_WINE29_PE_DIR`, `CHAROITE_WINE29_DATA_DIR` selector strings in matched compiled ELFs, a dedicated ntdll filename and a source-level explicit Wine29/Wine28 selection-conflict marker. Synthetic tests cover positive gate shape, rejected old generation, hash/ABI drift, missing selector/guard, and false readiness. **This is a non-executable gate, not the new patch/build itself**. It explicitly returns APK install and Wineboot execution `false` even if a FUTURE coherent archive passes.
+
+**CI status at last inspection:** [Wine source Actions run 41743019494](https://github.com/rgarn023/CharoitePortal/actions/runs/41743019494), source SHA `3b24a2a637012c5c10e228dbeb58b58a9573a5a0`; `validate-wine-source` job's `Validate preparation safety contract` step has completed **SUCCESS**, so the new safety/unit test suite passed on Actions. The full native/source pipeline was **still IN_PROGRESS**; do not call the entire workflow successful or a new signed APK built unless subsequently verified. This commit does not modify old `prepare-source.sh`, `SERIES`, Wine29 27-component archive, Android runtime staging/boot, versionCode or APK identity. Last verified signed APK remains Next **v0.59/versionCode 90** [artifact 13208867006](https://github.com/rgarn023/CharoitePortal/actions/runs/41587931853/artifacts/13208867006). Device has **not** installed or executed a Wine29 native runner.
+
+**Precise next implementation:** Create separate pinned-source `.0.7` patches for Wine29-priority fail-closed native ntdll selection, NTDLL/API-set PE paths, NLS paths in loader and wineserver, plus explicit Wine29-vs-Wine28 selector conflict. Keep the frozen `.0.6` 27-component archive and `Wine28` production experiment untouched. Compile a NEW source-matched 27-component+76-NLS archive through CI, extend full archive verifier for the new version with source proofs, require the above new native source gate to PASS on real ELF/PE artifacts, and only then consider **separate `com.charoitx`-only** inert APK native packaging/verified read-only probe. Any fresh Wineboot device scratch requires separate explicit authorization and cannot reuse v1-v9. Do not claim runnable Wine or Steam/Battle.net compatibility.
+
+**No user action required** for this source-only gate; no separate OpenAI API key, token paste, game-data access, Wine execution, phone update or uninstall.
+
+---
+
 **End of current Charoite Portal handoff.**

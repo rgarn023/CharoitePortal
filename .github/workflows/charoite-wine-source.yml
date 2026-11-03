@@ -472,3 +472,30 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-apiset-schema/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Assemble independently verified 27-component Wine/API-set archive (data only)
+        run: |
+          set -euo pipefail
+          python3 next-generation/charoite-wine/assemble-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-arm64ec-android" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-apiset-extended" \
+            --include-apiset
+          python3 next-generation/charoite-wine/verify-bootstrap-bundle.py \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-apiset-extended/charoite-wine-bootstrap-bundle.tar.gz"
+          grep -Fx 'COMPONENTS=27' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-apiset-extended/bundle-report.txt"
+          grep -Fx 'NLS_COUNT=76' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-apiset-extended/bundle-report.txt"
+          grep -Fx 'LAUNCH_READY=false' \
+            "$RUNNER_TEMP/charoite-wine-prepared/charoite-bootstrap-apiset-extended/bundle-report.txt"
+
+      - name: Publish 27-component Wine/API-set verified archive (NOT an APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine-Coherent-Bootstrap-27-APISet-Experimental
+          path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-apiset-extended/
+          retention-days: 14
+          if-no-files-found: error

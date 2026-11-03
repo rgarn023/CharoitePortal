@@ -168,6 +168,10 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 entry.get("sha256")!=digest(data)):
                 raise ValueError("Corresponding Wine source/license tampered")
         if apiset:
+            delta=read("source/charoite-source-delta.patch")
+            if (b"CHAROITE_WINE28_PE_DIR" not in delta or
+                b"verified isolated Wine28 API-set PE is absent or unreadable" not in delta):
+                raise ValueError("API-set native loader source patch absent")
             import importlib.util
             verify_path=Path(__file__).resolve().parent/"verify-apiset-bootstrap.py"
             spec=importlib.util.spec_from_file_location("charoite_apiset_verifier",verify_path)

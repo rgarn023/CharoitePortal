@@ -77,6 +77,7 @@ def check(manifest: dict, payloads: dict[str, bytes],
                 rec.get("size") != len(body) or
                 rec.get("sha256") != sha256(body) or
                 body[:6] != b"\x7fELF\x02\x01" or
+                len(body) < 20 or int.from_bytes(body[18:20], "little") != 183 or
                 not isinstance(rec.get("load_alignments"), list) or
                 not rec["load_alignments"] or
                 any(type(a) is not int or a < 16384 for a in rec["load_alignments"]) or

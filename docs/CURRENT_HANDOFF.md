@@ -2492,4 +2492,16 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 144. November 3, 2026 — isolated Wine29 loader audit, no execution or source change
+
+**GitHub state independently rechecked:** Public `rgarn023/CharoitePortal` `main` and signed Next v0.59 CI [41587931853](https://github.com/rgarn023/CharoitePortal/actions/runs/41587931853) are verified: completed SUCCESS, source commit `a512d96103dd34becedbfb979a9bf0e5dfa451ff`, artifact [13208867006](https://github.com/rgarn023/CharoitePortal/actions/runs/41587931853/artifacts/13208867006) is present and unexpired. Latest phone GitHub Issues remain #1 and #2, both Wine28 v9 preserved-log reports; no Wine29 device execution report or version change is established. Source-only docs commits after that code commit do not imply a new signed APK.
+
+**Read-only source inspection and blocked shortcut:** Existing `next-generation/stage_wine29.py` correctly installs 100 verified Wine29 PE/NLS *data* assets only, leaving three new native ELF files in the source archive (`native_elf_installed=false`). Its upstream source patch lineage includes `0900-android-isolated-windows-ntdll-pe-path.patch` and `1000-android-isolated-apiset-pe-path.patch`, both selecting `CHAROITE_WINE28_PE_DIR` on Android AArch64; the loader source patch for explicit Wine28 native NTDLL looks for `CHAROITE_WINE28_NATIVE_DIR` and `libcharoite_wine28_ntdll.so`. The 27-component Wine29 source is coherent and source-verified, but **cannot simply be renamed and activated as Wine29 native libraries** without fixing the cohort-specific native and PE lookup contracts. Running with mixed generations would invalidate the test. This is a source-level interoperability risk, **not** a newly observed phone failure or proof of the Wine28 v9 kernel32 root cause.
+
+**Next engineering implementation, not yet done:** Introduce a new independently compiled pinned source generation with distinct fail-closed Wine29 native NTDLL lookup, API-set + NTDLL PE directory, NLS directory, and native library filenames. Require explicit mutual exclusion of Wine28/Wine29 environment selectors and avoid implicit fallback into older generations; source-hash audit all three native ELF and all PE/NLS assets from the **same** source cohort. Use a NEW versioned `com.charoitx`-only staging area, immutable manifest, strict no-traversal/canonical path checks, preservation of prior Wine28 and old `com.charoite` data, and offline contract tests before any APK packaging. CI build and artifact identity are separate milestones; `NATIVE_ELF_INSTALLED=false` and `LAUNCH_READY=false` for the currently verified v0.59. If a fresh v10 Wine29 phone test is later justified, get specific user approval before any Wine/Wineboot execution; never rerun or delete Wine28 scratch v1-v9.
+
+**No paid OpenAI API, autonomous agent, Wineboot, device APK installation or new phone scratch used for this review.** Repository remains PUBLIC; all prefixes, games, saves, rootfs and stable Portal/Wine22 remain untouched. This is a handoff-only `[skip ci]` update, not an engine fix or an APK build.
+
+---
+
 **End of current Charoite Portal handoff.**

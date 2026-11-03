@@ -2464,4 +2464,18 @@ GitHub code commits: `ae9d95a723e508738709fdd8736c4142afbb292a` added source can
 
 ---
 
+## 142. November 3, 2026 — Wine28 API-set loader patch and independent 27-component source archive (no phone execution)
+
+**Pre-existing milestone verified:** GitHub Actions [41402267742](https://github.com/rgarn023/CharoitePortal/actions/runs/41402267742) completed **SUCCESS in all four jobs**. Pinned Wine 10 ARM64 `apisetschema.dll` built from exact pinned Wine source, independently verified data-only PE32+ namespace v6, SHA-256 `8c89e69e9725f13a8956ae52b05e993063a5aaf3369d954ca21e5d8670f37b9b`. [Experimental API-set artifact 13122590804](https://github.com/rgarn023/CharoitePortal/actions/runs/41402267742/artifacts/13122590804) exists, not installed.
+
+**Root issue in Wine28 v9 source:** `load_apiset_dll()` opens a PE file relative to APK-native ELF `dll_dir` **before** ordinary Wine `WINEDLLPATH` DLL search, while `CHAROITE_WINE28_PE_DIR` already fixed only initial `ntdll.dll` lookup in patch 0900. Merely placing a schema beside `kernel32.dll` in a private scratch is therefore insufficient. The old 26-component bundle did not package `apisetschema.dll`.
+
+**New source patch 1000:** GitHub commit [4566c0a0](https://github.com/rgarn023/CharoitePortal/commit/4566c0a0e3f31dd9073d6b577fb35efcec6ec820) adds `1000-android-isolated-apiset-pe-path.patch` to the 11 active pinned Wine source patches. On Android AArch64 only, if `CHAROITE_WINE28_PE_DIR` is explicitly set, it requires an absolute no-dot-traversal `realpath`, constructs `<same verified directory>/apisetschema.dll`, and fails closed if missing/unreadable; if unset, keeps original Wine behavior. The source safety suite passed 95 tests and pinned source preparation applied all 70 vendor prerequisites plus the 11 active Charoite patches. Earlier transitional [run 41585055349](https://github.com/rgarn023/CharoitePortal/actions/runs/41585055349) was canceled on a superseding source commit; it is **not a build success**.
+
+**New separate bootstrap generation:** Commits [21253a4](https://github.com/rgarn023/CharoitePortal/commit/21253a4168872b5dbf18368cb8ccd3f8b0adb8fc) and [222530f](https://github.com/rgarn023/CharoitePortal/commit/222530fe657c9039f6d2b221a69ded9cc3afe8dd) introduce `wine10-arm64ec-bootstrap.0.6`: immutable 26-component same-built native/PE corpus + one independently verified data-only API-set PE = **27 total** (three native ELF, 24 Windows PE including ARM64 Wineboot), 76 Wine NLS tables; special-case raw ARM64 API-set machine ID and namespace v6 verification, package exact `.spec`/Makefile/module proof source hash, recheck native loader patch marker, preserve older .0.2–.0.5 archive compatibility and reject corrupt/forged 27-component manifests. New source CI [run 41585641770](https://github.com/rgarn023/CharoitePortal/actions/runs/41585641770) was launched; **source validation and 95 tests passed**, but do not call the 27-component artifact verified until full cross-build and archive publish succeed.
+
+**Privacy and safety:** All actions are source-only GitHub builds on `main`; no Android APK upgrade, Wine process execution, prefix creation, scratch overwrite, or diagnostics access; no new paid API agent. Existing `com.charoitx` v0.58 signed APK, Charoite Portal, user prefixes, Wine22, Wine28 v1–v9 scratch, saves, rootfs and games remain unchanged. Wine28 PE help still failed and `kernel32.dll c0000135` root cause is not proven corrected by this source work. Next stage after verified source build is a separate source-coherent Android data/native cohort, not replacement of an existing generation, followed by separately authorized isolated device testing.
+
+---
+
 **End of current Charoite Portal handoff.**

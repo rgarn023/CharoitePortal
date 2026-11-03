@@ -27,11 +27,11 @@ class SourceContract(unittest.TestCase):
 
     def test_vendor_patch_provenance(self):
         patched = sorted((WINE / "patches").glob("*.patch"))
-        self.assertEqual(len(patched), 11)
+        self.assertEqual(len(patched), 12)
         active = (WINE / "patches/SERIES").read_text()
         active_patches = [line.strip() for line in active.splitlines()
                           if line.strip() and not line.lstrip().startswith("#")]
-        self.assertEqual(len(active_patches), 10)
+        self.assertEqual(len(active_patches), 11)
         self.assertEqual(len(active_patches), len(set(active_patches)))
         self.assertEqual(set(active_patches),
                          {p.name for p in patched} -
@@ -45,6 +45,12 @@ class SourceContract(unittest.TestCase):
         self.assertIn("CHAROITE_WINE28_PE_DIR", new_patch)
         self.assertIn("CHAROITE_WINE28_NATIVE_DIR", new_patch)
         self.assertIn("libcharoite_wine28_ntdll.so", new_patch)
+        self.assertIn("1000-android-isolated-apiset-pe-path.patch", active_patches)
+        apiset_patch = (WINE / "patches/1000-android-isolated-apiset-pe-path.patch").read_text()
+        self.assertIn('"%s/apisetschema.dll"', apiset_patch)
+        self.assertIn('CHAROITE_WINE28_PE_DIR', apiset_patch)
+        self.assertIn('verified isolated Wine28 API-set PE is absent or unreadable', apiset_patch)
+        self.assertIn('verified isolated Wine28 API-set PE is absent or unreadable', SCRIPT)
         data_patch = (WINE / "patches/0800-android-isolated-wine-data-dir.patch").read_text()
         self.assertIn("CHAROITE_WINE26_DATA_DIR", data_patch)
         self.assertIn("CHAROITE_WINE27_NATIVE_DIR", data_patch)

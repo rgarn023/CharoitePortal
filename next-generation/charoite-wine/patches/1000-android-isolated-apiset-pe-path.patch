@@ -1,0 +1,43 @@
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -2111,12 +2111,33 @@
+     init_unicode_string( &str, path );
+     InitializeObjectAttributes( &attr, &str, 0, 0, NULL );
+ 
+-    if (build_dir) asprintf( &name, "%s/dlls/apisetschema%s/apisetschema.dll", build_dir, pe_dir );
+-    else asprintf( &name, "%s%s/apisetschema.dll", dll_dir, pe_dir );
+-    status = open_unix_file( &handle, name, GENERIC_READ | SYNCHRONIZE, &attr, 0,
+-                             FILE_SHARE_READ | FILE_SHARE_DELETE, FILE_OPEN,
+-                             FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL, 0 );
+-    free( name );
++#if defined(__ANDROID__) && defined(__aarch64__)
++    /* Use the verified Wine28 PE scratch for the initial API-set module.
++     * The APK native ELF directory has no adjacent Windows DLL tree.
++     * When explicitly selected, never silently use an older Wine cohort. */
++    if (getenv( "CHAROITE_WINE28_PE_DIR" ))
++    {
++        const char *dir = getenv( "CHAROITE_WINE28_PE_DIR" );
++        char *resolved;
++        if (dir[0] != '/' || strstr( dir, ".." ) || strchr( dir, ':' ) ||
++            !(resolved = realpath( dir, NULL )))
++            fatal_error( "invalid isolated Wine28 API-set directory\n" );
++        if (asprintf( &name, "%s/apisetschema.dll", resolved ) < 0)
++            fatal_error( "cannot construct isolated Wine28 API-set path\n" );
++        free( resolved );
++    }
++    else
++#endif
++    if (build_dir) asprintf( &name, "%s/dlls/apisetschema%s/apisetschema.dll", build_dir, pe_dir );
++    else asprintf( &name, "%s%s/apisetschema.dll", dll_dir, pe_dir );
++    status = open_unix_file( &handle, name, GENERIC_READ | SYNCHRONIZE, &attr, 0,
++                             FILE_SHARE_READ | FILE_SHARE_DELETE, FILE_OPEN,
++                             FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL, 0 );
++    free( name );
++#if defined(__ANDROID__) && defined(__aarch64__)
++    if (status && getenv( "CHAROITE_WINE28_PE_DIR" ))
++        fatal_error( "verified isolated Wine28 API-set PE is absent or unreadable: %x\n", status );
++#endif
+ 
+     if (!status)
+     {

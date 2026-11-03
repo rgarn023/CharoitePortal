@@ -12,3 +12,4 @@
 0700-android-apk-native-ntdll-path.patch
 0800-android-isolated-wine-data-dir.patch
 0900-android-isolated-windows-ntdll-pe-path.patch
+1000-android-isolated-apiset-pe-path.patch

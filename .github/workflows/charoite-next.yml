@@ -318,6 +318,22 @@ jobs:
             test -s "upstream/app/src/main/jniLibs/arm64-v8a/libcharoite_wine28_${name}.so"
           done
           echo "Distinct Wine28 native source cohort verified; no execution in CI."
+
+      - name: Stage verified Wine29 API-set PE/NLS as INERT Next assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine29"
+          gh run download 41586391767 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine-Coherent-Bootstrap-27-APISet-Experimental \
+            --dir "$RUNNER_TEMP/charoite-wine29"
+          python3 next-generation/stage_wine29.py \
+            "$RUNNER_TEMP/charoite-wine29/charoite-wine-bootstrap-bundle.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-29.bundle
+          test -s upstream/app/src/main/assets/charoite-next/wine-bootstrap-29-index.json
+          echo "Inert 27-component Wine29 API-set data staged; old Wine28 untouched."
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -688,6 +704,35 @@ jobs:
                   if key in ("ntdll_unix","wineserver"):
                       assert b"CHAROITE_WINE26_DATA_DIR" in b
               print("CHAROITE_NEXT_WINE28_MATCHED_SOURCE_PE_NATIVE_APK_HASHES_VERIFIED=PASS")
+              new29=json.loads(apk.read("assets/charoite-next/wine-bootstrap-29-index.json"))
+              raw29=apk.read("assets/charoite-next/wine-bootstrap-29.bundle")
+              assert new29["source_run"]==41586391767 and new29["source_artifact"]==13208541305
+              assert new29["source_sha"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert new29["bundle_version"]=="wine10-arm64ec-bootstrap.0.6"
+              assert new29["archive_sha256"]==hashlib.sha256(raw29).hexdigest()
+              assert new29["archive_size"]==len(raw29)
+              assert new29["archive_sha256"]!=new28["archive_sha256"]
+              assert new29["component_count"]==27
+              assert new29["pe_count"]==24 and new29["nls_count"]==76
+              assert new29["module_count"]==100 and len(new29["module_files"])==100
+              assert new29["native_elf_in_archive"]==3
+              assert new29["api_set_namespace_version"]==6
+              assert new29["api_set_sha256"]=="8c89e69e9725f13a8956ae52b05e993063a5aaf3369d954ca21e5d8670f37b9b"
+              assert all(new29[k] is False for k in (
+                  "launch_ready","installable_as_runtime","native_elf_installed",
+                  "prefix_created","wineboot_tested","fex_installed",
+                  "graphics_verified","anti_cheat_supported"))
+              for e in new29["module_files"]:
+                  b=apk.read("assets/"+e["asset"])
+                  assert e["asset"].startswith("charoite-next/wine29-modules/")
+                  assert len(b)==e["size"]
+                  assert hashlib.sha256(b).hexdigest()==e["sha256"]
+              assert any(e["path"]=="pe/arm64ec/apisetschema.dll" and
+                         e["sha256"]==new29["api_set_sha256"] for e in new29["module_files"])
+              assert new29["remaining_observed_pe_imports"]==new28["remaining_observed_pe_imports"]
+              print("CHAROITE_NEXT_WINE29_27_SOURCE_APISET_DATA_APK_HASHES_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE29_NATIVE_ELF_NOT_INSTALLED=PASS")
+
               print("CHAROITE_NEXT_WINE28_V5_ONE_SHOT_DEVICE_ONLY=PASS")
               assert patched["archive_sha256"]!=wine26["archive_sha256"]
               print("CHAROITE_NEXT_WINE27_PATCHED_SOURCE_APK_HASHES_VERIFIED=PASS")
@@ -707,7 +752,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='89' versionName='11.2-next.0.58'"
+            grep -F "package: name='com.charoitx' versionCode='90' versionName='11.2-next.0.59'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -868,6 +913,8 @@ jobs:
           cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
+          cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py
+          cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-29-index.json legal-bundle/wine-bootstrap-29-index.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-28-index.json legal-bundle/wine-bootstrap-28-index.json
           cp upstream/app/src/main/assets/charoite-next/wine28-native-probe.json legal-bundle/wine28-native-probe.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-27-index.json legal-bundle/wine-bootstrap-27-index.json

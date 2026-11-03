@@ -36,6 +36,12 @@ PE_COM = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
           for name in ("rpcrt4","combase","ole32","comctl32")}
 PE_SERVICES = {name: f"dlls/{name}/aarch64-windows/{name}.dll"
                for name in ("bcrypt","secur32","sechost","msvcrt")}
+APISET_PE = "dlls/apisetschema/aarch64-windows/apisetschema.dll"
+APISET_SOURCES = {
+    "apisetschema.spec": "dlls/apisetschema/apisetschema.spec",
+    "apisetschema.Makefile.in": "dlls/apisetschema/Makefile.in",
+    "apisetschema-verified.json": "charoite-apiset-schema/verified-apiset.json",
+}
 ELF = {
     "wine": "loader/wine",
     "wineserver": "server/wineserver",
@@ -111,7 +117,8 @@ def check_pe(path: Path, readobj: Path, architecture: str) -> dict:
     return {"machine":id,"imports":dlls}
 
 def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
-                include_startup: bool = False, include_com: bool = False, include_services: bool = False) -> dict:
+                include_startup: bool = False, include_com: bool = False, include_services: bool = False,
+                include_apiset: bool = False) -> dict:
     for p in (build,readelf,readobj,output):
         if not p.is_absolute(): raise ValueError("Expected absolute CI-only paths")
     if output.exists() or not output.parent.is_dir():
@@ -138,6 +145,14 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         load_validator("next_services","verify-pe-services.py").verify(
             build.parent/"charoite-pe-services",
             build.parent/"charoite-bootstrap-com-extended"/"dependency-review.json")
+    apiset_proof = None
+    if include_apiset:
+        if not include_services:
+            raise ValueError("API-set schema requires coherent, source-verified 26-component prerequisite")
+        apiset_proof = load_validator("next_apiset","verify-apiset-bootstrap.py").verify(
+            build.parent/"charoite-apiset-schema")
+        if sha(regular(build/APISET_PE)) != apiset_proof["module"]["sha256"]:
+            raise ValueError("API-set source-build PE differs from independently verified module")
     selected_pe={**PE,**(PE_STARTUP if include_startup else {}),
                  **(PE_COM if include_com else {}),
                  **(PE_SERVICES if include_services else {})}
@@ -158,6 +173,18 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         payloads[dest]=data
         records[name]={"path":dest,"format":"PE","sha256":sha(data),"size":len(data),
                        **check_pe(src,readobj,"arm64ec")}
+    if include_apiset:
+        data = regular(build/APISET_PE)
+        machine = apiset_proof["module"]["machine"]
+        if machine not in ("0xaa64", "0xa641"):
+            raise ValueError("Untrusted API-set PE machine")
+        dest = "runtime/pe/arm64ec/apisetschema.dll"
+        payloads[dest] = data
+        records["apisetschema"] = {
+            "path":dest, "format":"PE","sha256":sha(data),"size":len(data),
+            "machine":machine.replace("0x","0x").upper().replace("0X","0x"),
+            "imports":[], "api_set_namespace_version":6,
+        }
     data=regular(build/BOOT)
     dest="runtime/pe/arm64/wineboot.exe"
     payloads[dest]=data
@@ -183,11 +210,14 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     if include_services:
         for name in PE_SERVICES:
             prior[name]=build.parent/"charoite-pe-services"/f"{name}-arm64ec.dll"
+    if include_apiset:
+        prior["apisetschema"] = build.parent/"charoite-apiset-schema"/"apisetschema.dll"
     for name,path in prior.items():
         if sha(regular(path))!=records[name]["sha256"]:
             raise ValueError("Same-tree Wine binary differs from audited component: "+name)
     source={}
-    for name,rel in SOURCES.items():
+    source_files = {**SOURCES, **(APISET_SOURCES if include_apiset else {})}
+    for name,rel in source_files.items():
         src=(Path(__file__).resolve().parent/"UPSTREAM-WEHAVEPHONES-LICENSE.txt"
              if rel=="@vendor-license" else build.parent/rel)
         data=regular(src)
@@ -206,6 +236,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         payloads[bundled]=blob
         nls_records[name]={"path":bundled,"size":len(blob),"sha256":sha(blob)}
     available={f"{k}.dll" for k in selected_pe}
+    if include_apiset: available.add("apisetschema.dll")
     imported={v for e in records.values() for v in e.get("imports",[])}
     needed={v for e in records.values() for v in e.get("needed",[])}
     gap=sorted(imported-available)
@@ -221,6 +252,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     payloads["dependency-review.json"]=(json.dumps(report,sort_keys=True,indent=2)+"\n").encode()
     manifest={
         "schema_version":1,"version":(
+            "wine10-arm64ec-bootstrap.0.6" if include_apiset else
             "wine10-arm64ec-bootstrap.0.5" if include_services else
             "wine10-arm64ec-bootstrap.0.4" if include_com else
             "wine10-arm64ec-bootstrap.0.3" if include_startup else
@@ -240,6 +272,9 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         "services_dependency_manifest_sha256":(
             sha(regular(build.parent/"charoite-pe-services"/"pe-services-manifest.json"))
             if include_services else None),
+        "api_set_source_manifest_sha256":(
+            sha(regular(build.parent/"charoite-apiset-schema"/"verified-apiset.json"))
+            if include_apiset else None),
         "source_files":source,"dependency_review_sha256":sha(payloads["dependency-review.json"]),
         "window_imports_unresolved_count":len(gap),
         "missing_for_runtime":[
@@ -271,11 +306,13 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
 
 if __name__=="__main__":
     if len(sys.argv) not in (5,6) or (len(sys.argv)==6 and
-        sys.argv[5] not in ("--include-startup","--include-com","--include-services")):
-        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com|--include-services]")
+        sys.argv[5] not in ("--include-startup","--include-com","--include-services","--include-apiset")):
+        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com|--include-services|--include-apiset]")
     flavor=sys.argv[5] if len(sys.argv)==6 else ""
     manifest=make_bundle(*map(Path,sys.argv[1:5]),
-                         include_startup=bool(flavor),include_com=flavor in ("--include-com","--include-services"),
-                         include_services=flavor=="--include-services")
+                         include_startup=bool(flavor),
+                         include_com=flavor in ("--include-com","--include-services","--include-apiset"),
+                         include_services=flavor in ("--include-services","--include-apiset"),
+                         include_apiset=flavor=="--include-apiset")
     print("CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS",manifest["component_count"])
     print("LAUNCH_READY=false")

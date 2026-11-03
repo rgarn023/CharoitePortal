@@ -16,6 +16,8 @@ PE=("ntdll","kernelbase","kernel32","advapi32","user32","ws2_32",
 EXTRA_PE=("win32u","gdi32","ucrtbase","shell32")
 COM_PE=("rpcrt4","combase","ole32","comctl32")
 SERVICES_PE=("bcrypt","secur32","sechost","msvcrt")
+APISET_PATH={"apisetschema":"runtime/pe/arm64ec/apisetschema.dll"}
+APISET_SOURCES=("apisetschema.spec","apisetschema.Makefile.in","apisetschema-verified.json")
 SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
          "Wine-NLS-Makefile.in")
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
@@ -65,22 +67,28 @@ def verify(archive: Path) -> tuple[dict,dict]:
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
         version=manifest.get("version")
-        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5")
-        com=version in ("wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5")
-        services=version=="wine10-arm64ec-bootstrap.0.5"
+        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
+        com=version in ("wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
+        services=version in ("wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
+        apiset=version=="wine10-arm64ec-bootstrap.0.6"
+        source_names=set(SOURCES) | (set(APISET_SOURCES) if apiset else set())
         expected={**EXPECTED,**(EXTRA_PATHS if extended else {}),
                   **(COM_PATHS if com else {}),
-                  **(SERVICES_PATHS if services else {})}
+                  **(SERVICES_PATHS if services else {}),
+                  **(APISET_PATH if apiset else {})}
         allowed=ALL | (set(EXTRA_PATHS.values()) if extended else set()) | (
             set(COM_PATHS.values()) if com else set()) | (
-            set(SERVICES_PATHS.values()) if services else set())
+            set(SERVICES_PATHS.values()) if services else set()) | (
+            set(APISET_PATH.values()) if apiset else set()) | {
+            "source/"+name for name in APISET_SOURCES if apiset}
         if (len(members)!=len(allowed)+len(nls_paths) or actual!=allowed|nls_paths):
             raise ValueError("Wrong, repeated or missing bundle files")
         if (manifest.get("schema_version")!=1 or
             manifest.get("version") not in (
                 "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3",
                 "wine10-arm64ec-bootstrap.0.4",
-                "wine10-arm64ec-bootstrap.0.5") or
+                "wine10-arm64ec-bootstrap.0.5",
+                "wine10-arm64ec-bootstrap.0.6") or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
@@ -90,7 +98,7 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 "anti_cheat_supported")) or
             manifest.get("dependency_review_sha256")!=digest(report_raw) or
             set(manifest.get("components",{}))!=set(expected) or
-            set(manifest.get("source_files",{}))!=set(SOURCES)):
+            set(manifest.get("source_files",{}))!=source_names):
             raise ValueError("Unsafe/incomplete bootstrap manifest")
         nls_files=manifest.get("nls_files")
         if (not isinstance(nls_files,dict) or len(nls_files)!=76 or
@@ -116,6 +124,12 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 raise ValueError("Missing source-verified PE security/service manifest")
         elif services_hash is not None:
             raise ValueError("Unexpected PE services provenance on older bundle")
+        apiset_source_hash=manifest.get("api_set_source_manifest_sha256")
+        if apiset:
+            if not isinstance(apiset_source_hash,str) or not re.fullmatch(r"[0-9a-f]{64}",apiset_source_hash):
+                raise ValueError("Missing API-set source-proof hash")
+        elif apiset_source_hash is not None:
+            raise ValueError("Unexpected API-set source proof on older generation")
         for name,path in expected.items():
             entry=manifest["components"][name]
             if entry.get("path")!=path or entry.get("format")!=(
@@ -138,16 +152,38 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 if name=="wineboot":
                     if machine!=0xAA64 or entry.get("machine")!="0xAA64":
                         raise ValueError("Windows wineboot not regular ARM64")
+                elif name=="apisetschema":
+                    if (machine not in (0xAA64,0xA641) or
+                        entry.get("machine")!=f"0x{machine:04X}" or
+                        entry.get("api_set_namespace_version")!=6):
+                        raise ValueError("Windows API-set source ABI report invalid")
                 elif machine not in (0xAA64,0xA641) or entry.get("machine")!="0xA641":
                     raise ValueError("Windows DLL missing ARM64EC ABI report")
                 if not isinstance(entry.get("imports"),list):
                     raise ValueError("Missing PE imports audit")
-        for name in SOURCES:
+        for name in sorted(source_names):
             entry=manifest["source_files"][name]
             data=read("source/"+name)
             if (entry.get("path")!="source/"+name or entry.get("size")!=len(data) or
                 entry.get("sha256")!=digest(data)):
                 raise ValueError("Corresponding Wine source/license tampered")
+        if apiset:
+            import importlib.util
+            verify_path=Path(__file__).resolve().parent/"verify-apiset-bootstrap.py"
+            spec=importlib.util.spec_from_file_location("charoite_apiset_verifier",verify_path)
+            helper=importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(helper)
+            module_data=read(APISET_PATH["apisetschema"])
+            namespace=helper.inspect(module_data)
+            proof_raw=read("source/apisetschema-verified.json")
+            proof=json.loads(proof_raw)
+            if (digest(proof_raw)!=apiset_source_hash or
+                proof.get("source_commit")!=BASE or
+                proof.get("package")!="com.charoitx" or
+                proof.get("module")!=namespace or
+                proof.get("spec_sha256")!=digest(read("source/apisetschema.spec")) or
+                proof.get("make_sha256")!=digest(read("source/apisetschema.Makefile.in"))):
+                raise ValueError("Source-coherent API-set proof mismatch")
         for name,entry in nls_files.items():
             if not re.fullmatch(r"[a-z_0-9]+\.nls",name):
                 raise ValueError("Unsafe NLS file name")

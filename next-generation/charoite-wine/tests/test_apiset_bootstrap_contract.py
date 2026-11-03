@@ -26,27 +26,27 @@ class APISetContract(unittest.TestCase):
             root=Path(temp)
             data=bytearray(1024);data[:2]=b"MZ"
             struct.pack_into("<I",data,0x3c,0x80)
-            data[0x80:0x84]=b"PE\\x00\\x00"
+            data[0x80:0x84]=b"PE\x00\x00"
             struct.pack_into("<HH",data,0x84,0xaa64,1)
             struct.pack_into("<H",data,0x94,0xf0)
             struct.pack_into("<H",data,0x98,0x20b)
             section=0x80+24+0xf0
-            data[section:section+8]=b".apiset\\x00"
+            data[section:section+8]=b".apiset\x00"
             struct.pack_into("<IIII",data,section+8,256,0x1000,256,512)
             struct.pack_into("<II",data,512,6,128)
             (root/"apisetschema.dll").write_bytes(bytes(data))
             (root/"apisetschema.spec").write_text(
-                "apiset api-ms-win-test = kernelbase.dll\\n"
-                "apiset api-ms-win-legacy = kernel32.dll\\n")
+                "apiset api-ms-win-test = kernelbase.dll\n"
+                "apiset api-ms-win-legacy = kernel32.dll\n")
             (root/"Makefile.in").write_text(
-                "MODULE    = apisetschema.dll\\nEXTRADLLFLAGS = -Wb,--data-only\\n")
+                "MODULE    = apisetschema.dll\nEXTRADLLFLAGS = -Wb,--data-only\n")
             (root/"COPYING.LIB").write_text("Wine LGPL license fixture")
             (root/"pe-file-header.txt").write_text("Machine: IMAGE_FILE_MACHINE_ARM64")
             proof=m.verify(root)
-            (root/"verified-apiset.json").write_text(json.dumps(proof,sort_keys=True)+"\\n")
+            (root/"verified-apiset.json").write_text(json.dumps(proof,sort_keys=True)+"\n")
             self.assertEqual(m.verify(root),proof)
             (root/"verified-apiset.json").write_text(
-                json.dumps({**proof,"launch_ready":True})+"\\n")
+                json.dumps({**proof,"launch_ready":True})+"\n")
             with self.assertRaisesRegex(ValueError,"proof is inconsistent"):
                 m.verify(root)
     def test_pe_namespace_validation(self):

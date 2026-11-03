@@ -38,7 +38,13 @@ def inspect(data):
 def verify(path):
     p=Path(path)
     names={"apisetschema.dll","apisetschema.spec","Makefile.in","COPYING.LIB","pe-file-header.txt"}
-    if p.is_symlink() or not p.is_dir() or {f.name for f in p.iterdir()}!=names:
+    observed={f.name for f in p.iterdir()} if p.is_dir() and not p.is_symlink() else set()
+    # The first compiler validation has five files. Revalidating that SAME
+    # immutable, source-verified output during later archive packaging sees
+    # its own manifest added by main(); accept ONLY that one extra proof.
+    proof_present="verified-apiset.json" in observed
+    if (p.is_symlink() or not p.is_dir() or
+        observed not in (names,names|{"verified-apiset.json"})):
         raise ValueError("Untrusted CI output inventory")
     if any((p/n).is_symlink() or not (p/n).is_file() or not (p/n).stat().st_size for n in names):
         raise ValueError("Missing or unsafe file")
@@ -48,10 +54,18 @@ def verify(path):
         raise ValueError("Unexpected source mapping")
     if b"MODULE    = apisetschema.dll" not in make or b"-Wb,--data-only" not in make:
         raise ValueError("Expected data-only Wine API-set Makefile")
-    return {"schema_version":1,"source_commit":BASE,"package":"com.charoitx",
+    result={"schema_version":1,"source_commit":BASE,"package":"com.charoitx",
             "module":inspect((p/"apisetschema.dll").read_bytes()),"spec_sha256":sha(spec),
             "make_sha256":sha(make),"launch_ready":False,"prefix_created":False,
             "android_executed":False}
+    if proof_present:
+        proof_path=p/"verified-apiset.json"
+        if (proof_path.is_symlink() or not proof_path.is_file() or
+            not 1 <= proof_path.stat().st_size <= 65536):
+            raise ValueError("Unsafe API-set proof file")
+        if json.loads(proof_path.read_text(encoding="utf-8"))!=result:
+            raise ValueError("Existing API-set proof is inconsistent with verified PE/source")
+    return result
 if __name__=="__main__":
     if len(sys.argv)!=2: raise SystemExit("usage: verify-apiset-bootstrap.py CI_OUTPUT")
     path=Path(sys.argv[1]); result=verify(path)

@@ -39,8 +39,16 @@ def regular(path: Path, maximum: int) -> bytes:
 
 
 def command(tool: Path, *args: str) -> str:
-    if tool.is_symlink() or not tool.is_file():
-        raise ValueError("Missing pinned inspection tool: " + str(tool))
+    # The pinned Android NDK exposes llvm-readelf as a symlink to llvm-readobj.
+    # Accept links ONLY when the resolved executable stays in the exact
+    # checksum-pinned toolchain bin directory; reject escaping links.
+    try:
+        resolved = tool.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("Missing pinned inspection tool: " + str(tool)) from exc
+    if (not tool.is_absolute() or not resolved.is_file() or
+            resolved.parent != tool.parent.resolve(strict=True)):
+        raise ValueError("Inspection tool escapes pinned toolchain directory: " + str(tool))
     return subprocess.run([str(tool), *args], check=True, text=True, capture_output=True).stdout
 
 

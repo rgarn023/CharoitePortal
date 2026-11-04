@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.62"')
-text = text.replace("versionCode 33", "versionCode 93")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.63"')
+text = text.replace("versionCode 33", "versionCode 94")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -167,7 +167,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V9BuiltinBootstrapProbe.java",
                  "CharoiteWine28V9Forensics.java",
                  "CharoiteWine29Native07Audit.java",
-                 "CharoiteWine29Native07VersionGate.java"):
+                 "CharoiteWine29Native07VersionGate.java",
+                 "CharoiteWine29Native07Stage.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1193,6 +1194,46 @@ ui = ui.replace(anchor, anchor + """
                 }).show();
         });
         nextCoreCard.addView(wine29Version);
+
+        // Manual DATA-only Wine29 .0.7 PE/NLS stage. Only this consent
+        // button may write a NEW isolated no_backup slot; NEVER Wineboot.
+        android.widget.Button wine29Data = new android.widget.Button(this);
+        wine29Data.setText("Stage Wine29 0.7 PE/NLS data (no execution)");
+        wine29Data.setAllCaps(false);
+        wine29Data.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage new isolated Wine29 0.7 DATA?")
+                .setMessage("This copies 24 source-verified Windows PE files and 76 Wine "
+                    + "NLS files into a NEW private Wine29 0.7 slot only, after "
+                    + "verifying the complete archive and every asset SHA-256. "
+                    + "It does not start Wine, run Wineboot, create a Windows prefix, "
+                    + "launch any EXE or access existing games/saves/Wine28 scratch. "
+                    + "Partial failures are quarantined and never overwritten.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage data only", (dialog, which) -> {
+                    wine29Data.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29Native07Stage.run(this);
+                        runOnUiThread(() -> {
+                            wine29Data.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 0.7 PE/NLS data")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 0.7 DATA-only staging", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29Native07Stage").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine29Data);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

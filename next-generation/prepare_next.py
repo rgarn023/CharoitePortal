@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.60"')
-text = text.replace("versionCode 33", "versionCode 91")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.61"')
+text = text.replace("versionCode 33", "versionCode 92")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -166,7 +166,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V8LayoutProbe.java",
                  "CharoiteWine28V9BuiltinBootstrapProbe.java",
                  "CharoiteWine28V9Forensics.java",
-                 "CharoiteWine29Native07Audit.java"):
+                 "CharoiteWine29Native07Audit.java",
+                 "CharoiteWine29Native07VersionGate.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1153,6 +1154,45 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29Native07Audit").start();
         });
         nextCoreCard.addView(wine29Audit);
+
+        // Only explicit consent invokes the separately audited Wine29 .0.7
+        // loader and wineserver --version. No auto-run, prefix or Windows EXE.
+        android.widget.Button wine29Version = new android.widget.Button(this);
+        wine29Version.setText("Test Wine29 0.7 native --version (no prefix)");
+        wine29Version.setAllCaps(false);
+        wine29Version.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Confirm Wine29 version-only test?")
+                .setMessage("This test executes ONLY the separately verified Wine29 0.7 native "
+                    + "loader and wineserver with --version, after SHA-256 checks. "
+                    + "It does not run Wineboot, Windows software, games, FEX or graphics. "
+                    + "No new prefix is created and old Wine28 experiments, games, saves "
+                    + "and rootfs are not accessed. Each invocation requires your consent.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run version-only test", (dialog, which) -> {
+                    wine29Version.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29Native07VersionGate.run(this);
+                        runOnUiThread(() -> {
+                            wine29Version.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 native version gate")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 native --version only", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29Native07VersionGate").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine29Version);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

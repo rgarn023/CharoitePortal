@@ -32,6 +32,7 @@ static void load_apiset_dll(void)
 {
     if (getenv( "CHAROITE_WINE28_PE_DIR" ))
     {
+        asprintf( &name, "%s/apisetschema.dll", resolved );
         status = open_unix_file( &handle, name );
     }
     if (status && getenv( "CHAROITE_WINE28_PE_DIR" ))
@@ -41,6 +42,7 @@ static void load_ntdll_pe(void)
 {
     if (getenv( "CHAROITE_WINE28_PE_DIR" ))
     {
+        asprintf( &name, "%s/ntdll.dll", resolved );
         status = open_builtin_pe_file( name );
     }
     if (getenv( "CHAROITE_WINE28_PE_DIR" ) && status == STATUS_DLL_NOT_FOUND)
@@ -108,8 +110,8 @@ class Wine29SourceIsolation(unittest.TestCase):
     def test_refuse_misordered_apiset_and_ntdll(self):
         original = synthetic_pinned_sources()
         loader = original["dlls/ntdll/unix/loader.c"]
-        loader = loader.replace("        status = open_builtin_pe_file( name );",
-                                "        status = something_else( name );")
+        loader = loader.replace('asprintf( &name, "%s/ntdll.dll", resolved );',
+                                'asprintf( &name, "%s/unknown.dll", resolved );')
         with self.assertRaisesRegex(ValueError, "ordering changed"):
             M.transform({**original, "dlls/ntdll/unix/loader.c": loader})
 

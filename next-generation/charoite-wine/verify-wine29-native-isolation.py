@@ -116,7 +116,7 @@ def verify_archive(archive: Path) -> dict:
             if not member.isfile() or member.size > 32 * 1024 * 1024:
                 raise ValueError("Unsafe Wine29 native ELF member")
             payloads[name] = tar.extractfile(member).read()
-        patch = tar.getmember("source/charoite-source-delta.patch")
+        patch = tar.getmember("source/charoite-wine29-native-source-delta.patch")
         if not patch.isfile() or patch.size > 4 * 1024 * 1024:
             raise ValueError("Unsafe Wine29 source delta")
         delta = tar.extractfile(patch).read()

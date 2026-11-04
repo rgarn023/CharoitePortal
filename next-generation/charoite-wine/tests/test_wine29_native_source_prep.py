@@ -89,8 +89,8 @@ class Wine29SourceIsolation(unittest.TestCase):
                         main.index("if (self &&"))
         self.assertIn("return handle;  /* fail closed", main)
         loader = patched["dlls/ntdll/unix/loader.c"]
-        self.assertEqual(loader.count('"%s/apisetschema.dll"'), 1)
-        self.assertEqual(loader.count('"%s/ntdll.dll"'), 1)
+        self.assertEqual(loader.count('"%s/apisetschema.dll"'), 2)
+        self.assertEqual(loader.count('"%s/ntdll.dll"'), 2)
         self.assertIn("verified isolated Wine29 API-set PE is absent", loader)
         self.assertIn("verified isolated Wine29 NTDLL PE was not found", loader)
         server = patched["server/unicode.c"]
@@ -112,7 +112,7 @@ class Wine29SourceIsolation(unittest.TestCase):
         loader = original["dlls/ntdll/unix/loader.c"]
         loader = loader.replace('asprintf( &name, "%s/ntdll.dll", resolved );',
                                 'asprintf( &name, "%s/unknown.dll", resolved );')
-        with self.assertRaisesRegex(ValueError, "ordering changed"):
+        with self.assertRaisesRegex(ValueError, "branch identity changed"):
             M.transform({**original, "dlls/ntdll/unix/loader.c": loader})
 
 

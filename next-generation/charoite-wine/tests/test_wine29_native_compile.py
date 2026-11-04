@@ -136,6 +136,10 @@ class Wine29NativeCompileContract(unittest.TestCase):
         escaped.symlink_to(external)
         with self.assertRaisesRegex(ValueError, "escapes pinned toolchain"):
             M.command(escaped)
+        missing = toolchain/"broken-inspector"
+        missing.symlink_to(toolchain/"nonexistent-file")
+        with self.assertRaisesRegex(ValueError, "Missing pinned inspection tool"):
+            M.command(missing)
 
     def test_publish_no_overwrite_or_phone_execution(self):
         out=self.root/"sealed"

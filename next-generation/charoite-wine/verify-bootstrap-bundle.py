@@ -18,6 +18,15 @@ COM_PE=("rpcrt4","combase","ole32","comctl32")
 SERVICES_PE=("bcrypt","secur32","sechost","msvcrt")
 APISET_PATH={"apisetschema":"runtime/pe/arm64ec/apisetschema.dll"}
 APISET_SOURCES=("apisetschema.spec","apisetschema.Makefile.in","apisetschema-verified.json")
+WINE29_SOURCES=("charoite-wine29-native-source-delta.patch",
+                "charoite-wine29-native-source-validation.json")
+WINE29_VERSION="wine10-arm64ec-bootstrap.0.7"
+WINE29_MARKERS={
+    "wine":(b"CHAROITE_WINE29_NATIVE_DIR",b"libcharoite_wine29_ntdll.so"),
+    "wineserver":(b"CHAROITE_WINE29_DATA_DIR",b"Wine29/Wine28 selector conflict"),
+    "ntdll_unix":(b"CHAROITE_WINE29_PE_DIR",b"CHAROITE_WINE29_DATA_DIR",
+                  b"apisetschema.dll"),
+}
 SOURCES=("COPYING.LIB","LICENSE","charoite-source-delta.patch","WEHAVEPHONES-MIT.txt",
          "Wine-NLS-Makefile.in")
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
@@ -67,11 +76,13 @@ def verify(archive: Path) -> tuple[dict,dict]:
         report_raw=read("dependency-review.json")
         report=json.loads(report_raw)
         version=manifest.get("version")
-        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
-        com=version in ("wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
-        services=version in ("wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6")
-        apiset=version=="wine10-arm64ec-bootstrap.0.6"
-        source_names=set(SOURCES) | (set(APISET_SOURCES) if apiset else set())
+        wine29=version==WINE29_VERSION
+        extended=version in ("wine10-arm64ec-bootstrap.0.3","wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6",WINE29_VERSION)
+        com=version in ("wine10-arm64ec-bootstrap.0.4","wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6",WINE29_VERSION)
+        services=version in ("wine10-arm64ec-bootstrap.0.5","wine10-arm64ec-bootstrap.0.6",WINE29_VERSION)
+        apiset=version in ("wine10-arm64ec-bootstrap.0.6",WINE29_VERSION)
+        source_names=set(SOURCES) | (set(APISET_SOURCES) if apiset else set()) | (
+            set(WINE29_SOURCES) if wine29 else set())
         expected={**EXPECTED,**(EXTRA_PATHS if extended else {}),
                   **(COM_PATHS if com else {}),
                   **(SERVICES_PATHS if services else {}),
@@ -80,7 +91,8 @@ def verify(archive: Path) -> tuple[dict,dict]:
             set(COM_PATHS.values()) if com else set()) | (
             set(SERVICES_PATHS.values()) if services else set()) | (
             set(APISET_PATH.values()) if apiset else set()) | {
-            "source/"+name for name in APISET_SOURCES if apiset}
+            "source/"+name for name in APISET_SOURCES if apiset} | {
+            "source/"+name for name in WINE29_SOURCES if wine29}
         if (len(members)!=len(allowed)+len(nls_paths) or actual!=allowed|nls_paths):
             raise ValueError("Wrong, repeated or missing bundle files")
         if (manifest.get("schema_version")!=1 or
@@ -88,7 +100,7 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 "wine10-arm64ec-bootstrap.0.2","wine10-arm64ec-bootstrap.0.3",
                 "wine10-arm64ec-bootstrap.0.4",
                 "wine10-arm64ec-bootstrap.0.5",
-                "wine10-arm64ec-bootstrap.0.6") or
+                "wine10-arm64ec-bootstrap.0.6",WINE29_VERSION) or
             manifest.get("source_commit")!=BASE or
             manifest.get("android_package")!="com.charoitx" or
             manifest.get("status")!="coherent-components-not-executed" or
@@ -188,6 +200,42 @@ def verify(archive: Path) -> tuple[dict,dict]:
                 proof.get("spec_sha256")!=digest(read("source/apisetschema.spec")) or
                 proof.get("make_sha256")!=digest(read("source/apisetschema.Makefile.in"))):
                 raise ValueError("Source-coherent API-set proof mismatch")
+        if wine29:
+            raw_proof=read("source/charoite-wine29-native-source-validation.json")
+            raw_delta=read("source/charoite-wine29-native-source-delta.patch")
+            proof=json.loads(raw_proof)
+            if (manifest.get("wine29_native_source_proof_sha256")!=digest(raw_proof) or
+                manifest.get("wine29_native_source_delta_sha256")!=digest(raw_delta) or
+                proof.get("generation")!=WINE29_VERSION or
+                proof.get("source_commit")!=BASE or
+                proof.get("package")!="com.charoitx" or
+                proof.get("delta_sha256")!=digest(raw_delta) or
+                set(proof.get("patch_sources",{}))!={
+                    "loader/main.c","dlls/ntdll/unix/loader.c","server/unicode.c"} or
+                any(proof.get(k) is not False for k in
+                    ("runtime_executable","device_tested","native_elf_installed",
+                     "legacy_wine28_cohort_modified"))):
+                raise ValueError("Invalid independent Wine29 native source-generation proof")
+            for item in proof["patch_sources"].values():
+                if (not isinstance(item,dict) or
+                    not isinstance(item.get("before_sha256"),str) or
+                    not isinstance(item.get("after_sha256"),str) or
+                    not re.fullmatch("[0-9a-f]{64}",item["before_sha256"]) or
+                    not re.fullmatch("[0-9a-f]{64}",item["after_sha256"]) or
+                    item["before_sha256"]==item["after_sha256"]):
+                    raise ValueError("Invalid Wine29 patched source hashes")
+            for marker in (b"CHAROITE_WINE29_NATIVE_DIR",b"CHAROITE_WINE29_PE_DIR",
+                           b"CHAROITE_WINE29_DATA_DIR",b"Wine29/Wine28 selector conflict",
+                           b"libcharoite_wine29_ntdll.so"):
+                if marker not in raw_delta:
+                    raise ValueError("Wine29 native selector patch absent")
+            for name,markers in WINE29_MARKERS.items():
+                payload=read(EXPECTED[name])
+                if any(marker not in payload for marker in markers):
+                    raise ValueError("Actual Wine29 native ELF missing generation-specific selectors: "+name)
+        elif ("wine29_native_source_proof_sha256" in manifest or
+              "wine29_native_source_delta_sha256" in manifest):
+            raise ValueError("Earlier Wine archive falsely claims Wine29 native source")
         for name,entry in nls_files.items():
             if not re.fullmatch(r"[a-z_0-9]+\.nls",name):
                 raise ValueError("Unsafe NLS file name")

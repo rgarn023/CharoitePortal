@@ -120,7 +120,6 @@ class FullWine29Contract(unittest.TestCase):
         self.fixture.save()
         with self.assertRaisesRegex((KeyError,ValueError),"Wrong, repeated|missing|not found"):
             ver.verify(self.fixture.path)
-        self.fixture.setUp if False else None
 
     def test_fake_proof_or_old_native_marker_rejected(self):
         self.fixture.manifest["wine29_native_source_proof_sha256"]="0"*64
@@ -141,7 +140,7 @@ class FullWine29Contract(unittest.TestCase):
     def test_new_cohort_requires_sealed_compiled_source_and_no_apk(self):
         self.assertIn("include_wine29: bool = False", ASSEMBLE)
         self.assertIn("charoite-wine29-native-source-delta.patch", ASSEMBLE)
-        self.assertIn("new Wine29", ASSEMBLE.lower().replace("wine29","Wine29").lower() if False else ASSEMBLE)
+        self.assertIn("New Wine29 native cohort requires", ASSEMBLE)
         self.assertIn("WINE29_COHERENT_SOURCE_MATCHED_FULL_BUNDLE=PASS", COMPLETE)
         self.assertIn('python3 "$scripts/verify-wine29-native-isolation.py"',COMPLETE)
         self.assertIn('--include-wine29',COMPLETE)

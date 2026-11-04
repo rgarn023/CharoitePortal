@@ -1,0 +1,128 @@
+name: Wine29 0.7 Six PE Dependency Candidates (source build only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-dependency-candidates.yml'
+      - 'next-generation/wine29-deps/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-matched-wine29-six-dll-candidates:
+    name: Source-only new 6 PE; No Android APK or Wineboot
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout pinned Charoite scripts
+        uses: actions/checkout@v4
+
+      - name: Validate distinct cohort safety and PE parser regression contracts
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-deps -p 'test_wine29_deps.py' -v
+          python3 -m py_compile next-generation/wine29-deps/verify-wine29-deps.py
+          bash -n next-generation/wine29-deps/build-wine29-deps.sh
+          ! grep -Eq 'rm -rf|WINEPREFIX=|adb install|wineboot -i' next-generation/wine29-deps/build-wine29-deps.sh
+          echo WINE29_07_EXPANSION_CANDIDATES_SOURCE_GUARDS=PASS
+
+      - name: Install pinned Android native NDK
+        uses: android-actions/setup-android@v4
+
+      - name: Fetch and hash-check the exact ARM64EC LLVM-MinGW toolchain
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+          ARCHIVE="$RUNNER_TEMP/charoite-llvm-mingw-20261020.tar.xz"
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 "$URL" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare entirely NEW pinned Wine29 0.7 patched source generation
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh \
+            "$RUNNER_TEMP/wine29-deps-source-07"
+          python3 next-generation/charoite-wine/prepare-wine29-native.py \
+            "$RUNNER_TEMP/wine29-deps-source-07"
+          test -s "$RUNNER_TEMP/wine29-deps-source-07/charoite-wine29-native-source-validation.json"
+          (cd "$RUNNER_TEMP/wine29-deps-source-07" && git diff --check)
+
+      - name: Cross-compile independent same-source ARM64 and ARM64EC base
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/wine29-deps-source-07" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          python3 next-generation/charoite-wine/verify-wine29-native-compile.py \
+            "$RUNNER_TEMP/wine29-deps-source-07" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-deps-native-proof"
+          test -s "$RUNNER_TEMP/wine29-deps-native-proof/native-compile-report.json"
+          echo WINE29_07_NEW_SOURCE_NATIVE_PROOF=PASS
+
+      - name: Rebuild all source-audited Wine29 0.7 baseline modules before dependency expansion
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-wine29-complete.sh \
+            "$RUNNER_TEMP/wine29-deps-source-07" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-deps-native-proof/native-compile-report.json" \
+            "$RUNNER_TEMP/wine29-deps-source-07/charoite-wine29-full-coherent"
+          grep -Fxq 'COMPONENTS=27' "$RUNNER_TEMP/wine29-deps-source-07/charoite-wine29-full-coherent/bundle-report.txt"
+          grep -Fxq 'LAUNCH_READY=false' "$RUNNER_TEMP/wine29-deps-source-07/charoite-wine29-full-coherent/bundle-report.txt"
+
+      - name: Retrieve the immutable verified baseline archive as independent source evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/wine29-pinned-source-07"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/wine29-pinned-source-07"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/wine29-pinned-source-07/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+
+      - name: Build and seal the five missing DLLs plus Wineboot-referenced newdev in new CI slot
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-deps/build-wine29-deps.sh \
+            "$RUNNER_TEMP/wine29-deps-source-07" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-pinned-source-07/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/Wine29-deps-new-only"
+          test -s "$RUNNER_TEMP/Wine29-deps-new-only/wine29-07-six-candidates.json"
+          python3 - "$RUNNER_TEMP/Wine29-deps-new-only/wine29-07-six-candidates.json" <<'PY'
+          import json,sys
+          report=json.load(open(sys.argv[1],encoding='utf-8'))
+          assert report["generation"]=="wine10-arm64ec-dependencies.0.8-candidate"
+          assert report["component_count"]==6
+          assert set(report["components"])=={"coml2","imm32","oleacc","oleaut32","shcore","newdev"}
+          assert all(report[k] is False for k in ("launch_ready","wineboot_executed",
+                                                 "windows_exe_executed","prefix_created",
+                                                 "device_tested","installed"))
+          assert all(report["components"][k]["arm64ec_view"]=="0xA641"
+                     for k in report["components"])
+          print("WINE29_07_SIX_CANDIDATE_COHORT_SOURCE_ABI_AND_HASHES=PASS")
+          print("WINE29_07_WINDOWS_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Upload verified six source-built experimental PE DLLs, never phone-staged
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Source-Built-Six-PE-Dependency-Candidates
+          path: ${{ runner.temp }}/Wine29-deps-new-only/
+          retention-days: 60
+          if-no-files-found: error

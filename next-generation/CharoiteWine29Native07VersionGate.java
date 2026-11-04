@@ -120,7 +120,19 @@ public final class CharoiteWine29Native07VersionGate {
             env.clear(); // Excludes inherited HOME, WINEPREFIX, LD_*, Wine28 selectors.
             env.put("PATH", "/system/bin:/system/xbin");
             env.put("WINEDEBUG", "-all");
-            env.put("CHAROITE_WINE29_NATIVE_DIR", nativeDir.getCanonicalPath());
+            // The source-built Wine29 loader rejects PARTIAL triad selectors.
+            // For --version ONLY, point all three to the same verified,
+            // read-only APK-owned library directory. This directory holds NO
+            // Windows PE or NLS layout. A later PE/NLS load must FAIL CLOSED:
+            // this is never an environment for Windows EXE/Wineboot execution.
+            final String apkNative = nativeDir.getCanonicalPath();
+            if (new File(nativeDir, "ntdll.dll").exists() ||
+                new File(nativeDir, "apisetschema.dll").exists() ||
+                new File(nativeDir, "nls").exists())
+                throw new SecurityException("Native version-only directory unexpectedly contains PE/NLS files");
+            env.put("CHAROITE_WINE29_NATIVE_DIR", apkNative);
+            env.put("CHAROITE_WINE29_PE_DIR", apkNative);
+            env.put("CHAROITE_WINE29_DATA_DIR", apkNative);
             process = builder.start();
             if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 process.destroyForcibly();
@@ -141,6 +153,7 @@ public final class CharoiteWine29Native07VersionGate {
         StringBuilder out = new StringBuilder();
         out.append("CHAROITE NEXT — ISOLATED WINE29 .0.7 NATIVE VERSION-ONLY GATE\n");
         out.append("Scope: verified APK native loader + wineserver --version ONLY\n");
+        out.append("All three mandatory selectors are APK-native-directory only; PE/NLS runtime NOT staged\n");
         out.append("User consent: THIS BUTTON ONLY; no automatic start\n");
         out.append("Wineboot, PE/Windows EXE, prefix, graphics, FEX, games: NOT ATTEMPTED\n");
         out.append("Wine28 v1–v9, existing prefixes, game saves, rootfs: NOT ACCESSED\n\n");

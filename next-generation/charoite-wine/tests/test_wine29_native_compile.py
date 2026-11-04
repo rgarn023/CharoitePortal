@@ -120,6 +120,23 @@ class Wine29NativeCompileContract(unittest.TestCase):
                 M.verify_native(self.source/"charoite-arm64ec-android",self.readelf,
                                 self.readobj,self.source)
 
+    def test_pinned_llvm_inspector_symlink_is_allowed_only_within_bin_dir(self):
+        toolchain = self.root/"verified-toolchain"
+        toolchain.mkdir()
+        target = toolchain/"llvm-readobj"
+        target.write_text("#!/bin/sh\\nprintf 'inspector-ok\\n'\\n")
+        target.chmod(0o755)
+        link = toolchain/"llvm-readelf"
+        link.symlink_to(target)
+        self.assertEqual(M.command(link), "inspector-ok\\n")
+        external = self.root/"unexpected-external-tool"
+        external.write_text("#!/bin/sh\\nprintf 'no\\n'\\n")
+        external.chmod(0o755)
+        escaped = toolchain/"untrusted"
+        escaped.symlink_to(external)
+        with self.assertRaisesRegex(ValueError, "escapes pinned toolchain"):
+            M.command(escaped)
+
     def test_publish_no_overwrite_or_phone_execution(self):
         out=self.root/"sealed"
         with patch.object(M,"command",side_effect=mock_command):

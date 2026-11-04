@@ -69,7 +69,7 @@ public final class CharoiteWine29Native07Audit {
             byte[] chunk = new byte[4096];
             int n;
             while ((n = input.read(chunk)) != -1) {
-                if (bytes.size() + n > 32768)
+                if (bytes.size() + n > 65536)
                     throw new SecurityException("Wine29 source index too large");
                 bytes.write(chunk, 0, n);
             }
@@ -135,7 +135,10 @@ public final class CharoiteWine29Native07Audit {
             // Verify the prior .0.6 cohort is still packaged and unchanged.
             // Never open old on-device staging directories or Wine prefixes.
             JSONObject prior = jsonAsset(context, OLD_INDEX);
-            if (!"wine10-arm64ec-bootstrap.0.6".equals(prior.getString("bundle_version")) ||
+            if (prior.getLong("source_run") != 41586391767L ||
+                prior.getLong("source_artifact") != 13208541305L ||
+                !"c74acb09d51b447f5d5ac56c87608d3ec565a767".equals(prior.getString("source_sha")) ||
+                !"wine10-arm64ec-bootstrap.0.6".equals(prior.getString("bundle_version")) ||
                 !proof.getString("original_wine29_sha256").equals(prior.getString("archive_sha256")))
                 throw new SecurityException("Old Wine29 archive metadata changed");
             long olderSize = prior.getLong("archive_size");

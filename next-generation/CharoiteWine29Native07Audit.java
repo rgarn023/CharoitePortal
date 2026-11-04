@@ -23,6 +23,7 @@ public final class CharoiteWine29Native07Audit {
     private static final String INDEX = "charoite-next/wine29-native07/wine29-native07-index.json";
     private static final String BUNDLE = "charoite-next/wine29-native07/wine29-source-matched.bundle";
     private static final String OLD_BUNDLE = "charoite-next/wine-bootstrap-29.bundle";
+    private static final String OLD_INDEX = "charoite-next/wine-bootstrap-29-index.json";
     private static final long SOURCE_RUN = 41749167248L;
     private static final long SOURCE_ARTIFACT = 13284932342L;
     private static final long MAX_ARCHIVE = 128L * 1024L * 1024L;
@@ -62,9 +63,9 @@ public final class CharoiteWine29Native07Audit {
         return hex(digest.digest());
     }
 
-    private static JSONObject index(Context context) throws Exception {
+    private static JSONObject jsonAsset(Context context, String asset) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        try (InputStream input = context.getAssets().open(INDEX)) {
+        try (InputStream input = context.getAssets().open(asset)) {
             byte[] chunk = new byte[4096];
             int n;
             while ((n = input.read(chunk)) != -1) {
@@ -121,7 +122,7 @@ public final class CharoiteWine29Native07Audit {
         if (!PACKAGE.equals(context.getPackageName()))
             return out.append("RESULT: BLOCKED — wrong Android package\n").toString();
         try {
-            JSONObject proof = index(context);
+            JSONObject proof = jsonAsset(context, INDEX);
             verifyReadiness(proof);
             long size = proof.getLong("archive_size");
             if (size <= 0 || size > MAX_ARCHIVE)
@@ -133,7 +134,11 @@ public final class CharoiteWine29Native07Audit {
 
             // Verify the prior .0.6 cohort is still packaged and unchanged.
             // Never open old on-device staging directories or Wine prefixes.
-            long olderSize = context.getAssets().openFd(OLD_BUNDLE).getLength();
+            JSONObject prior = jsonAsset(context, OLD_INDEX);
+            if (!"wine10-arm64ec-bootstrap.0.6".equals(prior.getString("bundle_version")) ||
+                !proof.getString("original_wine29_sha256").equals(prior.getString("archive_sha256")))
+                throw new SecurityException("Old Wine29 archive metadata changed");
+            long olderSize = prior.getLong("archive_size");
             if (olderSize <= 0 || olderSize > MAX_ARCHIVE)
                 throw new SecurityException("Old Wine29 asset missing or invalid");
             String oldHash = hashStream(context.getAssets().open(OLD_BUNDLE), MAX_ARCHIVE, olderSize);

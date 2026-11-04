@@ -382,6 +382,16 @@ jobs:
           echo "Signing key present before Android build."
 
 
+      - name: Verify new Wine29 .0.7 opt-in version-only source gate before Android compilation
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_native07_version_gate.py' -v
+          grep -Fq 'new ProcessBuilder(binary.getAbsolutePath(), "--version")'             next-generation/CharoiteWine29Native07VersionGate.java
+          grep -Fq 'env.clear();' next-generation/CharoiteWine29Native07VersionGate.java
+          grep -Fq 'CharoiteWine29Native07Audit.run(context)'             next-generation/CharoiteWine29Native07VersionGate.java
+          echo 'WINE29_07_USER_CONSENTED_NATIVE_VERSION_ONLY_SOURCE_GATE=PASS'
+          echo 'WINE29_07_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI'
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -817,7 +827,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='91' versionName='11.2-next.0.60'"
+            grep -F "package: name='com.charoitx' versionCode='92' versionName='11.2-next.0.61'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -981,6 +991,7 @@ jobs:
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py
           cp next-generation/stage_wine29_native07.py legal-bundle/stage_wine29_native07.py
           cp next-generation/CharoiteWine29Native07Audit.java legal-bundle/CharoiteWine29Native07Audit.java
+          cp next-generation/CharoiteWine29Native07VersionGate.java legal-bundle/CharoiteWine29Native07VersionGate.java
           cp upstream/app/src/main/assets/charoite-next/wine29-native07/wine29-native07-index.json legal-bundle/wine29-native07-index.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-29-index.json legal-bundle/wine-bootstrap-29-index.json
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-28-index.json legal-bundle/wine-bootstrap-28-index.json

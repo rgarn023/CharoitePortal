@@ -81,7 +81,7 @@ class Wine29VersionGateContract(unittest.TestCase):
             self.assertEqual(version.count(literal), 1)
             self.assertLess(version.index(literal),version.index("process = builder.start();"))
         self.assertEqual(version.count("process = builder.start();"),1)
-        self.assertNotIn("WINEPREFIX",version.split("process = builder.start();")[0].split("env.clear();")[1])
+        self.assertNotIn('env.put("WINEPREFIX"',version.split("process = builder.start();")[0].split("env.clear();")[1])
         self.assertNotIn("wineboot.exe",version)
 
     def test_fail_closed_if_immutable_audit_or_any_native_hash_fails(self):

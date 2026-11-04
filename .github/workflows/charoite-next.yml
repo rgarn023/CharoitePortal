@@ -409,6 +409,11 @@ jobs:
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_07_module_stage.py' -v
           ! grep -Eq 'ProcessBuilder\(|Runtime.getRuntime\(|\.delete\(' next-generation/CharoiteWine29Native07Stage.java
           grep -Fq 'private static final String ROOT = "charoite-next-wine29-07-pe-nls";' next-generation/CharoiteWine29Native07Stage.java
+          grep -Fq 'verifyClosedInventory(slot, entries);' next-generation/CharoiteWine29Native07Stage.java
+          grep -Fq 'verifyRootContents(root);' next-generation/CharoiteWine29Native07Stage.java
+          grep -Fq 'verifyAssets(context, entries);' next-generation/CharoiteWine29Native07Stage.java
+          grep -Fq 'Verify staged Wine29 0.7 data (read-only)' next-generation/prepare_next.py
+          echo "WINE29_07_SEALED_100_MODULE_READONLY_AUDIT_SOURCE_GATE=PASS"
           echo "WINE29_07_DATA_STAGE_NO_EXECUTION_SOURCE_GUARD=PASS"
 
       - name: Build integrated Windows runtime preview
@@ -866,7 +871,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='94' versionName='11.2-next.0.63'"
+            grep -F "package: name='com.charoitx' versionCode='95' versionName='11.2-next.0.64'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

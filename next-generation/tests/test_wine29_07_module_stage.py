@@ -129,10 +129,39 @@ class Wine29ModuleStage(unittest.TestCase):
         self.assertIn("stage_wine29_07_modules.py", WORKFLOW)
         self.assertIn("WINE29_07_100_PE_NLS_APK_ASSET_HASHES_VERIFIED=PASS", WORKFLOW)
         self.assertIn("CharoiteWine29Native07Stage.java", WORKFLOW)
-        self.assertIn("versionCode 94", PREP)
-        self.assertIn("11.2-next.0.63", PREP)
-        self.assertIn("versionCode='94'", WORKFLOW)
-        self.assertIn("versionName='11.2-next.0.63'", WORKFLOW)
+        self.assertIn("versionCode 95", PREP)
+        self.assertIn("11.2-next.0.64", PREP)
+        self.assertIn("versionCode='95'", WORKFLOW)
+        self.assertIn("versionName='11.2-next.0.64'", WORKFLOW)
+
+    def test_sealed_100_module_readonly_audit_rejects_extra_files(self):
+        # A directory name or file presence cannot authorize an executable runtime.
+        for term in (
+            "private static void verifyClosedInventory(",
+            "verifyClosedInventory(slot, entries);",
+            "java.util.ArrayDeque<File>",
+            "HashSet<String> expected",
+            "HashSet<String> directories",
+            "child.getCanonicalFile().equals(child.getAbsoluteFile())",
+            "Unexpected Wine29 staging file",
+            "Unknown Wine29 staging directory",
+            "Incomplete Wine29 sealed 100-module inventory",
+            "private static void verifyRootContents(",
+            "Unexpected or quarantined Wine29 root entry",
+            "verifyRootContents(root);",
+            "verifyAssets(context, entries);",
+            "APK source assets and sealed 100-file private inventory",
+        ):
+            self.assertIn(term, ANDROID)
+        self.assertLess(ANDROID.index("verifyClosedInventory(slot, entries);"),
+                        ANDROID.index("hash(new FileInputStream(target)"))
+        self.assertIn("Verify staged Wine29 0.7 data (read-only)", PREP)
+        self.assertIn("CharoiteWine29Native07Stage.verifyOnly(this)", PREP)
+        self.assertIn("WINE29_07_SEALED_100_MODULE_READONLY_AUDIT_SOURCE_GATE=PASS",
+                      WORKFLOW)
+        for forbidden in ("ProcessBuilder(", "Runtime.getRuntime(", ".delete(",
+                          "WINEPREFIX", "wineboot -i"):
+            self.assertNotIn(forbidden, ANDROID)
 
 
 if __name__ == "__main__":

@@ -114,23 +114,14 @@ static char *charoite_wine29_selected_path( const char *selector )
         "Wine29 data path takes priority over old cohort")
     # Both initial Windows NTDLL and API-set schema loading require the exact
     # same isolated PE directory, not the APK's native /lib directory.
-    ntdll = exact(ntdll,
-        '    if (getenv( "CHAROITE_WINE28_PE_DIR" ))\n',
-        '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
-        getenv( "CHAROITE_WINE29_NATIVE_DIR" ) ||
-        getenv( "CHAROITE_WINE29_DATA_DIR" ))
-    {
-        char *resolved = charoite_wine29_selected_path( "CHAROITE_WINE29_PE_DIR" );
-        if (asprintf( &name, "%s/ntdll.dll", resolved ) < 0)
-            fatal_error( "cannot construct isolated Wine29 NTDLL PE path\\n" );
-        free( resolved );
-    }
-    else if (getenv( "CHAROITE_WINE28_PE_DIR" ))
-''',
-        "initial Wine29 Windows NTDLL lookup")
-    ntdll = exact(ntdll,
-        '    if (getenv( "CHAROITE_WINE28_PE_DIR" ))\n',
-        '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
+    # The API-set lookup occurs before the initial NTDLL image lookup in
+    # pinned loader.c. Both have the same old Wine28 branch text. Split only
+    # when exactly two distinct occurrences are present, never guess.
+    branch = '    if (getenv( "CHAROITE_WINE28_PE_DIR" ))\n'
+    parts = ntdll.split(branch)
+    if len(parts) != 3 or "load_apiset_dll(void)" not in parts[0] or "open_builtin_pe_file" not in parts[1]:
+        raise ValueError("Pinned Wine28 API-set/NTDLL branch ordering changed")
+    api29 = '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
         getenv( "CHAROITE_WINE29_NATIVE_DIR" ) ||
         getenv( "CHAROITE_WINE29_DATA_DIR" ))
     {
@@ -140,8 +131,19 @@ static char *charoite_wine29_selected_path( const char *selector )
         free( resolved );
     }
     else if (getenv( "CHAROITE_WINE28_PE_DIR" ))
-''',
-        "Wine29 API-set lookup")
+'''
+    native29 = '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
+        getenv( "CHAROITE_WINE29_NATIVE_DIR" ) ||
+        getenv( "CHAROITE_WINE29_DATA_DIR" ))
+    {
+        char *resolved = charoite_wine29_selected_path( "CHAROITE_WINE29_PE_DIR" );
+        if (asprintf( &name, "%s/ntdll.dll", resolved ) < 0)
+            fatal_error( "cannot construct isolated Wine29 NTDLL PE path\\n" );
+        free( resolved );
+    }
+    else if (getenv( "CHAROITE_WINE28_PE_DIR" ))
+'''
+    ntdll = parts[0] + api29 + parts[1] + native29 + parts[2]
     ntdll = exact(ntdll,
         '    if (getenv( "CHAROITE_WINE28_PE_DIR" ) && status == STATUS_DLL_NOT_FOUND)\n',
         '''    if ((getenv( "CHAROITE_WINE29_PE_DIR" ) ||

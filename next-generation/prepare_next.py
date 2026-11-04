@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.59"')
-text = text.replace("versionCode 33", "versionCode 90")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.60"')
+text = text.replace("versionCode 33", "versionCode 91")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -165,7 +165,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine28V7PeHelpProbe.java",
                  "CharoiteWine28V8LayoutProbe.java",
                  "CharoiteWine28V9BuiltinBootstrapProbe.java",
-                 "CharoiteWine28V9Forensics.java"):
+                 "CharoiteWine28V9Forensics.java",
+                 "CharoiteWine29Native07Audit.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1123,6 +1124,35 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine28V9Forensics").start();
         });
         nextCoreCard.addView(wine28V9Forensics);
+
+        // Wine29 0.7 is installed under NEW APK asset/native names only.
+        // This READ-ONLY verification never starts Wine, Wineboot or a prefix.
+        android.widget.Button wine29Audit = new android.widget.Button(this);
+        wine29Audit.setText("Verify Wine29 0.7 package (read-only)");
+        wine29Audit.setAllCaps(false);
+        wine29Audit.setOnClickListener(v -> {
+            wine29Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29Native07Audit.run(this);
+                runOnUiThread(() -> {
+                    wine29Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — isolated Wine29 0.7 archive audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wine29 0.7 read-only audit", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29Native07Audit").start();
+        });
+        nextCoreCard.addView(wine29Audit);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

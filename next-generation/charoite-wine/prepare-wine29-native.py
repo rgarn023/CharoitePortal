@@ -119,7 +119,8 @@ static char *charoite_wine29_selected_path( const char *selector )
     # when exactly two distinct occurrences are present, never guess.
     branch = '    if (getenv( "CHAROITE_WINE28_PE_DIR" ))\n'
     parts = ntdll.split(branch)
-    if len(parts) != 3 or "load_apiset_dll(void)" not in parts[0] or "open_builtin_pe_file" not in parts[1]:
+    if (len(parts) != 3 or "load_apiset_dll(void)" not in parts[0] or
+            "open_unix_file" not in parts[1] or "open_builtin_pe_file" not in parts[2]):
         raise ValueError("Pinned Wine28 API-set/NTDLL branch ordering changed")
     api29 = '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
         getenv( "CHAROITE_WINE29_NATIVE_DIR" ) ||

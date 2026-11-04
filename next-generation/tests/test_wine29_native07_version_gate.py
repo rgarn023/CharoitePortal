@@ -65,6 +65,25 @@ class Wine29VersionGateContract(unittest.TestCase):
             self.assertNotIn(forbidden,GATE)
         self.assertIn('Wineboot, PE/Windows EXE, prefix, graphics, FEX, games: NOT ATTEMPTED',GATE)
 
+    def test_source_requires_complete_triad_before_native_dlopen(self):
+        source=(NEXT/"charoite-wine/prepare-wine29-native.py").read_text(encoding="utf-8")
+        self.assertIn("if (!native29 || !pe29 || !data29 ||", source)
+        self.assertIn("Wine29/Wine28 selector conflict or invalid native directory", source)
+        start=GATE.index("private static String version(")
+        end=GATE.index("public static String run(",start)
+        version=GATE[start:end]
+        self.assertIn("final String apkNative = nativeDir.getCanonicalPath();",version)
+        self.assertIn('new File(nativeDir, "ntdll.dll").exists()', version)
+        self.assertIn('new File(nativeDir, "apisetschema.dll").exists()', version)
+        self.assertIn('new File(nativeDir, "nls").exists()', version)
+        for selector in ("NATIVE","PE","DATA"):
+            literal='env.put("CHAROITE_WINE29_'+selector+'_DIR", apkNative)'
+            self.assertEqual(version.count(literal), 1)
+            self.assertLess(version.index(literal),version.index("process = builder.start();"))
+        self.assertEqual(version.count("process = builder.start();"),1)
+        self.assertNotIn("WINEPREFIX",version.split("process = builder.start();")[0].split("env.clear();")[1])
+        self.assertNotIn("wineboot.exe",version)
+
     def test_fail_closed_if_immutable_audit_or_any_native_hash_fails(self):
         self.assertIn("if (!audit.contains(",GATE)
         self.assertIn("prerequisite Wine29 APK audit not passed",GATE)

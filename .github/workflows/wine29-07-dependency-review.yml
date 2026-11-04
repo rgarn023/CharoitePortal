@@ -46,9 +46,12 @@ jobs:
           python3 - "$RUNNER_TEMP/wine29-07/import-owner-review.json" <<'PY'
           import json,sys
           a=json.load(open(sys.argv[1],encoding='utf-8'))
-          assert a['unbundled_imports']==['coml2.dll','imm32.dll','oleacc.dll','oleaut32.dll','shcore.dll']
+          assert a['phone_reported_direct_unbundled_imports']==['coml2.dll','imm32.dll','oleacc.dll','oleaut32.dll','shcore.dll']
+          assert set(a['phone_reported_direct_unbundled_imports']).issubset(a['source_unbundled_imports'])
+          assert len(a['source_unbundled_imports'])>=5
+          assert len(a['source_only_unbundled_imports'])==len(a['source_unbundled_imports'])-5
           assert not any(a[k] for k in ('launch_ready','wineboot_executed','windows_exe_executed','prefix_created'))
-          print('WINE29_07_FIVE_UNBUNDLED_IMPORT_OWNERS=SOURCE_ATTESTED')
+          print('WINE29_07_PHONE_FIVE_NAMES_SUBSET_OF_SOURCE_IMPORT_REVIEW=PASS')
           PY
       - name: Publish source-only JSON import map for future dependency build planning
         uses: actions/upload-artifact@v4

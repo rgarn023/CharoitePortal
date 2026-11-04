@@ -63,11 +63,14 @@ class Wine29SourceImportOwnership(unittest.TestCase):
     def test_source_gap_exactly_matches_actual_phone_names(self):
         manifest, evidence = manifest_with_gap()
         result = AUDIT.inspect(manifest, evidence)
-        self.assertEqual(result["unbundled_imports"], list(AUDIT.PHONE_GAP))
+        self.assertEqual(result["source_unbundled_imports"], list(AUDIT.PHONE_GAP))
+        self.assertEqual(result["phone_reported_direct_unbundled_imports"],
+                         list(AUDIT.PHONE_GAP))
+        self.assertEqual(result["source_only_unbundled_imports"], [])
         self.assertEqual(result["pe_files"], 24)
         self.assertEqual(result["dll_files"], 23)
         self.assertEqual(result["nls_files"], 76)
-        self.assertEqual(result["unbundled_import_owners"]["coml2.dll"],
+        self.assertEqual(result["phone_direct_import_owners"]["coml2.dll"],
                          ["ole32.dll", "wineboot.exe"])
         self.assertFalse(result["wineboot_executed"])
         self.assertFalse(result["launch_ready"])
@@ -98,8 +101,22 @@ class Wine29SourceImportOwnership(unittest.TestCase):
         evidence["observed_windows_imports"] = sorted(
             set(evidence["observed_windows_imports"]) - {"shcore.dll"})
         manifest["window_imports_unresolved_count"] = 4
-        with self.assertRaisesRegex(ValueError, "Phone five-DLL gap"):
+        with self.assertRaisesRegex(ValueError, "Phone five direct imports missing"):
             AUDIT.inspect(manifest, evidence)
+
+    def test_source_can_contain_additional_names_outside_phone_direct_imports(self):
+        manifest, evidence = manifest_with_gap()
+        manifest["components"]["user32"]["imports"].append("gdiplus.dll")
+        evidence["observed_windows_imports"] = sorted(
+            set(evidence["observed_windows_imports"]) | {"gdiplus.dll"})
+        evidence["windows_imports_not_bundled"] = sorted(
+            set(evidence["windows_imports_not_bundled"]) | {"gdiplus.dll"})
+        manifest["window_imports_unresolved_count"] = 6
+        result = AUDIT.inspect(manifest, evidence)
+        self.assertEqual(result["source_only_unbundled_imports"], ["gdiplus.dll"])
+        self.assertEqual(result["source_unbundled_import_owners"]["gdiplus.dll"],
+                         ["user32.dll"])
+        self.assertEqual(len(result["phone_reported_direct_unbundled_imports"]), 5)
 
     def test_no_pe_execution_or_android_mutation_and_ci_workflow(self):
         for forbidden in (
@@ -111,7 +128,7 @@ class Wine29SourceImportOwnership(unittest.TestCase):
         for literal in (
             "verify-bootstrap-bundle.py", "module.verify(archive)",
             "source_archive_sha256", "WINE29_07_PINNED_SOURCE_IMPORT_OWNER_AUDIT=PASS",
-            "PHONE_AND_SOURCE_GAP_MATCH=PASS", "WINDOWS_LAUNCH_READY=FALSE",
+            "PHONE_FIVE_IMPORTS_INCLUDED_IN_SOURCE_REVIEW=PASS", "WINDOWS_LAUNCH_READY=FALSE",
             "source_archive_sha256", "prefix_created",
         ):
             self.assertIn(literal, TEXT)

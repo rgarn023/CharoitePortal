@@ -79,9 +79,10 @@ def inspect(manifest: dict, attestation: dict) -> dict:
         attestation.get("windows_imports_not_bundled") != gaps or
         manifest.get("window_imports_unresolved_count") != len(gaps)):
         raise ValueError("Independent dependency-review mismatch")
-    if gaps != list(PHONE_GAP):
-        raise ValueError("Phone five-DLL gap disagrees with pinned archive: " +
-                         ",".join(gaps))
+    if not set(PHONE_GAP).issubset(gaps):
+        raise ValueError("Phone five direct imports missing from source audit: " +
+                         ",".join(sorted(set(PHONE_GAP) - set(gaps))))
+    source_only = sorted(set(gaps) - set(PHONE_GAP))
     return {
         "schema_version": 1,
         "purpose": "read-only source-verified Wine29 direct import ownership",
@@ -96,8 +97,16 @@ def inspect(manifest: dict, attestation: dict) -> dict:
         "source_distinct_imports": len(imported),
         "phone_distinct_imports": PHONE_DISTINCT_IMPORTS,
         "phone_import_descriptors": PHONE_IMPORT_DESCRIPTORS,
-        "unbundled_imports": gaps,
-        "unbundled_import_owners": {dll: sorted(imported_by[dll]) for dll in gaps},
+        "source_unbundled_imports": gaps,
+        "phone_reported_direct_unbundled_imports": list(PHONE_GAP),
+        "source_only_unbundled_imports": source_only,
+        "source_unbundled_import_owners": {dll: sorted(imported_by[dll]) for dll in gaps},
+        "phone_direct_import_owners": {
+            dll: sorted(imported_by[dll]) for dll in PHONE_GAP
+        },
+        "scope_note": ("Pinned Wine source import inventory has broader scope than "
+                       "the phone's regular PE import-table scan; source-only names "
+                       "may include delay-load or other imports, not proven fatal."),
         "launch_ready": False,
         "windows_exe_executed": False,
         "wineboot_executed": False,
@@ -126,10 +135,14 @@ def review(archive: Path, output: Path) -> dict:
     result = inspect(manifest, attestation)
     output.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print("WINE29_07_PINNED_SOURCE_IMPORT_OWNER_AUDIT=PASS")
-    print("PHONE_AND_SOURCE_GAP_MATCH=PASS")
+    print("PHONE_FIVE_IMPORTS_INCLUDED_IN_SOURCE_REVIEW=PASS")
     print("SOURCE_DISTINCT_IMPORTS=" + str(result["source_distinct_imports"]))
-    for dll, owners in result["unbundled_import_owners"].items():
-        print("UNBUNDLED_IMPORT_OWNER " + dll + ": " + ",".join(owners))
+    print("SOURCE_UNBUNDLED_IMPORT_COUNT=" + str(len(result["source_unbundled_imports"])))
+    print("SOURCE_ONLY_UNBUNDLED_IMPORT_COUNT=" + str(
+        len(result["source_only_unbundled_imports"])))
+    for dll, owners in result["source_unbundled_import_owners"].items():
+        scope = "PHONE_DIRECT_AND_SOURCE" if dll in PHONE_GAP else "SOURCE_ONLY"
+        print("UNBUNDLED_IMPORT_OWNER " + scope + " " + dll + ": " + ",".join(owners))
     print("WINE29_PE_EXECUTION=NOT_ATTEMPTED")
     print("WINDOWS_LAUNCH_READY=FALSE")
     return result

@@ -60,7 +60,7 @@ class Wine29PePreflight(unittest.TestCase):
             "private static final int MAX_PE = 32 * 1024 * 1024",
             "private static final int MAX_IMPORTS = 256",
             "u16(data, 0) != 0x5a4d",
-            "u32(data, pe) != 0x00004550L",
+            "signature != 0x00004550L",
             "optionalSize < 128",
             "u16(data, opt) != 0x20b",
             "u32(data, opt + 120)",

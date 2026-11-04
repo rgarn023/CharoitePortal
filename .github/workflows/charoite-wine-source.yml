@@ -499,3 +499,60 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine-prepared/charoite-bootstrap-apiset-extended/
           retention-days: 14
           if-no-files-found: error
+
+  # Separate source validation ONLY; the frozen Wine29 .0.6 archive is unchanged.
+  verify-isolated-wine29-native-source:
+    needs: validate-wine-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test Wine29 native source patch isolation
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/charoite-wine/tests \
+            -p 'test_wine29_native_*.py' -v
+
+      - name: Independently patch a NEW source tree without changing Wine28
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh \
+            "$RUNNER_TEMP/charoite-wine29-isolated"
+          python3 next-generation/charoite-wine/prepare-wine29-native.py \
+            "$RUNNER_TEMP/charoite-wine29-isolated"
+          ( cd "$RUNNER_TEMP/charoite-wine29-isolated" && git diff --check )
+          python3 - "$RUNNER_TEMP/charoite-wine29-isolated" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1])
+          report=json.loads((root/"charoite-wine29-native-source-validation.json").read_text())
+          assert report["generation"]=="wine10-arm64ec-bootstrap.0.7"
+          assert report["source_commit"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+          assert report["runtime_executable"] is False
+          assert report["native_elf_installed"] is False
+          assert set(report["patch_sources"])=={
+              "loader/main.c","dlls/ntdll/unix/loader.c","server/unicode.c"}
+          for name in report["patch_sources"]:
+              assert report["patch_sources"][name]["before_sha256"]!=report["patch_sources"][name]["after_sha256"]
+          delta=(root/"charoite-wine29-native-source-delta.patch").read_bytes()
+          for marker in (b"CHAROITE_WINE29_NATIVE_DIR",b"CHAROITE_WINE29_PE_DIR",
+                         b"CHAROITE_WINE29_DATA_DIR",b"Wine29/Wine28 selector conflict",
+                         b"libcharoite_wine29_ntdll.so"):
+              assert marker in delta
+          print("CHAROITE_WINE29_NATIVE_GENERATION_SOURCE_GATE=PASS")
+          print("WINE29_NATIVE_APK_INSTALLED=false")
+          print("WINEBOOT_EXECUTED=false")
+          PY
+
+      - name: Publish isolated Wine29 C source delta, not executable
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-Native-Source-Isolation
+          path: |
+            ${{ runner.temp }}/charoite-wine29-isolated/charoite-wine29-native-source-validation.json
+            ${{ runner.temp }}/charoite-wine29-isolated/charoite-wine29-native-source-delta.patch
+          retention-days: 14
+          if-no-files-found: error

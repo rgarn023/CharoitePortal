@@ -638,3 +638,30 @@ jobs:
           path: ${{ runner.temp }}/charoite-wine29-native-compile-proof/
           retention-days: 14
           if-no-files-found: error
+
+
+      - name: Build and seal complete Wine29 .0.7 27-component archive with all 76 NLS files
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-wine29-complete.sh \
+            "$RUNNER_TEMP/charoite-wine29-native-build" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine29-native-compile-proof/native-compile-report.json" \
+            "$RUNNER_TEMP/charoite-wine29-full-coherent"
+          test -s "$RUNNER_TEMP/charoite-wine29-full-coherent/charoite-wine-bootstrap-bundle.tar.gz"
+          grep -Fx 'COMPONENTS=27' \
+            "$RUNNER_TEMP/charoite-wine29-full-coherent/bundle-report.txt"
+          grep -Fx 'NLS_COUNT=76' \
+            "$RUNNER_TEMP/charoite-wine29-full-coherent/bundle-report.txt"
+          grep -Fx 'LAUNCH_READY=false' \
+            "$RUNNER_TEMP/charoite-wine29-full-coherent/bundle-report.txt"
+
+      - name: Publish verified complete Wine29 same-source 27-component and 76-NLS archive (NOT an APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-Coherent-27-APISet-NLS-Experimental
+          path: ${{ runner.temp }}/charoite-wine29-full-coherent/
+          retention-days: 14
+          if-no-files-found: error

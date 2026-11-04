@@ -104,10 +104,10 @@ class Wine29PePreflight(unittest.TestCase):
         self.assertIn("CharoiteWine29Native07PePreflight.java", WORKFLOW)
         self.assertIn("test_wine29_07_pe_preflight.py", WORKFLOW)
         self.assertIn("WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS", WORKFLOW)
-        self.assertIn("0.65 (Wine29 0.7 read-only PE layout/import preflight", RUNTIME)
-        self.assertIn("versionCode 96", PREP)
-        self.assertIn("11.2-next.0.65", PREP)
-        self.assertIn("versionCode='96' versionName='11.2-next.0.65'", WORKFLOW)
+        self.assertIn("0.66 (Wine29 0.7 hybrid PE raw-machine preflight", RUNTIME)
+        self.assertIn("versionCode 97", PREP)
+        self.assertIn("11.2-next.0.66", PREP)
+        self.assertIn("versionCode='97' versionName='11.2-next.0.66'", WORKFLOW)
 
 
 if __name__ == "__main__":

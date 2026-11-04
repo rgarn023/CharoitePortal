@@ -556,3 +556,85 @@ jobs:
             ${{ runner.temp }}/charoite-wine29-isolated/charoite-wine29-native-source-delta.patch
           retention-days: 14
           if-no-files-found: error
+
+  # The first separately compiled Wine29 .0.7 native generation: CI ONLY.
+  # No old APK, prefix, data archive, phone or previous Wine28 scratch touched.
+  build-isolated-wine29-native:
+    needs: verify-isolated-wine29-native-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout pinned Charoite build scripts
+        uses: actions/checkout@v4
+
+      - name: Verify compiled-native proof rules before any build
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/charoite-wine/tests \
+            -p 'test_wine29_native_compile.py' -v
+
+      - name: Install Android NDK r27d and pinned LLVM MinGW for ARM64EC
+        uses: android-actions/setup-android@v4
+
+      - name: Fetch and verify exact toolchain binaries
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+          ARCHIVE="$RUNNER_TEMP/charoite-llvm-mingw-20261020.tar.xz"
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 "$URL" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare DIFFERENT pinned Wine29 native source tree
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh \
+            "$RUNNER_TEMP/charoite-wine29-native-build"
+          python3 next-generation/charoite-wine/prepare-wine29-native.py \
+            "$RUNNER_TEMP/charoite-wine29-native-build"
+          grep -Fq 'CHAROITE_WINE29_NATIVE_DIR' \
+            "$RUNNER_TEMP/charoite-wine29-native-build/loader/main.c"
+          grep -Fq 'CHAROITE_WINE29_PE_DIR' \
+            "$RUNNER_TEMP/charoite-wine29-native-build/dlls/ntdll/unix/loader.c"
+          grep -Fq 'CHAROITE_WINE29_DATA_DIR' \
+            "$RUNNER_TEMP/charoite-wine29-native-build/server/unicode.c"
+
+      - name: Cross-compile the matching ARM64 Wine loader, wineserver and NTDLL plus ARM64EC Windows NTDLL
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/charoite-wine29-native-build" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          test -s "$RUNNER_TEMP/charoite-wine29-native-build/charoite-arm64ec-android/loader/wine"
+          test -s "$RUNNER_TEMP/charoite-wine29-native-build/charoite-arm64ec-android/server/wineserver"
+          test -s "$RUNNER_TEMP/charoite-wine29-native-build/charoite-arm64ec-android/dlls/ntdll/ntdll.so"
+
+      - name: Seal audited Wine29 .0.7 NATIVE COMPILE PROOF (no Wine execution)
+        run: |
+          set -euo pipefail
+          python3 next-generation/charoite-wine/verify-wine29-native-compile.py \
+            "$RUNNER_TEMP/charoite-wine29-native-build" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/charoite-wine29-native-compile-proof"
+          grep -Fq '"source_generation": "wine10-arm64ec-bootstrap.0.7"' \
+            "$RUNNER_TEMP/charoite-wine29-native-compile-proof/native-compile-report.json"
+          grep -Fq '"native_elf_installed": false' \
+            "$RUNNER_TEMP/charoite-wine29-native-compile-proof/native-compile-report.json"
+          grep -Fq '"new_27_component_archive_verified": false' \
+            "$RUNNER_TEMP/charoite-wine29-native-compile-proof/native-compile-report.json"
+
+      - name: Publish verified Wine29 compile-only native slice, NOT a runnable APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-Isolated-Native-Compile-Experimental
+          path: ${{ runner.temp }}/charoite-wine29-native-compile-proof/
+          retention-days: 14
+          if-no-files-found: error

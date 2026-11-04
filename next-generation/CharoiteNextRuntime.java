@@ -82,6 +82,7 @@ public final class CharoiteNextRuntime {
                 + "Verify Wine29 0.7 package (read-only) audits the new APK-owned 27-component/76-NLS archive and three dedicated native libraries without running them.\n"
                 + "Test Wine29 0.7 native --version (no prefix) executes ONLY the source-matched APK native loader and wineserver after explicit consent and hash audit. No Wineboot or Windows EXE.\n"
                 + "Stage Wine29 0.7 PE/NLS data (no execution) copies source-verified PE/NLS into a NEW isolated private slot only after explicit consent. Windows execution remains blocked.\n"
+                + "Verify staged Wine29 0.7 data (read-only) rechecks all 100 APK assets and sealed private slot; rejects extra files without executing Wine.\n"
                 + "Earlier Wine26 v2 Wineboot failed at native NLS lookup; its scratch is retained.\n"
                 + "Stage patched Wine27 0.6 data, verify matched native binaries, then explicitly approve NEW isolated v3 Wineboot test.\n"
                 + legacy.label + ": bundled (existing compatibility engine)\n"

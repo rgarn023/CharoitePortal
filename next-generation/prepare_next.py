@@ -1235,6 +1235,35 @@ ui = ui.replace(anchor, anchor + """
         });
         nextCoreCard.addView(wine29Data);
 
+        // Strict read-only sealing audit. Never creates or repairs a slot, and
+        // never invokes Wine/PE/Wineboot. Useful after opt-in staging.
+        android.widget.Button wine29Verify = new android.widget.Button(this);
+        wine29Verify.setText("Verify staged Wine29 0.7 data (read-only)");
+        wine29Verify.setAllCaps(false);
+        wine29Verify.setOnClickListener(v -> {
+            wine29Verify.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29Native07Stage.verifyOnly(this);
+                runOnUiThread(() -> {
+                    wine29Verify.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Wine29 staged data read-only audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wine29 staged-data seal audit", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29Native07StageVerifyOnly").start();
+        });
+        nextCoreCard.addView(wine29Verify);
+
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");
         autoReporter.setAllCaps(false);

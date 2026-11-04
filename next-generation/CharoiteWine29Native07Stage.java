@@ -172,10 +172,67 @@ public final class CharoiteWine29Native07Stage {
         }
     }
 
+    /**
+     * Sealed DATA-only slot: reject extra modules, directories, links and
+     * unexpected files before accepting the 100 source-approved hashes.
+     * Never follow an unapproved directory into any other app data.
+     */
+    private static void verifyClosedInventory(File slot, JSONArray entries) throws Exception {
+        HashSet<String> expected = new HashSet<>();
+        for (int i = 0; i < entries.length(); i++)
+            expected.add(entries.getJSONObject(i).getString("path"));
+        HashSet<String> directories = new HashSet<>();
+        directories.add("pe");
+        directories.add("pe/arm64ec");
+        directories.add("pe/arm64");
+        directories.add("nls");
+        HashSet<String> observed = new HashSet<>();
+        java.util.ArrayDeque<File> queue = new java.util.ArrayDeque<>();
+        queue.add(slot);
+        int nodes = 0;
+        while (!queue.isEmpty()) {
+            File dir = queue.removeFirst();
+            File[] children = dir.listFiles();
+            if (children == null) throw new SecurityException("Unreadable Wine29 staging directory");
+            for (File child : children) {
+                if (++nodes > 104 ||
+                    !child.getCanonicalFile().equals(child.getAbsoluteFile()))
+                    throw new SecurityException("Unexpected or linked Wine29 staging entry");
+                String relative = slot.toPath().relativize(child.toPath())
+                    .toString().replace(File.separatorChar, '/');
+                if (child.isDirectory()) {
+                    if (!directories.contains(relative))
+                        throw new SecurityException("Unknown Wine29 staging directory");
+                    queue.add(child);
+                } else if (child.isFile()) {
+                    if (!expected.contains(relative) || !observed.add(relative))
+                        throw new SecurityException("Unexpected Wine29 staging file");
+                } else {
+                    throw new SecurityException("Unsupported Wine29 staging file type");
+                }
+            }
+        }
+        if (observed.size() != entries.length())
+            throw new SecurityException("Incomplete Wine29 sealed 100-module inventory");
+    }
+
+    /** Only the expected final slot may exist for a read-only, sealed audit. */
+    private static void verifyRootContents(File root) throws Exception {
+        File[] children = root.listFiles();
+        if (children == null) throw new SecurityException("Unreadable Wine29 private root");
+        for (File child : children) {
+            if (!FINAL.equals(child.getName()) ||
+                !child.getCanonicalFile().equals(child.getAbsoluteFile()) ||
+                !child.isDirectory())
+                throw new SecurityException("Unexpected or quarantined Wine29 root entry");
+        }
+    }
+
     private static void verifyFiles(File slot, JSONArray entries) throws Exception {
         if (!slot.isDirectory() ||
             !slot.getCanonicalFile().equals(slot.getAbsoluteFile()))
             throw new SecurityException("Wine29 final data-only slot absent or unsafe");
+        verifyClosedInventory(slot, entries);
         for (int i = 0; i < entries.length(); i++) {
             JSONObject entry = entries.getJSONObject(i);
             File target = inside(slot, entry.getString("path"));
@@ -206,14 +263,17 @@ public final class CharoiteWine29Native07Stage {
                 "RESULT: PASS — APK-owned Wine29 0.7 source and native hashes verified; NOT RUNNABLE"))
                 throw new SecurityException("Prior Wine29 APK audit did not pass");
             JSONArray entries = inventory(context, readIndex(context));
+            verifyAssets(context, entries);
             File root = privateRoot(context);
             if (!root.isDirectory())
                 throw new SecurityException("New Wine29 data slot not previously staged");
             File pending = inside(root, PENDING);
             if (pending.exists()) throw new SecurityException("Quarantined pending slot present");
+            verifyRootContents(root);
             verifyFiles(inside(root, FINAL), entries);
             out.append("Windows PE: 24/24 SHA-256 PASS\n");
             out.append("Wine NLS: 76/76 SHA-256 PASS\n");
+            out.append("APK source assets and sealed 100-file private inventory: SHA-256 PASS\n");
             out.append("Native Wine/PE/Wineboot execution: NOT ATTEMPTED\n");
             out.append("RESULT: PASS — isolated Wine29 0.7 data-only stage; NOT RUNNABLE\n");
         } catch (Exception error) {
@@ -244,10 +304,16 @@ public final class CharoiteWine29Native07Stage {
             if (pending.exists())
                 throw new SecurityException("Partial Wine29 pending slot quarantined; NO retry");
             if (complete.exists()) {
+                verifyRootContents(root);
                 verifyFiles(complete, entries);
                 out.append("Existing Wine29 data slot reverified, no writes\n");
                 out.append("RESULT: PASS — existing Wine29 .0.7 data; NOT RUNNABLE\n");
                 return out.toString();
+            }
+            if (root.exists()) {
+                File[] existing = root.listFiles();
+                if (existing == null || existing.length != 0)
+                    throw new SecurityException("Refusing nonempty Wine29 private root");
             }
             if (!root.exists() && !root.mkdir())
                 throw new SecurityException("Failed to create new Wine29 private root");
@@ -284,6 +350,8 @@ public final class CharoiteWine29Native07Stage {
             verifyFiles(complete, entries);
             out.append("Windows PE: 24/24 source hashes PASS\n");
             out.append("Wine NLS: 76/76 source hashes PASS\n");
+            verifyRootContents(root);
+            out.append("Sealed 100-file inventory with no extra files: PASS\n");
             out.append("Separate new private slot: ").append(FINAL).append('\n');
             out.append("Native Wine/PE/Wineboot execution: NOT ATTEMPTED\n");
             out.append("RESULT: PASS — Wine29 0.7 data staged; NOT RUNNABLE\n");

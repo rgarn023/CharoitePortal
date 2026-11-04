@@ -752,6 +752,51 @@ jobs:
               assert new29["remaining_observed_pe_imports"]==new28["remaining_observed_pe_imports"]
               print("CHAROITE_NEXT_WINE29_27_SOURCE_APISET_DATA_APK_HASHES_VERIFIED=PASS")
               print("CHAROITE_NEXT_WINE29_NATIVE_ELF_NOT_INSTALLED=PASS")
+              new07=json.loads(apk.read("assets/charoite-next/wine29-native07/wine29-native07-index.json"))
+              full07=apk.read("assets/charoite-next/wine29-native07/wine29-source-matched.bundle")
+              assert new07["schema_version"]==1 and new07["package"]=="com.charoitx"
+              assert new07["source_run"]==41749167248 and new07["source_artifact"]==13284932342
+              assert new07["bundle_version"]=="wine10-arm64ec-bootstrap.0.7"
+              assert new07["wine_source_commit"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert new07["archive_asset"]=="charoite-next/wine29-native07/wine29-source-matched.bundle"
+              assert new07["archive_sha256"]=="66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e"
+              assert new07["archive_sha256"]==hashlib.sha256(full07).hexdigest()
+              assert new07["archive_size"]==len(full07)
+              assert new07["original_wine29_sha256"]==new29["archive_sha256"]
+              assert new07["component_count"]==27 and new07["pe_count"]==24 and new07["nls_count"]==76
+              assert new07["native_elf_count"]==3 and new07["source_native_cohort_verified"] is True
+              assert new07["native_elf_installed_as_apk_libs"] is True
+              assert new07["native_elf_executed"] is False
+              assert new07["windows_exe_executed"] is False
+              assert new07["wineboot_executed"] is False
+              assert all(new07[k] is False for k in ("launch_ready","device_tested",
+                  "installable_as_runtime","prefix_created","fex_installed",
+                  "graphics_verified","anti_cheat_supported"))
+              expected07={
+                  "wine":("runtime/bin/wine","libcharoite_wine29_loader.so",
+                          b"CHAROITE_WINE29_NATIVE_DIR", b"libcharoite_wine29_ntdll.so"),
+                  "wineserver":("runtime/bin/wineserver","libcharoite_wine29_wineserver.so",
+                                b"CHAROITE_WINE29_DATA_DIR",b"Wine29/Wine28 selector conflict"),
+                  "ntdll_unix":("runtime/lib/ntdll.so","libcharoite_wine29_ntdll.so",
+                                b"CHAROITE_WINE29_PE_DIR", b"CHAROITE_WINE29_DATA_DIR"),
+              }
+              assert set(new07["native_components"])==set(expected07)
+              for key,(source,filename,marker_a,marker_b) in expected07.items():
+                  e=new07["native_components"][key]
+                  native07=apk.read("lib/arm64-v8a/"+filename)
+                  assert e["source"]==source and e["filename"]==filename
+                  assert e["machine"]=="AArch64"
+                  assert e["size"]==len(native07)
+                  assert e["sha256"]==hashlib.sha256(native07).hexdigest()
+                  assert native07[:6]==b"\x7fELF\x02\x01"
+                  assert struct.unpack_from("<H",native07,18)[0]==183
+                  assert marker_a in native07 and marker_b in native07
+              assert new07["archive_sha256"]!=new29["archive_sha256"]
+              assert new07["archive_sha256"]!=new28["archive_sha256"]
+              print("CHAROITE_NEXT_WINE29_07_ARCHIVE_27_PE_NLS_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE29_07_THREE_APK_NATIVE_ELF_VERIFIED=PASS")
+              print("CHAROITE_NEXT_WINE29_06_AND_WINE28_ORIGINAL_COHORTS_UNCHANGED=PASS")
+              print("WINE29_07_PHONE_WINE_EXECUTION=NOT_ATTEMPTED")
 
               print("CHAROITE_NEXT_WINE28_V5_ONE_SHOT_DEVICE_ONLY=PASS")
               assert patched["archive_sha256"]!=wine26["archive_sha256"]

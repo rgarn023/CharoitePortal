@@ -28,7 +28,7 @@ class Wine29DependencyCandidateContracts(unittest.TestCase):
     def test_only_pinned_six_modules_are_candidates(self):
         self.assertEqual(mod.MODULES,
                          ("coml2", "imm32", "oleacc", "oleaut32", "shcore", "newdev"))
-        self.assertEqual(mod.PHONE_DIRECT, mod.MODULES[:5] if False else
+        self.assertEqual(mod.PHONE_DIRECT,
                          ("coml2.dll","imm32.dll","oleacc.dll","oleaut32.dll","shcore.dll"))
         self.assertEqual(mod.GENERATION,
                          "wine10-arm64ec-dependencies.0.8-candidate")
@@ -80,7 +80,7 @@ class Wine29DependencyCandidateContracts(unittest.TestCase):
                      "candidate_imports_not_in_candidate_set",
                      "Unexpected files in sealed candidate artifact"):
             self.assertIn(term, VERIFY)
-        self.assertIn("no Wine", SRC)
+        self.assertIn("No Android app, Wine/Wineboot", SRC)
 
     def test_only_separate_ci_workflow_is_allowed_to_produce_source_artifact(self):
         self.assertTrue(CI.exists())

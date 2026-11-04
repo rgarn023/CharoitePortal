@@ -388,6 +388,11 @@ jobs:
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_native07_version_gate.py' -v
           grep -Fq 'new ProcessBuilder(binary.getAbsolutePath(), "--version")'             next-generation/CharoiteWine29Native07VersionGate.java
           grep -Fq 'env.clear();' next-generation/CharoiteWine29Native07VersionGate.java
+          for selector in NATIVE PE DATA; do
+            grep -Fq "env.put(\"CHAROITE_WINE29_${selector}_DIR\", apkNative)" \
+              next-generation/CharoiteWine29Native07VersionGate.java
+          done
+          grep -Fq 'PE/NLS runtime NOT staged' next-generation/CharoiteWine29Native07VersionGate.java
           grep -Fq 'CharoiteWine29Native07Audit.run(context)'             next-generation/CharoiteWine29Native07VersionGate.java
           echo 'WINE29_07_USER_CONSENTED_NATIVE_VERSION_ONLY_SOURCE_GATE=PASS'
           echo 'WINE29_07_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI'
@@ -827,7 +832,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='92' versionName='11.2-next.0.61'"
+            grep -F "package: name='com.charoitx' versionCode='93' versionName='11.2-next.0.62'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

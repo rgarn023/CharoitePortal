@@ -40,7 +40,7 @@ class Wine29PePreflight(unittest.TestCase):
             "libcharoite_wine29_wineserver.so",
             "libcharoite_wine29_ntdll.so",
             '"ntdll.dll", "kernel32.dll", "apisetschema.dll"',
-            "23 ARM64EC DLL headers PASS",
+            "23 source-verified ARM64EC-view hybrid DLL headers PASS",
             "separate ARM64 PE32+ PASS",
             "Selectors proposed ONLY; environment variables NOT set or executed",
         ):
@@ -50,6 +50,13 @@ class Wine29PePreflight(unittest.TestCase):
         for term in (
             "private static final int ARM64EC = 0xa641",
             "private static final int ARM64 = 0xaa64",
+            "rawMachine == ARM64EC || rawMachine == ARM64",
+            ": rawMachine == expectedMachine",
+            "rawMachineCounts[rawMachine == ARM64 ? 0 : 1]++",
+            "rawMachine=",
+            "Raw COFF machines among 23 DLLs: AA64=",
+            "ARM64EC-view hybrid (raw AA64/A641)",
+
             "private static final int MAX_PE = 32 * 1024 * 1024",
             "private static final int MAX_IMPORTS = 256",
             "u16(data, 0) != 0x5a4d",
@@ -62,6 +69,20 @@ class Wine29PePreflight(unittest.TestCase):
             "Unbundled DLL names are diagnostic, not proven loader failures",
         ):
             self.assertIn(term, JAVA)
+
+    def test_source_archive_verifier_allows_hybrid_raw_coff_header(self):
+        verifier = (NEXT / "charoite-wine/verify-bootstrap-bundle.py").read_text(
+            encoding="utf-8")
+        assembler = (NEXT / "charoite-wine/assemble-bootstrap-bundle.py").read_text(
+            encoding="utf-8")
+        self.assertIn("machine not in (0xAA64,0xA641)", verifier)
+        self.assertIn('entry.get("machine")!="0xA641"', verifier)
+        self.assertIn('machine!=0xAA64 or entry.get("machine")!="0xAA64"', verifier)
+        self.assertIn("raw DOS/COFF", assembler)
+        self.assertIn("rawMachine == ARM64EC || rawMachine == ARM64", JAVA)
+        self.assertIn("rawMachine == expectedMachine", JAVA)
+        self.assertIn("file.getName()", JAVA)
+        self.assertIn('String.format(Locale.US, "0x%04X", rawMachine)', JAVA)
 
     def test_no_execution_or_mutation_in_static_preflight(self):
         for forbidden in (

@@ -6,6 +6,8 @@
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
 
+**GALAXY v0.66 WINE29 STATIC PREFLIGHT PASS (November 4, 2026):** Owner phone reports exact `RESULT: PASS — static Wine29 PE layout/import audit; NOT RUNNABLE`. Sealed APK-native Wine29 selector verified; 23 source-verified ARM64EC-view hybrid DLL headers PASS with raw COFF **AA64=23/A641=0**; NLS 76 SHA-256 PASS; separate ARM64 PE32+ `wineboot.exe` header PASS, **NOT EXECUTED**; 111 static PE import descriptors, 21 unique referenced DLL names, **five names outside 23-DLL bundle: `coml2.dll`, `imm32.dll`, `oleacc.dll`, `oleaut32.dll`, `shcore.dll`**. These are static gaps, not proven loader failure. No Wine/wineserver/PE/Wineboot/prefix/scratch writes, no Wine28 v1–v9, stable Portal, game/saves/rootfs access. Original v0.64 native version gate PASS and source-matched staging PASS unchanged. Details in Section 159. Next step: source-archive verified importer attribution and dependency planning, not automatic execution.
+
 **LATEST VERIFIED CHAROITE NEXT — v0.66 / versionCode 97 (November 4, 2026):** Owner's v0.65 on-device Wine29 PE static preflight returned **BLOCKED — SecurityException: Wine29 PE signature or architecture mismatch**. Root cause traced to *preflight-only* raw COFF machine assumption, not a failed source hash or proven Wine29 corruption: pinned Wine29 source verifier explicitly permits raw `0xAA64` or `0xA641` for source-verified hybrid/ARM64EC cohort (API-set module also permits both), while Wineboot must be strictly `0xAA64`; v0.65 Java incorrectly required raw `0xA641` for all 23 files. v0.66 corrects raw-header check for **only** the already sealed/hash-verified PE files, retains strict ARM64 Wineboot check, and adds offending filename/signature/raw-machine error reporting plus raw machine counts on success. No Wineboot/PE/prefix run added. [GitHub Actions run 41932990804](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804) exact code commit [43ccf9f](https://github.com/rgarn023/CharoitePortal/commit/43ccf9f8e2f821963e49f239955613634098a67e) **COMPLETED SUCCESS**: **138 stable + 127 Next** tests PASS, six hybrid PE-focused tests PASS, CI `WINE29_07_HYBRID_PE_RAW_MACHINE_GUARD=PASS`, `WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS`, 100 PE/NLS APK hashes PASS, Gradle `BUILD SUCCESSFUL`, `com.charoitx` **versionCode=97**, **versionName=11.2-next.0.66**, persisted key signing identity PASS. Direct GitHub [**signed APK ZIP artifact 13372892029**](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804/artifacts/13372892029): **441,088,152 bytes**, ZIP SHA-256 `9a79b3a45bfd6ff3e6a38d83d6c021a24e66b1a523a5dd843326289b1bd161cb`; [licenses artifact 13373460370](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804/artifacts/13373460370). **Owner v0.66 phone re-test NOT YET RECEIVED.** Safe in-place update of `com.charoitx`, never uninstall/clear storage. See Section 158.
 
 **PREVIOUS VERIFIED CHAROITE NEXT — v0.65 / versionCode 96 (November 4, 2026):** GitHub Actions [run 41930879818](https://github.com/rgarn023/CharoitePortal/actions/runs/41930879818), source commit [1b710d7](https://github.com/rgarn023/CharoitePortal/commit/1b710d77a756744ec049e11c1277132de44191b4), **COMPLETED SUCCESS** with **138 safety + 126 Next tests PASS**, plus 6 version-only, 6 sealed-stage and 5 new PE preflight-focused checks PASS. `WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS`, `WINE29_07_100_PE_NLS_APK_ASSET_HASHES_VERIFIED=PASS`, Android Gradle `BUILD SUCCESSFUL`, exact `com.charoitx` `versionCode=96` `versionName=11.2-next.0.65`, persisted cached APK signer match PASS. **[Signed GitHub Actions APK artifact 13370908429](https://github.com/rgarn023/CharoitePortal/actions/runs/41930879818/artifacts/13370908429)**, ZIP 441,620,332 bytes, SHA-256 `054278fd210ceb1535d3534d64760b982bd2b9b0badf61ad9c96bb652dc3ed21`; [licenses/source artifact 13371048322](https://github.com/rgarn023/CharoitePortal/actions/runs/41930879818/artifacts/13371048322). New **System → Preflight Wine29 0.7 PE loader layout (read-only)** independently checks previously sealed source-hash-verifed staging and scans the 23 ARM64EC DLLs plus ARM64 Wineboot PE headers and direct import names. It **does not execute Wineboot, PE, games or write scratch/prefix**. **On-device preflight NOT YET TESTED**. Earlier v0.64 owner phone native version-only PASS, 24 PE/76 NLS staging PASS and sealed read-only recheck PASS remain established; see Section 156. In-place update only, no uninstall/clear data.
@@ -2726,6 +2728,38 @@ This blocked inside the **static PE-header scanner**, after the independent hash
 **FINAL CI / APK SUCCESS:** [GitHub Actions run 41932990804](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804), source SHA `43ccf9f8e2f821963e49f239955613634098a67e` **completed SUCCESS**, zero failed jobs, 138 stable/runtime safety + 127 Next regression tests PASS; separately 6 version-gate, 6 sealed-module-stage, **6 hybrid PE preflight tests PASS**. Workflow prints `WINE29_07_HYBRID_PE_RAW_MACHINE_GUARD=PASS`, `WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS`, `WINE29_07_100_PE_NLS_APK_ASSET_HASHES_VERIFIED=PASS`. Gradle `BUILD SUCCESSFUL`, aapt `package: name='com.charoitx' versionCode='97' versionName='11.2-next.0.66'`; persisted signer key cache HIT and APK signing certificate matches original cache PASS. Direct [**single signed GitHub APK ZIP artifact 13372892029**](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804/artifacts/13372892029), 441,088,152 bytes, ZIP SHA-256 `9a79b3a45bfd6ff3e6a38d83d6c021a24e66b1a523a5dd843326289b1bd161cb`. [Licenses/source artifact 13373460370](https://github.com/rgarn023/CharoitePortal/actions/runs/41932990804/artifacts/13373460370), 299,658 bytes. CI success does NOT constitute on-device v0.66 preflight PASS.
 
 **Next owner phone gate:** Install v0.66 **in place** over existing `com.charoitx` without uninstall, clearing storage, touching stable `com.charoite` or old Wine28 scratch. Do NOT rerun the already PASS native --version or PE/NLS stage just to retest the corrected parser; the staged slot is intentionally reused read-only. Open **System → Preflight Wine29 0.7 PE loader layout (read-only)** and copy entire report. New report should either provide source/hash verified PE header/import data and `NOT RUNNABLE`, or a filename-specific `BLOCKED` diagnostic to investigate. **Do not attempt Wineboot, PE execution, prefix creation, FEX, GPU, Steam/Battle.net, anti-cheat or game launch** until a separate, explicitly approved new-generation experiment is ready.
+
+---
+
+## 159. November 4, 2026 — Galaxy v0.66 static import/PE preflight PASS (owner report)
+
+**Source:** Owner pasted complete report from installed signed `com.charoitx` v0.66 preflight after v0.65 hybrid raw-machine false-positive correction. The exact report is:
+
+```
+CHAROITE NEXT — WINE29 .0.7 PE BOOTSTRAP STATIC PREFLIGHT
+READ ONLY; no Wine/Wineboot/PE/wineserver execution or prefix/scratch writes
+Wine28 v1–v9, stable Portal, games, saves and rootfs: NOT ACCESSED
+Native selector: APK-owned exact Wine29 0.7 ELF directory verified
+PE selector: isolated slot/pe/arm64ec, 23 source-verified ARM64EC-view hybrid DLL headers PASS
+Raw COFF machines among 23 DLLs: AA64=23 A641=0
+DATA selector: isolated slot parent, 76 NLS files SHA-256 PASS
+wineboot.exe header: separate ARM64 PE32+ PASS; NOT EXECUTED
+Static PE import descriptors inspected: 111
+Distinct referenced DLL names: 21
+Direct imports not in sealed PE cohort: 5
+  coml2.dll
+  imm32.dll
+  oleacc.dll
+  oleaut32.dll
+  shcore.dll
+Unbundled DLL names are diagnostic, not proven loader failures
+Selectors proposed ONLY; environment variables NOT set or executed
+RESULT: PASS — static Wine29 PE layout/import audit; NOT RUNNABLE
+```
+
+**Interpretation:** All prior source-hash and sealed on-device staging gates remain PASS. All 23 ARM64EC-view DLL files use `AA64` RAW hybrid PE machine on the actual device; this is precisely why v0.65's raw `A641` requirement was incorrect. The separate ARM64 Wineboot `AA64` header also passes, but **Wineboot is NOT EXECUTED** and no valid Windows prefix is known. The 5 unbundled imports above are static reference names, not yet demonstrated fatal to runtime launch. Do not conclude actual 100% PE dependency closure, game readiness, graphics/FEX, Windows 11 capability, or anti-cheat compatibility.
+
+**Engineering priority:** Compare actual on-device 5-name gap with the independently pinned `wine10-arm64ec-bootstrap.0.7` source-archive manifest, attribute each external DLL to the requesting staged PE, distinguish required minimal boot path from broader optional modules, and investigate coherent source-built modules or loader resolution. Do not insert unverified third-party DLLs, reuse Wine28 v1-v9 scratch, or run Wineboot / Windows EXEs automatically. Any future isolated Wine29 prefix/scratch launch remains a separate explicit user-consent gate.
 
 ---
 

@@ -423,6 +423,9 @@ jobs:
           ! grep -Eq 'ProcessBuilder|Runtime\.getRuntime|FileOutputStream|\.delete\(|mkdir\(|mkdirs\(' next-generation/CharoiteWine29Native07PePreflight.java
           grep -Fq 'CharoiteWine29Native07Stage.verifyOnly(context)' next-generation/CharoiteWine29Native07PePreflight.java
           grep -Fq 'CharoiteWine29Native07PePreflight.run(this)' next-generation/prepare_next.py
+          grep -Fq 'rawMachine == ARM64EC || rawMachine == ARM64' next-generation/CharoiteWine29Native07PePreflight.java
+          grep -Fq 'rawMachine == expectedMachine' next-generation/CharoiteWine29Native07PePreflight.java
+          echo "WINE29_07_HYBRID_PE_RAW_MACHINE_GUARD=PASS"
           echo "WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS"
 
 
@@ -881,7 +884,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='96' versionName='11.2-next.0.65'"
+            grep -F "package: name='com.charoitx' versionCode='97' versionName='11.2-next.0.66'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

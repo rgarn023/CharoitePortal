@@ -416,6 +416,16 @@ jobs:
           echo "WINE29_07_SEALED_100_MODULE_READONLY_AUDIT_SOURCE_GATE=PASS"
           echo "WINE29_07_DATA_STAGE_NO_EXECUTION_SOURCE_GUARD=PASS"
 
+      - name: Check Wine29 read-only PE/ARM64EC loader layout preflight cannot execute
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_07_pe_preflight.py' -v
+          ! grep -Eq 'ProcessBuilder|Runtime\.getRuntime|FileOutputStream|\.delete\(|mkdir\(|mkdirs\(' next-generation/CharoiteWine29Native07PePreflight.java
+          grep -Fq 'CharoiteWine29Native07Stage.verifyOnly(context)' next-generation/CharoiteWine29Native07PePreflight.java
+          grep -Fq 'CharoiteWine29Native07PePreflight.run(this)' next-generation/prepare_next.py
+          echo "WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS"
+
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -871,7 +881,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='95' versionName='11.2-next.0.64'"
+            grep -F "package: name='com.charoitx' versionCode='96' versionName='11.2-next.0.65'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1036,6 +1046,7 @@ jobs:
           cp next-generation/stage_wine29_native07.py legal-bundle/stage_wine29_native07.py
           cp next-generation/stage_wine29_07_modules.py legal-bundle/stage_wine29_07_modules.py
           cp next-generation/CharoiteWine29Native07Stage.java legal-bundle/CharoiteWine29Native07Stage.java
+          cp next-generation/CharoiteWine29Native07PePreflight.java legal-bundle/CharoiteWine29Native07PePreflight.java
           cp next-generation/CharoiteWine29Native07Audit.java legal-bundle/CharoiteWine29Native07Audit.java
           cp next-generation/CharoiteWine29Native07VersionGate.java legal-bundle/CharoiteWine29Native07VersionGate.java
           cp upstream/app/src/main/assets/charoite-next/wine29-native07/wine29-native07-index.json legal-bundle/wine29-native07-index.json

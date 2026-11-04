@@ -98,11 +98,11 @@ class Wine29VersionGateContract(unittest.TestCase):
         self.assertIn("NOT RUNNABLE",GATE)
 
     def test_apk_build_and_read_only_button_retained(self):
-        self.assertIn("versionCode 94",PREP)
-        self.assertIn("11.2-next.0.63",PREP)
-        self.assertIn("0.63 (Wine29 0.7 isolated PE/NLS data staging",RUNTIME)
-        self.assertIn("versionCode='94'",WORKFLOW)
-        self.assertIn("versionName='11.2-next.0.63'",WORKFLOW)
+        self.assertIn("versionCode 95",PREP)
+        self.assertIn("11.2-next.0.64",PREP)
+        self.assertIn("0.64 (Wine29 0.7 sealed PE/NLS data audit",RUNTIME)
+        self.assertIn("versionCode='95'",WORKFLOW)
+        self.assertIn("versionName='11.2-next.0.64'",WORKFLOW)
         self.assertIn("CharoiteWine29Native07VersionGate.java",WORKFLOW)
         self.assertIn('wine29Audit.setText("Verify Wine29 0.7 package (read-only)")',PREP)
         self.assertIn("WINE29_07_PHONE_WINE_EXECUTION=NOT_ATTEMPTED",WORKFLOW)

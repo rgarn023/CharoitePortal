@@ -23,7 +23,7 @@ class Wine27PEImportAuditTest(unittest.TestCase):
         self.assertIn('charoite-next-wine27-first-prefix-v3',FORENSICS)
         self.assertNotIn('new ProcessBuilder(',FORENSICS)
         self.assertIn('CharoiteWine27PEAudit.java',PREP)
-        self.assertIn('versionCode 94',PREP)
-        self.assertIn('11.2-next.0.63',PREP)
+        self.assertIn('versionCode 95',PREP)
+        self.assertIn('11.2-next.0.64',PREP)
 if __name__=="__main__":
     unittest.main()

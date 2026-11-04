@@ -56,6 +56,11 @@ SOURCES = {
     "Wine-NLS-Makefile.in": "nls/Makefile.in",
 }
 NLS_REQUIRED={"c_932.nls","c_1252.nls","l_intl.nls","locale.nls","sortdefault.nls"}
+WINE29_SOURCE_FILES={
+    "charoite-wine29-native-source-delta.patch": "charoite-wine29-native-source-delta.patch",
+    "charoite-wine29-native-source-validation.json": "charoite-wine29-native-source-validation.json",
+}
+WINE29_VERSION="wine10-arm64ec-bootstrap.0.7"
 
 def regular(path: Path) -> bytes:
     s = path.lstat()
@@ -118,7 +123,7 @@ def check_pe(path: Path, readobj: Path, architecture: str) -> dict:
 
 def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
                 include_startup: bool = False, include_com: bool = False, include_services: bool = False,
-                include_apiset: bool = False) -> dict:
+                include_apiset: bool = False, include_wine29: bool = False) -> dict:
     for p in (build,readelf,readobj,output):
         if not p.is_absolute(): raise ValueError("Expected absolute CI-only paths")
     if output.exists() or not output.parent.is_dir():
@@ -129,6 +134,30 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     if not (build.parent/"charoite-source-validation.txt").is_file():
         raise ValueError("Missing pinned source validation")
     verify_previous(build)
+    if include_wine29:
+        if not include_apiset:
+            raise ValueError("New Wine29 native cohort requires source-verified 27-component API-set archive")
+        root=build.parent
+        proof_bytes=regular(root/"charoite-wine29-native-source-validation.json")
+        proof=json.loads(proof_bytes)
+        delta=regular(root/"charoite-wine29-native-source-delta.patch")
+        if (proof.get("generation")!=WINE29_VERSION or proof.get("source_commit")!=SOURCE_SHA or
+            proof.get("package")!="com.charoitx" or
+            any(proof.get(flag) is not False for flag in
+                ("runtime_executable","device_tested","native_elf_installed","legacy_wine28_cohort_modified")) or
+            proof.get("delta_sha256")!=sha(delta) or
+            set(proof.get("patch_sources",{}))!={
+                "loader/main.c","dlls/ntdll/unix/loader.c","server/unicode.c"}):
+            raise ValueError("Wine29 isolated source proof missing, malformed or mixed")
+        for rel,hashes in proof["patch_sources"].items():
+            if (sha(regular(root/rel))!=hashes.get("after_sha256") or
+                hashes.get("before_sha256")==hashes.get("after_sha256")):
+                raise ValueError("Wine29 native source provenance changed: "+rel)
+        for marker in (b"CHAROITE_WINE29_NATIVE_DIR",b"CHAROITE_WINE29_PE_DIR",
+                       b"CHAROITE_WINE29_DATA_DIR",b"Wine29/Wine28 selector conflict",
+                       b"libcharoite_wine29_ntdll.so"):
+            if marker not in delta:
+                raise ValueError("Missing Wine29-specific source patch marker")
     if include_startup:
         load_validator("next_startup","verify-pe-startup.py").verify(
             build.parent/"charoite-pe-startup",
@@ -216,7 +245,8 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
         if sha(regular(path))!=records[name]["sha256"]:
             raise ValueError("Same-tree Wine binary differs from audited component: "+name)
     source={}
-    source_files = {**SOURCES, **(APISET_SOURCES if include_apiset else {})}
+    source_files = {**SOURCES, **(APISET_SOURCES if include_apiset else {}),
+                    **(WINE29_SOURCE_FILES if include_wine29 else {})}
     for name,rel in source_files.items():
         src=(Path(__file__).resolve().parent/"UPSTREAM-WEHAVEPHONES-LICENSE.txt"
              if rel=="@vendor-license" else build.parent/rel)
@@ -252,6 +282,7 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
     payloads["dependency-review.json"]=(json.dumps(report,sort_keys=True,indent=2)+"\n").encode()
     manifest={
         "schema_version":1,"version":(
+            WINE29_VERSION if include_wine29 else
             "wine10-arm64ec-bootstrap.0.6" if include_apiset else
             "wine10-arm64ec-bootstrap.0.5" if include_services else
             "wine10-arm64ec-bootstrap.0.4" if include_com else
@@ -276,6 +307,11 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
             sha(regular(build.parent/"charoite-apiset-schema"/"verified-apiset.json"))
             if include_apiset else None),
         "source_files":source,"dependency_review_sha256":sha(payloads["dependency-review.json"]),
+        **({"wine29_native_source_proof_sha256":
+                sha(payloads["source/charoite-wine29-native-source-validation.json"]),
+            "wine29_native_source_delta_sha256":
+                sha(payloads["source/charoite-wine29-native-source-delta.patch"])}
+           if include_wine29 else {}),
         "window_imports_unresolved_count":len(gap),
         "missing_for_runtime":[
             "Complete Windows PE/Unix module and NLS closure",
@@ -306,13 +342,14 @@ def make_bundle(build: Path, readelf: Path, readobj: Path, output: Path,
 
 if __name__=="__main__":
     if len(sys.argv) not in (5,6) or (len(sys.argv)==6 and
-        sys.argv[5] not in ("--include-startup","--include-com","--include-services","--include-apiset")):
-        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com|--include-services|--include-apiset]")
+        sys.argv[5] not in ("--include-startup","--include-com","--include-services","--include-apiset","--include-wine29")):
+        raise SystemExit("Usage: assemble-bootstrap-bundle.py ABS_BUILD ABS_READELF ABS_READOBJ ABS_OUTDIR [--include-startup|--include-com|--include-services|--include-apiset|--include-wine29]")
     flavor=sys.argv[5] if len(sys.argv)==6 else ""
     manifest=make_bundle(*map(Path,sys.argv[1:5]),
                          include_startup=bool(flavor),
-                         include_com=flavor in ("--include-com","--include-services","--include-apiset"),
-                         include_services=flavor in ("--include-services","--include-apiset"),
-                         include_apiset=flavor=="--include-apiset")
+                         include_com=flavor in ("--include-com","--include-services","--include-apiset","--include-wine29"),
+                         include_services=flavor in ("--include-services","--include-apiset","--include-wine29"),
+                         include_apiset=flavor in ("--include-apiset","--include-wine29"),
+                         include_wine29=flavor=="--include-wine29")
     print("CHAROITE_WINE_COHERENT_BOOTSTRAP_ASSEMBLED=PASS",manifest["component_count"])
     print("LAUNCH_READY=false")

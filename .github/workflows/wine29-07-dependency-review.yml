@@ -1,0 +1,59 @@
+name: Wine29 0.7 Source Import Dependency Review
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'next-generation/wine29_07_dependency_review.py'
+      - 'next-generation/tests/test_wine29_07_dependency_review.py'
+      - '.github/workflows/wine29-07-dependency-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-wine29-import-owners:
+    name: Verify pinned Wine29 source import owners (no APK / no execution)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source-only dependency import review regressions
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_07_dependency_review.py' -v
+          ! grep -Eq 'subprocess\.|ProcessBuilder\(|Runtime\.getRuntime\(|shutil\.rmtree\(|\.unlink\(' next-generation/wine29_07_dependency_review.py
+          echo 'WINE29_07_DEPENDENCY_OWNER_TESTS=PASS'
+      - name: Download independently source-matched pinned Wine29 archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-07"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/wine29-07"
+          echo '66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  '"$RUNNER_TEMP/wine29-07/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+      - name: Verify exact archive, emit static five-DLL importer-ownership graph
+        run: |
+          set -euo pipefail
+          python3 next-generation/wine29_07_dependency_review.py \
+            "$RUNNER_TEMP/wine29-07/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/wine29-07/import-owner-review.json"
+          test -s "$RUNNER_TEMP/wine29-07/import-owner-review.json"
+          python3 - "$RUNNER_TEMP/wine29-07/import-owner-review.json" <<'PY'
+          import json,sys
+          a=json.load(open(sys.argv[1],encoding='utf-8'))
+          assert a['unbundled_imports']==['coml2.dll','imm32.dll','oleacc.dll','oleaut32.dll','shcore.dll']
+          assert not any(a[k] for k in ('launch_ready','wineboot_executed','windows_exe_executed','prefix_created'))
+          print('WINE29_07_FIVE_UNBUNDLED_IMPORT_OWNERS=SOURCE_ATTESTED')
+          PY
+      - name: Publish source-only JSON import map for future dependency build planning
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Source-Import-Owners
+          path: ${{ runner.temp }}/wine29-07/import-owner-review.json
+          if-no-files-found: error
+          retention-days: 60

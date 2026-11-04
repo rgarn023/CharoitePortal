@@ -124,13 +124,13 @@ class Wine29NativeCompileContract(unittest.TestCase):
         toolchain = self.root/"verified-toolchain"
         toolchain.mkdir()
         target = toolchain/"llvm-readobj"
-        target.write_text("#!/bin/sh\\nprintf 'inspector-ok\\n'\\n")
+        target.write_text("#!/bin/sh\nprintf 'inspector-ok\n'\n")
         target.chmod(0o755)
         link = toolchain/"llvm-readelf"
         link.symlink_to(target)
-        self.assertEqual(M.command(link), "inspector-ok\\n")
+        self.assertEqual(M.command(link), "inspector-ok\n")
         external = self.root/"unexpected-external-tool"
-        external.write_text("#!/bin/sh\\nprintf 'no\\n'\\n")
+        external.write_text("#!/bin/sh\nprintf 'no\n'\n")
         external.chmod(0o755)
         escaped = toolchain/"untrusted"
         escaped.symlink_to(external)

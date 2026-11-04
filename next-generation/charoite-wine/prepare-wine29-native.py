@@ -114,14 +114,10 @@ static char *charoite_wine29_selected_path( const char *selector )
         "Wine29 data path takes priority over old cohort")
     # Both initial Windows NTDLL and API-set schema loading require the exact
     # same isolated PE directory, not the APK's native /lib directory.
-    # The API-set lookup occurs before the initial NTDLL image lookup in
-    # pinned loader.c. Both have the same old Wine28 branch text. Split only
-    # when exactly two distinct occurrences are present, never guess.
+    # The two Wine28 branches have identical selectors. Identify them by
+    # the actual literal DLL path in the following pinned source block rather
+    # than assuming their order or offset in the full generated source.
     branch = '    if (getenv( "CHAROITE_WINE28_PE_DIR" ))\n'
-    parts = ntdll.split(branch)
-    if (len(parts) != 3 or "load_apiset_dll(void)" not in parts[0] or
-            "open_unix_file" not in parts[1] or "open_builtin_pe_file" not in parts[2]):
-        raise ValueError("Pinned Wine28 API-set/NTDLL branch ordering changed")
     api29 = '''    if (getenv( "CHAROITE_WINE29_PE_DIR" ) ||
         getenv( "CHAROITE_WINE29_NATIVE_DIR" ) ||
         getenv( "CHAROITE_WINE29_DATA_DIR" ))
@@ -144,7 +140,21 @@ static char *charoite_wine29_selected_path( const char *selector )
     }
     else if (getenv( "CHAROITE_WINE28_PE_DIR" ))
 '''
-    ntdll = parts[0] + api29 + parts[1] + native29 + parts[2]
+    branches = []
+    at = 0
+    while (at := ntdll.find(branch, at)) != -1:
+        after = ntdll[at + len(branch):at + len(branch) + 900]
+        kind = ("api" if 'asprintf( &name, "%s/apisetschema.dll"' in after
+                else "ntdll" if 'asprintf( &name, "%s/ntdll.dll"' in after
+                else None)
+        branches.append((at, kind))
+        at += len(branch)
+    if len(branches) != 2 or set(kind for _at, kind in branches) != {"api", "ntdll"}:
+        raise ValueError("Pinned Wine28 API-set/NTDLL branch identity changed: "
+                         + str([kind for _at, kind in branches]))
+    for offset, kind in reversed(branches):
+        replacement = api29 if kind == "api" else native29
+        ntdll = ntdll[:offset] + replacement + ntdll[offset + len(branch):]
     ntdll = exact(ntdll,
         '    if (getenv( "CHAROITE_WINE28_PE_DIR" ) && status == STATUS_DLL_NOT_FOUND)\n',
         '''    if ((getenv( "CHAROITE_WINE29_PE_DIR" ) ||

@@ -96,8 +96,8 @@ public final class CharoiteWine29Native07PePreflight {
         throw new SecurityException("Wine29 PE import name exceeds bound");
     }
 
-    private static int inspect(File file, int expectedMachine, Set<String> imports)
-            throws Exception {
+    private static int inspect(File file, int expectedMachine, Set<String> imports,
+                               int[] rawMachineCounts) throws Exception {
         byte[] data = read(file);
         if (u16(data, 0) != 0x5a4d)
             throw new SecurityException("Wine29 staged image is not MZ");
@@ -105,9 +105,22 @@ public final class CharoiteWine29Native07PePreflight {
         if (peLong > data.length - 24)
             throw new SecurityException("Wine29 PE header offset invalid");
         int pe = (int)peLong;
-        if (u32(data, pe) != 0x00004550L ||
-            u16(data, pe + 4) != expectedMachine)
-            throw new SecurityException("Wine29 PE signature or architecture mismatch");
+        long signature = u32(data, pe);
+        int rawMachine = u16(data, pe + 4);
+        // Hybrid ARM64X DLLs expose an ARM64EC view verified in the source
+        // build, but their raw COFF machine may be AA64 or A641.
+        // Regular ARM64 wineboot.exe remains restricted to AA64.
+        boolean accepted = expectedMachine == ARM64EC
+            ? (rawMachine == ARM64EC || rawMachine == ARM64)
+            : rawMachine == expectedMachine;
+        if (signature != 0x00004550L || !accepted)
+            throw new SecurityException("Wine29 PE signature or architecture mismatch: " +
+                file.getName() + " signature=0x" + Long.toHexString(signature) +
+                " rawMachine=" + String.format(Locale.US, "0x%04X", rawMachine) +
+                " expected=" + (expectedMachine == ARM64EC ?
+                    "ARM64EC-view hybrid (raw AA64/A641)" : "ARM64 (raw AA64)"));
+        if (expectedMachine == ARM64EC)
+            rawMachineCounts[rawMachine == ARM64 ? 0 : 1]++;
         int sectionCount = u16(data, pe + 6);
         int optionalSize = u16(data, pe + 20);
         int opt = pe + 24;
@@ -187,22 +200,26 @@ public final class CharoiteWine29Native07PePreflight {
             Set<String> packaged = new HashSet<>();
             Set<String> imported = new TreeSet<>();
             int directImports = 0;
+            int[] rawMachineCounts = new int[2]; // [AA64 hybrid raw, A641 raw]
             for (File dll : dlls) {
                 String filename = dll.getName();
                 if (!filename.matches("[a-z0-9_]+\\.dll") ||
                     !packaged.add(filename))
                     throw new SecurityException("Unapproved Wine29 PE module filename");
-                directImports += inspect(dll, ARM64EC, imported);
+                directImports += inspect(dll, ARM64EC, imported, rawMachineCounts);
             }
             for (String essential : new String[] {
                     "ntdll.dll", "kernel32.dll", "apisetschema.dll" })
                 if (!packaged.contains(essential))
                     throw new SecurityException("Essential Wine29 PE module missing: " + essential);
-            directImports += inspect(wineboot, ARM64, imported);
+            directImports += inspect(wineboot, ARM64, imported, rawMachineCounts);
             Set<String> external = new TreeSet<>(imported);
             external.removeAll(packaged);
             out.append("Native selector: APK-owned exact Wine29 0.7 ELF directory verified\n");
-            out.append("PE selector: isolated slot/pe/arm64ec, 23 ARM64EC DLL headers PASS\n");
+            out.append("PE selector: isolated slot/pe/arm64ec, 23 source-verified ARM64EC-view hybrid DLL headers PASS\n");
+            out.append("Raw COFF machines among 23 DLLs: AA64=")
+               .append(rawMachineCounts[0]).append(" A641=")
+               .append(rawMachineCounts[1]).append('\n');
             out.append("DATA selector: isolated slot parent, 76 NLS files SHA-256 PASS\n");
             out.append("wineboot.exe header: separate ARM64 PE32+ PASS; NOT EXECUTED\n");
             out.append("Static PE import descriptors inspected: ").append(directImports).append('\n');

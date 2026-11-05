@@ -1,0 +1,72 @@
+name: Wine29 0.7 Seal 34-DLL + 76-NLS Data Only (no runtime)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-data-cohort.yml'
+      - 'next-generation/wine29-sealed-data/**'
+      - 'next-generation/wine29-imports/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-verified-111-file-bundle:
+    name: Reproducible sealed Wine29 PE/NLS data; never execute Wine
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout static verification and sealing scripts
+        uses: actions/checkout@v4
+      - name: Run local safety/tamper/determinism tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-sealed-data -p 'test_*.py' -v
+          python3 -m py_compile next-generation/wine29-sealed-data/package34.py
+          echo WINE29_07_DATA_ONLY_TESTS=PASS
+      - name: Download original source and immutable verified candidate artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for item in source-original candidate-six candidate-two candidate-direct candidate-mpr; do
+            mkdir "$RUNNER_TEMP/$item"
+          done
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental --dir "$RUNNER_TEMP/source-original"
+          gh run download 41938936238 --repo "$GITHUB_REPOSITORY" --name Wine29-07-Source-Built-Six-PE-Dependency-Candidates --dir "$RUNNER_TEMP/candidate-six"
+          gh run download 41940958989 --repo "$GITHUB_REPOSITORY" --name Wine29-07-Two-Transitive-PE-Candidates-Static-Review --dir "$RUNNER_TEMP/candidate-two"
+          gh run download 41943773293 --repo "$GITHUB_REPOSITORY" --name Wine29-07-Source-Built-Propsys-Wininet-PE-Candidates --dir "$RUNNER_TEMP/candidate-direct"
+          gh run download 41943773293 --repo "$GITHUB_REPOSITORY" --name Wine29-07-Source-Built-MPR-PE-Direct-Dependency --dir "$RUNNER_TEMP/candidate-mpr"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+      - name: Build reproducible new 111-file DATA ONLY archive and independently reverify
+        run: |
+          set -euo pipefail
+          P=( "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two" "$RUNNER_TEMP/candidate-direct" "$RUNNER_TEMP/candidate-mpr" )
+          python3 next-generation/wine29-sealed-data/package34.py build "${P[@]}" "$RUNNER_TEMP/wine29-07-34-dll-76-nls-data-only.tar.gz"
+          python3 next-generation/wine29-sealed-data/package34.py verify "${P[@]}" "$RUNNER_TEMP/wine29-07-34-dll-76-nls-data-only.tar.gz"
+          python3 next-generation/wine29-sealed-data/package34.py build "${P[@]}" "$RUNNER_TEMP/wine29-07-repro-check.tar.gz"
+          cmp "$RUNNER_TEMP/wine29-07-34-dll-76-nls-data-only.tar.gz" "$RUNNER_TEMP/wine29-07-repro-check.tar.gz"
+          tar -xOzf "$RUNNER_TEMP/wine29-07-34-dll-76-nls-data-only.tar.gz" manifest.json > "$RUNNER_TEMP/wine29-07-sealed-data-manifest.json"
+          python3 - "$RUNNER_TEMP/wine29-07-sealed-data-manifest.json" <<'PY'
+          import json,sys
+          m=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert (m["file_count"],m["pe_dll_count"],m["wineboot_pe_count"],m["nls_count"]) == (111,34,1,76)
+          assert m["regular_unbundled_import_names"] == []
+          assert len(m["delayed_import_owners_outside_cohort"]) == 15
+          assert m["native_elf_files_in_bundle"] == 0
+          assert m["launch_ready"] is False and m["wineboot_executed"] is False
+          print("WINE29_07_111_FILE_ARCHIVE_REPRODUCIBLE_SHA256_SEALED=PASS")
+          PY
+          sha256sum "$RUNNER_TEMP/wine29-07-34-dll-76-nls-data-only.tar.gz"
+      - name: Publish ONLY static PE/NLS archive plus immutable source provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK
+          path: |
+            ${{ runner.temp }}/wine29-07-34-dll-76-nls-data-only.tar.gz
+            ${{ runner.temp }}/wine29-07-sealed-data-manifest.json
+          retention-days: 60
+          if-no-files-found: error

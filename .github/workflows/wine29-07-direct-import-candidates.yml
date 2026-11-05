@@ -24,7 +24,7 @@ jobs:
       - name: Validate ordinary/delay import classification and safety contracts
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s next-generation/wine29-direct -p 'test_direct.py' -v
+          python3 -m unittest discover -s next-generation/wine29-direct -p 'test_*.py' -v
           python3 -m unittest discover -s next-generation/wine29-imports -p 'test_classify.py' -v
           python3 -m py_compile next-generation/wine29-direct/verify-direct.py
           bash -n next-generation/wine29-direct/build-direct.sh
@@ -123,5 +123,37 @@ jobs:
         with:
           name: Wine29-07-Source-Built-Propsys-Wininet-PE-Candidates
           path: ${{ runner.temp }}/Wine29-direct-new-only/
+          retention-days: 60
+          if-no-files-found: error
+
+
+      - name: Build single next ordinary import dependency mpr.dll in new CI-only slot
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-direct/build-mpr.sh \
+            "$RUNNER_TEMP/wine29-direct-source" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two" \
+            "$RUNNER_TEMP/Wine29-direct-new-only" \
+            "$RUNNER_TEMP/Wine29-mpr-new-only"
+          python3 - "$RUNNER_TEMP/Wine29-mpr-new-only/wine29-07-mpr-direct-followup.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert r["first_33_regular_gap"]==["mpr.dll"]
+          assert r["provider_count_after_new_mpr"]==34
+          assert r["source_only"] and not r["launch_ready"]
+          assert all(r[k] is False for k in ("installed","wineboot_executed","windows_exe_executed",
+                                             "prefix_created","device_tested"))
+          print("WINE29_07_MPR_NEXT_DIRECT_PE_CANDIDATE_SOURCE_ONLY=PASS")
+          print("MPR_NEW_UNBUNDLED_REGULAR_IMPORTS",r["component"]["new_regular_unbundled"])
+          print("WINE29_07_MPR_NO_PHONE_EXECUTION=PASS")
+          PY
+
+      - name: Publish separate source-only MPR DLL and PE import proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Source-Built-MPR-PE-Direct-Dependency
+          path: ${{ runner.temp }}/Wine29-mpr-new-only/
           retention-days: 60
           if-no-files-found: error

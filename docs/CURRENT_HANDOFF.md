@@ -2829,4 +2829,18 @@ All six raw COFF carriers **AA64** and LLVM-reported ARM64EC nested view **A641*
 
 ---
 
+## 162. November 4–5, 2026 — source-only Wine29 urlmon/windowscodecs builds started; CI pending
+
+A distinct next-generation/wine29-followups/ source-only experiment was committed to main, with build-followups.sh, verify-followups.py, test_followups.py, and .github/workflows/wine29-07-transitive-candidates.yml. This reuses exactly pinned Wine29 .0.7 source, rebuilds and verifies original 27 PE/ELF + 76 NLS modules, and independently rebuilds and verifies the existing six candidate DLLs before attempting ARM64EC builds for urlmon.dll and windowscodecs.dll. The separate static report conservatively merges baseline 23 + six + two imports and reports remaining external DLL names with owners. It is not proof that Wine loader closure is complete or that Wineboot/Windows apps run. The scoped experimental oleaut32 currency rounding behavior remains unproven.
+
+**Independent Actions run:** [41940958989](https://github.com/rgarn023/CharoitePortal/actions/runs/41940958989) from commit [8418d02b](https://github.com/rgarn023/CharoitePortal/commit/8418d02b30f2060204c5d84e6d6dfe287f1c8191) is **IN PROGRESS as last checked**; early safety/regression tests and pinned source preparation passed, complete build/artifact unverified. An earlier overlapping run [41940929946](https://github.com/rgarn023/CharoitePortal/actions/runs/41940929946) also started from initial workflow commit.
+
+**Parallel source-only commit observed on main:** [109e750b](https://github.com/rgarn023/CharoitePortal/commit/109e750b39) and [a9d12574](https://github.com/rgarn023/CharoitePortal/commit/a9d12574d) add another urlmon/windowscodecs verification path via next-generation/wine29-deps and the original workflow. [Actions run 41941129707](https://github.com/rgarn023/CharoitePortal/actions/runs/41941129707) is **IN PROGRESS** as last checked. Reconcile the two artifacts/graphs before retaining a single ongoing path. Do not claim either succeeds before validating CI conclusions, SHA-256, ABI headers and import logs.
+
+**Safety:** No paid OpenAI API, no new signed APK or phone install; stable Portal, installed games, saves, rootfs, isolated Wine28 v1-v9 scratch and existing Wine29 sealed 100-file slot remain untouched. Latest verified phone APK: com.charoitx v0.66, versionCode 97. No Wine/Wineboot/Windows PE/prefix execution was performed. Further Wine29 prefix/Wineboot actions require explicit owner authorization.
+
+**Next:** Check both workflows' conclusions and published artifact digests. Review any new static imports, record outstanding gaps and only then decide on source-coherent additional dependencies. Do not assert runtime readiness.
+
+---
+
 **End of current Charoite Portal handoff.**

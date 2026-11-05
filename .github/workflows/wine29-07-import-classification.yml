@@ -1,0 +1,81 @@
+name: Wine29 PE Regular vs Delay Import Classification (no execution)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-import-classification.yml'
+      - 'next-generation/wine29-imports/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-real-pe-import-tables:
+    name: Classify pinned source-verified 23+6+2 PE imports; no phone/Wine
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout import classifier only
+        uses: actions/checkout@v4
+
+      - name: Static fail-closed parser unit tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-imports -p 'test_classify.py' -v
+          python3 -m py_compile next-generation/wine29-imports/classify.py
+          echo WINE29_PE_IMPORT_PARSER_STATIC_REGRESSION=PASS
+
+      - name: Retrieve immutable source archive and both verified candidate cohorts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/source-original" "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/source-original"
+          gh run download 41938936238 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Source-Built-Six-PE-Dependency-Candidates \
+            --dir "$RUNNER_TEMP/candidate-six"
+          gh run download 41940958989 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Two-Transitive-PE-Candidates-Static-Review \
+            --dir "$RUNNER_TEMP/candidate-two"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+          test -s "$RUNNER_TEMP/candidate-six/wine29-07-six-candidates.json"
+          test -s "$RUNNER_TEMP/candidate-two/wine29-07-eight-candidate-import-review.json"
+          echo WINE29_SAME_SOURCE_VERIFIED_INPUT_ARTIFACTS=PASS
+
+      - name: Audit actual PE ordinary and delay-load import directories
+        run: |
+          set -euo pipefail
+          python3 next-generation/wine29-imports/classify.py \
+            "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/candidate-six" \
+            "$RUNNER_TEMP/candidate-two" \
+            "$RUNNER_TEMP/wine29-pe-regular-delay-classification.json"
+          python3 - "$RUNNER_TEMP/wine29-pe-regular-delay-classification.json" <<'PY'
+          import json,sys
+          report=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert report["baseline_phone_regression"]["regular_descriptors"] == 111
+          assert report["baseline_phone_regression"]["regular_distinct"] == 21
+          assert set(report["baseline_phone_regression"]["regular_unbundled_owners"]) == {
+              "coml2.dll","imm32.dll","oleacc.dll","oleaut32.dll","shcore.dll"
+          }
+          assert set(report["expanded_pe_imports"]["regular_unbundled_owners"]) == {"wininet.dll","propsys.dll"}
+          assert "winspool.drv" in report["expanded_pe_imports"]["delay_unbundled_owners"]
+          assert all(report[k] is False for k in (
+              "wineboot_executed","windows_exe_executed","prefix_created","phone_installed","launch_ready"))
+          print("WINE29_DIRECT_2_VS_DELAY_IMPORT_CLASSIFICATION=PASS")
+          print("WINE29_WINEBOOT_AND_APK_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish read-only PE import classification JSON, no binaries or APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-PE-Regular-Vs-Delay-Import-Classification
+          path: ${{ runner.temp }}/wine29-pe-regular-delay-classification.json
+          retention-days: 60
+          if-no-files-found: error

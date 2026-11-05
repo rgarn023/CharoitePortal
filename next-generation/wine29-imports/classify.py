@@ -189,6 +189,7 @@ def analyze(archive: Path, six: Path, two: Path) -> dict:
             all_pe[name+".dll"] = data
     provided = set(all_pe) - {"wineboot.exe"}
     def inspect(items: dict[str, bytes]) -> dict:
+        local_providers = {name for name in items if name.endswith(".dll")}
         regular, delayed = {}, {}
         for name, data in items.items():
             reg, defer = pe_imports(data)
@@ -197,7 +198,7 @@ def analyze(archive: Path, six: Path, two: Path) -> dict:
         def owners(data: dict[str, list[str]]) -> dict[str, list[str]]:
             referenced = {d for ds in data.values() for d in ds}
             return {dep: sorted(name for name, ds in data.items() if dep in ds)
-                    for dep in sorted(referenced - provided)}
+                    for dep in sorted(referenced - local_providers)}
         return {
             "pe_files": len(items),
             "regular_descriptors": sum(len(d) for d in regular.values()),

@@ -1,0 +1,136 @@
+name: Wine29 0.7 Two Transitive PE Candidates (source only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-transitive-candidates.yml'
+      - 'next-generation/wine29-followups/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-only-wine29-two-followups:
+    name: Verify prior 6 and build 2; No Wineboot, APK, or phone
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout isolated source-only workflow
+        uses: actions/checkout@v4
+
+      - name: Static safety and graph regression contracts
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-followups -p 'test_followups.py' -v
+          python3 -m py_compile next-generation/wine29-followups/verify-followups.py
+          bash -n next-generation/wine29-followups/build-followups.sh
+          ! grep -Eq 'rm -rf|WINEPREFIX=|adb install|wineboot -i' next-generation/wine29-followups/build-followups.sh
+          echo WINE29_07_TRANSITIVE_SOURCE_ONLY_CONTRACTS=PASS
+
+      - name: Install verified NDK r27d
+        uses: android-actions/setup-android@v4
+
+      - name: Retrieve hash-pinned LLVM-MinGW ARM64EC toolchain
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+          ARCHIVE="$RUNNER_TEMP/charoite-llvm-mingw-20261020.tar.xz"
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 "$URL" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare independent pinned Wine29 0.7 source
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/wine29-followups-source"
+          python3 next-generation/charoite-wine/prepare-wine29-native.py "$RUNNER_TEMP/wine29-followups-source"
+          test -s "$RUNNER_TEMP/wine29-followups-source/charoite-wine29-native-source-validation.json"
+
+      - name: Verify independent native source/ABI proof
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          python3 next-generation/charoite-wine/verify-wine29-native-compile.py \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-followups-native-proof"
+          test -s "$RUNNER_TEMP/wine29-followups-native-proof/native-compile-report.json"
+
+      - name: Rebuild source-matched original 27 PE/ELF components and 76 NLS
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-wine29-complete.sh \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-followups-native-proof/native-compile-report.json" \
+            "$RUNNER_TEMP/wine29-followups-source/charoite-wine29-full-coherent"
+          grep -Fxq 'COMPONENTS=27' "$RUNNER_TEMP/wine29-followups-source/charoite-wine29-full-coherent/bundle-report.txt"
+          grep -Fxq 'NLS_COUNT=76' "$RUNNER_TEMP/wine29-followups-source/charoite-wine29-full-coherent/bundle-report.txt"
+
+      - name: Download independently pinned original source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/wine29-followups-original"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/wine29-followups-original"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/wine29-followups-original/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+
+      - name: Independently rebuild and verify original six candidate cohort
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-deps/build-wine29-deps.sh \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-followups-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/wine29-followups-six-verified"
+          python3 next-generation/wine29-deps/verify-wine29-deps.py verify \
+            "$RUNNER_TEMP/wine29-followups-six-verified" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+          echo WINE29_07_PREVIOUS_SIX_RECOMPILED_WITH_PROOF=PASS
+
+      - name: Cross-build urlmon and windowscodecs and audit merged imports
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-followups/build-followups.sh \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-followups-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/wine29-followups-six-verified" \
+            "$RUNNER_TEMP/wine29-followups-two-new"
+          python3 - "$RUNNER_TEMP/wine29-followups-two-new/wine29-07-eight-candidate-import-review.json" <<'PY'
+          import json,sys
+          report=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert report["component_count"]==2
+          assert set(report["components"])=={"urlmon","windowscodecs"}
+          assert report["merged_static_graph"]["provider_dll_count"]==31
+          assert report["source_only"] is True and report["launch_ready"] is False
+          assert all(report[k] is False for k in (
+              "wineboot_executed","windows_exe_executed","prefix_created","device_tested","installed"))
+          assert all(report["components"][k]["arm64ec_view"]=="0xA641" for k in report["components"])
+          print("WINE29_07_EIGHT_MODULE_STATIC_REVIEW_NOT_RUNTIME_CERTIFICATION=PASS")
+          print("REMAINING_STATIC_IMPORTS",report["merged_static_graph"]["unresolved_import_names"])
+          PY
+
+      - name: Publish separate source-only two-DLL and static import graph artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Two-Transitive-PE-Candidates-Static-Review
+          path: ${{ runner.temp }}/Wine29-followups-two-new/
+          retention-days: 60
+          if-no-files-found: error

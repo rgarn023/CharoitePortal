@@ -1,0 +1,87 @@
+name: Wine29 0.7 Full 34 DLL Regular PE Import Audit (source only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-34-dll-ordinary-imports.yml'
+      - 'next-generation/wine29-imports/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-verified-34-dll-import-closure:
+    name: Independently audit 34 source-only PE providers; no Wineboot
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout hash/source import verification scripts
+        uses: actions/checkout@v4
+
+      - name: Run strict source-only import and 34-DLL guard tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-imports -p 'test_*.py' -v
+          python3 -m py_compile next-generation/wine29-imports/verify34.py
+          echo WINE29_07_34_PROVIDER_STATIC_ONLY_TESTS=PASS
+
+      - name: Retrieve pinned 23-DLL baseline plus verified six, two, two, one modules
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for name in source-original candidate-six candidate-two candidate-direct candidate-mpr; do
+            mkdir "$RUNNER_TEMP/$name"
+          done
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/source-original"
+          gh run download 41938936238 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Source-Built-Six-PE-Dependency-Candidates \
+            --dir "$RUNNER_TEMP/candidate-six"
+          gh run download 41940958989 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Two-Transitive-PE-Candidates-Static-Review \
+            --dir "$RUNNER_TEMP/candidate-two"
+          gh run download 41943773293 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Source-Built-Propsys-Wininet-PE-Candidates \
+            --dir "$RUNNER_TEMP/candidate-direct"
+          gh run download 41943773293 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Source-Built-MPR-PE-Direct-Dependency \
+            --dir "$RUNNER_TEMP/candidate-mpr"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+          echo WINE29_07_IMMUTABLE_SOURCE_INPUTS=PASS
+
+      - name: Parse all 35 PE files and assert zero unknown regular DLL imports
+        run: |
+          set -euo pipefail
+          python3 next-generation/wine29-imports/verify34.py \
+            "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two" \
+            "$RUNNER_TEMP/candidate-direct" "$RUNNER_TEMP/candidate-mpr" \
+            "$RUNNER_TEMP/wine29-07-34-dll-ordinary-import-review.json"
+          python3 - "$RUNNER_TEMP/wine29-07-34-dll-ordinary-import-review.json" <<'PY'
+          import json,sys
+          report=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert report["provider_count"]==34 and report["pe_image_count"]==35
+          assert report["regular_pe_import_graph_verified"] is True
+          assert report["regular_unbundled_import_names"] == []
+          assert report["ordinary_import_owners_outside_cohort"] == {}
+          assert "winspool.drv" in report["delayed_import_owners_outside_cohort"]
+          assert report["runtime_loader_closure_proven"] is False
+          assert all(report[k] is False for k in (
+              "wineboot_executed","windows_exe_executed","device_tested",
+              "prefix_created","installed","launch_ready"))
+          print("WINE29_07_34_PROVIDER_REGULAR_PE_IMPORTS_CLOSED_STATIC_ONLY=PASS")
+          print("REMAINING_DELAY_ONLY_NAMES",sorted(report["delayed_import_owners_outside_cohort"]))
+          PY
+
+      - name: Publish source-only 34 DLL full import audit JSON, no binaries/APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-34-DLL-Source-Verified-Regular-Import-Closure
+          path: ${{ runner.temp }}/wine29-07-34-dll-ordinary-import-review.json
+          retention-days: 60
+          if-no-files-found: error

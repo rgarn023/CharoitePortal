@@ -95,7 +95,7 @@ jobs:
             --dir "$RUNNER_TEMP/wine29-pinned-source-07"
           echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/wine29-pinned-source-07/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
 
-      - name: Build and seal the five missing DLLs plus Wineboot-referenced newdev in new CI slot
+      - name: Build five DLLs and newdev with attested ARM64EC x87 portability fix
         run: |
           set -euo pipefail
           bash next-generation/wine29-deps/build-wine29-deps.sh \
@@ -109,6 +109,8 @@ jobs:
           report=json.load(open(sys.argv[1],encoding='utf-8'))
           assert report["generation"]=="wine10-arm64ec-dependencies.0.8-candidate"
           assert report["component_count"]==6
+          assert len(report["portability_patch_proof_sha256"])==64
+          assert "boundary rounding differences possible" in report["portability_note"]
           assert set(report["components"])=={"coml2","imm32","oleacc","oleaut32","shcore","newdev"}
           assert all(report[k] is False for k in ("launch_ready","wineboot_executed",
                                                  "windows_exe_executed","prefix_created",

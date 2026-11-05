@@ -81,6 +81,16 @@ class Wine29DependencyCandidateContracts(unittest.TestCase):
                      "Unexpected files in sealed candidate artifact"):
             self.assertIn(term, VERIFY)
         self.assertIn("No Android app, Wine/Wineboot", SRC)
+        self.assertIn("WINE29_OLEAUT32_ARM64EC_X87_SOURCE_GUARD_AND_PROVENANCE=PASS", SRC)
+        self.assertIn('old=b"#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))"', SRC)
+        self.assertIn("VARIANT_DutchRound(LONG64, dblIn, pCyOut->int64);", SRC)
+        self.assertIn("CHAROITE_ARM64EC_PORTABLE_CURRENCY", SRC)
+        self.assertIn("source_before_sha256", SRC)
+        self.assertIn("source_after_sha256", SRC)
+        self.assertIn("portable-currency-proof.json", SRC)
+        self.assertIn("portable_proof(folder)", VERIFY)
+        self.assertIn("portability_patch_proof_sha256", VERIFY)
+        self.assertIn("boundary rounding differences possible", SRC)
 
     def test_only_separate_ci_workflow_is_allowed_to_produce_source_artifact(self):
         self.assertTrue(CI.exists())

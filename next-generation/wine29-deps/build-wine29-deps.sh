@@ -105,13 +105,16 @@ mkdir "$out"
 cp "$source/charoite-wine29-oleaut32-portable-proof.json" "$out/portable-currency-proof.json"
 for name in coml2 imm32 oleacc oleaut32 shcore newdev; do
   pe="$build/dlls/$name/aarch64-windows/$name.dll"
-  "$readobj" --file-headers "$pe" > "$out/$name-pe-header.txt"
-  "$readobj" --coff-imports "$pe" > "$out/$name-pe-imports.txt"
+  cp "$pe" "$out/$name-arm64ec.dll"
+  # LLVM logs must identify the EXACT copied candidate artifact path. The
+  # immutable read-back verifier re-runs LLVM against this same path.
+  inspected="$out/$name-arm64ec.dll"
+  "$readobj" --file-headers "$inspected" > "$out/$name-pe-header.txt"
+  "$readobj" --coff-imports "$inspected" > "$out/$name-pe-imports.txt"
   grep -Fq 'Machine: IMAGE_FILE_MACHINE_ARM64EC (0xA641)' \
     "$out/$name-pe-header.txt" || {
     echo "Source-built candidate lacks ARM64EC view: $name" >&2; exit 7;
   }
-  cp "$pe" "$out/$name-arm64ec.dll"
 done
 python3 "$scripts/verify-wine29-deps.py" create "$out" "$readobj"
 python3 "$scripts/verify-wine29-deps.py" verify "$out" "$readobj"

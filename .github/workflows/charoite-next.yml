@@ -362,7 +362,7 @@ jobs:
 
       - name: Stage independent Wine29 0.12 111-file sealed DATA-only assets
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine29-sealed012"

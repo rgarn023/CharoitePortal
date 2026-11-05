@@ -1,10 +1,12 @@
 # CHAROITE PORTAL / CHAROITE CORE — CURRENT PROJECT HANDOFF
 
-**Current handoff updated:** November 4, 2026  
+**Current handoff updated:** November 5, 2026  
 **Purpose:** Paste this entire file, or share its raw GitHub URL, in a new ChatGPT conversation to resume development.  
 **Canonical copy:** `https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md`  
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
+
+**LATEST PHONE-VERIFIED WINE29 .0.12 SEAL (November 5, 2026):** Owner-supplied Galaxy S26 Ultra v0.67 System reports confirmed **STAGE PASS + READ-ONLY VERIFY PASS**. Stage: 35/35 Windows PE, 76/76 NLS, sealed 111-file inventory, no extras; private slot wine10-arm64ec-dependencies-0.12-sealed-pe-nls. Subsequent independent on-phone read-only SHA-256 recheck: 35/35 PE, 76/76 NLS, 111/111 staged files and APK assets PASS. No Wine, wineserver, Wineboot, Windows EXE, prefix, FEX, graphics or games executed; original Wine28 v1–v9, games/saves/rootfs NOT ACCESSED. **These reports establish phone DATA integrity, not runtime readiness.** See Section 170.
 
 **LATEST VERIFIED SIGNED CHAROITE NEXT v0.67 / VERSIONCODE 98 (November 4 local / November 5 UTC 2026):** [GitHub Actions run 41950362529](https://github.com/rgarn023/CharoitePortal/actions/runs/41950362529) **COMPLETED SUCCESS**, exact code commit [8ec9ee6](https://github.com/rgarn023/CharoitePortal/commit/8ec9ee6af67205adfebf5f5ba9366be69d146599). 138 stable + 135 Next regression tests PASS; three new focused sealed-stage tests PASS; Android Gradle BUILD SUCCESSFUL. Android package **com.charoitx**, versionCode **98**, versionName **11.2-next.0.67**. APK signer certificate SHA-256 **d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175** matches persisted previous Next key. APK contains all **111 new source-sealed Wine29 0.12 PE/NLS files** (34 DLLs + ARM64 Wineboot + 76 NLS) verified by SHA-256, and all previous 100 Wine29 .0.7 files preserved. **[Direct signed APK GitHub artifact 13380877131](https://github.com/rgarn023/CharoitePortal/actions/runs/41950362529/artifacts/13380877131)**: ZIP 460,883,619 bytes; expires 2027-02-03. Licenses artifact [13381006629](https://github.com/rgarn023/CharoitePortal/actions/runs/41950362529/artifacts/13381006629). **v0.67 phone installation/stage NOT YET VERIFIED; Wine/Wineboot/PE/prefix/GAMES NOT EXECUTED.** Safe same-key IN-PLACE update only. Manual System actions: **Stage Wine29 0.12 sealed 111-file data (no execution)**, then **Verify staged Wine29 0.12 sealed data (read-only)**. Keep old data and Wine28 scratch untouched. See Section 169.\n\n**LATEST VERIFIED 111-FILE WINE29 34-DLL/76-NLS DATA-ONLY SEAL (November 4 local / November 5 UTC 2026):** [GitHub Actions run 41947164001](https://github.com/rgarn023/CharoitePortal/actions/runs/41947164001) **COMPLETED SUCCESS**, source commit [14ed4b7](https://github.com/rgarn023/CharoitePortal/commit/14ed4b7bf42ba03379bcc75fb1de52a03f00c434). Independent original-source/candidate hash and import-graph verification, exact **34 PE DLLs + ARM64 Wineboot + 76 NLS = 111 DATA ONLY files**, immutable manifest with separate native ELF *hash provenance* but NO native ELF bundled. Two newly built deterministic tar.gz archives compared byte-for-byte **IDENTICAL**; archive SHA-256 **`ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e`**, source provenance and sealed member checks PASS; **zero unbundled ordinary imports** and 15 separately tracked unbundled delayed names. [CI artifact 13378882549](https://github.com/rgarn023/CharoitePortal/actions/runs/41947164001/artifacts/13378882549), 18,511,048-byte Actions ZIP, contains immutable TAR.GZ plus manifest. **NOT AN APK; no runtime execution, phone install, prefix, Wineboot or PE.** Signed `com.charoitx` v0.66 remains the latest phone-confirmed version. Section 168.
 
@@ -3017,4 +3019,28 @@ New CharoiteWine29Sealed012Stage.java requires exact package/version/index/allow
 
 ---
 
+## 170. November 5, 2026 — Owner-confirmed Wine29 .0.12 sealed 111-file phone stage AND read-only hash audit PASS
+
+**Actual phone report 1 — source-hash-verified private staging:**
+- CHAROITE NEXT — ISOLATED WINE29 .0.12 PE/NLS DATA STAGING.
+- Windows PE: 35/35 source hashes PASS.
+- Wine NLS: 76/76 source hashes PASS.
+- Sealed 111-file inventory with no extra files: PASS.
+- Separate new private slot: wine10-arm64ec-dependencies-0.12-sealed-pe-nls.
+- Native Wine/PE/Wineboot execution: NOT ATTEMPTED.
+- RESULT: PASS — Wine29 0.12 data staged; NOT RUNNABLE.
+
+**Actual phone report 2 — independent read-only verification after staging:**
+- CHAROITE NEXT — WINE29 .0.12 PRIVATE PE/NLS READ-ONLY VERIFY.
+- Windows PE: 35/35 SHA-256 PASS.
+- Wine NLS: 76/76 SHA-256 PASS.
+- APK source assets and sealed 111-file private inventory: SHA-256 PASS.
+- Native Wine/PE/Wineboot execution: NOT ATTEMPTED.
+- RESULT: PASS — isolated Wine29 0.12 data-only stage; NOT RUNNABLE.
+
+**Safety and interpretation:** Both reports were provided directly by the owner after installing the signed v0.67 experimental com.charoitx APK. They verify the phone's own no_backup private 111-file PE/NLS slot, not a fresh Windows environment, PE execution, graphics, games or functional Wineboot. Original Wine29 .0.7 100-file slot, Wine28 v1–v9 scratch, stable Portal, games, saves, user prefixes and rootfs were not accessed by this stage. No repair/deletion/uninstall/retry required.
+
+**Next work authorized at source level only:** [v0.68 read-only preflight implementation f87d9ad](https://github.com/rgarn023/CharoitePortal/commit/f87d9adba8822c2f5c05b36a037d62fdbfcbdc99), adding a separate on-phone static PE header, ordinary import and delayed-import inspection that first runs the established 111-file sealed read-only audit. [Actions run 42077243218](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218) started; result must be checked independently before claiming a v0.68 APK. No Wine/Wineboot/PE/wineserver execution or prefix creation has been approved. The new source gate expects 34 hybrid DLLs plus ARM64 Wineboot, 186 ordinary PE import descriptors with zero unbundled, and 68 delay descriptors/15 unbundled delayed import names; these are PE header-only checks, not loader execution.
+
+---
 **End of current Charoite Portal handoff.**

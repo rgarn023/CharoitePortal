@@ -463,6 +463,18 @@ jobs:
           echo WINE29_012_SEALED_111_FILES_SOURCE_GUARDS=PASS
           echo WINE29_012_PE_WINEBOOT_PREFIX_EXECUTION_NOT_ATTEMPTED=PASS
 
+      - name: Verify 34-DLL Wine29 0.12 on-phone PE import preflight is strictly READ ONLY
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_012_pe_preflight.py' -v
+          ! grep -Eq 'ProcessBuilder|Runtime\.getRuntime|FileOutputStream|\.delete\(|mkdir\(|mkdirs\(|renameTo\(|System\.load' next-generation/CharoiteWine29Sealed012PePreflight.java
+          grep -Fq 'CharoiteWine29Sealed012Stage.verifyOnly(context)' next-generation/CharoiteWine29Sealed012PePreflight.java
+          grep -Fq 'directImports != 186' next-generation/CharoiteWine29Sealed012PePreflight.java
+          grep -Fq 'delayedImports != 68' next-generation/CharoiteWine29Sealed012PePreflight.java
+          grep -Fq 'deferredOutside.size() != 15' next-generation/CharoiteWine29Sealed012PePreflight.java
+          grep -Fq 'Preflight Wine29 0.12 PE imports (read-only)' next-generation/prepare_next.py
+          echo WINE29_012_PE_IMPORT_PREFLIGHT_NO_EXECUTION=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -960,7 +972,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='98' versionName='11.2-next.0.67'"
+            grep -F "package: name='com.charoitx' versionCode='99' versionName='11.2-next.0.68'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

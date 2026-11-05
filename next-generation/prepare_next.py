@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.67"')
-text = text.replace("versionCode 33", "versionCode 98")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.68"')
+text = text.replace("versionCode 33", "versionCode 99")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -170,7 +170,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29Native07VersionGate.java",
                  "CharoiteWine29Native07Stage.java",
                  "CharoiteWine29Native07PePreflight.java",
-                 "CharoiteWine29Sealed012Stage.java"):
+                 "CharoiteWine29Sealed012Stage.java",
+                 "CharoiteWine29Sealed012PePreflight.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1362,6 +1363,37 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29Sealed012VerifyOnly").start();
         });
         nextCoreCard.addView(wine29SealedVerify);
+
+        
+        // Verifies the already-staged 111-file Wine29 PE headers/import graph;
+        // never launches Wine, wineserver, Wineboot or a Windows executable.
+        android.widget.Button wine29SealedPe = new android.widget.Button(this);
+        wine29SealedPe.setText("Preflight Wine29 0.12 PE imports (read-only)");
+        wine29SealedPe.setAllCaps(false);
+        wine29SealedPe.setOnClickListener(v -> {
+            wine29SealedPe.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29Sealed012PePreflight.run(this);
+                runOnUiThread(() -> {
+                    wine29SealedPe.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Wine29 0.12 PE header and import preflight")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wine29 0.12 PE import preflight", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29Sealed012PePreflight").start();
+        });
+        nextCoreCard.addView(wine29SealedPe);
+
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

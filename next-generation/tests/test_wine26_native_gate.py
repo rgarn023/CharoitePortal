@@ -100,12 +100,12 @@ class Wine26NativeGateTests(unittest.TestCase):
             self.assertIn(token,SCRIPT)
         self.assertIn("CharoiteWine26NativeGate.java",PREP)
         self.assertIn("Test matched Wine26 native startup",PREP)
-        self.assertIn("versionCode 98",PREP)
-        self.assertIn("11.2-next.0.67",PREP)
-        self.assertIn("0.67 (Wine29 0.12 isolated sealed 111-file staging",ENGINE)
+        self.assertIn("versionCode 99",PREP)
+        self.assertIn("11.2-next.0.68",PREP)
+        self.assertIn("0.68 (Wine29 0.12 sealed PE import preflight",ENGINE)
         for token in ("stage_wine26_native.py","CHAROITE_NEXT_WINE26_THREE_MATCHED_NATIVE_APK_ELF_HASHES=PASS",
                       "CHAROITE_NEXT_WINE26_NATIVE_ELF_VERSION_EXECUTION_DEVICE_ONLY=PASS",
-                      "versionCode='98' versionName='11.2-next.0.67'"):
+                      "versionCode='99' versionName='11.2-next.0.68'"):
             self.assertIn(token,WORKFLOW)
 if __name__=="__main__":
     unittest.main()

@@ -33,9 +33,9 @@ class Wine28V7PeHelpContract(unittest.TestCase):
                   "Test isolated Wine28 PE help handshake (one-shot v7)",
                   "Run ONE v7 PE help test",
                   "CharoiteWine28V7PeHelpProbe.run(this)",
-                  "versionCode 98", "11.2-next.0.67"):
+                  "versionCode 99", "11.2-next.0.68"):
             self.assertIn(x,PREP)
         self.assertIn("CharoiteWine28V7PeHelpProbe.java CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java; do",WF)
-        self.assertIn("versionCode='98' versionName='11.2-next.0.67'",WF)
+        self.assertIn("versionCode='99' versionName='11.2-next.0.68'",WF)
 if __name__=="__main__":
     unittest.main()

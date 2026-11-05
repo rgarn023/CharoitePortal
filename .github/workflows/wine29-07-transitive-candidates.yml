@@ -25,6 +25,12 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s next-generation/wine29-followups -p 'test_followups.py' -v
+          python3 -m unittest discover -s next-generation/wine29-followups -p 'test_regular_next.py' -v
+          python3 -m py_compile next-generation/wine29-followups/verify-regular-next.py
+          bash -n next-generation/wine29-followups/build-regular-next.sh
+          ! grep -Eq 'rm -rf|WINEPREFIX=|adb install|wineboot -i' next-generation/wine29-followups/build-regular-next.sh
+          echo WINE29_NEXT_33_PE_SOURCE_REGRESSION_CONTRACT=PASS
+
           python3 -m py_compile next-generation/wine29-followups/verify-followups.py
           bash -n next-generation/wine29-followups/build-followups.sh
           ! grep -Eq 'rm -rf|WINEPREFIX=|adb install|wineboot -i' next-generation/wine29-followups/build-followups.sh
@@ -132,5 +138,43 @@ jobs:
         with:
           name: Wine29-07-Two-Transitive-PE-Candidates-Static-Review
           path: ${{ runner.temp }}/wine29-followups-two-new/
+          retention-days: 60
+          if-no-files-found: error
+
+      - name: Compile wininet and propsys after independent verification of original 31 DLLs
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-followups/build-regular-next.sh \
+            "$RUNNER_TEMP/wine29-followups-source" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-followups-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/wine29-followups-six-verified" \
+            "$RUNNER_TEMP/wine29-followups-two-new" \
+            "$RUNNER_TEMP/wine29-followups-regular-next"
+          test -s "$RUNNER_TEMP/wine29-followups-regular-next/wine29-07-ten-candidate-regular-delay-import-review.json"
+          python3 - "$RUNNER_TEMP/wine29-followups-regular-next/wine29-07-ten-candidate-regular-delay-import-review.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert r["generation"]=="wine10-arm64ec-dependencies.0.10-regular-candidate"
+          assert r["new_candidate_count"]==2
+          assert set(r["new_candidate_modules"])=={"wininet","propsys"}
+          assert r["expanded_33_dll_sources"]["provided_dlls"]==33
+          assert r["previous_31_dll_sources"]["provided_dlls"]==31
+          assert set(r["previous_31_dll_sources"]["unbundled_regular_owners"])=={"wininet.dll","propsys.dll"}
+          assert all(v["arm64ec_view"]=="0xA641" for v in r["new_candidate_modules"].values())
+          assert r["source_only"] is True
+          assert all(r[k] is False for k in ("launch_ready","wineboot_executed",
+                                            "windows_exe_executed","phone_staged",
+                                            "prefix_created"))
+          print("WINE29_07_33_DLL_REGULAR_DELAY_CLASSIFICATION=PASS")
+          print("WINE29_07_NEW_REGULAR_IMPORT_GAPS",list(r["expanded_33_dll_sources"]["unbundled_regular_owners"]))
+          print("WINE29_07_NEW_DELAY_IMPORT_GAPS",list(r["expanded_33_dll_sources"]["unbundled_delay_owners"]))
+          PY
+
+      - name: Upload two verified new regular-import Wine29 candidates and conservative import graph
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Source-Built-Wininet-Propsys-Regular-Import-Review
+          path: ${{ runner.temp }}/wine29-followups-regular-next/
           retention-days: 60
           if-no-files-found: error

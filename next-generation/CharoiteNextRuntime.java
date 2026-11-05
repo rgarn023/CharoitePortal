@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "0.66 (Wine29 0.7 hybrid PE raw-machine preflight; Wineboot blocked)";
+    public static final String VERSION = "0.67 (Wine29 0.12 isolated sealed 111-file staging; Wineboot blocked)";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";
@@ -84,6 +84,8 @@ public final class CharoiteNextRuntime {
                 + "Stage Wine29 0.7 PE/NLS data (no execution) copies source-verified PE/NLS into a NEW isolated private slot only after explicit consent. Windows execution remains blocked.\n"
                 + "Verify staged Wine29 0.7 data (read-only) rechecks all 100 APK assets and sealed private slot; rejects extra files without executing Wine.\n"
                 + "Preflight Wine29 0.7 PE loader layout (read-only) checks ARM64EC/ARM64 images, NLS selector layout and static imports without execution.\n"
+                + "Stage Wine29 0.12 sealed 111-file data (no execution) creates a separate 34-DLL, Wineboot PE and 76-NLS private slot only with user consent.\n"
+                + "Verify staged Wine29 0.12 sealed data (read-only) checks strict inventory and all hashes without writes or Wine execution.\n"
                 + "Earlier Wine26 v2 Wineboot failed at native NLS lookup; its scratch is retained.\n"
                 + "Stage patched Wine27 0.6 data, verify matched native binaries, then explicitly approve NEW isolated v3 Wineboot test.\n"
                 + legacy.label + ": bundled (existing compatibility engine)\n"

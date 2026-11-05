@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.66"')
-text = text.replace("versionCode 33", "versionCode 97")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.67"')
+text = text.replace("versionCode 33", "versionCode 98")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -169,7 +169,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29Native07Audit.java",
                  "CharoiteWine29Native07VersionGate.java",
                  "CharoiteWine29Native07Stage.java",
-                 "CharoiteWine29Native07PePreflight.java"):
+                 "CharoiteWine29Native07PePreflight.java",
+                 "CharoiteWine29Sealed012Stage.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1293,6 +1294,74 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29Native07PePreflight").start();
         });
         nextCoreCard.addView(wine29Preflight);
+
+        // Independently sealed 34 DLL + 1 inert Wineboot PE + 76 NLS.
+        // New generation has a distinct no_backup slot; no Wine execution.
+        android.widget.Button wine29SealedStage = new android.widget.Button(this);
+        wine29SealedStage.setText("Stage Wine29 0.12 sealed 111-file data (no execution)");
+        wine29SealedStage.setAllCaps(false);
+        wine29SealedStage.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Stage new Wine29 0.12 sealed DATA?")
+                .setMessage("Creates a NEW private source-hash-verified slot for 34 DLLs, "
+                    + "one inert ARM64 Wineboot executable, and 76 NLS files. "
+                    + "The previous Wine29 .0.7 100-file slot, Wine28 v1–v9, existing "
+                    + "games, saves, prefixes and Portal stay untouched. "
+                    + "Wine, wineserver, Wineboot, Windows EXE and graphics are NOT executed. "
+                    + "Incomplete new data stays quarantined and is never deleted.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Stage new DATA only", (dialog, which) -> {
+                    wine29SealedStage.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29Sealed012Stage.run(this);
+                        runOnUiThread(() -> {
+                            wine29SealedStage.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 0.12 sealed data")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 0.12 sealed DATA stage", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29Sealed012Stage").start();
+                }).show();
+        });
+        nextCoreCard.addView(wine29SealedStage);
+
+        // Explicit read-only recheck. No repair or runtime execution.
+        android.widget.Button wine29SealedVerify = new android.widget.Button(this);
+        wine29SealedVerify.setText("Verify staged Wine29 0.12 sealed data (read-only)");
+        wine29SealedVerify.setAllCaps(false);
+        wine29SealedVerify.setOnClickListener(v -> {
+            wine29SealedVerify.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29Sealed012Stage.verifyOnly(this);
+                runOnUiThread(() -> {
+                    wine29SealedVerify.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — Wine29 0.12 sealed audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wine29 0.12 sealed read-only audit", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29Sealed012VerifyOnly").start();
+        });
+        nextCoreCard.addView(wine29SealedVerify);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

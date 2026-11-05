@@ -360,6 +360,26 @@ jobs:
           done
           echo "Wine29 0.7 fully pinned; old Wine29 0.6 and Wine28 source paths unchanged; no execution."
 
+      - name: Stage independent Wine29 0.12 111-file sealed DATA-only assets
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/charoite-wine29-sealed012"
+          gh run download 41947164001 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK \
+            --dir "$RUNNER_TEMP/charoite-wine29-sealed012"
+          echo "ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e  $RUNNER_TEMP/charoite-wine29-sealed012/wine29-07-34-dll-76-nls-data-only.tar.gz" | sha256sum --check
+          python3 next-generation/stage_wine29_sealed012.py \
+            "$RUNNER_TEMP/charoite-wine29-sealed012/wine29-07-34-dll-76-nls-data-only.tar.gz" \
+            upstream
+          test -s upstream/app/src/main/assets/charoite-next/wine29-sealed012/wine29-sealed012-index.json
+          test -s upstream/app/src/main/assets/charoite-next/wine29-sealed012/modules/pe_arm64ec_mpr.dll.bin
+          test -s upstream/app/src/main/assets/charoite-next/wine29-sealed012/modules/pe_arm64_wineboot.exe.bin
+          test -s upstream/app/src/main/assets/charoite-next/wine29-sealed012/modules/nls_l_intl.nls.bin
+          echo WINE29_012_111_APK_DATA_ASSETS_NO_EXECUTION=PASS
+
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -428,6 +448,20 @@ jobs:
           echo "WINE29_07_HYBRID_PE_RAW_MACHINE_GUARD=PASS"
           echo "WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS"
 
+
+      - name: Guard separate Wine29 0.12 111-file stage from runtime execution and overwrites
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_012_sealed_stage.py' -v
+          ! grep -Eq 'ProcessBuilder|Runtime\.getRuntime|\.delete\(' next-generation/CharoiteWine29Sealed012Stage.java
+          grep -Fq 'private static final String ROOT = "charoite-next-wine29-012-sealed-pe-nls";' next-generation/CharoiteWine29Sealed012Stage.java
+          grep -Fq 'verifyClosedInventory(slot, entries);' next-generation/CharoiteWine29Sealed012Stage.java
+          grep -Fq 'verifyRootContents(root);' next-generation/CharoiteWine29Sealed012Stage.java
+          grep -Fq 'verifyAssets(context, entries);' next-generation/CharoiteWine29Sealed012Stage.java
+          grep -Fq 'CharoiteWine29Sealed012Stage.verifyOnly(this)' next-generation/prepare_next.py
+          grep -Fq 'CharoiteWine29Sealed012Stage.run(this)' next-generation/prepare_next.py
+          echo WINE29_012_SEALED_111_FILES_SOURCE_GUARDS=PASS
+          echo WINE29_012_PE_WINEBOOT_PREFIX_EXECUTION_NOT_ATTEMPTED=PASS
 
       - name: Build integrated Windows runtime preview
         working-directory: upstream
@@ -829,6 +863,48 @@ jobs:
                   assert hashlib.sha256(payload).hexdigest()==item["sha256"]
               assert "pe/arm64ec/apisetschema.dll" in {x["path"] for x in new07["module_files"]}
               print("WINE29_07_100_PE_NLS_APK_ASSET_HASHES_VERIFIED=PASS")
+              # NEW sealed .0.12 111-file data-only cohort, kept separate
+              # from the original 100-file .0.7 APK assets.
+              new012=json.loads(apk.read("assets/charoite-next/wine29-sealed012/wine29-sealed012-index.json"))
+              assert new012["schema_version"]==1 and new012["package"]=="com.charoitx"
+              assert new012["bundle_version"]=="wine10-arm64ec-dependencies.0.12-sealed-data-candidate"
+              assert new012["wine_source_commit"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert new012["archive_sha256"]=="ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e"
+              assert new012["source_archive_sha256"]==new07["archive_sha256"]
+              assert new012["source_run"]==41947164001 and new012["source_artifact"]==13378882549
+              assert (new012["component_count"],new012["pe_count"],new012["nls_count"],
+                      new012["module_count"])==(35,35,76,111)
+              assert new012["native_elf_count"]==3
+              assert new012["native_elf_in_sealed_data"] is False
+              assert set(new012["native_elf_source_provenance_only"])=={"wine","wineserver","ntdll_unix"}
+              assert new012["regular_unbundled_import_names"]==[]
+              assert new012["delayed_unbundled_name_count"]==15
+              assert new012["module_assets_verified"] is True
+              assert len(new012["module_files"])==111
+              assert new012["module_files"]==sorted(new012["module_files"],key=lambda e:e["path"])
+              assert all(new012[k] is False for k in (
+                  "module_staged_on_phone","wine29_pe_nls_runnable","native_elf_executed",
+                  "wineboot_executed","windows_exe_executed","wineserver_executed",
+                  "launch_ready","installable_as_runtime","prefix_created",
+                  "device_tested","anti_cheat_supported"))
+              asset_prefix="assets/charoite-next/wine29-sealed012/modules/"
+              listed=[x for x in apk.namelist() if x.startswith(asset_prefix)]
+              assert len(listed)==111
+              assert sum(e["path"].startswith("pe/arm64ec/") for e in new012["module_files"])==34
+              assert sum(e["path"].startswith("nls/") for e in new012["module_files"])==76
+              assert sum(e["path"]=="pe/arm64/wineboot.exe" for e in new012["module_files"])==1
+              assert "pe/arm64ec/mpr.dll" in {e["path"] for e in new012["module_files"]}
+              new_total=0
+              for e in new012["module_files"]:
+                  assert e["source"]=="data/"+e["path"]
+                  assert e["asset"]=="charoite-next/wine29-sealed012/modules/"+e["path"].replace("/","_")+".bin"
+                  data=apk.read("assets/"+e["asset"])
+                  assert len(data)==e["size"] and hashlib.sha256(data).hexdigest()==e["sha256"]
+                  new_total+=len(data)
+              assert new_total==new012["modules_total_bytes"] and 0<new_total<=128*1024*1024
+              print("WINE29_012_111_APK_PE_NLS_ASSET_HASHES_VERIFIED=PASS")
+              print("WINE29_012_OLD_100_APK_ASSETS_PRESERVED=PASS")
+              print("WINE29_012_PHONE_WINEBOOT_PREFIX_EXECUTION_NOT_ATTEMPTED=PASS")
               assert new07["original_wine29_sha256"]==new29["archive_sha256"]
               assert new07["component_count"]==27 and new07["pe_count"]==24 and new07["nls_count"]==76
               assert new07["native_elf_count"]==3 and new07["source_native_cohort_verified"] is True
@@ -884,7 +960,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='97' versionName='11.2-next.0.66'"
+            grep -F "package: name='com.charoitx' versionCode='98' versionName='11.2-next.0.67'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

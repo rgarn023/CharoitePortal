@@ -1,0 +1,127 @@
+name: Wine29 0.7 Propsys Wininet Direct PE Candidates (source build only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-07-direct-import-candidates.yml'
+      - 'next-generation/wine29-direct/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-only-two-direct-imports:
+    name: Cross-build 2 source-matched ordinary PE gaps; no APK/Wineboot
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout pinned source-build scripts
+        uses: actions/checkout@v4
+
+      - name: Validate ordinary/delay import classification and safety contracts
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/wine29-direct -p 'test_direct.py' -v
+          python3 -m unittest discover -s next-generation/wine29-imports -p 'test_classify.py' -v
+          python3 -m py_compile next-generation/wine29-direct/verify-direct.py
+          bash -n next-generation/wine29-direct/build-direct.sh
+          ! grep -Eq 'rm -rf|WINEPREFIX=|adb install|wineboot -i' next-generation/wine29-direct/build-direct.sh
+          echo WINE29_07_2_DIRECT_PE_CANDIDATES_TESTS=PASS
+
+      - name: Install pinned Android native NDK
+        uses: android-actions/setup-android@v4
+
+      - name: Retrieve pinned LLVM MinGW ARM64EC compiler and inspector
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+          ARCHIVE="$RUNNER_TEMP/charoite-llvm-mingw-20261020.tar.xz"
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 "$URL" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Retrieve previously verified Wine29 baseline, six and two PE candidate sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/source-original" "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/source-original"
+          gh run download 41938936238 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Source-Built-Six-PE-Dependency-Candidates \
+            --dir "$RUNNER_TEMP/candidate-six"
+          gh run download 41940958989 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-Two-Transitive-PE-Candidates-Static-Review \
+            --dir "$RUNNER_TEMP/candidate-two"
+          echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
+
+      - name: Preflight original Wine29 phone 111 descriptors and 31-DLL direct import graph
+        run: |
+          set -euo pipefail
+          python3 next-generation/wine29-imports/classify.py \
+            "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two" \
+            "$RUNNER_TEMP/wine29-direct-preflight.json"
+          echo WINE29_07_PROPSYS_WININET_TARGETS_FROM_ACTUAL_PE=PASS
+
+      - name: Prepare isolated exact Wine29 source tree, no existing Android data
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/wine29-direct-source"
+          python3 next-generation/charoite-wine/prepare-wine29-native.py "$RUNNER_TEMP/wine29-direct-source"
+          test -s "$RUNNER_TEMP/wine29-direct-source/charoite-wine29-native-source-validation.json"
+
+      - name: Cross-compile pinned Wine29 Android native + ARM64EC build prerequisites
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/wine29-direct-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          python3 next-generation/charoite-wine/verify-wine29-native-compile.py \
+            "$RUNNER_TEMP/wine29-direct-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/wine29-direct-native-proof"
+          test -s "$RUNNER_TEMP/wine29-direct-native-proof/native-compile-report.json"
+
+      - name: Cross-build source-coherent wininet and propsys and audit real PE imports
+        run: |
+          set -euo pipefail
+          bash next-generation/wine29-direct/build-direct.sh \
+            "$RUNNER_TEMP/wine29-direct-source" \
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+            "$RUNNER_TEMP/source-original/charoite-wine-bootstrap-bundle.tar.gz" \
+            "$RUNNER_TEMP/candidate-six" "$RUNNER_TEMP/candidate-two" \
+            "$RUNNER_TEMP/Wine29-direct-new-only"
+          python3 - "$RUNNER_TEMP/Wine29-direct-new-only/wine29-07-two-direct-import-candidates.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert r["component_count"]==2 and r["providers_after_expansion"]==33
+          assert set(r["components"])=={"propsys","wininet"}
+          assert r["previous_31_dll_regular_unbundled"]==["propsys.dll","wininet.dll"]
+          assert all(r[k] is False for k in (
+              "launch_ready","wineboot_executed","windows_exe_executed",
+              "prefix_created","device_tested","installed"))
+          print("WINE29_07_TWO_ORDINARY_PE_IMPORT_CANDIDATES_STATIC=PASS")
+          print("NEW_REGULAR_IMPORTS_OUTSIDE_33",r["new_regular_import_names_not_in_33_providers"])
+          print("WINE29_07_RUNTIME_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish new source-only two direct import DLL candidates, no Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-07-Source-Built-Propsys-Wininet-PE-Candidates
+          path: ${{ runner.temp }}/Wine29-direct-new-only/
+          retention-days: 60
+          if-no-files-found: error

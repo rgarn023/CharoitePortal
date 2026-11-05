@@ -77,6 +77,29 @@ def info_for(folder: Path, name: str, readobj: Path) -> dict:
     }
 
 
+
+def portable_proof(folder: Path) -> dict:
+    record = json.loads(regular_bytes(folder / "portable-currency-proof.json").decode("utf-8"))
+    before = "#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))"
+    if (record.get("schema_version") != 1 or
+        record.get("generation") != GENERATION or
+        record.get("source_commit") != SOURCE_COMMIT or
+        record.get("source_file") != "dlls/oleaut32/vartype.c" or
+        record.get("build_define") != "CHAROITE_ARM64EC_PORTABLE_CURRENCY" or
+        record.get("scope") != "ARM64EC experimental candidate cross-build ONLY" or
+        record.get("original_conditional") != before or
+        record.get("new_conditional") !=
+            before+" && !defined(CHAROITE_ARM64EC_PORTABLE_CURRENCY)" or
+        record.get("windows_execution") is not False or
+        record.get("phone_installation") is not False or
+        record.get("source_before_sha256") == record.get("source_after_sha256")):
+        raise ValueError("Invalid Wine29 portable ARM64EC currency source patch")
+    for key in ("source_before_sha256", "source_after_sha256"):
+        if not isinstance(record.get(key), str) or not re.fullmatch(r"[a-f0-9]{64}", record[key]):
+            raise ValueError("Invalid Wine29 currency source patch digest")
+    return record
+
+
 def inspect(folder: Path, readobj: Path) -> dict:
     if not folder.is_absolute() or folder.is_symlink() or not folder.is_dir():
         raise ValueError("Require separate isolated new candidate output")
@@ -86,12 +109,15 @@ def inspect(folder: Path, readobj: Path) -> dict:
         "/data/data/", "/data/user/", "/storage/emulated/", "/sdcard/"
     )):
         raise ValueError("Refusing Android/user storage")
+    patch = portable_proof(folder)
     results = {name: info_for(folder, name, readobj) for name in MODULES}
     all_imports = sorted(set(s for v in results.values() for s in v["imports"]))
     return {
         "schema_version": 1, "generation": GENERATION,
         "source_commit": SOURCE_COMMIT, "baseline_source_archive_sha256": BASELINE,
         "android_package": "com.charoitx", "component_count": 6,
+        "portability_patch_proof_sha256": sha256(regular_bytes(folder / "portable-currency-proof.json")),
+        "portability_note": patch["portability_note"],
         "phone_direct_import_targets": list(PHONE_DIRECT),
         "wineboot_broader_source_candidate": "newdev.dll",
         "components": results,
@@ -101,7 +127,7 @@ def inspect(folder: Path, readobj: Path) -> dict:
         "launch_ready": False,
         "wineboot_executed": False, "windows_exe_executed": False,
         "prefix_created": False, "device_tested": False, "installed": False,
-        "provenance_note": "Fresh pinned Wine29 .0.7 source build; candidate-only CI artifact, not a runtime.",
+        "provenance_note": "Fresh pinned Wine29 .0.7 source plus scoped ARM64EC oleaut32 portable-currency patch; CI-only candidate, not runtime.",
     }
 
 
@@ -118,7 +144,7 @@ def run(mode: str, folder: Path, readobj: Path) -> dict:
         original = json.loads(regular_bytes(report_path).decode("utf-8"))
         if original != results:
             raise ValueError("Source-matched candidate SHA/import/architecture drift")
-        allowed = {report_path.name}
+        allowed = {report_path.name, "portable-currency-proof.json"}
         for name in MODULES:
             allowed.update({name+"-arm64ec.dll",name+"-pe-header.txt",name+"-pe-imports.txt"})
         if {x.name for x in folder.iterdir()} != allowed:

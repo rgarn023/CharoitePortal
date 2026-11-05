@@ -97,7 +97,7 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
-        self.assertIn('0.66 (Wine29 0.7 hybrid PE raw-machine preflight', RUNTIME)
+        self.assertIn('0.67 (Wine29 0.12 isolated sealed 111-file staging', RUNTIME)
         self.assertIn("versionCode='98' versionName='11.2-next.0.67'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 

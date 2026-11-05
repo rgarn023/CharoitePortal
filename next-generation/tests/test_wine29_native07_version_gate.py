@@ -100,7 +100,7 @@ class Wine29VersionGateContract(unittest.TestCase):
     def test_apk_build_and_read_only_button_retained(self):
         self.assertIn("versionCode 98",PREP)
         self.assertIn("11.2-next.0.67",PREP)
-        self.assertIn("0.66 (Wine29 0.7 hybrid PE raw-machine preflight",RUNTIME)
+        self.assertIn("0.67 (Wine29 0.12 isolated sealed 111-file staging",RUNTIME)
         self.assertIn("versionCode='98'",WORKFLOW)
         self.assertIn("versionName='11.2-next.0.67'",WORKFLOW)
         self.assertIn("CharoiteWine29Native07VersionGate.java",WORKFLOW)

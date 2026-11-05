@@ -78,7 +78,7 @@ class PackagedBootstrapTest(unittest.TestCase):
         self.assertIn("new Thread(() ->",PREP)
         self.assertIn("versionCode 98",PREP)
         self.assertIn("11.2-next.0.67",PREP)
-        self.assertIn("0.66 (Wine29 0.7 hybrid PE raw-machine preflight",ENGINE)
+        self.assertIn("0.67 (Wine29 0.12 isolated sealed 111-file staging",ENGINE)
         self.assertIn("stage_bootstrap_payload.py",WF)
         self.assertIn("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS",WF)
         self.assertIn("versionCode='98' versionName='11.2-next.0.67'",WF)

@@ -36,7 +36,7 @@ class SourceMatchedFollowups(unittest.TestCase):
             self.assertIn(s,CHECK)
         for item in ("urlmon","windowscodecs"):
             self.assertIn(item,SHELL)
-        self.assertIn("No Wine, Wineboot or target Windows executable is run",SHELL)
+        self.assertIn("no Wine, Wineboot or target Windows executable is run",SHELL)
     def test_ci_separate_artifact_and_unaltered_original(self):
         self.assertIn("build-wine29-followups.sh",FLOW)
         self.assertIn("verify-wine29-followups.py",FLOW)

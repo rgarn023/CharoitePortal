@@ -2938,4 +2938,18 @@ The independently generated 33-DLL artifact records **16 unbundled delay-only na
 
 ---
 
+## 167. November 4–5, 2026 — independent full 34-DLL Wine29 regular-import closure VERIFIED in CI
+
+**Newest source-only milestone:** [GitHub Actions run 41944456447](https://github.com/rgarn023/CharoitePortal/actions/runs/41944456447) **COMPLETED SUCCESS** on code commit [fd970f9](https://github.com/rgarn023/CharoitePortal/commit/fd970f9ba0cf0c7f07a9842436a1a30ad7e71bbf), with strict source-only unit tests and independent reinspection of all 35 pinned-source PE images. [GitHub artifact 13378176239](https://github.com/rgarn023/CharoitePortal/actions/runs/41944456447/artifacts/13378176239), ZIP 942 bytes, SHA-256 `71eab28a7c9c328a066854e3dc38d85ad529c94999ee825dd393fb572e3884c0` verified/opened. The published JSON `wine29-07-34-dll-ordinary-import-review.json` preserves complete unresolved delay import-owner mapping. It does **not** contain Android APKs or executable PE output; it is a source/PE static audit.
+
+**Exact audited scope:** Re-download pinned original Wine29 .0.7 source tar archive (SHA-256 `66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e`), six candidate source-backed PE DLLs, two `urlmon/windowscodecs` candidates, two `propsys/wininet` candidates, and new `mpr.dll`. Verify source generation, each candidate's published manifest and file SHA, and parse actual PE standard/import and delay-import directories. Independent verification found **34 DLL providers; 35 PE images including ARM64 Wineboot; 186 standard import descriptors; 26 distinct standard DLL import names; ZERO standard unbundled names**. **68 delay-import descriptors** remain separately tracked. The current delay-only unbundled set is: `advpack.dll, cabinet.dll, comdlg32.dll, cryptnet.dll, cryptui.dll, dhcpcsvc.dll, dnsapi.dll, gdiplus.dll, iphlpapi.dll, mlang.dll, shdocvw.dll, uxtheme.dll, winmm.dll, winspool.drv, wintrust.dll` (15 names). These may be required by later app functionality; no delay-load runtime behavior proven.
+
+**Added proof files:** `next-generation/wine29-imports/verify34.py`, `test_verify34.py`, and `.github/workflows/wine29-07-34-dll-ordinary-imports.yml`. The CI artifact is a separate static attestation. Source provenance is unchanged from original 27-component Wine29 .0.7 cohort; subsequent PE candidate builds remain experimental and have their own source/ABI/individual SHA proofs. The experimental `oleaut32` ARM64EC currency fallback is not behaviorally equivalent to Intel x87 by proof.
+
+**Hard limits:** *Zero standard missing DLL names is not equivalent to Wine loader success, a valid initialized prefix, or runnable games/Windows apps.* Signed `com.charoitx` v0.66/versionCode 97 is latest phone-proven APK; existing sealed 100-file staged Wine29 cohort, Wine28 v1–v9 scratch, Portal, games, saves, prefixes, rootfs untouched. No Wine/wineserver/PE/Wineboot has been executed as part of these new 34-DLL CI experiments. No paid OpenAI API used.
+
+**Next authorized engineering target:** Assemble a completely **NEW** source-coherent 34-DLL + 76-NLS **data-only** archive, tied to the same pinned original source/native ELF hashes and individual candidate provenance, with manifest/allowlist and immutable SHA-256 verification. Do not replace or mutate original `.0.7` 100-file phone staging; keep any future additional data in a new opt-in slot and use same signing certificate for in-place `com.charoitx` APK updates. Phone staging and future isolated Wine29 Wineboot/PE handshake remain separate explicit user-consent gates. No 1.0 readiness claim.
+
+---
+
 **End of current Charoite Portal handoff.**

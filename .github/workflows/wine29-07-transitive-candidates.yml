@@ -131,6 +131,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Wine29-07-Two-Transitive-PE-Candidates-Static-Review
-          path: ${{ runner.temp }}/Wine29-followups-two-new/
+          path: ${{ runner.temp }}/wine29-followups-two-new/
           retention-days: 60
           if-no-files-found: error

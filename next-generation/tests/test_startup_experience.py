@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 102", PREP)
-        self.assertIn("11.2-next.0.71", PREP)
+        self.assertIn("versionCode 103", PREP)
+        self.assertIn("11.2-next.0.72", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -143,7 +143,24 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL", BOOT)
         self.assertIn("boot.addView(version, versionLayout)", BOOT)
         self.assertIn("CharoiteNextBootActivity.installedVersionLabel(this)", PREP)
-        self.assertNotIn("11.2-next.0.71", BOOT, "Boot must read installed version, not hardcode it")
+        self.assertNotIn("11.2-next.0.72", BOOT, "Boot must read installed version, not hardcode it")
+
+    def test_system_hides_archived_wine_experiments_and_keeps_current_readonly_probe(self):
+        self.assertIn("final boolean showArchivedWineTests = false;", PREP)
+        self.assertIn("if (showArchivedWineTests) {", PREP)
+        self.assertIn("} // Archived test controls", PREP)
+        self.assertLess(PREP.index("if (showArchivedWineTests) {"),
+                        PREP.index('wine29PeHelpV1.setText('))
+        self.assertLess(PREP.index("} // Archived test controls"),
+                        PREP.index('wine29V1Forensics.setText('))
+        self.assertIn("CURRENT WINE29 DIAGNOSTIC", PREP)
+        self.assertIn("No Wine execution or new scratch is authorized.", PREP)
+        self.assertIn("final boolean showArchivedStartupDiagnostics = false;", PREP)
+        self.assertLess(PREP.index("if (showArchivedStartupDiagnostics) {"),
+                        PREP.index('startupDiagnostics.setText('))
+        self.assertIn('nextCoreCard.addView(wine29V1Forensics);', PREP)
+        # Settings for diagnostic reporting stay accessible, not a legacy test.
+        self.assertIn('nextCoreCard.addView(autoReporter);', PREP)
 
     def test_seven_second_boot_once_per_real_session(self):
         self.assertIn("BOOT_DURATION_MS = 7000L", BOOT)

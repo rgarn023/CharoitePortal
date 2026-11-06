@@ -79,10 +79,10 @@ class IsolatedStagingContract(unittest.TestCase):
         self.assertIn("CharoiteWineIsolatedStage.java",PREP)
         self.assertIn("Stage isolated modern Wine PE/NLS modules",PREP)
         self.assertIn('.setPositiveButton("Stage / Verify"',PREP)
-        self.assertIn("versionCode 101",PREP)
-        self.assertIn("11.2-next.0.70",PREP)
+        self.assertIn("versionCode 102",PREP)
+        self.assertIn("11.2-next.0.71",PREP)
         self.assertIn("CHAROITE_NEXT_95_ISOLATED_PE_NLS_ASSETS_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='101' versionName='11.2-next.0.70'",WF)
+        self.assertIn("versionCode='102' versionName='11.2-next.0.71'",WF)
 
 if __name__=="__main__":
     unittest.main()

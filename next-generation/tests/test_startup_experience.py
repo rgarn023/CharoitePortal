@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 101", PREP)
-        self.assertIn("11.2-next.0.70", PREP)
+        self.assertIn("versionCode 102", PREP)
+        self.assertIn("11.2-next.0.71", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -134,6 +134,16 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("diamond(canvas,", view)
         self.assertIn("setContentDescription(\"Charoite Portal\")", BOOT)
         self.assertNotIn("ProgressBar", view)
+
+    def test_installed_apk_version_is_visible_on_boot_and_system(self):
+        self.assertIn("public static String installedVersionLabel(Context context)", BOOT)
+        self.assertIn("getPackageInfo(context.getPackageName(), 0)", BOOT)
+        self.assertIn("pkg.getLongVersionCode()", BOOT)
+        self.assertIn("version.setText(installedVersionLabel(activity))", BOOT)
+        self.assertIn("Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL", BOOT)
+        self.assertIn("boot.addView(version, versionLayout)", BOOT)
+        self.assertIn("CharoiteNextBootActivity.installedVersionLabel(this)", PREP)
+        self.assertNotIn("11.2-next.0.71", BOOT, "Boot must read installed version, not hardcode it")
 
     def test_seven_second_boot_once_per_real_session(self):
         self.assertIn("BOOT_DURATION_MS = 7000L", BOOT)

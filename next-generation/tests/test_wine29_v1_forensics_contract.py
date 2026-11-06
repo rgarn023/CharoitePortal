@@ -58,7 +58,7 @@ class Wine29V1ReadOnlyForensicContract(unittest.TestCase):
         self.assertIn("test_wine29_v1_forensics_contract.py", wf)
         self.assertIn("WINE29_V1_FORENSICS_EXISTING_SCRATCH_READ_ONLY=PASS", wf)
         self.assertIn("cp next-generation/CharoiteWine29V1Forensics.java legal-bundle/CharoiteWine29V1Forensics.java", wf)
-        self.assertIn("versionCode='101' versionName='11.2-next.0.71'", wf)
+        self.assertIn("versionCode='102' versionName='11.2-next.0.71'", wf)
 
 if __name__ == "__main__":
     unittest.main()

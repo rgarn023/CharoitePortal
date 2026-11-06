@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.71"')
-text = text.replace("versionCode 33", "versionCode 102")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.72"')
+text = text.replace("versionCode 33", "versionCode 103")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -279,6 +279,11 @@ ui = ui.replace(anchor, anchor + """
                 "isolated prefixes and device smoke tests exist. No game-specific " +
                 "anti-cheat bypasses are provided.", 12, SECONDARY, false));
         systemScreen.addView(nextCoreCard);
+        // Historical Wine22-29 version/staging/one-shot probes are retained in
+        // source for provenance, but never mounted into the active System view.
+        // Re-enable only by an intentional source change for a new investigation.
+        final boolean showArchivedWineTests = false;
+        if (showArchivedWineTests) {
         android.widget.Button nextDiagnostics = new android.widget.Button(this);
         nextDiagnostics.setText("Run Core Next device diagnostics");
         nextDiagnostics.setAllCaps(false);
@@ -1446,6 +1451,14 @@ ui = ui.replace(anchor, anchor + """
                 }).show());
         nextCoreCard.addView(wine29PeHelpV1);
 
+        } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
+        nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
+        nextCoreCard.addView(label(
+                "Wine29 PE-help reached Wineboot but kernel32.dll failed (c0000135). " +
+                "Only preserved v1 read-only inspection is currently available. " +
+                "No Wine execution or new scratch is authorized.",
+                12, SECONDARY, false));
+
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
         // bounded logs. Do not execute Wine, Wineboot, or even wineserver.
         android.widget.Button wine29V1Forensics = new android.widget.Button(this);
@@ -1487,6 +1500,10 @@ ui = ui.replace(anchor, anchor + """
             com.charoitegames.core.CharoiteNextAutoReports.showSettings(this));
         nextCoreCard.addView(autoReporter);
 
+        // Retain startup/audio diagnostic implementation for future support,
+        // but do not clutter the current Wine29-only System test surface.
+        final boolean showArchivedStartupDiagnostics = false;
+        if (showArchivedStartupDiagnostics) {
         android.widget.Button startupDiagnostics = new android.widget.Button(this);
         startupDiagnostics.setText("Startup / audio diagnostics");
         startupDiagnostics.setAllCaps(false);
@@ -1508,6 +1525,7 @@ ui = ui.replace(anchor, anchor + """
                 .show();
         });
         nextCoreCard.addView(startupDiagnostics);
+        } // Startup/audio diagnostic action hidden from the active System tab.
 """)
 # Real onCreate registers the Portal and handles the one-time direct-root
 # cold boot fallback for Samsung legacy tasks. No splash on normal resume.

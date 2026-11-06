@@ -105,9 +105,9 @@ class Wine29PePreflight(unittest.TestCase):
         self.assertIn("test_wine29_07_pe_preflight.py", WORKFLOW)
         self.assertIn("WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS", WORKFLOW)
         self.assertIn("0.70 (Wine29 v1 kernel32 read-only postmortem", RUNTIME)
-        self.assertIn("versionCode 104", PREP)
-        self.assertIn("11.2-next.0.73", PREP)
-        self.assertIn("versionCode='104' versionName='11.2-next.0.73'", WORKFLOW)
+        self.assertIn("versionCode 105", PREP)
+        self.assertIn("11.2-next.0.74", PREP)
+        self.assertIn("versionCode='105' versionName='11.2-next.0.74'", WORKFLOW)
 
 
 if __name__ == "__main__":

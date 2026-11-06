@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.70"')
-text = text.replace("versionCode 33", "versionCode 101")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.71"')
+text = text.replace("versionCode 33", "versionCode 102")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -266,6 +266,10 @@ ui = ui.replace(anchor, anchor + """
         spacerIn(systemScreen, 12);
         LinearLayout nextCoreCard = card();
         nextCoreCard.addView(label("CHAROITE CORE NEXT — ENGINE STATUS", 17, FOREGROUND, true));
+        // The installed APK is the source of truth: this label updates every release.
+        nextCoreCard.addView(label(
+                com.charoitegames.core.CharoiteNextBootActivity.installedVersionLabel(this),
+                12, SECONDARY, false));
         nextCoreCard.addView(label(
                 com.charoitegames.core.CharoiteNextRuntime.report(this),
                 12, SECONDARY, false));

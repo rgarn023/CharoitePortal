@@ -93,6 +93,21 @@ public final class CharoiteNextBootActivity extends Activity {
         }
     }
 
+    /** Installed APK identity, shared by the boot and persistent System screen. */
+    public static String installedVersionLabel(Context context) {
+        try {
+            android.content.pm.PackageInfo pkg = context.getPackageManager()
+                    .getPackageInfo(context.getPackageName(), 0);
+            String name = pkg.versionName;
+            long code = pkg.getLongVersionCode();
+            if (name == null || name.trim().isEmpty())
+                return "Charoite Next • build " + code;
+            return "Charoite Next • " + name + " • build " + code;
+        } catch (Exception ignored) {
+            return "Charoite Next • version unavailable";
+        }
+    }
+
     private static void markBootShown(Activity activity) {
         activity.getSharedPreferences(STARTUP_PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(LAST_BOOT_VERSION, installedVersion(activity)).apply();
@@ -277,6 +292,24 @@ public final class CharoiteNextBootActivity extends Activity {
         boot.addView(title, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+        // Small, legible APK version beneath the crystal title; no bitmap edit.
+        // It also appears on direct cold-start Portal fallback via createBootView.
+        TextView version = new TextView(activity);
+        version.setText(installedVersionLabel(activity));
+        version.setTextSize(12f);
+        version.setTextColor(Color.rgb(225, 209, 246));
+        version.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        version.setGravity(Gravity.CENTER);
+        version.setShadowLayer(5f, 0f, 2f, Color.rgb(19, 6, 45));
+        version.setContentDescription(installedVersionLabel(activity));
+        version.setClickable(false);
+        int inset = (int)(activity.getResources().getDisplayMetrics().density * 22f);
+        FrameLayout.LayoutParams versionLayout = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        versionLayout.setMargins(inset, 0, inset, inset);
+        boot.addView(version, versionLayout);
         return boot;
     }
 

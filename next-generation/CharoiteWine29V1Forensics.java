@@ -4,6 +4,7 @@ import android.content.Context;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import org.json.JSONArray;
@@ -71,6 +72,50 @@ public final class CharoiteWine29V1Forensics {
                 || s.contains(" = not_implemented");
     }
 
+    private static int readU16(byte[] data, int at) {
+        if (at < 0 || at > data.length - 2)
+            throw new SecurityException("Wine29 preserved PE header out of bound");
+        return (data[at] & 255) | ((data[at + 1] & 255) << 8);
+    }
+
+    private static long readU32(byte[] data, int at) {
+        return Integer.toUnsignedLong(readU16(data, at) | (readU16(data, at + 2) << 16));
+    }
+
+    /** Source-hash-verified named v1 copy only; at most 4096 header bytes.
+     * Raw COFF machine does not by itself establish ARM64EC hybrid loadability.
+     */
+    private static void inspectPeHeader(File file, String label, StringBuilder out)
+            throws Exception {
+        if (!file.isFile() || file.length() < 128
+                || file.length() > 32L * 1024L * 1024L)
+            throw new SecurityException("Unsafe Wine29 v1 PE header size");
+        byte[] head = new byte[(int)Math.min(4096, file.length())];
+        try (RandomAccessFile reader = new RandomAccessFile(file, "r")) {
+            reader.readFully(head);
+        }
+        long pePosition = readU32(head, 0x3c);
+        if (readU16(head, 0) != 0x5a4d || pePosition < 64
+                || pePosition > head.length - 26
+                || readU32(head, (int)pePosition) != 0x4550L)
+            throw new SecurityException("Invalid Wine29 preserved PE header");
+        int pe = (int)pePosition;
+        int rawMachine = readU16(head, pe + 4);
+        int sections = readU16(head, pe + 6);
+        int optionalSize = readU16(head, pe + 20);
+        int magic = readU16(head, pe + 24);
+        if (sections < 1 || sections > 96 || optionalSize < 112
+                || magic != 0x20b)
+            throw new SecurityException("Invalid Wine29 preserved PE32+ metadata");
+        String machine = rawMachine == 0xaa64 ? "ARM64 (AA64)"
+                : rawMachine == 0xa641 ? "ARM64EC (A641)"
+                : "OTHER (0x" + Integer.toHexString(rawMachine) + ")";
+        out.append("v1 PE header ").append(label)
+           .append(": MZ/PE32+ PASS; raw COFF ")
+           .append(machine).append("; sections ")
+           .append(sections).append("; source hash already verified\n");
+    }
+
     private static void inspect(StringBuilder out, File scratch, String filename,
                                 int limit) throws Exception {
         File log = direct(scratch, filename);
@@ -97,7 +142,7 @@ public final class CharoiteWine29V1Forensics {
         String[] lines = new String(bytes.toByteArray(), StandardCharsets.UTF_8).split("\n");
         List<String> hits = new ArrayList<>();
         int newProcess = 0, boot = 0, kernel = 0, apiset = 0;
-        int mappedNtdll = 0, mappedBoot = 0, loadedApi = 0;
+        int mappedNtdll = 0, mappedBoot = 0, mappedKernel32 = 0, loadedApi = 0;
         int noFile = 0, failed = 0;
         String rootPath = scratch.getCanonicalPath();
         for (String line : lines) {
@@ -108,6 +153,7 @@ public final class CharoiteWine29V1Forensics {
             if (s.contains("apisetschema.dll")) apiset++;
             if (s.contains("mapping pe file") && s.contains("ntdll.dll")) mappedNtdll++;
             if (s.contains("mapping pe file") && s.contains("wineboot.exe")) mappedBoot++;
+            if (s.contains("mapping pe file") && s.contains("kernel32.dll")) mappedKernel32++;
             if (s.contains("load_apiset_dll loaded")) loadedApi++;
             if (s.contains("no_such_file")) noFile++;
             if (s.contains("failed") || s.contains("c0000135")) failed++;
@@ -121,6 +167,7 @@ public final class CharoiteWine29V1Forensics {
            .append(", apisetschema=").append(apiset)
            .append(", mappedWineboot=").append(mappedBoot)
            .append(", mappedNtdll=").append(mappedNtdll)
+           .append(", mappedKernel32=").append(mappedKernel32)
            .append(", loadedApi=").append(loadedApi)
            .append(", NO_SUCH_FILE=").append(noFile)
            .append(", failed/c0000135=").append(failed).append('\n');
@@ -193,8 +240,11 @@ public final class CharoiteWine29V1Forensics {
             byte[] value = sha.digest();
             StringBuilder hex = new StringBuilder();
             for (byte b : value) hex.append(String.format(Locale.US, "%02x", b & 255));
-            out.append(hex.toString().equals(record.getString("sha256"))
+            boolean verified = hex.toString().equals(record.getString("sha256"));
+            out.append(verified
                 ? "SOURCE SHA-256 PASS\n" : "SOURCE SHA-256 MISMATCH (not repaired)\n");
+            // Header parsing only after original immutable source SHA matches.
+            if (verified) inspectPeHeader(copy, label, out);
         }
         // A second source-matched builtin wineboot alias is copied in v1.
         File alias = direct(scratch, PE + "wineboot.exe");
@@ -239,6 +289,10 @@ public final class CharoiteWine29V1Forensics {
             status(out, scratch, "runtime/lib/wine/aarch64-windows/ntdll.dll");
             status(out, scratch, "runtime/lib/wine/arm64-windows/wineboot.exe");
             verifySelectedPe(context, scratch, out);
+            out.append("Expected v1 WINEDLLPATH root: runtime/lib/wine; ARM64 candidate: ")
+               .append(PE).append("kernel32.dll (derived from v1 code; lookup not proven)\n");
+            out.append("Header/COFF metadata does not establish actual module resolution, ")
+               .append("ARM64EC hybrid support, or a successful Wineboot.\n");
             inspect(out, scratch, "v1-wine-pe-help.log", MAX_PE);
             inspect(out, scratch, "v1-foreground-wineserver.log", MAX_SERVER);
             out.append("RESULT: PASS — v1 read-only forensic inspection completed; Wine29 PE-help remains FAILED at kernel32 c0000135\n");

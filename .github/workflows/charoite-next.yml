@@ -475,6 +475,17 @@ jobs:
           grep -Fq 'Preflight Wine29 0.12 PE imports (read-only)' next-generation/prepare_next.py
           echo WINE29_012_PE_IMPORT_PREFLIGHT_NO_EXECUTION=PASS
 
+      - name: Verify first Wine29 v1 PE-help execution cannot run without explicit consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v1_pe_help_contract.py' -v
+          grep -Fq 'CharoiteWine29Sealed012Stage.verifyOnly(context)' next-generation/CharoiteWine29V1PeHelpProbe.java
+          grep -Fq 'CharoiteWine29Sealed012PePreflight.run(context)' next-generation/CharoiteWine29V1PeHelpProbe.java
+          grep -Fq 'if (scratch.exists() || !scratch.mkdir())' next-generation/CharoiteWine29V1PeHelpProbe.java
+          grep -Fq 'Authorize ONE new v1 test' next-generation/prepare_next.py
+          ! grep -Eq 'CHAROITE_WINE26_DATA_DIR|\.delete\(|\.renameTo\(' next-generation/CharoiteWine29V1PeHelpProbe.java
+          echo WINE29_V1_ONE_SHOT_EXPLICIT_CONSENT_GUARD=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -972,7 +983,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='99' versionName='11.2-next.0.68'"
+            grep -F "package: name='com.charoitx' versionCode='100' versionName='11.2-next.0.69'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

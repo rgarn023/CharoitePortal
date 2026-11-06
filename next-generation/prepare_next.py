@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.68"')
-text = text.replace("versionCode 33", "versionCode 99")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.69"')
+text = text.replace("versionCode 33", "versionCode 100")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -171,7 +171,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29Native07Stage.java",
                  "CharoiteWine29Native07PePreflight.java",
                  "CharoiteWine29Sealed012Stage.java",
-                 "CharoiteWine29Sealed012PePreflight.java"):
+                 "CharoiteWine29Sealed012PePreflight.java",
+                 "CharoiteWine29V1PeHelpProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1393,6 +1394,54 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29Sealed012PePreflight").start();
         });
         nextCoreCard.addView(wine29SealedPe);
+
+        // Dangerous operation only by direct user approval. Even --help MAY
+        // auto-initialize an isolated Windows prefix in a one-use scratch.
+        android.widget.Button wine29PeHelpV1 = new android.widget.Button(this);
+        wine29PeHelpV1.setText("Wine29 v1 isolated Wineboot PE-help test (one-shot)");
+        wine29PeHelpV1.setAllCaps(false);
+        wine29PeHelpV1.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE Wine29 Wineboot test?")
+                .setMessage("This WILL execute the source-matched Wine29 native "
+                    + "wineserver and Wine loader, plus the ARM64 Windows Wineboot.exe "
+                    + "--help command. Wine MAY automatically initialize its own "
+                    + "new Windows prefix before showing help. One completely NEW "
+                    + "private v1 scratch directory will be created and 111 source-"
+                    + "hashed modules copied there. The process has bounded time "
+                    + "and logs and is stopped afterwards. Existing Wine28 v1–v9, "
+                    + "earlier Wine29 data slots, games, saves, prefixes, stable Portal "
+                    + "and rootfs must NOT be accessed. Scratch remains preserved "
+                    + "for diagnosis, including if this test fails. The test cannot "
+                    + "be repeated in v1; never delete or clear app storage. "
+                    + "This is NOT a game launch or a functioning runtime. "
+                    + "Do you explicitly authorize this ONE Wine29 execution test?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE new v1 test", (dialog, which) -> {
+                    wine29PeHelpV1.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V1PeHelpProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29PeHelpV1.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 v1 PE-help handshake")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 v1 isolated PE-help", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V1PeHelpProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29PeHelpV1);
+
+
 
 
         android.widget.Button autoReporter = new android.widget.Button(this);

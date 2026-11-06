@@ -33,8 +33,8 @@ class Wine27V4TraceContract(unittest.TestCase):
         self.assertIn('CharoiteWine27V4Trace.run(this)',PREP)
         self.assertIn('CharoiteWine27V4Trace.java',PREP)
         self.assertIn('CharoiteWine27V4Trace.java',WORKFLOW)
-        self.assertIn('versionCode 99',PREP)
-        self.assertIn('11.2-next.0.68',PREP)
-        self.assertIn("versionCode='99' versionName='11.2-next.0.68'",WORKFLOW)
+        self.assertIn('versionCode 100',PREP)
+        self.assertIn('11.2-next.0.69',PREP)
+        self.assertIn("versionCode='100' versionName='11.2-next.0.69'",WORKFLOW)
 if __name__=="__main__":
     unittest.main()

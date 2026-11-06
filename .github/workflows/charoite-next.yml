@@ -486,6 +486,16 @@ jobs:
           ! grep -Eq 'CHAROITE_WINE26_DATA_DIR|\.delete\(|\.renameTo\(' next-generation/CharoiteWine29V1PeHelpProbe.java
           echo WINE29_V1_ONE_SHOT_EXPLICIT_CONSENT_GUARD=PASS
 
+      - name: Verify Wine29 v1 kernel32 postmortem reads only retained evidence
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v1_forensics_contract.py' -v
+          grep -Fq 'charoite-next-wine29-pe-help-v1' next-generation/CharoiteWine29V1Forensics.java
+          grep -Fq 'v1-wine-pe-help.log' next-generation/CharoiteWine29V1Forensics.java
+          grep -Fq 'No Wine/Wineboot/wineserver execution' next-generation/CharoiteWine29V1Forensics.java
+          ! grep -Eq 'ProcessBuilder|Runtime\.getRuntime|FileOutputStream|mkdir\(|mkdirs\(|\.delete\(' next-generation/CharoiteWine29V1Forensics.java
+          echo WINE29_V1_FORENSICS_EXISTING_SCRATCH_READ_ONLY=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -983,7 +993,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='100' versionName='11.2-next.0.69'"
+            grep -F "package: name='com.charoitx' versionCode='101' versionName='11.2-next.0.70'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1142,6 +1152,7 @@ jobs:
             cp "next-generation/$file" "legal-bundle/$file"
           done
           cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java
+          cp next-generation/CharoiteWine29V1Forensics.java legal-bundle/CharoiteWine29V1Forensics.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py

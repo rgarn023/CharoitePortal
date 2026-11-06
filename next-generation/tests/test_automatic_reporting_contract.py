@@ -97,7 +97,7 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
-        self.assertIn('0.70 (Wine29 v1 kernel32 read-only postmortem', RUNTIME)
+        self.assertIn('Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked', RUNTIME)
         self.assertIn("versionCode='105' versionName='11.2-next.0.74'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 

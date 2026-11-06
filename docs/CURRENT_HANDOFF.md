@@ -1,12 +1,14 @@
 # CHAROITE PORTAL / CHAROITE CORE — CURRENT PROJECT HANDOFF
 
-**Current handoff updated:** November 5, 2026  
+**Current handoff updated:** November 6, 2026  
 **Purpose:** Paste this entire file, or share its raw GitHub URL, in a new ChatGPT conversation to resume development.  
 **Canonical copy:** `https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md`  
 **Raw / easy to copy:** `https://raw.githubusercontent.com/rgarn023/CharoitePortal/main/docs/CURRENT_HANDOFF.md`  
 **Historical append-only development log:** `docs/HANDOFF.md` (begins in the old Touhou Pocket era; **not** current instructions).
 
-**LATEST SIGNED CHAROITE NEXT v0.68 / VERSIONCODE 99 (November 5, 2026):** [Actions run 42077243218](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218) **COMPLETED SUCCESS** from exact code commit [f87d9ad](https://github.com/rgarn023/CharoitePortal/commit/f87d9adba8822c2f5c05b36a037d62fdbfcbdc99). Stable tests 138 PASS; Next tests 138 PASS; new focused 0.12 read-only PE preflight 3 PASS, Gradle BUILD SUCCESSFUL. AAPT confirmed **com.charoitx versionCode 99 / versionName 11.2-next.0.68**; signing certificate SHA-256 **d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175** matches cached v0.67 signing key. 111 Wine29 .0.12 PE/NLS APK assets rehashed PASS, older 100 .0.7 assets retained. **[Direct signed GitHub Actions APK artifact ID 13439741433](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439741433)** ZIP size **460,887,990 bytes**, expires **February 3, 2027**; [licenses 13439861373](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439861373). New System button **Preflight Wine29 0.12 PE imports (read-only)** inspects existing 111-file sealed phone slot, 34 DLL headers, separate ARM64 Wineboot, 186 ordinary / 68 delayed descriptors, expected zero unbundled ordinary and 15 unbundled delayed providers; checks STOP if discrepancy. **NEW v0.68 on-phone preflight NOT YET REPORTED.** Wine/Wineboot/PE/wineserver/prefix NOT EXECUTED. Device previously PASS staging/verify on v0.67; do not delete/clear/re-stage/uninstall. See Section 171.
+**LATEST GALAXY S26 ULTRA WINE29 .0.12 PE STATIC PREFLIGHT — OWNER PHONE PASS (November 6, 2026):** Charoite Next v0.68 user-supplied System report confirmed `RESULT: PASS — isolated Wine29 0.12 34-DLL direct/delay PE preflight; NOT RUNNABLE`. Source-matched original Wine29 .0.7 native ELF trio present; exactly **34/34 ARM64EC-view hybrid DLL headers PASS** (raw COFF AA64=34, A641=0), ARM64 Wineboot.exe PE32+ header PASS (NOT EXECUTED), 76/76 Wine NLS SHA-256 PASS; **186 ordinary PE import descriptors / 26 distinct DLL names / ZERO unbundled ordinary providers**; **68 delay-load descriptors / 15 unbundled delayed providers**: advpack.dll, cabinet.dll, comdlg32.dll, cryptnet.dll, cryptui.dll, dhcpcsvc.dll, dnsapi.dll, gdiplus.dll, iphlpapi.dll, mlang.dll, shdocvw.dll, uxtheme.dll, winmm.dll, winspool.drv, wintrust.dll. All findings are static; unbundled delay names NOT proven loader failures. No Wine, wineserver, Wineboot, Windows EXE, FEX, graphics, prefix or scratch execution/writes; Wine28 v1–v9, stable Portal, games/saves/rootfs were not accessed. **Next step requires separate opt-in authorization for any Wine/Wineboot execution in a NEW scratch.** See Section 172.
+
+**LATEST SIGNED CHAROITE NEXT v0.68 / VERSIONCODE 99 (November 5, 2026):** [Actions run 42077243218](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218) **COMPLETED SUCCESS** from exact code commit [f87d9ad](https://github.com/rgarn023/CharoitePortal/commit/f87d9adba8822c2f5c05b36a037d62fdbfcbdc99). Stable tests 138 PASS; Next tests 138 PASS; new focused 0.12 read-only PE preflight 3 PASS, Gradle BUILD SUCCESSFUL. AAPT confirmed **com.charoitx versionCode 99 / versionName 11.2-next.0.68**; signing certificate SHA-256 **d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175** matches cached v0.67 signing key. 111 Wine29 .0.12 PE/NLS APK assets rehashed PASS, older 100 .0.7 assets retained. **[Direct signed GitHub Actions APK artifact ID 13439741433](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439741433)** ZIP size **460,887,990 bytes**, expires **February 3, 2027**; [licenses 13439861373](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439861373). New System button **Preflight Wine29 0.12 PE imports (read-only)** inspects existing 111-file sealed phone slot, 34 DLL headers, separate ARM64 Wineboot, 186 ordinary / 68 delayed descriptors, expected zero unbundled ordinary and 15 unbundled delayed providers; checks STOP if discrepancy. **v0.68 on-phone preflight subsequently PASSED November 6, 2026; see Section 172.** Wine/Wineboot/PE/wineserver/prefix NOT EXECUTED. Device previously PASS staging/verify on v0.67; do not delete/clear/re-stage/uninstall. See Section 171.
 
 **LATEST PHONE-VERIFIED WINE29 .0.12 SEAL (November 5, 2026):** Owner-supplied Galaxy S26 Ultra v0.67 System reports confirmed **STAGE PASS + READ-ONLY VERIFY PASS**. Stage: 35/35 Windows PE, 76/76 NLS, sealed 111-file inventory, no extras; private slot wine10-arm64ec-dependencies-0.12-sealed-pe-nls. Subsequent independent on-phone read-only SHA-256 recheck: 35/35 PE, 76/76 NLS, 111/111 staged files and APK assets PASS. No Wine, wineserver, Wineboot, Windows EXE, prefix, FEX, graphics or games executed; original Wine28 v1–v9, games/saves/rootfs NOT ACCESSED. **These reports establish phone DATA integrity, not runtime readiness.** See Section 170.
 
@@ -3058,6 +3060,49 @@ New **System → Preflight Wine29 0.12 PE imports (read-only)** button added in 
 **Direct GitHub Actions signed APK**: [artifact 13439741433](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439741433), Actions ZIP 460,887,990 bytes, expires February 3, 2027. [LGPL licenses/source artifact 13439861373](https://github.com/rgarn023/CharoitePortal/actions/runs/42077243218/artifacts/13439861373), 300,342 bytes. Do not mistake Actions ZIP size for the raw APK file size; ZIP checksum not independently computed.
 
 **Next owner phone action (not yet reported):** Update Charoite Next v0.67 to v0.68 IN PLACE using the signed GitHub APK (never uninstall/clear storage, no repeat staging needed), then open **System → Preflight Wine29 0.12 PE imports (read-only)**. Copy the complete report, including counts, raw COFF machine types, 15 deferred imports and PASS/BLOCKED outcome. A static pass is NOT Windows execution, Wineboot or prefix initialization. Do not run any Wineboot, Windows EXE or old Wine28 scratch by default. Resolve any blocked read-only preflight as source/manifest or parser issue without deleting staged data. Only a future separately authorized, bounded NEW scratch runtime probe could test actual Wineboot/PE execution.
+
+---
+## 172. November 6, 2026 — owner-confirmed Wine29 .0.12 34-DLL direct/delayed PE static on-phone preflight PASS
+
+**Actual owner phone report from Charoite Next v0.68** (signed build Actions run 42077243218, source commit f87d9adba8822c2f5c05b36a037d62fdbfcbdc99; already recorded in Section 171):
+
+```text
+CHAROITE NEXT — WINE29 .0.12 PE BOOTSTRAP STATIC PREFLIGHT
+READ ONLY; no Wine/Wineboot/PE/wineserver execution or prefix/scratch writes
+Wine28 v1–v9, stable Portal, games, saves and rootfs: NOT ACCESSED
+Native selector: original Wine29 0.7 source-matched APK ELF trio verified
+PE selector: isolated slot/pe/arm64ec, 34 source-verified ARM64EC-view hybrid DLL headers PASS
+Raw COFF machines among 34 DLLs: AA64=34 A641=0
+DATA selector: isolated slot parent, 76 NLS files SHA-256 PASS
+wineboot.exe header: separate ARM64 PE32+ PASS; NOT EXECUTED
+Static PE import descriptors inspected: 186
+Distinct referenced DLL names: 26
+Ordinary imports not in sealed 34-DLL PE cohort: 0
+Actual delay-load descriptors inspected: 68
+Unbundled delay-load DLL names: 15
+  deferred: advpack.dll
+  deferred: cabinet.dll
+  deferred: comdlg32.dll
+  deferred: cryptnet.dll
+  deferred: cryptui.dll
+  deferred: dhcpcsvc.dll
+  deferred: dnsapi.dll
+  deferred: gdiplus.dll
+  deferred: iphlpapi.dll
+  deferred: mlang.dll
+  deferred: shdocvw.dll
+  deferred: uxtheme.dll
+  deferred: winmm.dll
+  deferred: winspool.drv
+  deferred: wintrust.dll
+Delay-load names are diagnostic, NOT proven startup failures
+Selectors proposed ONLY; environment variables NOT set or executed
+RESULT: PASS — isolated Wine29 0.12 34-DLL direct/delay PE preflight; NOT RUNNABLE
+```
+
+**Interpretation:** The owner-confirmed 111-file staging, read-only hashes, and now PE header/import graph exactly match source-attested expectations. The AA64 raw COFF values are the known carrier form of ARM64EC-view hybrid DLLs and do not imply 34 standalone A641 files. The 15 delayed imports may be lazy-loaded and must not automatically become a 15-DLL build task without observed runtime failures; zero unbundled ordinary PE imports is NOT proof of successful dynamic native/PE loading or prefix creation. Original .0.7 ELF and sealed .0.12 PE/NLS contents have been verified in their distinct locations; **they have not been combined or executed as a Wine29 runtime**.
+
+**Read-only evidence complete; next executable milestone NOT authorized by this report:** Assess an explicitly confirmed, one-shot bounded Wine29 PE-help/Wineboot bootstrap probe, following precautions established in historical Wine28 v8/v9 experiments (one new unique no_backup scratch path; original .0.7-native ELF hash gate plus 111-file .0.12 read-only PE/NLS SHA-256 gate before any write; fresh prefix and HOME/TMP/WINEPREFIX; matched native selector and PE/NLS search roots; exact source-hash copying; bounded server/PE time and logs; no auto retries, data cleanup, games, stable Portal, rootfs or existing prefixes accessed; retain failures for forensics). Wine may **auto-initialize a new scratch prefix even when invoked as wineboot.exe --help**: this must be communicated and separately authorized before device execution. In-app runtime execution must never be automatic. GitHub code planning/review is distinct from permission to execute on the phone. No successful Wineboot, Windows executable, Steam/Battle.net, FEX, graphics or gaming support has yet been shown.
 
 ---
 **End of current Charoite Portal handoff.**

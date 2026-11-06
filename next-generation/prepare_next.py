@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.73"')
-text = text.replace("versionCode 33", "versionCode 104")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.74"')
+text = text.replace("versionCode 33", "versionCode 105")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -118,6 +118,11 @@ assert native_changed > 0, "No Java/native private paths rebased to Next package
 next_java = app / "java/com/charoitegames/core/CharoiteNextRuntime.java"
 assert not next_java.exists()
 shutil.copy2(source_dir / "CharoiteNextRuntime.java", next_java)
+# Separate built-in Core Manager: read-only APK inventory and local display mode.
+# No native module writes, Wine processes, user prefix access or runner switching.
+core_manager_java = app / "java/com/charoitegames/core/CharoiteCoreManager.java"
+assert not core_manager_java.exists()
+shutil.copy2(source_dir / "CharoiteCoreManager.java", core_manager_java)
 next_diagnostics = app / "java/com/charoitegames/core/CharoiteNextDiagnostics.java"
 assert not next_diagnostics.exists()
 shutil.copy2(source_dir / "CharoiteNextDiagnostics.java", next_diagnostics)
@@ -278,6 +283,12 @@ ui = ui.replace(anchor, anchor + """
                 "They cannot be selected or used until verified native assets, " +
                 "isolated prefixes and device smoke tests exist. No game-specific " +
                 "anti-cheat bypasses are provided.", 12, SECONDARY, false));
+        android.widget.Button coreModules = new android.widget.Button(this);
+        coreModules.setText("Manage Charoite Core modules");
+        coreModules.setAllCaps(false);
+        coreModules.setOnClickListener(v ->
+            com.charoitegames.core.CharoiteCoreManager.show(this));
+        nextCoreCard.addView(coreModules);
         systemScreen.addView(nextCoreCard);
         // Historical Wine22-29 version/staging/one-shot probes are retained in
         // source for provenance, but never mounted into the active System view.

@@ -17,6 +17,24 @@ shipping product is **Charoite Portal**, not two permanently competing apps.
 - Do not automatically migrate, uninstall, wipe, overwrite, or share either
   app's private data or reset old Wine scratch generations.
 
+## Modular Charoite Core — incremental in-app management
+
+**Phase 1 in experimental v0.74:** System → Manage Charoite Core modules
+opens an in-app Core Manager with **Automatic (existing runner)** as the
+fixed safe default, a compact module inventory, and a user-controlled
+**Show advanced module details** toggle. Only that display preference is
+stored in `com.charoitx` private preferences. The optional detailed report
+reads capped packaged Wine29 metadata and native ELF *file presence* only.
+It does not read or modify phone scratch/prefix/game/save directories.
+No executable launches, module updates, dynamic downloads, version
+switching, per-game profiles, migration, or rollback are enabled.
+
+**Future phased design:** a signed/versioned module manifest, explicit
+compatibility matrix, independently verified install/staging slots, precise
+per-environment selection, transactional rollback and opt-in data migration.
+Do not expose experimental Wine29/FEX/Proton as runnable before its
+native/PE startup and end-to-end device tests pass.
+
 ## Path toward the future Portal
 
 1. Fix the isolated ARM64 Wine29 native/PE loader and prove an initial

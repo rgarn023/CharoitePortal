@@ -993,7 +993,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='104' versionName='11.2-next.0.73'"
+            grep -F "package: name='com.charoitx' versionCode='105' versionName='11.2-next.0.74'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1134,6 +1134,7 @@ jobs:
           cp next-generation/prepare_next.py legal-bundle/prepare_next.py
           cp next-generation/rewrite_prefix_next.py legal-bundle/rewrite_prefix_next.py
           cp next-generation/CharoiteNextRuntime.java legal-bundle/CharoiteNextRuntime.java
+          cp next-generation/CharoiteCoreManager.java legal-bundle/CharoiteCoreManager.java
           cp next-generation/CharoiteNextDiagnostics.java legal-bundle/CharoiteNextDiagnostics.java
           cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java
           cp next-generation/CharoiteWineNativeProbe.java legal-bundle/CharoiteWineNativeProbe.java

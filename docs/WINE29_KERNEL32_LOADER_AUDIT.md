@@ -44,6 +44,28 @@ It does **not** alone prove ARM64EC hybrid ABI compatibility, loader acceptance,
 linking, symbol resolution or a valid memory mapping. An absent kernel32 map
 marker is likewise not conclusive without a matching loader trace.
 
+## Historical selector names need native-binary verification
+
+A source-only review of the repository's generic Charoite Wine patches found
+`CHAROITE_WINE28_PE_DIR` in the older `0900` (Windows ntdll) and `1000`
+(API-set) patch files. The preserved Wine29 v1 Java test instead supplies
+`CHAROITE_WINE29_PE_DIR`, `CHAROITE_WINE29_NATIVE_DIR` and
+`CHAROITE_WINE29_DATA_DIR`.
+
+**This is a versioned source-selector discrepancy to investigate, not a
+demonstrated failure.** The source-matched Wine29 .0.7 native binaries are
+independently built and bundled from a distinct 27-component archive; the
+older patch text does not establish which selector literals are present in
+the particular APK's verified native ELF files. Preserved phone evidence
+also shows that ntdll PE mapped and the API-set schema loaded, so their
+initial selector logic cannot simply be declared broken.
+
+**Next read-only CI step (not yet implemented):** inspect the exact
+source-hash-verified Wine29 .0.7 loader, Unix ntdll and wineserver ELF
+string tables for the effective Wine29/28 selector names and compare
+against the isolated v1 environment before proposing a native-loader fix.
+Do not change or rerun an existing phone scratch on this hypothesis.
+
 ## Decision tree for the next investigation
 
 1. Check whether the retained logs show an attempted kernel32 builtin lookup

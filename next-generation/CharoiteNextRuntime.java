@@ -72,12 +72,12 @@ public final class CharoiteNextRuntime {
         Engine legacy = inspect(context, WINE_BOX64);
         Engine proton = inspect(context, PROTON_ARM64EC_FEX);
         Engine staging = inspect(context, WINE_STAGING_BOX64);
-        return "Current runtime: " + legacy.label + " (existing engine).\\n"
-                + "Modular Core Manager: inventory and automatic mode available.\\n"
-                + "Wine29: preserved v1 failed at kernel32.dll c0000135; not launch-ready.\\n"
-                + proton.label + ": NOT READY.\\n"
-                + staging.label + ": NOT READY.\\n"
-                + "Only the preserved Wine29 v1 read-only diagnostic is offered below.\\n"
+        return "Current runtime: " + legacy.label + " (existing engine).\n"
+                + "Modular Core Manager: inventory and automatic mode available.\n"
+                + "Wine29: preserved v1 failed at kernel32.dll c0000135; not launch-ready.\n"
+                + proton.label + ": NOT READY.\n"
+                + staging.label + ": NOT READY.\n"
+                + "Only the preserved Wine29 v1 read-only diagnostic is offered below.\n"
                 + "No Wine execution, new scratch, module switch or anti-cheat bypass is authorized.";
     }
 }

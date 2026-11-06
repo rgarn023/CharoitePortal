@@ -27,7 +27,7 @@ class ModularCoreManagerContract(unittest.TestCase):
             'getSharedPreferences(PREF, Context.MODE_PRIVATE)',
             'putBoolean(SHOW_ADVANCED, checked).apply()',
             'new AlertDialog.Builder(activity)',
-            'Math.min(' if False else '65536',
+            '65536',
         ):
             with self.subTest(phrase=phrase): self.assertIn(phrase, MANAGER)
         for forbidden in (

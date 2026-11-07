@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.80"')
-text = text.replace("versionCode 33", "versionCode 111")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.81"')
+text = text.replace("versionCode 33", "versionCode 112")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -183,7 +183,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V3LayoutProbe.java",
                  "CharoiteWine29V3AutoInitForensics.java",
                  "CharoiteWine29V4DirectInitProbe.java",
-                 "CharoiteWine29V5DriveCProbe.java"):
+                 "CharoiteWine29V5DriveCProbe.java",
+                 "CharoiteWine29V6ChildLoaderProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1470,11 +1471,12 @@ ui = ui.replace(anchor, anchor + """
         } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
-                "Wine29 v3 PE --help PASSED (exit 0); v4 direct -i exited 0. " +
-                "V4 wrote registries but drive_c was ABSENT; Windows folder creation " +
-                "under C: failed. Native auto Wineboot status 0x1 (not a Wineboot exit code). " +
-                "V5 tests fresh isolated C: mapping before -i; consent required; " +
-                "old one-shot executions archived.",
+                "Wine29 v5 direct -i exited 0 and Wine created C: windows/users and " +
+                "registry files. Internal automatic Wineboot child creation still " +
+                "failed with NTSTATUS 0x1 (not a Wineboot process exit). " +
+                "V6 uses a separately verified native loader/NTDLL cohort to " +
+                "isolate child re-exec; ONE fresh consented test is available. " +
+                "Previous one-shot tests are archived; Windows remains NOT runnable.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1672,7 +1674,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V4DirectInit);
 
         } // v4 one-shot execution archived; old v4 scratch and reports retained.
-        // NEW V5 user-approved experiment. Never runs from app startup.
+        // V5 is archived after its owner-run one shot; retain source and scratch.
+        final boolean showArchivedWine29V5Execution = false;
+        if (showArchivedWine29V5Execution) {
+        // Historical V5 owner-approved experiment. Never runs from startup.
         android.widget.Button wine29V5DriveC = new android.widget.Button(this);
         wine29V5DriveC.setText("Wine29 v5 isolated C: mapping test (one-shot)");
         wine29V5DriveC.setAllCaps(false);
@@ -1716,6 +1721,52 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V5DriveCProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V5DriveC);
+        } // V5 one-shot archived; preserve existing v5 scratch and logs permanently.
+
+        // New v6 cohort is NOT a live game engine; owner must authorize exactly
+        // one diagnostic in a NEW v6-only private prefix, after source/ELF gates.
+        android.widget.Button wine29V6Child = new android.widget.Button(this);
+        wine29V6Child.setText("Wine29 v6 native child-loader smoke (one-shot)");
+        wine29V6Child.setAllCaps(false);
+        wine29V6Child.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE NEW Wine29 v6 child-loader test?")
+                .setMessage("This experimental diagnostic hash-verifies the signed APK-owned "
+                    + "v6 native Wine loader, matching NTDLL and wineserver and all 111 "
+                    + "existing sealed PE/NLS files. It then creates ONE completely NEW "
+                    + "v6 private scratch and relative C: drive mapping. It starts the "
+                    + "v6 native wineserver and ARM64 wineboot.exe -i. Wine may itself "
+                    + "attempt automatic wineboot --init or spawn other initialization "
+                    + "children in this NEW prefix. Execution and logs are time-capped, "
+                    + "the new scratch is NEVER deleted/retried, and previous Wine29 "
+                    + "v1-v5 scratch, Wine28, stable Portal, rootfs, games, saves, "
+                    + "and user prefixes must NOT be accessed. A successful test is "
+                    + "NOT proof of running Windows games. This will use private storage. "
+                    + "Do you explicitly authorize exactly ONE v6 experiment?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE new v6 test", (dialog, which) -> {
+                    wine29V6Child.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V6ChildLoaderProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V6Child.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — v6 native child-loader smoke")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 v6 child-loader diagnostics", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V6ChildLoaderProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V6Child);
 
 
 

@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.79"')
-text = text.replace("versionCode 33", "versionCode 110")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.80"')
+text = text.replace("versionCode 33", "versionCode 111")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -182,7 +182,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V2BootstrapProbe.java",
                  "CharoiteWine29V3LayoutProbe.java",
                  "CharoiteWine29V3AutoInitForensics.java",
-                 "CharoiteWine29V4DirectInitProbe.java"):
+                 "CharoiteWine29V4DirectInitProbe.java",
+                 "CharoiteWine29V5DriveCProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1469,12 +1470,11 @@ ui = ui.replace(anchor, anchor + """
         } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
-                "Wine29 v3 PE --help PASSED (exit 0), with kernel32/kernelbase loaded; " +
-                "the prefix still lacks drive_c. Native automatic Wineboot child creation " +
-                "returns status 0x1 (not a Wineboot exit code) and may be failing " +
-                "in loader re-execution. " +
-                "V4 separately tests direct Wineboot -i in NEW private scratch; manual " +
-                "confirmation is required. V1-V3 executions stay archived.",
+                "Wine29 v3 PE --help PASSED (exit 0); v4 direct -i exited 0. " +
+                "V4 wrote registries but drive_c was ABSENT; Windows folder creation " +
+                "under C: failed. Native auto Wineboot status 0x1 (not a Wineboot exit code). " +
+                "V5 tests fresh isolated C: mapping before -i; consent required; " +
+                "old one-shot executions archived.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1628,6 +1628,8 @@ ui = ui.replace(anchor, anchor + """
 
         // Explicit, one-shot, NEW V4 experiment ONLY.
         // No process runs unless this separate confirmation is accepted.
+        final boolean showArchivedWine29V4Execution = false;
+        if (showArchivedWine29V4Execution) {
         android.widget.Button wine29V4DirectInit = new android.widget.Button(this);
         wine29V4DirectInit.setText("Wine29 v4 direct prefix initialization (one-shot)");
         wine29V4DirectInit.setAllCaps(false);
@@ -1668,6 +1670,53 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V4DirectInitProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V4DirectInit);
+
+        } // v4 one-shot execution archived; old v4 scratch and reports retained.
+        // NEW V5 user-approved experiment. Never runs from app startup.
+        android.widget.Button wine29V5DriveC = new android.widget.Button(this);
+        wine29V5DriveC.setText("Wine29 v5 isolated C: mapping test (one-shot)");
+        wine29V5DriveC.setAllCaps(false);
+        wine29V5DriveC.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE Wine29 v5 isolated C: test?")
+                .setMessage("EXPERIMENTAL: Creates a NEW private Wine29 v5 scratch, " +
+                    "preseeds ONLY empty drive_c and relative dosdevices/c: -> ../drive_c, " +
+                    "then launches source-SHA-verified Wine29 foreground wineserver " +
+                    "and ARM64 wineboot.exe -i from the already validated matched " +
+                    "aarch64-windows PE directory. Wine may also auto-launch --init. " +
+                    "This test will write the new private prefix, not older ones. " +
+                    "The preseeded drive_c does NOT count as a successful Windows " +
+                    "installation: only Windows-created subdirectories and registry " +
+                    "files will be recorded separately. Logs/processes are bounded, " +
+                    "and the one-shot scratch is retained without cleanup or retry. " +
+                    "Wine29 v1-v4, Wine28, stable Portal, games, saves, rootfs " +
+                    "and existing prefixes are NOT ACCESSED. It might fail and " +
+                    "does NOT enable gaming. Authorize exactly ONE v5 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE new v5 C: test", (dialog, which) -> {
+                    wine29V5DriveC.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V5DriveCProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V5DriveC.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 v5 private C: mapping")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 v5 isolated C: test", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V5DriveCProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V5DriveC);
+
 
 
 

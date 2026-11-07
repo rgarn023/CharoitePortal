@@ -568,6 +568,15 @@ jobs:
           ! grep -Eq 'env.put\("WINEBOOTSTRAPMODE"|\.delete\(|Runtime.getRuntime\(' next-generation/CharoiteWine29V4DirectInitProbe.java
           echo WINE29_V4_ONE_SHOT_DIRECT_INIT_CONSENT=PASS
 
+      - name: Gate isolated Wine29 v5 preseeded C mapping with explicit consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v5_c_drive_contract.py' -v
+          grep -Fq 'charoite-next-wine29-c-drive-v5' next-generation/CharoiteWine29V5DriveCProbe.java
+          grep -Fq 'Os.symlink("../drive_c",link.getAbsolutePath())' next-generation/CharoiteWine29V5DriveCProbe.java
+          ! grep -Eq 'env.put\("WINEBOOTSTRAPMODE"|\.delete\(|Runtime.getRuntime\(' next-generation/CharoiteWine29V5DriveCProbe.java
+          echo WINE29_V5_C_DRIVE_FRESH_MAPPING_CONSENT=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1065,7 +1074,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='110' versionName='11.2-next.0.79'"
+            grep -F "package: name='com.charoitx' versionCode='111' versionName='11.2-next.0.80'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1230,6 +1239,7 @@ jobs:
           cp next-generation/CharoiteWine29V3LayoutProbe.java legal-bundle/CharoiteWine29V3LayoutProbe.java
           cp next-generation/CharoiteWine29V3AutoInitForensics.java legal-bundle/CharoiteWine29V3AutoInitForensics.java
           cp next-generation/CharoiteWine29V4DirectInitProbe.java legal-bundle/CharoiteWine29V4DirectInitProbe.java
+          cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py

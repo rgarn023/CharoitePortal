@@ -48,8 +48,8 @@ class Wine29V1ReadOnlyForensicContract(unittest.TestCase):
         self.assertIn('wine29V1Forensics.setText("Inspect preserved Wine29 v1 kernel32 failure (read-only)")', ui)
         self.assertIn('CharoiteWine29V1Forensics.run(this)', ui)
         self.assertIn('nextCoreCard.addView(wine29V1Forensics);', ui)
-        self.assertIn('versionCode 110', ui)
-        self.assertIn('11.2-next.0.79', ui)
+        self.assertIn('versionCode 111', ui)
+        self.assertIn('11.2-next.0.80', ui)
         before = ui.split('wine29V1Forensics.setOnClickListener(v ->', 1)[0]
         self.assertNotIn('CharoiteWine29V1Forensics.run(this)', before)
 
@@ -58,7 +58,7 @@ class Wine29V1ReadOnlyForensicContract(unittest.TestCase):
         self.assertIn("test_wine29_v1_forensics_contract.py", wf)
         self.assertIn("WINE29_V1_FORENSICS_EXISTING_SCRATCH_READ_ONLY=PASS", wf)
         self.assertIn("cp next-generation/CharoiteWine29V1Forensics.java legal-bundle/CharoiteWine29V1Forensics.java", wf)
-        self.assertIn("versionCode='110' versionName='11.2-next.0.79'", wf)
+        self.assertIn("versionCode='111' versionName='11.2-next.0.80'", wf)
 
 if __name__ == "__main__":
     unittest.main()

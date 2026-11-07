@@ -360,6 +360,25 @@ jobs:
           done
           echo "Wine29 0.7 fully pinned; old Wine29 0.6 and Wine28 source paths unchanged; no execution."
 
+      - name: Audit source-matched Wine29 ELF selector literals without execution
+        run: |
+          set -euo pipefail
+          python3 next-generation/audit_wine29_07_selectors.py \
+            upstream/app/src/main/assets/charoite-next/wine29-native07/wine29-native07-index.json \
+            upstream/app/src/main/jniLibs/arm64-v8a \
+            --output "$RUNNER_TEMP/wine29-native-selector-audit.json"
+          test -s "$RUNNER_TEMP/wine29-native-selector-audit.json"
+          echo "Only signed-index native ELF hashes and literal strings inspected; no loader, PE or phone execution."
+
+      - name: Publish bounded Wine29 native selector evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-Native-Selector-Audit-Read-Only
+          path: ${{ runner.temp }}/wine29-native-selector-audit.json
+          if-no-files-found: error
+          retention-days: 30
+
+
       - name: Stage independent Wine29 0.12 111-file sealed DATA-only assets
         env:
           GH_TOKEN: ${{ github.token }}

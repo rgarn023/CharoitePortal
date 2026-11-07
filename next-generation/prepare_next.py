@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.75"')
-text = text.replace("versionCode 33", "versionCode 106")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.76"')
+text = text.replace("versionCode 33", "versionCode 107")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -178,7 +178,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29Sealed012Stage.java",
                  "CharoiteWine29Sealed012PePreflight.java",
                  "CharoiteWine29V1PeHelpProbe.java",
-                 "CharoiteWine29V1Forensics.java"):
+                 "CharoiteWine29V1Forensics.java",
+                 "CharoiteWine29V2BootstrapProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1466,8 +1467,9 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
                 "Wine29 PE-help reached Wineboot but kernel32.dll failed (c0000135). " +
-                "Only preserved v1 read-only inspection is currently available. " +
-                "No Wine execution or new scratch is authorized.",
+                "Preserved v1 inspection is read-only. The optional v2 bootstrap " +
+                "diagnostic requires a separate one-shot confirmation, creates new scratch, " +
+                "and does not repair or activate the gaming runtime.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1498,6 +1500,49 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V1Forensics").start();
         });
         nextCoreCard.addView(wine29V1Forensics);
+
+        // Manual one-shot v2 ONLY, opt-in after a second explicit confirmation.
+        // Never run on startup, never retry v1 or touch stable Portal data.
+        android.widget.Button wine29V2Bootstrap = new android.widget.Button(this);
+        wine29V2Bootstrap.setText("Wine29 v2 bootstrap and kernel32 trace (one-shot)");
+        wine29V2Bootstrap.setAllCaps(false);
+        wine29V2Bootstrap.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE isolated Wine29 v2 diagnostic?")
+                .setMessage("This WILL execute verified Wine29 native wineserver and loader " +
+                    "plus ARM64 wineboot.exe --help. Wine MAY automatically run " +
+                    "Wineboot --init internally, creating a new prefix. Only a NEW " +
+                    "charoite-next-wine29-bootstrap-v2 private scratch may be written. " +
+                    "Source hashes and package identity are verified before execution; " +
+                    "time and logs are bounded and sanitized. The run is one-shot; " +
+                    "results and scratch are retained, even on failure. Failed v1, " +
+                    "other scratch, stable Portal, installed games, saves and existing " +
+                    "prefixes will not be accessed. This is NOT a game or runtime test. " +
+                    "Do you explicitly authorize this ONE execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE new v2 diagnostic", (dialog, which) -> {
+                    wine29V2Bootstrap.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V2BootstrapProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V2Bootstrap.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 v2 isolated bootstrap trace")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Next Wine29 v2 isolated bootstrap report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V2BootstrapProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V2Bootstrap);
 
 
 

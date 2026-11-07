@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.89"')
-text = text.replace("versionCode 33", "versionCode 120")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.90"')
+text = text.replace("versionCode 33", "versionCode 121")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -1938,7 +1938,7 @@ ui = ui.replace(anchor, anchor + """
         // CURRENT TEST: strict read-only v8 audit; clipboard contains a short
         // bounded summary and explicit END marker, never raw 600KB+ traces.
         android.widget.Button wine29V8Audit = new android.widget.Button(this);
-        wine29V8Audit.setText("Inspect Wine29 v8 bootstrap (short read-only report)");
+        wine29V8Audit.setText("Inspect Wine29 v8 registry + services (read-only)");
         wine29V8Audit.setAllCaps(false);
         wine29V8Audit.setOnClickListener(v -> {
             wine29V8Audit.setEnabled(false);
@@ -1948,7 +1948,7 @@ ui = ui.replace(anchor, anchor + """
                 runOnUiThread(() -> {
                     wine29V8Audit.setEnabled(true);
                     new android.app.AlertDialog.Builder(this)
-                        .setTitle("Charoite Next — v8 preserved short postmortem")
+                        .setTitle("Charoite Next — v8 registry and services read-only audit")
                         .setMessage(report)
                         .setPositiveButton("Copy short report", (dlg, button) -> {
                             android.content.ClipboardManager cb =

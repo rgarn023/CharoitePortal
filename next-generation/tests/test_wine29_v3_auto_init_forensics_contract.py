@@ -56,7 +56,7 @@ class Wine29V3AutoInitReadOnlyContracts(unittest.TestCase):
             'CharoiteWine29V3AutoInitForensics.run(this)',
             'nextCoreCard.addView(wine29V3Forensics);',
             'versionCode 113','11.2-next.0.82',
-            'not a Wineboot process exit',
+            'Child completion and full prefix initialization NOT YET verified',
         ):
             with self.subTest(token=token):self.assertIn(token,UI)
         before=UI.split('wine29V3Forensics.setOnClickListener(v ->',1)[0]

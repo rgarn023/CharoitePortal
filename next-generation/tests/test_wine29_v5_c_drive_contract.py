@@ -60,7 +60,7 @@ class Wine29V5CDriveContracts(unittest.TestCase):
    with self.subTest(marker=marker):self.assertIn(marker,UI)
   before=UI.split('wine29V5DriveC.setOnClickListener(v ->')[0]
   self.assertNotIn('CharoiteWine29V5DriveCProbe.run(this)',before)
-  self.assertIn('Wine29 v5 direct -i exited 0',UI)
+  self.assertIn('Wine29 v6 native child reached its own wineboot.exe PE image',UI)
 
  def test_ci_and_licensing(self):
   for marker in (

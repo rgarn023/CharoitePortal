@@ -15,7 +15,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'v6-foreground-wineserver.log',
             'getNoBackupFilesDir()', 'MAX_PE_LOG = 2L * 1024L * 1024L',
             'MAX_SERVER_LOG = 256L * 1024L', 'MAX_PROCESSES = 24',
-            'NtCreateUserProcess', 'run_wineboot failed to start wineboot',
+            'ntcreateuserprocess', 'run_wineboot failed to start wineboot',
             'charoite_wine29_v6_child_execv_failure',
             'mapping pe file', 'load_apiset_dll loaded',
             'NtTerminateProcess', 'wineboot.exe', 'ntdll.dll',
@@ -49,7 +49,7 @@ class V6PreservedReadOnly(unittest.TestCase):
 
     def test_verdict_never_promotes_to_runnable_engine(self):
         self.assertIn('CHILD STARTUP CONFIRMED', JAVA)
-        self.assertIn('not completed prefix setup or verified Windows runtime', JAVA)
+        self.assertIn('NOT completed prefix setup or verified Windows runtime', JAVA)
         self.assertIn('exit=0 or mapping alone', JAVA)
         self.assertIn('REGISTRY', JAVA.upper())
 

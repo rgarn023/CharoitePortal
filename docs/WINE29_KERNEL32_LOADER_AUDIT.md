@@ -88,3 +88,34 @@ user data are touched. Source code and contract tests are committed on
 4. Do not rerun or erase v1 and do not alter `com.charoite` or user data.
 
 **Current result: FAIL at kernel32 c0000135, root cause unresolved.**
+
+
+## Source-matched Wine29 .0.7 ELF selector evidence (CI 42316771341)
+
+The new CI audit step **PASSED** after independently rechecking the source
+index and SHA-256 for all three exact Wine29 .0.7 APK native ELFs. The
+[read-only JSON artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/42316771341/artifacts/13550439347)
+reports:
+
+- `libcharoite_wine29_loader.so`, `libcharoite_wine29_ntdll.so`, and
+  `libcharoite_wine29_wineserver.so` **all contain literal**
+  `CHAROITE_WINE29_NATIVE_DIR`, `CHAROITE_WINE29_PE_DIR`, and
+  `CHAROITE_WINE29_DATA_DIR`.
+- All three ALSO contain old `CHAROITE_WINE28_NATIVE_DIR` and
+  `CHAROITE_WINE28_PE_DIR` marker strings and a
+  `Wine29/Wine28 selector conflict` message.
+- `CHAROITE_WINE28_DATA_DIR` was not found in any of those three files.
+  `WINEDLLPATH` was found in loader and ntdll, not wineserver.
+
+**Interpretation:** The hypothesis that the Wine29 binaries completely
+lack the Wine29 v1 environment selector names is **not supported** by the
+observed byte strings. Shared strings or compatibility/error markers could
+be present without active execution paths. Binary source match is proven;
+whether the loader actually consumes a particular selector, resolves
+transitive DLL dependencies, or rejects kernel32 remains **UNRESOLVED**.
+Do not re-run failed v1 or enable new execution from this evidence.
+
+Next analysis should inspect the exact source-matched Wine29 native selector
+call sites, initialization order, dynamic architecture-search and the
+retained v1 kernel32 mapping trace; only design new isolated v2 runtime
+logging after an explicit authorization and a non-destructive review.

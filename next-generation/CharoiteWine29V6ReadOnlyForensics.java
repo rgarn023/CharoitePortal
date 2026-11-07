@@ -27,6 +27,7 @@ public final class CharoiteWine29V6ReadOnlyForensics {
     private static final String SCRATCH = "charoite-next-wine29-child-loader-v6";
     private static final String PE_LOG = "v6-wine-direct-init.log";
     private static final String SERVER_LOG = "v6-foreground-wineserver.log";
+    private static final String AUDIT_REVISION = "v2-0034-bounded-server-log";
     private static final long MAX_PE_LOG = 2L * 1024L * 1024L;
     private static final long MAX_SERVER_LOG = 256L * 1024L;
     private static final int MAX_LINES = 120000;
@@ -182,6 +183,94 @@ public final class CharoiteWine29V6ReadOnlyForensics {
         out.append("WARNING: exit=0 or mapping alone is NOT completed prefix setup or verified Windows runtime.\n");
     }
 
+
+    /** Additional bounded pass over the SAME preserved PE log. It identifies
+     * nonzero-exit helper processes without running anything or reading user
+     * files. This is necessary because v6 wineboot 0024/002c both exited 0
+     * while an independent helper 0034 exited with STATUS_DLL_NOT_FOUND. */
+    private static void auditNonzeroProcesses(File scratch, StringBuilder out) throws Exception {
+        File log = evidence(scratch, PE_LOG);
+        if (!log.isFile()) return;
+        long size=log.length();
+        if (size<=0 || size>MAX_PE_LOG)
+            throw new SecurityException("v6 PE log outside fixed 2 MiB bound");
+        final class ProcessInfo {
+            String firstExe="not identified";
+            String firstError="not observed";
+            String firstNonzero="not observed";
+            int exitEvents=0;
+        }
+        LinkedHashMap<String,ProcessInfo> processes=new LinkedHashMap<>();
+        int lines=0, totalNonzero=0;
+        try (BufferedReader reader=new BufferedReader(new InputStreamReader(
+                new FileInputStream(log), StandardCharsets.UTF_8), 16384)) {
+            String line;
+            while ((line=reader.readLine())!=null) {
+                if (++lines>MAX_LINES || line.length()>MAX_LINE)
+                    throw new SecurityException("v6 PE failure audit outside bounded lines");
+                Matcher proc=PROCESS.matcher(line);
+                if (!proc.matches()) continue;
+                String pid=proc.group(1).toLowerCase(Locale.US);
+                ProcessInfo p=processes.get(pid);
+                if (p==null && processes.size()<MAX_PROCESSES) {
+                    p=new ProcessInfo();
+                    processes.put(pid,p);
+                }
+                if (p==null) continue;
+                String lower=line.toLowerCase(Locale.US);
+                if (lower.contains("mapping pe file") && lower.contains(".exe")
+                        && "not identified".equals(p.firstExe)) {
+                    int end=lower.indexOf(".exe");
+                    String leading=line.substring(0,end+4);
+                    int start=Math.max(leading.lastIndexOf('\\'), leading.lastIndexOf('/'))+1;
+                    String candidate=leading.substring(start);
+                    if (candidate.matches("(?i)[a-z0-9_.-]{1,64}\\.exe"))
+                        p.firstExe=candidate;
+                }
+                if ("not observed".equals(p.firstError)
+                        && (lower.contains("err:module:") || lower.contains("err:environ:")
+                            || lower.contains("c0000135")
+                            || (lower.contains("library") && lower.contains("not found"))))
+                    p.firstError=safeLine(line, scratch.getAbsolutePath());
+                if (lower.contains("ntterminateprocess") && lower.contains("exit_code")) {
+                    Matcher code=EXIT.matcher(line);
+                    if (code.find()) {
+                        p.exitEvents++;
+                        if (!"0".equals(code.group(1))
+                                && "not observed".equals(p.firstNonzero)) {
+                            p.firstNonzero=code.group(1);
+                            totalNonzero++;
+                        }
+                    }
+                }
+            }
+        }
+        out.append("FAILURE-SCOPED READ-ONLY PASS: ")
+           .append(lines).append(" PE lines re-read; no process executed.\n");
+        out.append("Distinct process IDs with observed nonzero exit: ")
+           .append(totalNonzero).append('\n');
+        for (Map.Entry<String,ProcessInfo> e:processes.entrySet()) {
+            ProcessInfo p=e.getValue();
+            if ("not observed".equals(p.firstNonzero)) continue;
+            String hex="unavailable";
+            try {
+                hex=String.format(Locale.US,"0x%08X",
+                        (int)Long.parseLong(p.firstNonzero));
+            } catch (NumberFormatException ignored) {}
+            out.append("Nonzero exit process 0x").append(e.getKey())
+               .append(": executable=").append(p.firstExe)
+               .append("; first exit=").append(p.firstNonzero)
+               .append(" / ").append(hex)
+               .append("; exit events=").append(p.exitEvents).append('\n');
+            out.append("  Earliest module/load error: ").append(p.firstError).append('\n');
+            if ("0xC0000135".equals(hex))
+                out.append("  STATUS_DLL_NOT_FOUND: missing dependency identity ")
+                   .append("NOT proven until the source of this failure is identified.\n");
+        }
+        out.append("Two wineboot exit-0 processes do not exclude a failed helper ")
+           .append("or prove complete Windows prefix initialization.\n");
+    }
+
     private static void auditServer(File scratch, StringBuilder out) throws Exception {
         File log = evidence(scratch, SERVER_LOG);
         if (!log.isFile()) {
@@ -189,15 +278,22 @@ public final class CharoiteWine29V6ReadOnlyForensics {
             return;
         }
         long size = log.length();
-        if (size <= 0 || size > MAX_SERVER_LOG)
-            throw new SecurityException("Preserved v6 wineserver log exceeds read-only limit");
-        int lines=0, startup=0, clientThreads=0, noSuchFile=0, errors=0;
+        if (size <= 0 || size > MAX_SERVER_LOG) {
+            out.append("v6 retained wineserver log ").append(size)
+               .append(" bytes exceeds strict read-only 256 KiB cap or is empty; ")
+               .append("server contents NOT READ; PE audit preserved.\n");
+            return;
+        }
+        int lines=0, startup=0, clientThreads=0, noSuchFile=0, errors=0, oversizedLines=0;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 new FileInputStream(log), StandardCharsets.UTF_8), 16384)) {
             String s;
             while ((s=reader.readLine())!=null) {
-                if (++lines > MAX_LINES || s.length() > MAX_LINE)
-                    throw new SecurityException("Preserved v6 server log exceeds bounded line limits");
+                if (++lines > MAX_LINES)
+                    throw new SecurityException("Preserved v6 server log exceeds bounded line-count limit");
+                // Some Wine protocol lines exceed 16 KiB. Safely skip their
+                // contents, keeping the original whole-file 256 KiB cap.
+                if (s.length() > MAX_LINE) {oversizedLines++;continue;}
                 String x=s.toLowerCase(Locale.US);
                 if (x.contains("wineserver: starting")) startup++;
                 if (x.contains("init_first_thread")) clientThreads++;
@@ -209,7 +305,8 @@ public final class CharoiteWine29V6ReadOnlyForensics {
            .append("Server-start markers: ").append(startup)
            .append("; first-thread markers: ").append(clientThreads)
            .append("; NO_SUCH_FILE statuses: ").append(noSuchFile)
-           .append("; fatal/err markers: ").append(errors).append('\n');
+           .append("; fatal/err markers: ").append(errors)
+           .append("; overlong lines skipped: ").append(oversizedLines).append('\n');
         out.append("Server termination after direct -i is not by itself proof of failure.\n");
     }
 
@@ -242,6 +339,7 @@ public final class CharoiteWine29V6ReadOnlyForensics {
     public static String run(Context context) {
         StringBuilder out=new StringBuilder();
         out.append("CHAROITE NEXT — WINE29 V6 PRESERVED CHILD-STARTUP POSTMORTEM\n");
+        out.append("Audit revision: ").append(AUDIT_REVISION).append('\n');
         out.append("STRICT READ ONLY; no Wine, Wineboot, wineserver, process creation, scratch creation, writes, cleanup or retries.\n");
         out.append("Only TWO named v6 logs and named v6 metadata paths; other generations, stable Portal, games, saves, user prefixes/rootfs NOT ACCESSED.\n");
         if (!PACKAGE.equals(context.getPackageName()) || Build.VERSION.SDK_INT < 26)
@@ -262,10 +360,21 @@ public final class CharoiteWine29V6ReadOnlyForensics {
                 pathStatus(scratch,out,name);
             }
             auditPe(scratch,out);
-            auditServer(scratch,out);
-            out.append("RESULT: READ-ONLY POSTMORTEM FINISHED; no Windows runtime conclusion without a separate authorized future test.\n");
+            auditNonzeroProcesses(scratch,out);
+            out.append("Server-log audit: read-only, original 256 KiB cap; ")
+               .append("oversized individual lines safely skipped.\n");
+            try {
+                auditServer(scratch,out);
+            } catch (SecurityException e) {
+                out.append("SERVER AUDIT ONLY BLOCKED: ").append(e.getMessage())
+                   .append("; preceding PE findings remain valid.\n");
+            }
+            out.append("RESULT: READ-ONLY POSTMORTEM FINISHED; successful wineboot ")
+               .append("exit is not proof that all helpers or prefix initialization succeeded.\n");
         } catch (Exception e) {
             out.append("RESULT: BLOCKED — ").append(e.getClass().getSimpleName())
+               .append("; reason: ")
+               .append(e instanceof SecurityException ? e.getMessage() : "bounded read failure")
                .append("; preserved v6 evidence unchanged.\n");
         }
         return out.toString();

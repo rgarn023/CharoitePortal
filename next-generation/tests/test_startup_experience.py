@@ -154,7 +154,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertLess(PREP.index("} // Archived test controls"),
                         PREP.index('wine29V1Forensics.setText('))
         self.assertIn("CURRENT WINE29 DIAGNOSTIC", PREP)
-        self.assertIn("No Wine execution or new scratch is authorized.", PREP)
+        self.assertIn("The optional v2 bootstrap ", PREP)
+        self.assertIn('setPositiveButton("Authorize ONE new v2 diagnostic"', PREP)
         self.assertIn("final boolean showArchivedStartupDiagnostics = false;", PREP)
         self.assertLess(PREP.index("if (showArchivedStartupDiagnostics) {"),
                         PREP.index('startupDiagnostics.setText('))

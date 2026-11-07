@@ -120,3 +120,41 @@ Next analysis should inspect the exact source-matched Wine29 native selector
 call sites, initialization order, dynamic architecture-search and the
 retained v1 kernel32 mapping trace; only design new isolated v2 runtime
 logging after an explicit authorization and a non-destructive review.
+
+
+## Source-matched native call-site audit and focused v1 log triage (v0.75 development)
+
+**Evidence and provenance:** the pinned Wine29 .0.7 archive (source run
+41749167248, archive SHA-256
+66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e)
+contains source/charoite-wine29-native-source-delta.patch (SHA-256
+f8122ad18663a0bedb5dde7983f6ebb690963ac1c87016fe3d4a1cdbc3061428).
+A new CI audit checks these immutable hashes and the loader.c patch itself.
+This is narrower and stronger evidence than simply finding selector strings
+in compiled ELF files, but does not prove execution decisions.
+
+In the patched dlls/ntdll/unix/loader.c, the function
+charoite_wine29_selected_path() demands all three Wine29 paths when one is
+specified and rejects older Wine28/27/26 selectors in the same source cohort.
+load_ntdll() constructs the initial ntdll.dll location from the Wine29 PE
+selector; load_apiset_dll() constructs the initial apisetschema.dll
+location using that same selector. Other DLL lookup uses the general Wine
+WINEDLLPATH search roots and the ARM64 /aarch64-windows suffix. These are
+source-level call-site observations, not actual runtime path traces. The
+preserved v1 log already shows NTDLL and API-set initial loading succeeded,
+so the next unknown is the **subsequent ordinary kernel32 DLL resolution,
+transitive imports or PE/ARM64EC rejection**, not merely whether a Wine29
+selector marker exists.
+
+The v0.75 experimental package (versionCode 106, pending signed CI at time
+of this edit) preserves the old v1 read-only System diagnostic button, adding
+bounded adjacent log context around the last kernel32 and c0000135 mentions,
+plus precise find_dll_file, load_dll, import_dll and mapping marker
+counts. Existing log byte caps, source-hash PE gates and environment-field
+redaction remain. No new Wineboot/Wine execution, scratch creation, prefix
+mutation or test-button proliferation is authorized.
+
+**Avoid inference leap:** a log with no kernel32 PE mapping marker cannot
+alone distinguish missing file, bad machine/ABI, missing transitive
+dependency, incorrect search scope or incomplete debug logging. On-device
+evidence is still needed. See CURRENT_HANDOFF.md.

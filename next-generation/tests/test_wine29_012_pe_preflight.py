@@ -42,7 +42,7 @@ class Wine29Sealed012Preflight(unittest.TestCase):
         wf=WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('test_wine29_012_pe_preflight.py', wf)
         self.assertIn('WINE29_012_PE_IMPORT_PREFLIGHT_NO_EXECUTION=PASS', wf)
-        self.assertIn('versionCode=\'120\' versionName=\'11.2-next.0.90\'', wf)
+        self.assertIn('versionCode=\'121\' versionName=\'11.2-next.0.90\'', wf)
 
 if __name__=="__main__":
     unittest.main()

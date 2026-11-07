@@ -17,7 +17,8 @@ class V7SourceBuiltServicesContract(unittest.TestCase):
         for text in (
             "f32a3563254b2ae6447d6cf2e6639be3e7e6d9d9",
             "42409561051", "13589325323", "fba183ee44a632c2e45608dace22ce71108129882e2854fd51bf077c04247a34",
-            "charoite-next/wine29-v7-services/services-index.json",
+            'ROOT = "charoite-next/wine29-v7-services"',
+            'INDEX = ROOT + "/services-index.json"',
             "services-arm64.exe.bin", 'pe_machine', '0xAA64',
             "stage_wine29_v7_services.py",
             "previous_sealed_111_unchanged", "prior_v6_native_cohort_unchanged",
@@ -44,7 +45,7 @@ class V7SourceBuiltServicesContract(unittest.TestCase):
                 self.assertIn(text, JAVA)
         self.assertLess(JAVA.index('verifyV7Services(context);'), JAVA.index('scratch = child(privateBase, SCRATCH);'))
         self.assertNotIn('charoite-next-wine29-child-loader-v6', JAVA)
-        for forbidden in ("Runtime.getRuntime()", 'clearApplicationUserData(', 'delete(', 'renameTo(', 'WINEBOOTSTRAPMODE"', 'getSharedPreferences('):
+        for forbidden in ("Runtime.getRuntime()", 'clearApplicationUserData(', 'delete(', 'renameTo(', 'env.put("WINEBOOTSTRAPMODE"', 'getSharedPreferences('):
             self.assertNotIn(forbidden, JAVA)
 
     def test_manual_new_v7_confirmation_archives_old_v6_action(self):

@@ -78,6 +78,12 @@ jobs:
             "$READELF" -h "$elf" | grep -F 'AArch64'
             "$READELF" -lW "$elf" > "$elf.program-headers.txt"
           done
+          # Reject native candidates that compiled without both v6 selectors.
+          grep -a -Fq 'CHAROITE_WINE29_V6_NATIVE_DIR' "$OUT/libcharoite_wine29_v6_loader.so"
+          grep -a -Fq 'libcharoite_wine29_v6_ntdll.so' "$OUT/libcharoite_wine29_v6_loader.so"
+          grep -a -Fq 'CHAROITE_WINE29_V6_LOADER_EXEC' "$OUT/libcharoite_wine29_v6_ntdll.so"
+          grep -a -Fq 'libcharoite_wine29_v6_loader.so' "$OUT/libcharoite_wine29_v6_ntdll.so"
+          echo "WINE29_V6_MATCHED_NATIVE_CHILD_SELECTOR_STRINGS=PASS"
           (cd "$OUT" && sha256sum ./*.so > native-sha256.txt)
           python3 - "$OUT" <<'PY'
           import json,pathlib,struct,sys
@@ -96,6 +102,8 @@ jobs:
           data=json.loads((p/"source-patch-evidence.json").read_text())
           assert data["source_revision"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
           assert data["selector_env"]=="CHAROITE_WINE29_V6_LOADER_EXEC"
+          assert data["matched_native_ntdll_env"]=="CHAROITE_WINE29_V6_NATIVE_DIR"
+          assert data["matched_native_ntdll"]=="libcharoite_wine29_v6_ntdll.so"
           print("WINE29_V6_THREE_NATIVE_ELF_CANDIDATES=PASS")
           print("WINE29_V6_16K_ARM64_ELF=PASS")
           print("WINE29_V6_APK_AND_PHONE_EXECUTION=NOT_ATTEMPTED")

@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           REV=c74acb09d51b447f5d5ac56c87608d3ec565a767
-          for file in dlls/ntdll/loader.c dlls/ntdll/unix/env.c dlls/ntdll/unix/loader.c; do
+          for file in dlls/ntdll/loader.c dlls/ntdll/unix/env.c dlls/ntdll/unix/loader.c dlls/ntdll/unix/process.c; do
             mkdir -p "$RUNNER_TEMP/wine29-source/$(dirname "$file")"
             curl --fail --location --silent --show-error --retry 3 \
               --connect-timeout 15 --max-time 90 \
@@ -49,6 +49,31 @@ jobs:
             "$RUNNER_TEMP/wine29-archive/charoite-wine-bootstrap-bundle.tar.gz" \
             next-generation/CharoiteWine29V1PeHelpProbe.java \
             --output "$RUNNER_TEMP/wine29-bootstrap-source-evidence.json"
+
+      - name: Audit Wine29 Android APK native-loader child exec path from pinned Wine10 source
+        run: |
+          set -euo pipefail
+          python3 analysis/wine29_bootstrap/audit_child_loader.py \
+            "$RUNNER_TEMP/wine29-source" \
+            next-generation/CharoiteWine29V5DriveCProbe.java \
+            > "$RUNNER_TEMP/wine29-child-loader-source-evidence.json"
+          python3 - "$RUNNER_TEMP/wine29-child-loader-source-evidence.json" <<'PY'
+          import json,sys
+          j=json.load(open(sys.argv[1]))
+          assert j['wine_execution']=='NONE'
+          assert j['phone_file_access']=='NONE'
+          assert j['source_facts']['child_spawn_always_calls_exec_wineloader']
+          assert not j['source_facts']['existing_v5_has_no_explicit_exec_path_patch'] is False
+          print('WINE29_CHILD_LOADER_SOURCE_AUDIT=PASS_READ_ONLY')
+          PY
+
+      - name: Publish isolated Wine29 child native loader source evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Child-Native-Loader-Source-Audit-Read-Only
+          path: ${{ runner.temp }}/wine29-child-loader-source-evidence.json
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Publish source-flow evidence only
         uses: actions/upload-artifact@v4

@@ -161,3 +161,39 @@ evidence is still needed. See CURRENT_HANDOFF.md.
 
 
 **Verified build update:** [GitHub Actions run 42318373542](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542) COMPLETED SUCCESS at source commit 697a8921d6372709948ee4cb53c8e7cbb372d6c3. Native call-site gate passed all six checks and published [artifact 13550689928](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542/artifacts/13550689928). Signed experimental v0.75 APK [artifact 13552056677](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542/artifacts/13552056677) passed 138 stable and 157 Next tests, Gradle, identity and signing checks. No Wine29 bootstrap rerun, no device test and no proven kernel32 root-cause fix.
+
+
+## November 6 phone v0.75 report and verified source-flow hypothesis
+
+The owner-provided preserved-v1 report confirms source-SHA-verified kernel32,
+kernelbase, NTDLL, API-set and Wineboot PE files (all raw COFF AA64).
+Wineboot and NTDLL mapped; API-set loaded; kernel32 was never recorded
+as mapped. The prefix contains system.reg and user.reg but no drive_c.
+Explicit Wineboot --help failed with c0000135. Automatic --init had already
+failed separately (new_process exit 1). The server's two NO_SUCH_FILE lines
+refer to alternative Wineboot locations; the correct scratch Wineboot
+subsequently mapped, so those lines do not explain kernel32.
+
+**Corrected reading of the trace:** The source-matched Wine 10 ntdll
+startup deliberately invokes load_dll(NULL, kernel32.dll, ...).
+Thus the trace text "looking for kernel32.dll in (null)" is NORMAL
+caller behavior, not evidence that WINEDLLPATH is null.
+
+**Exact source proof:** [Source-only CI 42320572066](https://github.com/rgarn023/CharoitePortal/actions/runs/42320572066)
+completed SUCCESS; all 11 checks passed. The [JSON artifact
+13552314392](https://github.com/rgarn023/CharoitePortal/actions/runs/42320572066/artifacts/13552314392)
+verifies three pinned original Wine source Git blob identities, the exact
+Wine29 .0.7 source archive and native patch hash, and original v1 Java
+environment construction. Pinned Wine sets WINEBOOTSTRAPMODE for its internal
+auto --init and restores the original mode before executing the separate
+--help process. The original v1 Java cleanEnv() sets WINEDLLPATH, but does
+not explicitly set WINEBOOTSTRAPMODE. In this Wine build,
+find_builtin_without_file() limits the built-in DLL fallback outside
+bootstrap mode. That is a plausible mechanism for the LATER --help
+kernel32 failure when drive_c is absent.
+
+**Unresolved:** The EARLIER internal --init process receives bootstrap
+mode yet exited 1. Its original failure is not explained by the later
+mode restoration. No root cause for that exit or proof of working Wineboot
+or prefix exists. No new Wine execution, user-data access or APK build
+occurred in this CI source audit.

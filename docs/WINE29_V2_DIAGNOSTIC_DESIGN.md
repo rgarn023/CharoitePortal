@@ -57,3 +57,18 @@ end-to-end graphics/input/audio device tests plus a reversible Portal upgrade
 plan before promoting experimental functionality.
 
 See CURRENT_HANDOFF.md and WINE29_KERNEL32_LOADER_AUDIT.md.
+
+
+## Verified bootstrap-mode distinction for future v2 (still design only)
+
+Pinned [source-flow audit 42320572066](https://github.com/rgarn023/CharoitePortal/actions/runs/42320572066)
+supports treating TWO outcomes separately: internal auto wineboot --init
+(exit 1 despite its temporary WINEBOOTSTRAPMODE) and explicit wineboot --help
+(kernel32 c0000135 after bootstrap mode restoration). A future separately
+authorized test in a NEW scratch should record boolean bootstrap-mode
+presence for both subprocesses, verify WINEDLLDIRn lookup candidates and
+module mapping status, and distinguish missing path, ABI rejection and
+transitive dependency failures. Log only bounded/redacted traces, never
+raw environment or credentials. Replacing the production environment with
+WINEBOOTSTRAPMODE=1 is NOT a general fix. Existing v1 scratch must remain
+untouched. No new v2 test or process is authorized by this document.

@@ -17,3 +17,7 @@ No CI step starts Wine/Wineboot/services.exe/wineserver or any Windows PE, and n
 ## Active source-only CI
 
 [GitHub Actions run 42418556136](https://github.com/rgarn023/CharoitePortal/actions/runs/42418556136) completed its pinned inputs download and static provider/import correlation preflight successfully. The true ARM64 source build and import graph are not yet verified, so no artifact SHA or binary integration is claimed. This run is triggered only by adding the new workflow on main, commit `927d864542a0a0f1a9f73c5ba75e195fc6dd6e45`.
+
+## Header-format postmortem
+
+The initial source CI run 42418556136 failed an architecture assertion **after** successfully cross-building `userenv.dll`; the next diagnostic run 42419132691 printed independent raw PE COFF machine `0xAA64` while `llvm-readobj --file-headers` described its ARM64X hybrid container as `IMAGE_FILE_MACHINE_ARM64X (0xA64E)`. These are distinct header views. The previous test incorrectly expected `AA64` in the LLVM container report. Commit `523e66511a3504f0705eee508c0fc935999dca2f` now requires both the original raw AA64 executable-view check and exact independently reported ARM64X/A64E container format, rather than relaxing either validation. Subsequent source CI run [42419386776](https://github.com/rgarn023/CharoitePortal/actions/runs/42419386776) is in progress; do not yet infer a packaged or running DLL. The original v7 scratch remains preserved.

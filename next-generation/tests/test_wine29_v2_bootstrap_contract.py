@@ -58,8 +58,8 @@ class Wine29V2BootstrapContracts(unittest.TestCase):
         self.assertIn('setNegativeButton("Cancel — do not execute", null)', UI)
         self.assertIn('CharoiteWine29V2BootstrapProbe.run(this)', UI)
         self.assertIn('nextCoreCard.addView(wine29V2Bootstrap);', UI)
-        self.assertIn('versionCode 120', UI)
-        self.assertIn('11.2-next.0.89', UI)
+        self.assertIn('versionCode 121', UI)
+        self.assertIn('11.2-next.0.90', UI)
         self.assertGreater(UI.index('wine29V2Bootstrap.setText('), UI.index('} // Archived test controls'))
         before = UI.split('wine29V2Bootstrap.setOnClickListener(v ->',1)[0]
         self.assertNotIn('CharoiteWine29V2BootstrapProbe.run(this)', before)
@@ -69,7 +69,7 @@ class Wine29V2BootstrapContracts(unittest.TestCase):
         self.assertIn("test_wine29_v2_bootstrap_contract.py", WF)
         self.assertIn("WINE29_V2_ONE_SHOT_CONSENT_ISOLATION=PASS", WF)
         self.assertIn("cp next-generation/CharoiteWine29V2BootstrapProbe.java legal-bundle/CharoiteWine29V2BootstrapProbe.java", WF)
-        self.assertIn("versionCode='120' versionName='11.2-next.0.89'", WF)
+        self.assertIn("versionCode='121' versionName='11.2-next.0.90'", WF)
 
 if __name__ == "__main__":
     unittest.main()

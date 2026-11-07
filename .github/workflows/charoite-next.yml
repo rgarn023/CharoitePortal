@@ -659,6 +659,9 @@ jobs:
           grep -Fq 'v7-foreground-wineserver.log' next-generation/CharoiteWine29V7ReadOnlyForensics.java
           grep -Fq 'v7-wine-direct-init.log' next-generation/CharoiteWine29V7ReadOnlyForensics.java
           ! grep -Eq 'new ProcessBuilder|Runtime.getRuntime|FileOutputStream|FileWriter|mkdir\(|mkdirs\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          grep -Fq 'PID 0x0034 DLL failure focus:' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          grep -Fq 'NOT proven missing modules' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          echo WINE29_V7_PRESERVED_DLL_FAILURE_TRIAGE=PASS
           echo WINE29_V7_PRESERVED_READONLY_SERVICE_CORRELATION=PASS
 
       - name: Build integrated Windows runtime preview
@@ -1158,7 +1161,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='117' versionName='11.2-next.0.86'"
+            grep -F "package: name='com.charoitx' versionCode='118' versionName='11.2-next.0.87'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |

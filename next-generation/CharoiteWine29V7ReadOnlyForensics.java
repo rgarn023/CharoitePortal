@@ -26,7 +26,7 @@ public final class CharoiteWine29V7ReadOnlyForensics {
     private static final String SCRATCH = "charoite-next-wine29-services-v7";
     private static final String PE_LOG = "v7-wine-direct-init.log";
     private static final String SERVER_LOG = "v7-foreground-wineserver.log";
-    private static final String REVISION = "v1-v7-services-process-correlated-readonly";
+    private static final String REVISION = "v2-v7-pid0034-dll-failure-readonly";
     private static final long MAX_PE_LOG = 2L * 1024L * 1024L;
     private static final long MAX_SERVER_LOG = 2L * 1024L * 1024L;
     private static final int MAX_LINES = 60000;
@@ -34,6 +34,8 @@ public final class CharoiteWine29V7ReadOnlyForensics {
     private static final int MAX_PROCESSES = 48;
     private static final Pattern PID = Pattern.compile("^([0-9a-fA-F]{4}):.*");
     private static final Pattern EXIT = Pattern.compile("exit_code[= ]+(-?[0-9]+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MODULE_BASENAME =
+        Pattern.compile("(?i)([a-z0-9_+.-]{1,64}\\.(?:dll|exe))");
 
     private CharoiteWine29V7ReadOnlyForensics() {}
 
@@ -92,6 +94,16 @@ public final class CharoiteWine29V7ReadOnlyForensics {
         }
     }
 
+
+    /** Print only bounded DLL/EXE basenames, never raw log text or paths. */
+    private static String safeModuleNames(String line) {
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+        Matcher matcher = MODULE_BASENAME.matcher(line);
+        while (matcher.find() && names.size() < 6)
+            names.add(matcher.group(1).toLowerCase(Locale.US));
+        return names.isEmpty() ? "(no module name isolated)" : String.join(", ", names);
+    }
+
     private static void peAudit(File scratch, StringBuilder out) throws Exception {
         File log = evidence(scratch, PE_LOG);
         if (!log.isFile()) {
@@ -109,6 +121,9 @@ public final class CharoiteWine29V7ReadOnlyForensics {
         int serviceBuiltinFailures=0, createRequests=0, bootInitRequests=0;
         int dllNotFound=0, fatalErrors=0, genericErrors=0, overlong=0;
         int exitEvents=0, nonzeroEvents=0, serverRelated=0;
+        int targetLines=0, targetErrModule=0, targetMissing=0;
+        java.util.ArrayList<String> failureClues = new java.util.ArrayList<>();
+        java.util.ArrayDeque<String> latestDllLookups = new java.util.ArrayDeque<>();
         java.util.ArrayList<String> requests = new java.util.ArrayList<>();
         java.util.ArrayList<String> serviceClues = new java.util.ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -120,6 +135,34 @@ public final class CharoiteWine29V7ReadOnlyForensics {
                 if (line.length() > MAX_LINE) { overlong++; continue; }
                 String lower = line.toLowerCase(Locale.US);
                 String id = pid(line);
+                if ("0034".equals(id)) {
+                    targetLines++;
+                    boolean moduleErr = lower.contains("err:module:");
+                    boolean missing = lower.contains("c0000135") ||
+                        lower.contains("status_dll_not_found");
+                    boolean importFailed = lower.contains("import_dll") &&
+                        (lower.contains("failed") || lower.contains("not found"));
+                    if (moduleErr) targetErrModule++;
+                    if (missing) targetMissing++;
+                    if ((moduleErr || missing || importFailed) && failureClues.size() < 10) {
+                        String kind = moduleErr ? "module error" :
+                            importFailed ? "import failure" : "DLL_NOT_FOUND status";
+                        failureClues.add("  PE line " + lines + ": " + kind +
+                            "; basenames=" + safeModuleNames(line));
+                    }
+                    if (lower.contains("get_load_order") ||
+                        lower.contains("import_dll") ||
+                        lower.contains("load_dll") ||
+                        lower.contains("load_builtin_dll") ||
+                        (lower.contains("mapping pe file") && lower.contains("services.exe"))) {
+                        String kind = lower.contains("get_load_order") ? "load-order lookup" :
+                            lower.contains("import_dll") ? "import lookup" :
+                            lower.contains("mapping pe file") ? "services mapped" : "DLL load";
+                        latestDllLookups.addLast("  PE line " + lines + ": " + kind +
+                            "; basenames=" + safeModuleNames(line));
+                        if (latestDllLookups.size() > 12) latestDllLookups.removeFirst();
+                    }
+                }
                 ProcessRecord p = id != null ? table.get(id) : null;
                 if (p == null && id != null && table.size() < MAX_PROCESSES) {
                     p = new ProcessRecord();
@@ -217,6 +260,17 @@ public final class CharoiteWine29V7ReadOnlyForensics {
                .append(" first_exit=").append(summarizeCode(p.firstExit))
                .append(" last_exit=").append(summarizeCode(p.lastExit)).append('\n');
         }
+        out.append("PID 0x0034 DLL failure focus: lines=").append(targetLines)
+           .append("; module error markers=").append(targetErrModule)
+           .append("; DLL_NOT_FOUND markers=").append(targetMissing).append('\n');
+        out.append("PID 0x0034 failure event TYPES (max 10; sanitized module basenames):\n");
+        if (failureClues.isEmpty()) out.append("  no specific module failure marker isolated\n");
+        for (String clue : failureClues) out.append(clue).append('\n');
+        out.append("PID 0x0034 last DLL lookup/load TYPES (max 12; sanitized module basenames):\n");
+        if (latestDllLookups.isEmpty()) out.append("  no DLL lookup/load clue isolated\n");
+        for (String clue : latestDllLookups) out.append(clue).append('\n');
+        out.append("PID 0034 INTERPRETATION: names are observed, NOT proven missing modules; ")
+           .append("only a specifically correlated module/import failure supports a missing-DLL diagnosis.\n");
         out.append("PE INTERPRETATION: services.exe absent from the trace is NOT proof it ran, ")
            .append("nor proof it failed; Wineboot exit 0 does NOT verify service initialization.\n");
     }
@@ -286,7 +340,7 @@ public final class CharoiteWine29V7ReadOnlyForensics {
 
     public static String run(Context context) {
         StringBuilder out = new StringBuilder();
-        out.append("CHAROITE NEXT — WINE29 V7 SERVICES.EXE PRESERVED POSTMORTEM\n");
+        out.append("CHAROITE NEXT — WINE29 V7 SERVICES.EXE PID 0034 DLL FAILURE POSTMORTEM\n");
         out.append("Audit revision: ").append(REVISION).append('\n');
         out.append("STRICT READ ONLY: NO Wine, Wineboot, services.exe, wineserver, processes, ")
            .append("scratch creation, writes, cleanup, or retries.\n");

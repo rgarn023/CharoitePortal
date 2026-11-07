@@ -49,6 +49,11 @@ class V7PreservedServicesAudit(unittest.TestCase):
 
     def test_service_process_correlation_is_careful(self):
         for required in (
+            'PID 0x0034 DLL failure focus:',
+            'PID 0x0034 failure event TYPES',
+            'PID 0x0034 last DLL lookup/load TYPES',
+            'safeModuleNames(String line)',
+            'NOT proven missing modules',
             'services.exe process-create requests=',
             'services.exe mapped PE images=',
             'services builtin lookup failures=',
@@ -70,10 +75,10 @@ class V7PreservedServicesAudit(unittest.TestCase):
         for required in (
             '"CharoiteWine29V7ReadOnlyForensics.java"',
             'final boolean showArchivedWine29V7Execution = false;',
-            'Inspect Wine29 v7 services startup (read-only)',
+            'Inspect Wine29 v7 DLL failure (read-only)',
             'CharoiteWine29V7ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V7Audit);',
-            'versionCode 117', '11.2-next.0.86',
+            'versionCode 118', '11.2-next.0.87',
         ):
             with self.subTest(required=required):
                 self.assertIn(required, UI)
@@ -86,8 +91,9 @@ class V7PreservedServicesAudit(unittest.TestCase):
         for required in (
             'test_wine29_v7_readonly_forensics_contract.py',
             'WINE29_V7_PRESERVED_READONLY_SERVICE_CORRELATION=PASS',
+            'WINE29_V7_PRESERVED_DLL_FAILURE_TRIAGE=PASS',
             'cp next-generation/CharoiteWine29V7ReadOnlyForensics.java legal-bundle/CharoiteWine29V7ReadOnlyForensics.java',
-            "versionCode='117' versionName='11.2-next.0.86'",
+            "versionCode='118' versionName='11.2-next.0.87'",
         ):
             self.assertIn(required, WF)
 

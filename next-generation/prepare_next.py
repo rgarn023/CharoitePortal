@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.77"')
-text = text.replace("versionCode 33", "versionCode 108")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.78"')
+text = text.replace("versionCode 33", "versionCode 109")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -180,7 +180,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V1PeHelpProbe.java",
                  "CharoiteWine29V1Forensics.java",
                  "CharoiteWine29V2BootstrapProbe.java",
-                 "CharoiteWine29V3LayoutProbe.java"):
+                 "CharoiteWine29V3LayoutProbe.java",
+                 "CharoiteWine29V3AutoInitForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1467,11 +1468,10 @@ ui = ui.replace(anchor, anchor + """
         } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
-                "Wine29 PE-help reached Wineboot but kernel32.dll failed (c0000135). " +
-                "Wine29 v2 showed an ARM64 loader path mismatch (arm64-windows instead of " +
-                "aarch64-windows). The NEW v3 experiment keeps the same sealed PE cohort " +
-                "but launches a source-hash-verified Wineboot beside kernel32.dll in a fresh " +
-                "private scratch. No v1/v2 re-run or game-engine activation.",
+                "Wine29 v3 PE --help PASSED (exit 0), with kernel32/kernelbase loaded. " +
+                "Automatic wineboot --init child creation still reports status 0x1; " +
+                "this is a NtCreateUserProcess status, NOT a Wineboot exit code. " +
+                "Use preserved v3 read-only forensics; no new Wine execution is enabled.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1552,6 +1552,8 @@ ui = ui.replace(anchor, anchor + """
         // NEW V3 test corrects the EXPLICIT Wineboot location only:
         // use verified aarch64-windows/wineboot.exe beside kernel32.dll.
         // Never auto-run; do not retry v1 or v2.
+        final boolean showArchivedWine29V3Execution = false;
+        if (showArchivedWine29V3Execution) {
         android.widget.Button wine29V3Layout = new android.widget.Button(this);
         wine29V3Layout.setText("Wine29 v3 matched-directory Wineboot test (one-shot)");
         wine29V3Layout.setAllCaps(false);
@@ -1592,6 +1594,35 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V3LayoutProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V3Layout);
+        } // V3 one-shot execution archived after successful --help; preserved scratch untouched.
+        // READ-ONLY examination of already preserved v3 evidence, no process execution.
+        android.widget.Button wine29V3Forensics = new android.widget.Button(this);
+        wine29V3Forensics.setText("Inspect preserved Wine29 v3 auto-init failure (read-only)");
+        wine29V3Forensics.setAllCaps(false);
+        wine29V3Forensics.setOnClickListener(v -> {
+            wine29V3Forensics.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V3AutoInitForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V3Forensics.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — preserved Wine29 v3 auto-init postmortem")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, button) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Next Wine29 v3 READ-ONLY auto-init forensics", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V3AutoInitForensics").start();
+        });
+        nextCoreCard.addView(wine29V3Forensics);
+
 
 
 

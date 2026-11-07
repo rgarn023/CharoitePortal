@@ -550,6 +550,15 @@ jobs:
           ! grep -Fq 'env.put("WINEBOOTSTRAPMODE"' next-generation/CharoiteWine29V3LayoutProbe.java
           echo WINE29_V3_MATCHED_PE_DIRECTORY_CONSENT=PASS
 
+      - name: Verify preserved v3 auto-init forensics never executes or modifies any Wine prefix
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v3_auto_init_forensics_contract.py' -v
+          grep -Fq 'charoite-next-wine29-pe-dir-v3' next-generation/CharoiteWine29V3AutoInitForensics.java
+          grep -Fq 'Inspect preserved Wine29 v3 auto-init failure (read-only)' next-generation/prepare_next.py
+          ! grep -Eq 'ProcessBuilder|Runtime.getRuntime|FileOutputStream|mkdir\(|mkdirs\(|\.delete\(' next-generation/CharoiteWine29V3AutoInitForensics.java
+          echo WINE29_V3_POSTMORTEM_NO_EXECUTION_OR_WRITES=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1047,7 +1056,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='108' versionName='11.2-next.0.77'"
+            grep -F "package: name='com.charoitx' versionCode='109' versionName='11.2-next.0.78'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1210,6 +1219,7 @@ jobs:
           cp next-generation/CharoiteWine29V1Forensics.java legal-bundle/CharoiteWine29V1Forensics.java
           cp next-generation/CharoiteWine29V2BootstrapProbe.java legal-bundle/CharoiteWine29V2BootstrapProbe.java
           cp next-generation/CharoiteWine29V3LayoutProbe.java legal-bundle/CharoiteWine29V3LayoutProbe.java
+          cp next-generation/CharoiteWine29V3AutoInitForensics.java legal-bundle/CharoiteWine29V3AutoInitForensics.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py

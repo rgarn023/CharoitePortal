@@ -108,6 +108,10 @@ static void *load_ntdll( char *argv0 )
         with self.assertRaisesRegex(ValueError, 'anchor'):
             patch.patch_native_entry(main.replace('static void *load_ntdll( char *argv0 )', ''))
 
+    def test_v6_source_requires_own_pe_nls_namespace(self):
+        self.assertIn('CHAROITE_WINE29_V6_PE_DIR', patch.stage.__code__.co_consts.__str__())
+        self.assertIn('CHAROITE_WINE29_V6_DATA_DIR', patch.stage.__code__.co_consts.__str__())
+
     def test_git_blob_fails_on_tampering(self):
         self.assertNotEqual(patch.git_blob_sha(b"modified"), patch.RAW_LOADER_BLOB)
         self.assertEqual(len(patch.RAW_LOADER_BLOB), 40)

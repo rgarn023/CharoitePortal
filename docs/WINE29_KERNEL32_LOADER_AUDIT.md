@@ -146,8 +146,8 @@ so the next unknown is the **subsequent ordinary kernel32 DLL resolution,
 transitive imports or PE/ARM64EC rejection**, not merely whether a Wine29
 selector marker exists.
 
-The v0.75 experimental package (versionCode 106, pending signed CI at time
-of this edit) preserves the old v1 read-only System diagnostic button, adding
+The v0.75 experimental package (versionCode 106, signed CI VERIFIED in
+run 42318373542) preserves the old v1 read-only System diagnostic button, adding
 bounded adjacent log context around the last kernel32 and c0000135 mentions,
 plus precise find_dll_file, load_dll, import_dll and mapping marker
 counts. Existing log byte caps, source-hash PE gates and environment-field
@@ -158,3 +158,6 @@ mutation or test-button proliferation is authorized.
 alone distinguish missing file, bad machine/ABI, missing transitive
 dependency, incorrect search scope or incomplete debug logging. On-device
 evidence is still needed. See CURRENT_HANDOFF.md.
+
+
+**Verified build update:** [GitHub Actions run 42318373542](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542) COMPLETED SUCCESS at source commit 697a8921d6372709948ee4cb53c8e7cbb372d6c3. Native call-site gate passed all six checks and published [artifact 13550689928](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542/artifacts/13550689928). Signed experimental v0.75 APK [artifact 13552056677](https://github.com/rgarn023/CharoitePortal/actions/runs/42318373542/artifacts/13552056677) passed 138 stable and 157 Next tests, Gradle, identity and signing checks. No Wine29 bootstrap rerun, no device test and no proven kernel32 root-cause fix.

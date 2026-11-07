@@ -197,3 +197,14 @@ mode yet exited 1. Its original failure is not explained by the later
 mode restoration. No root cause for that exit or proof of working Wineboot
 or prefix exists. No new Wine execution, user-data access or APK build
 occurred in this CI source audit.
+
+
+## November 6, 2026 — v2 +file trace isolates a search-directory mismatch
+
+Owner-provided signed Next v0.76 v2 one-shot report: sealed 111 PE/NLS, 3 native ELFs, and 34 hybrid DLL preflight PASS. wineserver socket/lock PASS. Automatic internal Wineboot --init again FAILED with return code 1. The later explicit ARM64 Wineboot.exe --help mapped the EXE and PE NTDLL, but terminated on kernel32.dll c0000135 (process exit 53). No usable prefix demonstrated; v1 and v2 scratch must be preserved.
+
+The previously masked detail is now concrete: the explicit EXE was launched from the `runtime/lib/wine/arm64-windows/` scratch directory and `+file` recorded an exact failed file open of `arm64-windows/kernel32.dll` with `c0000034`, even though verified kernel32 was staged in `runtime/lib/wine/aarch64-windows/`. Subsequent Windows C: prefix searches failed with `c000003a`; there is not yet a complete drive_c. Thus the v2 explicit `--help` attempt did not map kernel32, and at least one crucial path search was directed to a different directory from its sealed module location. This proves a failed lookup, NOT an overall successful or failed ABI test, and does NOT explain the earlier internal automatic --init exit 1.
+
+For Wine 10's native ARM64 builtin lookup, source `get_pe_dir(IMAGE_FILE_MACHINE_ARM64)` points to `/aarch64-windows`. The experimental v2 code already places a verified second Wineboot.exe copy beside the 34 PE DLLs under aarch64-windows, but the launcher used the *other* standalone copy under arm64-windows. That observed image directory is a plausible reason the explicit child process attempted kernel32 from arm64-windows. The next isolated v3 experiment should change ONLY the explicit Wineboot executable argument to the existing hash-verified aarch64-windows/wineboot.exe copy and trace the exact DLL candidate and result. It must NOT globalize WINEBOOTSTRAPMODE or reuse/modify v1 or v2 scratch. No claim that such a test alone initializes prefix, fixes Wineboot automatic --init, or enables games.
+
+New code (not yet a verified signed release when first authored): `next-generation/CharoiteWine29V3LayoutProbe.java`, `next-generation/tests/test_wine29_v3_layout_contract.py`, versionName 11.2-next.0.77/versionCode 108, explicit on-phone manual authorization only. Existing stable Portal and game data untouched.

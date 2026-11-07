@@ -540,6 +540,16 @@ jobs:
           ! grep -Eq 'env.put\\("WINEBOOTSTRAPMODE"|\\.delete\\(|Runtime.getRuntime' next-generation/CharoiteWine29V2BootstrapProbe.java
           echo WINE29_V2_ONE_SHOT_CONSENT_ISOLATION=PASS
 
+      - name: Verify isolated Wine29 v3 matched PE directory and one-shot consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v3_layout_contract.py' -v
+          grep -Fq 'bootBuiltin.getAbsolutePath(),"--help"' next-generation/CharoiteWine29V3LayoutProbe.java
+          grep -Fq 'charoite-next-wine29-pe-dir-v3' next-generation/CharoiteWine29V3LayoutProbe.java
+          grep -Fq 'Authorize ONE new v3 test' next-generation/prepare_next.py
+          ! grep -Fq 'env.put("WINEBOOTSTRAPMODE"' next-generation/CharoiteWine29V3LayoutProbe.java
+          echo WINE29_V3_MATCHED_PE_DIRECTORY_CONSENT=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1037,7 +1047,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='107' versionName='11.2-next.0.76'"
+            grep -F "package: name='com.charoitx' versionCode='108' versionName='11.2-next.0.77'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1199,6 +1209,7 @@ jobs:
           cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java
           cp next-generation/CharoiteWine29V1Forensics.java legal-bundle/CharoiteWine29V1Forensics.java
           cp next-generation/CharoiteWine29V2BootstrapProbe.java legal-bundle/CharoiteWine29V2BootstrapProbe.java
+          cp next-generation/CharoiteWine29V3LayoutProbe.java legal-bundle/CharoiteWine29V3LayoutProbe.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py

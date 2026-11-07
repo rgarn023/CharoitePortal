@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.76"')
-text = text.replace("versionCode 33", "versionCode 107")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.77"')
+text = text.replace("versionCode 33", "versionCode 108")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -179,7 +179,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29Sealed012PePreflight.java",
                  "CharoiteWine29V1PeHelpProbe.java",
                  "CharoiteWine29V1Forensics.java",
-                 "CharoiteWine29V2BootstrapProbe.java"):
+                 "CharoiteWine29V2BootstrapProbe.java",
+                 "CharoiteWine29V3LayoutProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1467,9 +1468,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
                 "Wine29 PE-help reached Wineboot but kernel32.dll failed (c0000135). " +
-                "Preserved v1 inspection is read-only. The optional v2 bootstrap " +
-                "diagnostic requires a separate one-shot confirmation, creates new scratch, " +
-                "and does not repair or activate the gaming runtime.",
+                "Wine29 v2 showed an ARM64 loader path mismatch (arm64-windows instead of " +
+                "aarch64-windows). The NEW v3 experiment keeps the same sealed PE cohort " +
+                "but launches a source-hash-verified Wineboot beside kernel32.dll in a fresh " +
+                "private scratch. No v1/v2 re-run or game-engine activation.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1503,6 +1505,8 @@ ui = ui.replace(anchor, anchor + """
 
         // Manual one-shot v2 ONLY, opt-in after a second explicit confirmation.
         // Never run on startup, never retry v1 or touch stable Portal data.
+        final boolean showArchivedWine29V2Execution = false;
+        if (showArchivedWine29V2Execution) {
         android.widget.Button wine29V2Bootstrap = new android.widget.Button(this);
         wine29V2Bootstrap.setText("Wine29 v2 bootstrap and kernel32 trace (one-shot)");
         wine29V2Bootstrap.setAllCaps(false);
@@ -1543,6 +1547,51 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V2BootstrapProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V2Bootstrap);
+        } // V2 one-shot execution is archived; its scratch stays preserved.
+
+        // NEW V3 test corrects the EXPLICIT Wineboot location only:
+        // use verified aarch64-windows/wineboot.exe beside kernel32.dll.
+        // Never auto-run; do not retry v1 or v2.
+        android.widget.Button wine29V3Layout = new android.widget.Button(this);
+        wine29V3Layout.setText("Wine29 v3 matched-directory Wineboot test (one-shot)");
+        wine29V3Layout.setAllCaps(false);
+        wine29V3Layout.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE Wine29 v3 matched-directory test?")
+                .setMessage("This WILL launch source-verified native Wine29 wineserver and " +
+                    "the matched ARM64 wineboot.exe --help from aarch64-windows, beside " +
+                    "kernel32.dll. Wine MAY automatically run its own --init first, " +
+                    "creating a new private prefix. All 111 PE/NLS modules and native " +
+                    "hashes must pass preflight. One NEW v3 private scratch is used; " +
+                    "v1, v2, games, saves, stable Portal, rootfs and existing prefixes " +
+                    "remain untouched. Timed and redacted traces are retained and never " +
+                    "deleted or retried. No global WINEBOOTSTRAPMODE override is made. " +
+                    "This is DIAGNOSTIC ONLY, not a game engine or a guaranteed fix. " +
+                    "Do you explicitly authorize ONE v3 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE new v3 test", (dialog, which) -> {
+                    wine29V3Layout.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V3LayoutProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V3Layout.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 v3 layout diagnostic")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 v3 matched PE directory report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V3LayoutProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V3Layout);
 
 
 

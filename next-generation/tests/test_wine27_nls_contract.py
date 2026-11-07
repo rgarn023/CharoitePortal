@@ -47,8 +47,8 @@ class Wine27IsolatedNlsContract(unittest.TestCase):
         self.assertNotIn(".delete(", PREFIX)
 
     def test_next_package_and_source_only_gate(self):
-        self.assertIn('versionName "11.2-next.0.76"', PREP)
-        self.assertIn('versionCode 107', PREP)
+        self.assertIn('versionName "11.2-next.0.77"', PREP)
+        self.assertIn('versionCode 108', PREP)
         self.assertIn("CharoiteWine27Stage.java", PREP)
         self.assertIn("CharoiteWine27NativeGate.java", PREP)
         self.assertIn("CharoiteWine27PrefixProbe.java", PREP)

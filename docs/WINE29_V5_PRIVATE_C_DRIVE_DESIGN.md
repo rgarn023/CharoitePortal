@@ -1,6 +1,6 @@
 # Wine29 v5 — fresh private C: mapping bootstrap
 
-**Status:** Source implementation staged pending signed GitHub Actions verification. No v5 on-device execution has occurred.
+**Status: VERIFIED SIGNED Next v0.80 Android APK.** [GitHub Actions 42358173055](https://github.com/rgarn023/CharoitePortal/actions/runs/42358173055) SUCCESS at exact APK source commit `10830b1c82e3dddbb40c2920978b7092d34787a7`; 138 stable + 172 Next tests PASS, v5 C: source isolation/consent gate PASS, Gradle build/AAPT `com.charoitx` versionCode 111/name `11.2-next.0.80` and cached Next signing cert verified. **[Direct signed APK artifact 13567539490](https://github.com/rgarn023/CharoitePortal/actions/runs/42358173055/artifacts/13567539490)**, 460,818,514-byte ZIP, expires 2027-02-05. **No v5 on-device execution has occurred.** Only install in-place over v0.79; never uninstall or clear storage.
 
 ## Owner's v4 evidence
 

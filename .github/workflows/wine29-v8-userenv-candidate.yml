@@ -1,0 +1,165 @@
+name: Wine29 V8 Userenv Source Candidate (No APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-v8-userenv-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pinned-userenv-source-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Retrieve existing immutable 111-file cohort and v7 services candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-v8-sealed" "$RUNNER_TEMP/wine29-v8-services"
+          gh run download 41947164001 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK \
+            --dir "$RUNNER_TEMP/wine29-v8-sealed"
+          gh run download 42409561051 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-V7-Source-Built-ARM64-Services-EXE-NOT-APK \
+            --dir "$RUNNER_TEMP/wine29-v8-services"
+          echo "ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e  $RUNNER_TEMP/wine29-v8-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" | sha256sum --check
+
+      - name: Correlate services import to absent sealed userenv provider without executing PE
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util, os, pathlib
+          checkout=pathlib.Path(os.environ["GITHUB_WORKSPACE"])
+          def load(path,name):
+              spec=importlib.util.spec_from_file_location(name,path)
+              module=importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              return module
+          stage=load(checkout/"next-generation/stage_wine29_sealed012.py","sealed012")
+          services=load(checkout/"next-generation/stage_wine29_v7_services.py","services_v7")
+          classify=load(checkout/"next-generation/wine29-imports/classify.py","wine29_pe_imports")
+          runner=pathlib.Path(os.environ["RUNNER_TEMP"])
+          manifest,payload=stage.validate_archive(runner/"wine29-v8-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz")
+          service_data,service_record=services.verify(runner/"wine29-v8-services")
+          providers={path.split("/")[-1] for path in payload if path.startswith("data/pe/arm64ec/")}
+          assert len(providers)==34 and manifest["pe_dll_count"]==34
+          ordinary,delayed=classify.pe_imports(service_data)
+          assert "userenv.dll" in ordinary and len(ordinary)==7 and not delayed
+          if "userenv.dll" in providers:
+              raise RuntimeError("userenv.dll already sealed: investigate runtime lookup instead of compiling a redundant module")
+          print("WINE29_V7_PID0034_USERENV_IMPORT_CONFIRMED=PASS")
+          print("WINE29_34_SEALED_PROVIDER_USERENV_ABSENT=PASS")
+          print("SERVICES_ADDITIONAL_ORDINARY_IMPORT_GAPS",sorted(set(ordinary)-providers))
+          print("PHONE_LOG_REPLAY_OR_NEW_PREFIX=NOT_ATTEMPTED")
+          PY
+
+      - uses: android-actions/setup-android@v4
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Download SHA-pinned LLVM-MinGW
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/llvm-mingw-20261020.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 \
+            "https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare identical pinned Wine10 source and v6 native paths (CI only)
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v8-userenv-source"
+          bash next-generation/charoite-wine/prepare-source.sh "$ROOT"
+          python3 analysis/wine29_bootstrap/patch_v6_child_loader.py "$ROOT"
+          test -f "$ROOT/dlls/userenv/Makefile.in"
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*userenv\.dll' "$ROOT/dlls/userenv/Makefile.in"
+          git -C "$ROOT" diff --check
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$ROOT" "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          echo WINE29_V8_PINNED_SOURCE_ENVIRONMENT=PASS
+
+      - name: Cross-build and inspect true Windows ARM64 userenv.dll (no execution)
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v8-userenv-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-v8-userenv-candidate"
+          test ! -e "$OUT"
+          cd "$BUILD"
+          make -j2 dlls/userenv/aarch64-windows/userenv.dll
+          BIN="$BUILD/dlls/userenv/aarch64-windows/userenv.dll"
+          test -s "$BIN"
+          test ! -L "$BIN"
+          mkdir "$OUT"
+          cp "$BIN" "$OUT/userenv-arm64.dll"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/userenv-pe-header.txt"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$BIN" > "$OUT/userenv-coff-imports.txt"
+          cd "$GITHUB_WORKSPACE"
+          python3 - "$OUT" "$RUNNER_TEMP" "$GITHUB_SHA" <<'PY'
+          import hashlib, importlib.util, json, pathlib, struct, sys
+          folder=pathlib.Path(sys.argv[1])
+          runner=pathlib.Path(sys.argv[2])
+          raw=(folder/"userenv-arm64.dll").read_bytes()
+          assert 1024 < len(raw) < 32*1024*1024 and raw[:2]==b"MZ"
+          offset=struct.unpack_from("<I",raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b"PE\0\0"
+          assert struct.unpack_from("<H",raw,offset+4)[0]==0xAA64
+          header=(folder/"userenv-pe-header.txt").read_text()
+          assert "ARM64" in header and "AA64" in header
+          def load(path,name):
+              spec=importlib.util.spec_from_file_location(name,path)
+              mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+              return mod
+          repo=pathlib.Path.cwd()
+          pe=load(repo/"next-generation/wine29-imports/classify.py","wine29_v8_imports")
+          sealed=load(repo/"next-generation/stage_wine29_sealed012.py","wine29_v8_sealed")
+          manifest,payload=sealed.validate_archive(runner/"wine29-v8-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz")
+          providers={name.rsplit("/",1)[-1] for name in payload if name.startswith("data/pe/arm64ec/")}
+          ordinary,delayed=pe.pe_imports(raw)
+          gaps=sorted((set(ordinary)|set(delayed))-providers-{"userenv.dll"})
+          ordinary_gaps=sorted(set(ordinary)-providers-{"userenv.dll"})
+          report={
+              "schema_version":1,"generation":"wine29-v8-userenv-source-candidate",
+              "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+              "source_build_commit":sys.argv[3],"package":"com.charoitx",
+              "file":"userenv-arm64.dll","image_name":"userenv.dll",
+              "pe_machine":"0xAA64","sha256":hashlib.sha256(raw).hexdigest(),
+              "size":len(raw),"ordinary_imports":ordinary,"delay_imports":delayed,
+              "ordinary_imports_unbundled_after_candidate":ordinary_gaps,
+              "all_unbundled_after_candidate":gaps,
+              "sealed_34_provider_count":len(providers),
+              "native_elf_included":False,"wine_executed":False,
+              "windows_exe_executed":False,"device_tested":False,
+              "prefix_initialized":False,"launch_ready":False
+          }
+          assert len(providers)==34 and "userenv.dll" not in providers
+          (folder/"userenv-manifest.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+          print("WINE29_V8_SOURCE_BUILT_ARM64_USERENV=PASS")
+          print("NEW_REGULAR_IMPORT_GAPS",ordinary_gaps)
+          print("NEW_DELAY_IMPORT_GAPS",sorted(set(delayed)-providers-{"userenv.dll"}))
+          print("WINE_AND_WINDOWS_PE_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish SHA-described source candidate only (not an APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-V8-Source-Built-ARM64-Userenv-DLL-NOT-APK
+          path: wine29-v8-userenv-candidate/
+          retention-days: 60
+          if-no-files-found: error

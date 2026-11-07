@@ -13,3 +13,7 @@ The new `.github/workflows/wine29-v8-userenv-candidate.yml` runs ONLY in GitHub 
 No CI step starts Wine/Wineboot/services.exe/wineserver or any Windows PE, and nothing reads, rewrites, retries, or cleans old phone scratch. No change to stable Portal, user data, games, saves, prefixes, v7 files or already installed Next APK. If the source candidate succeeds and its dependency closure is understood, the future test must be a **separately authorized NEW v8 private scratch**, never reuse v7. Only a subsequent verified signed Next APK and explicit on-device consent can validate runtime behavior.
 
 **Release status:** v0.87 remains the last verified signed APK ([Actions run 42413522887](https://github.com/rgarn023/CharoitePortal/actions/runs/42413522887), [artifact 13590806127](https://github.com/rgarn023/CharoitePortal/actions/runs/42413522887/artifacts/13590806127)). This source-only workflow does NOT generate a new APK.
+
+## Active source-only CI
+
+[GitHub Actions run 42418556136](https://github.com/rgarn023/CharoitePortal/actions/runs/42418556136) completed its pinned inputs download and static provider/import correlation preflight successfully. The true ARM64 source build and import graph are not yet verified, so no artifact SHA or binary integration is claimed. This run is triggered only by adding the new workflow on main, commit `927d864542a0a0f1a9f73c5ba75e195fc6dd6e45`.

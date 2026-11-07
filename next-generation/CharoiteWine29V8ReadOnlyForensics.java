@@ -114,6 +114,12 @@ public final class CharoiteWine29V8ReadOnlyForensics {
         }
     }
 
+    /** File metadata only: never open registry contents, follow a link or parse keys. */
+    private static long registryBytes(File scratch, String relative) throws Exception {
+        File file = exact(scratch, relative);
+        return file.isFile() ? file.length() : -1L;
+    }
+
     private static final class Process {
         boolean wineboot, services, ntdll, kernel32, apiset, userenv;
         int exits, moduleFailures;
@@ -243,6 +249,22 @@ public final class CharoiteWine29V8ReadOnlyForensics {
                 .append(" first=").append(code(p.firstExit))
                 .append(" last=").append(code(p.lastExit)).append('\n');
         }
+        int servicesPids=0, servicesWithUserenv=0, servicesWithErrors=0;
+        int servicesExitEvents=0;
+        for (Process p : processes.values()) {
+            if (!p.services) continue;
+            servicesPids++;
+            if (p.userenv) servicesWithUserenv++;
+            if (p.moduleFailures > 0) servicesWithErrors++;
+            servicesExitEvents += p.exits;
+        }
+        out.append("SERVICES PE LIFECYCLE: mapped PIDs=").append(servicesPids)
+            .append("; with userenv mapped=").append(servicesWithUserenv)
+            .append("; with observed module failures=").append(servicesWithErrors)
+            .append("; observed PE exit events=").append(servicesExitEvents).append('\n');
+        if (servicesPids > 0 && servicesExitEvents == 0)
+            out.append("No services PE exit observed in retained log; this does NOT prove ")
+                .append("the service remains running or SCM initialized.\n");
         out.append("First 10 relevant PE event TYPES (no raw log text/paths):\n");
         if (clues.isEmpty()) out.append("  no targeted module or services events observed\n");
         for (String s : clues) out.append(s).append('\n');
@@ -340,6 +362,16 @@ public final class CharoiteWine29V8ReadOnlyForensics {
             out.append("PRESERVED REGISTRY METADATA: system=").append(system)
                 .append(" user=").append(user).append(" userdef=").append(userdef)
                 .append(" (files were not opened).\n");
+            long sysBytes = registryBytes(scratch,"prefix/system.reg");
+            long usrBytes = registryBytes(scratch,"prefix/user.reg");
+            long defBytes = registryBytes(scratch,"prefix/userdef.reg");
+            out.append("PRESERVED REGISTRY SIZES (metadata only): system=")
+                .append(sysBytes).append(" B; user=").append(usrBytes)
+                .append(" B; userdef=").append(defBytes)
+                .append(" B; contents NOT read.\n");
+            out.append("All three registry files nonempty=")
+                .append(sysBytes > 0 && usrBytes > 0 && defBytes > 0)
+                .append("; integrity and completeness NOT verified.\n");
             try { peAudit(scratch,out); }
             catch (SecurityException e) {
                 out.append("PE AUDIT BLOCKED: ").append(e.getMessage())

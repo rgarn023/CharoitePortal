@@ -12,7 +12,7 @@ When the v8 probe checked metadata **before its final foreground wineserver term
 
 The report copied to chat was unusually long: a single PE trace segment stated approximately 601,313 bytes and the separately appended foreground wineserver trace followed **after** the result line. Android clipboard/chat pasting cut off the ending, making forensic review unreliable. Do not ask the owner to paste raw 600KB+ trace dumps again.
 
-## Current implementation — Next 0.89 source candidate
+## Current implementation — verified signed Next 0.89
 
 `next-generation/CharoiteWine29V8ReadOnlyForensics.java` is a newly added **strictly read-only** auditor of precisely these retained v8 names:
 
@@ -23,11 +23,11 @@ Only explicitly named v8 prefix/runtime entries are inspected for **metadata**, 
 
 No Wine, wineserver, Wineboot, services.exe, games, native code, Android process launch, cleanup, prefix creation, writes or retries are performed. The v8 one-shot button is archived; the **sole Wine29 System test** is `Inspect Wine29 v8 bootstrap (short read-only report)`. Stable Portal, older scratch, user prefixes, games, saves and rootfs must remain untouched.
 
-`next-generation/prepare_next.py` targets **versionCode 120 / versionName 11.2-next.0.89** for the experimental `com.charoitx` APK, using its existing persistent signing identity. The CI test `test_wine29_v8_short_forensics_contract.py` and Android workflow explicitly verify the no-write/no-process contract and inclusion in the build. Source edits are NOT proof that a signed APK has finished building.
+`next-generation/prepare_next.py` targets **versionCode 120 / versionName 11.2-next.0.89** for the experimental `com.charoitx` APK, using its existing persistent signing identity. The CI test `test_wine29_v8_short_forensics_contract.py` and Android workflow explicitly verify the no-write/no-process contract and inclusion in the build. **Verified signed APK:** [GitHub Actions 42423001295 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/42423001295) at exact APK source commit `baa65008714f01bb6d5048b36276b623105070dc` built with **138 stable + 198 Next tests PASS**, Android Gradle PASS, AAPT `com.charoitx` versionCode **120** / versionName **11.2-next.0.89**, and persisted experimental signing certificate SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175` MATCH. [**Download signed Next v0.89 APK artifact 13594690627**](https://github.com/rgarn023/CharoitePortal/actions/runs/42423001295/artifacts/13594690627); ZIP 461,521,041 bytes, digest `sha256:4da5a593b08b6130dc3f85340ddef740777c85ef379e75a5efe4490750a85963`.
 
 ## Next step
 
-1. Verify the latest GitHub Actions **Charoite Core Next Android** run, signing certificate and downloadable APK artifact. Do not label a candidate as successful until the run and checks finish.
+1. Use the **verified signed v0.89** GitHub Actions artifact linked above; avoid other unverified builds.
 2. Install IN PLACE over `com.charoitx` — never uninstall, clear storage or rerun v8.
 3. On the phone, tap **System → Inspect Wine29 v8 bootstrap (short read-only report)** and copy the short output including the END marker.
 4. Correlate per-PID PE termination with services/userenv lookup and read-only registry presence **after server shutdown**. Only then decide whether an explicitly authorized fresh v9 scratch is justified.

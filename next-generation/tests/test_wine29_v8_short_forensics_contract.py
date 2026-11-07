@@ -23,7 +23,8 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
             'runtime/lib/wine/aarch64-windows/userenv.dll',
             'RESULT: READ-ONLY V8 AUDIT COMPLETE',
             'END OF SHORT V8 REPORT',
-            'safeNames(String line)',
+            'safeNames(String line)', 'PRESERVED REGISTRY SIZES',
+            'SERVICES PE LIFECYCLE:', 'registryBytes(File scratch, String relative)',
         ):
             with self.subTest(token=token): self.assertIn(token,JAVA)
 
@@ -47,11 +48,11 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
         for token in (
             '"CharoiteWine29V8ReadOnlyForensics.java"',
             'final boolean showArchivedWine29V8Execution = false;',
-            'Inspect Wine29 v8 bootstrap (short read-only report)',
+            'Inspect Wine29 v8 registry + services (read-only)',
             'CharoiteWine29V8ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V8Audit);',
             'Copy short report',
-            'versionCode 120', '11.2-next.0.89',
+            'versionCode 121', '11.2-next.0.90',
         ):
             with self.subTest(token=token): self.assertIn(token,UI)
         self.assertLess(UI.index('final boolean showArchivedWine29V8Execution = false;'),
@@ -62,7 +63,7 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
             'test_wine29_v8_short_forensics_contract.py',
             'WINE29_V8_PRESERVED_SHORT_READONLY_POSTMORTEM=PASS',
             'cp next-generation/CharoiteWine29V8ReadOnlyForensics.java legal-bundle/CharoiteWine29V8ReadOnlyForensics.java',
-            "versionCode='120' versionName='11.2-next.0.89'",
+            "versionCode='120' versionName='11.2-next.0.90'",
         ):
             with self.subTest(token=token): self.assertIn(token,WF)
 

@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 111", PREP)
-        self.assertIn("11.2-next.0.80", PREP)
+        self.assertIn("versionCode 112", PREP)
+        self.assertIn("11.2-next.0.81", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -143,7 +143,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL", BOOT)
         self.assertIn("boot.addView(version, versionLayout)", BOOT)
         self.assertIn("CharoiteNextBootActivity.installedVersionLabel(this)", PREP)
-        self.assertNotIn("11.2-next.0.80", BOOT, "Boot must read installed version, not hardcode it")
+        self.assertNotIn("11.2-next.0.81", BOOT, "Boot must read installed version, not hardcode it")
 
     def test_system_hides_archived_wine_experiments_and_keeps_current_readonly_probe(self):
         self.assertIn("final boolean showArchivedWineTests = false;", PREP)
@@ -154,7 +154,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertLess(PREP.index("} // Archived test controls"),
                         PREP.index('wine29V1Forensics.setText('))
         self.assertIn("CURRENT WINE29 DIAGNOSTIC", PREP)
-        self.assertIn("Wine29 v3 PE --help PASSED (exit 0)", PREP)
+        self.assertIn("Wine29 v5 direct -i exited 0", PREP)
         self.assertIn('setPositiveButton("Authorize ONE new v2 diagnostic"', PREP)
         self.assertIn("final boolean showArchivedStartupDiagnostics = false;", PREP)
         self.assertLess(PREP.index("if (showArchivedStartupDiagnostics) {"),

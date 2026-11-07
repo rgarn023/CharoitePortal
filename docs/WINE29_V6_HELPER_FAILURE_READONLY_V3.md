@@ -1,6 +1,6 @@
 # Wine29 v6 — read-only causal trace v3 (PID 0034 / retained wineserver evidence)
 
-**Date:** November 7, 2026. **Experimental package:** `com.charoitx`. **Proposed:** v0.84, code 115. **State:** source submitted; APK and signature require separate verified Actions result.
+**Date:** November 7, 2026. **Experimental package:** `com.charoitx`. **Verified signed APK:** v0.84, code 115. **State:** [Actions 42408190021](https://github.com/rgarn023/CharoitePortal/actions/runs/42408190021) SUCCESS at source commit `d500296f41c8d52a68cf2e44dac1aef4b5f271f8`; [signed APK artifact 13588532113](https://github.com/rgarn023/CharoitePortal/actions/runs/42408190021/artifacts/13588532113), original signing certificate MATCH.
 
 ## On-phone evidence requiring this audit
 

@@ -28,7 +28,7 @@ class V6ChildLoaderSourceContract(unittest.TestCase):
     def test_one_source_anchor_and_android_only(self):
         out = patch.patch_text(FIXTURE)
         self.assertEqual(out.count(patch.MARKER), 1)
-        self.assertEqual(out.count("#ifdef __ANDROID__"), 1)
+        self.assertEqual(out.count("#ifdef __ANDROID__"), 2)  # path selector and errno marker
         self.assertIn('wineloader = canonical;', out)
         self.assertIn('asprintf( &env, "WINELOADER=%s", wineloader );', out)
         self.assertIn("fatal_error(", out)

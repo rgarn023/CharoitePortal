@@ -42,9 +42,11 @@ def verify_source(artifact: Path):
     if not (
         evidence.get("source_revision") == SOURCE_REV
         and evidence.get("original_loader_git_blob") == "2f978520af6c216586baa081caa4c1db38207fd4"
-        and evidence.get("modified_files") == ["dlls/ntdll/unix/loader.c", "loader/main.c"]
+        and evidence.get("modified_files") == ["dlls/ntdll/unix/loader.c", "loader/main.c", "server/unicode.c"]
         and evidence.get("selector_env") == "CHAROITE_WINE29_V6_LOADER_EXEC"
         and evidence.get("matched_native_ntdll_env") == "CHAROITE_WINE29_V6_NATIVE_DIR"
+        and evidence.get("isolated_pe_selector") == "CHAROITE_WINE29_V6_PE_DIR"
+        and evidence.get("isolated_nls_selector") == "CHAROITE_WINE29_V6_DATA_DIR"
         and evidence.get("matched_native_ntdll") == FILES["ntdll"]
         and evidence.get("candidate_native_loader") == FILES["loader"]
         and evidence.get("mode") == "SOURCE_PATCH_ONLY_FAIL_CLOSED"
@@ -52,7 +54,7 @@ def verify_source(artifact: Path):
         and evidence.get("phone_wine_executed") is False
         and evidence.get("one_shot_enabled") is False
         and all(re.fullmatch("[0-9a-f]{64}", evidence.get(k, ""))
-                for k in ("source_patch_sha256", "main_loader_patch_sha256"))
+                for k in ("source_patch_sha256", "main_loader_patch_sha256", "nls_server_patch_sha256"))
     ):
         raise ValueError("Pinned Wine29 v6 native source evidence mismatch")
     hashes = {}
@@ -82,8 +84,12 @@ def verify_source(artifact: Path):
             if b"CHAROITE_WINE29_V6_NATIVE_DIR" not in data or FILES["ntdll"].encode() not in data:
                 raise ValueError("V6 native loader lacks matched NTDLL-only selector")
         if component == "ntdll":
-            if b"CHAROITE_WINE29_V6_LOADER_EXEC" not in data or FILES["loader"].encode() not in data:
+            if (b"CHAROITE_WINE29_V6_LOADER_EXEC" not in data or FILES["loader"].encode() not in data
+                    or b"CHAROITE_WINE29_V6_PE_DIR" not in data
+                    or b"CHAROITE_WINE29_V6_DATA_DIR" not in data):
                 raise ValueError("V6 NTDLL lacks exact child executable selector")
+        if component == "wineserver" and b"CHAROITE_WINE29_V6_DATA_DIR" not in data:
+            raise ValueError("V6 wineserver lacks own NLS selector")
         records[component] = {"filename": filename, "sha256": hashes[filename],
                               "size": len(data), "elf_machine": "AArch64",
                               "min_load_alignment": min(aligns)}

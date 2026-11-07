@@ -129,10 +129,10 @@ class Wine29ModuleStage(unittest.TestCase):
         self.assertIn("stage_wine29_07_modules.py", WORKFLOW)
         self.assertIn("WINE29_07_100_PE_NLS_APK_ASSET_HASHES_VERIFIED=PASS", WORKFLOW)
         self.assertIn("CharoiteWine29Native07Stage.java", WORKFLOW)
-        self.assertIn("versionCode 117", PREP)
-        self.assertIn("11.2-next.0.86", PREP)
-        self.assertIn("versionCode='117'", WORKFLOW)
-        self.assertIn("versionName='11.2-next.0.86'", WORKFLOW)
+        self.assertIn("versionCode 118", PREP)
+        self.assertIn("11.2-next.0.87", PREP)
+        self.assertIn("versionCode='118'", WORKFLOW)
+        self.assertIn("versionName='11.2-next.0.87'", WORKFLOW)
 
     def test_sealed_100_module_readonly_audit_rejects_extra_files(self):
         # A directory name or file presence cannot authorize an executable runtime.

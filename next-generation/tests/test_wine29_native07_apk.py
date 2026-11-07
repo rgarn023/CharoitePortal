@@ -107,12 +107,12 @@ class Wine29Native07ApkContract(unittest.TestCase):
         self.assertIn("stage_wine29_native07.py",WF)
         self.assertIn("libcharoite_wine29_",WF)
         self.assertIn("WINE29_07_PHONE_WINE_EXECUTION=NOT_ATTEMPTED",WF)
-        self.assertIn("versionCode='117'",WF)
-        self.assertIn("versionName='11.2-next.0.86'",WF)
+        self.assertIn("versionCode='118'",WF)
+        self.assertIn("versionName='11.2-next.0.87'",WF)
         self.assertIn("CharoiteWine29Native07Audit.java",PREP)
         self.assertIn('wine29Audit.setText("Verify Wine29 0.7 package (read-only)")',PREP)
-        self.assertIn('"versionCode 117"',PREP)
-        self.assertIn('"11.2-next.0.86"',PREP)
+        self.assertIn('"versionCode 118"',PREP)
+        self.assertIn('"11.2-next.0.87"',PREP)
 
 
 if __name__=="__main__":

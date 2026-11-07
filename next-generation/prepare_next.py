@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.84"')
-text = text.replace("versionCode 33", "versionCode 115")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.85"')
+text = text.replace("versionCode 33", "versionCode 116")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -185,7 +185,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V4DirectInitProbe.java",
                  "CharoiteWine29V5DriveCProbe.java",
                  "CharoiteWine29V6ChildLoaderProbe.java",
-                 "CharoiteWine29V6ReadOnlyForensics.java"):
+                 "CharoiteWine29V6ReadOnlyForensics.java",
+                 "CharoiteWine29V7ServicesProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1778,6 +1779,8 @@ ui = ui.replace(anchor, anchor + """
         // CURRENT TEST: READ-ONLY postmortem of the owner's ALREADY completed
         // v6 one-shot. No Wine or process creation; no further authorization
         // or writes necessary. Limited to two named logs and file metadata.
+        final boolean showArchivedWine29V6ReadOnly = false;
+        if (showArchivedWine29V6ReadOnly) {
         android.widget.Button wine29V6Forensics = new android.widget.Button(this);
         wine29V6Forensics.setText("Inspect Wine29 v6 helper causal trace (read-only)");
         wine29V6Forensics.setAllCaps(false);
@@ -1804,6 +1807,49 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V6ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V6Forensics);
+
+        } // The v6 report remains in source but is hidden from current System.
+        android.widget.Button wine29V7Services = new android.widget.Button(this);
+        wine29V7Services.setText("Test Wine29 v7 services.exe bootstrap (one-shot)");
+        wine29V7Services.setAllCaps(false);
+        wine29V7Services.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new Wine29 v7 services.exe bootstrap?")
+                .setMessage("This creates ONE NEW private v7 Wine prefix and executes "
+                    + "the verified Wine29 native wineserver and Wineboot.exe -i. "
+                    + "Wine may automatically start Windows services.exe and other "
+                    + "initialization helpers. This is NOT read-only or a game test. "
+                    + "The exact source-built ARM64 services.exe and 111 sealed Wine "
+                    + "PE/NLS files are SHA-256 verified before any scratch is created. "
+                    + "No previous v1–v6 scratch, user prefix, games, saves, rootfs "
+                    + "or stable Charoite Portal is opened or changed; the new v7 "
+                    + "scratch is retained, never cleared or retried. "
+                    + "Authorize exactly ONE new v7 process experiment?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE v7 test", (dialog, which) -> {
+                    wine29V7Services.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V7ServicesProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V7Services.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — v7 services.exe bootstrap")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 v7 services.exe report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V7ServicesProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V7Services);
+
 
 
 

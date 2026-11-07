@@ -437,6 +437,26 @@ jobs:
           echo WINE29_V6_THREE_NATIVE_ELF_APK_STAGE_SOURCE_HASHES=PASS
           echo WINE29_V6_OLD_WINE29_NATIVE_LIBRARY_COHORT_PRESERVED=PASS
 
+
+      - name: Pin and stage source-built ARM64 services.exe as new Wine29 v7 asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API="repos/$GITHUB_REPOSITORY/actions/artifacts/13589325323"
+          test "$(gh api "$API" --jq '.workflow_run.head_sha')" = "f32a3563254b2ae6447d6cf2e6639be3e7e6d9d9"
+          test "$(gh api "$API" --jq '.digest')" = "sha256:fba183ee44a632c2e45608dace22ce71108129882e2854fd51bf077c04247a34"
+          test "$(gh api "$API" --jq '.expired')" = "false"
+          mkdir -p "$RUNNER_TEMP/charoite-wine29-v7-services"
+          gh run download 42409561051 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-V7-Source-Built-ARM64-Services-EXE-NOT-APK \
+            --dir "$RUNNER_TEMP/charoite-wine29-v7-services"
+          python3 next-generation/stage_wine29_v7_services.py \
+            "$RUNNER_TEMP/charoite-wine29-v7-services" "$GITHUB_WORKSPACE/upstream"
+          test -s upstream/app/src/main/assets/charoite-next/wine29-v7-services/services-arm64.exe.bin
+          test -s upstream/app/src/main/assets/charoite-next/wine29-v7-services/services-index.json
+          echo WINE29_V7_SOURCE_VERIFIED_SERVICES_APK_STAGE=PASS
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -617,6 +637,17 @@ jobs:
           grep -Fq 'v6-wine-direct-init.log' next-generation/CharoiteWine29V6ReadOnlyForensics.java
           ! grep -Eq 'ProcessBuilder|Runtime.getRuntime|FileOutputStream|mkdir\(|mkdirs\(|\.delete\(' next-generation/CharoiteWine29V6ReadOnlyForensics.java
           echo WINE29_V6_PRESERVED_READONLY_FORENSICS=PASS
+
+
+      - name: Gate v7 source-built services.exe in NEW consented private prefix
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v7_services_contract.py' -v
+          grep -Fq 'charoite-next-wine29-services-v7' next-generation/CharoiteWine29V7ServicesProbe.java
+          grep -Fq 'verifiedV7' next-generation/tests/test_wine29_v7_services_contract.py
+          grep -Fq 'final boolean showArchivedWine29V6ReadOnly = false;' next-generation/prepare_next.py
+          ! grep -Eq 'env.put\("WINEBOOTSTRAPMODE"|\.delete\(|Runtime.getRuntime\(' next-generation/CharoiteWine29V7ServicesProbe.java
+          echo WINE29_V7_ONE_SHOT_SERVICES_CONSENT_AND_ISOLATION=PASS
 
       - name: Build integrated Windows runtime preview
         working-directory: upstream
@@ -1115,7 +1146,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='115' versionName='11.2-next.0.84'"
+            grep -F "package: name='com.charoitx' versionCode='116' versionName='11.2-next.0.85'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1147,6 +1178,37 @@ jobs:
               print("WINE29_V6_SIGNED_APK_NATIVE_SHA256=PASS")
               print("WINE29_V6_NO_REPLACEMENT_OF_V5_ELF_OR_SEALED_PE_NLS=PASS")
               print("WINE29_V6_PHONE_WINEBOOT=NOT_TESTED_IN_CI")
+          PY
+
+
+      - name: Verify signed Next APK has pinned v7 services.exe without altering v6 cohort
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,struct,zipfile
+          with zipfile.ZipFile("upstream/app/build/outputs/apk/debug/app-debug.apk") as z:
+              index=json.loads(z.read("assets/charoite-next/wine29-v7-services/services-index.json"))
+              assert index["package"]=="com.charoitx" and index["schema_version"]==1
+              assert index["wine_source_commit"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+              assert index["source_run"]==42409561051
+              assert index["source_build_commit"]=="f32a3563254b2ae6447d6cf2e6639be3e7e6d9d9"
+              assert index["source_artifact_id"]==13589325323
+              assert index["source_artifact_digest"]=="sha256:fba183ee44a632c2e45608dace22ce71108129882e2854fd51bf077c04247a34"
+              assert index["image_name"]=="services.exe" and index["pe_machine"]=="0xAA64"
+              assert index["apk_stage_only"] and not index["windows_executed"] and not index["prefix_initialized"] and not index["launch_ready"]
+              binary=z.read("assets/"+index["asset"])
+              assert len(binary)==index["size"] and hashlib.sha256(binary).hexdigest()==index["sha256"]
+              off=struct.unpack_from("<I",binary,0x3c)[0]
+              assert binary[:2]==b"MZ" and binary[off:off+4]==b"PE"+bytes([0,0])
+              assert struct.unpack_from("<H",binary,off+4)[0]==0xAA64
+              assert set(index["ordinary_imports"])=={"rpcrt4.dll","advapi32.dll","userenv.dll","setupapi.dll","ucrtbase.dll","kernel32.dll","ntdll.dll"}
+              assert index["delay_imports"]==[]
+              assert "assets/charoite-next/wine29-sealed012/wine29-sealed012-index.json" in z.namelist()
+              assert "assets/charoite-next/wine29-v6/wine29-v6-native-index.json" in z.namelist()
+              assert "lib/arm64-v8a/libcharoite_wine29_v6_loader.so" in z.namelist()
+              print("WINE29_V7_SIGNED_APK_SOURCE_BUILT_ARM64_SERVICES_SHA256=PASS")
+              print("WINE29_V7_PREVIOUS_V6_NATIVE_SEALED_111_UNCHANGED=PASS")
+              print("WINE29_V7_PHONE_EXECUTION_NOT_ATTEMPTED_IN_CI")
           PY
 
       - name: Verify APK signing matches persisted Charoite key
@@ -1315,6 +1377,9 @@ jobs:
           cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java
           cp next-generation/CharoiteWine29V6ChildLoaderProbe.java legal-bundle/CharoiteWine29V6ChildLoaderProbe.java
           cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java
+          cp next-generation/CharoiteWine29V7ServicesProbe.java legal-bundle/CharoiteWine29V7ServicesProbe.java
+          cp next-generation/stage_wine29_v7_services.py legal-bundle/stage_wine29_v7_services.py
+          cp upstream/app/src/main/assets/charoite-next/wine29-v7-services/services-index.json legal-bundle/wine29-v7-services-index.json
           cp next-generation/stage_wine29_v6_native.py legal-bundle/stage_wine29_v6_native.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v6/wine29-v6-native-index.json legal-bundle/wine29-v6-native-index.json
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py

@@ -379,6 +379,22 @@ jobs:
           retention-days: 30
 
 
+      - name: Audit exact Wine29 native source selector call sites (no execution)
+        run: |
+          set -euo pipefail
+          python3 next-generation/audit_wine29_07_native_callsites.py \
+            "$RUNNER_TEMP/charoite-wine29-source07/charoite-wine-bootstrap-bundle.tar.gz" \
+            --output "$RUNNER_TEMP/wine29-native-callsite-audit.json"
+          test -s "$RUNNER_TEMP/wine29-native-callsite-audit.json"
+
+      - name: Publish Wine29 native source call-site evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-Native-Callsite-Audit-Read-Only
+          path: ${{ runner.temp }}/wine29-native-callsite-audit.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Stage independent Wine29 0.12 111-file sealed DATA-only assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1012,7 +1028,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='105' versionName='11.2-next.0.74'"
+            grep -F "package: name='com.charoitx' versionCode='106' versionName='11.2-next.0.75'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |

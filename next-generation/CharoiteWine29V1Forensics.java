@@ -144,9 +144,20 @@ public final class CharoiteWine29V1Forensics {
         int newProcess = 0, boot = 0, kernel = 0, apiset = 0;
         int mappedNtdll = 0, mappedBoot = 0, mappedKernel32 = 0, loadedApi = 0;
         int noFile = 0, failed = 0;
+        int kernelFind = 0, kernelLoad = 0, kernelImport = 0;
+        int lastKernelLine = -1, lastMissingLine = -1;
         String rootPath = scratch.getCanonicalPath();
-        for (String line : lines) {
+        for (int row = 0; row < lines.length; row++) {
+            String line = lines[row];
             String s = line.toLowerCase(Locale.US);
+            if (s.contains("kernel32.dll")) {
+                lastKernelLine = row;
+                if (s.contains("find_dll_file")) kernelFind++;
+                if (s.contains("load_dll")) kernelLoad++;
+                if (s.contains("import_dll")) kernelImport++;
+            }
+            if (s.contains("c0000135") || s.contains("status_dll_not_found"))
+                lastMissingLine = row;
             if (s.contains("new_process(") || s.contains("new_process()")) newProcess++;
             if (s.contains("wineboot.exe") || s.contains("run_wineboot")) boot++;
             if (s.contains("kernel32.dll") || s.contains("kernelbase.dll")) kernel++;
@@ -171,6 +182,28 @@ public final class CharoiteWine29V1Forensics {
            .append(", loadedApi=").append(loadedApi)
            .append(", NO_SUCH_FILE=").append(noFile)
            .append(", failed/c0000135=").append(failed).append('\n');
+        out.append("KERNEL32 FOCUSED TRACE — PRESERVED EVIDENCE ONLY; NO EXECUTION\n")
+           .append("Observed markers: find_dll_file(kernel32)=").append(kernelFind)
+           .append(", load_dll(kernel32)=").append(kernelLoad)
+           .append(", import_dll(kernel32)=").append(kernelImport)
+           .append(", mappedKernel32=").append(mappedKernel32)
+           .append(", lastKernel32Line=").append(lastKernelLine < 0 ? "absent" : Integer.toString(lastKernelLine + 1))
+           .append(", lastMissingStatusLine=").append(lastMissingLine < 0 ? "absent" : Integer.toString(lastMissingLine + 1))
+           .append('\n');
+        // Small bounded original-order windows, not isolated grep hits.
+        // These distinguish a missing lookup trace from nearby failures
+        // without claiming a root cause. Never print the env= payload.
+        for (int center : new int[]{lastKernelLine, lastMissingLine}) {
+            if (center < 0) continue;
+            out.append("Read-only context around line ").append(center + 1)
+               .append(" (up to 5 sanitized lines):\n");
+            for (int i = Math.max(0, center - 2); i < Math.min(lines.length, center + 3); i++)
+                out.append("  ").append(i + 1).append(": ")
+                   .append(scrub(lines[i], rootPath)).append('\n');
+        }
+        out.append("Interpretation: absent mapping/lookup markers do NOT prove that ")
+           .append("kernel32.dll is missing; dependencies, PE machine acceptance ")
+           .append("and runtime search behavior remain unresolved.\n");
         out.append("Relevant trace (up to ").append(MAX_HITS)
            .append(" lines, first and last; env redacted):\n");
         int front = Math.min(hits.size(), MAX_HITS / 2);

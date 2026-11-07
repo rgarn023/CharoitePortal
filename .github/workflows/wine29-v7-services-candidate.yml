@@ -99,8 +99,8 @@ jobs:
           mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
           ordinary,delayed=mod.pe_imports(raw)
           allowed={"rpcrt4.dll","advapi32.dll","userenv.dll","setupapi.dll",
-                   "kernel32.dll","kernelbase.dll","ntdll.dll"}
-          assert set(ordinary).issubset(allowed) and "advapi32.dll" in ordinary and "rpcrt4.dll" in ordinary, ordinary
+                   "ucrtbase.dll","kernel32.dll","ntdll.dll"}
+          assert set(ordinary)==allowed and len(ordinary)==7 and not delayed, (ordinary,delayed)
           manifest={
             "schema_version":1, "generation":"wine29-v7-services-source-candidate",
             "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",

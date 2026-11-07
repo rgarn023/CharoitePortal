@@ -131,7 +131,18 @@ def patch_text(original):
             original.index(ANCHOR) <
             original.index('if (!getenv( "WINELOADERNOEXEC" ))')):
         raise ValueError("Unexpected Wine loader initialization order")
-    return original.replace(ANCHOR, ANDROID_SELECTOR + ANCHOR, 1)
+    patched = original.replace(ANCHOR, ANDROID_SELECTOR + ANCHOR, 1)
+    # Capture execv errno on v6 only; do not infer that NTSTATUS 0x1 proves execv failed.
+    # The pathname is not emitted, only bounded numeric errno and fixed selector id.
+    exec_anchor = '    execv( argv[1], argv + 1 );'
+    if patched.count(exec_anchor) != 1:
+        raise ValueError("Pinned Android child execv anchor missing/ambiguous")
+    patched = patched.replace(exec_anchor, exec_anchor + """
+#ifdef __ANDROID__
+    fprintf( stderr, "CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE errno=%d\\n", errno );
+#endif
+""", 1)
+    return patched
 
 def stage(root: Path):
     if not root.is_absolute() or root.is_symlink() or not root.is_dir():

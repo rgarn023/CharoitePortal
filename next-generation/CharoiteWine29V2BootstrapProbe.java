@@ -138,7 +138,7 @@ public final class CharoiteWine29V2BootstrapProbe {
     private static String sanitizeLog(String value, File root) {
         StringBuilder safe = new StringBuilder();
         String prefix = root.getAbsolutePath();
-        for (String line : value.split("\\n", -1)) {
+        for (String line : value.split("\n", -1)) {
             String lower = line.toLowerCase(Locale.US);
             if (lower.contains("env=") || lower.contains("password")
                     || lower.contains("secret") || lower.contains("token=")) {
@@ -146,8 +146,8 @@ public final class CharoiteWine29V2BootstrapProbe {
                 continue;
             }
             String cleaned = line.replace(prefix, "[v2-private-scratch]")
-                    .replace('\\r', ' ').replace('\\0', ' ');
-            safe.append(cleaned.length() > 760 ? cleaned.substring(0, 760) + " [clipped]" : cleaned).append('\\n');
+                    .replace('\r', ' ').replace('\0', ' ');
+            safe.append(cleaned.length() > 760 ? cleaned.substring(0, 760) + " [clipped]" : cleaned).append('\n');
             if (safe.length() >= 16000) break;
         }
         return safe.toString();
@@ -349,7 +349,7 @@ public final class CharoiteWine29V2BootstrapProbe {
                 if (helpEnv.containsKey("WINEBOOTSTRAPMODE"))
                     throw new SecurityException("Explicit Wineboot help inherited bootstrap mode");
                 out.append("V2 help launcher WINEBOOTSTRAPMODE: UNSET (verified)\n");
-                out.append("Wine may temporarily enable bootstrap mode for internal auto --init; no override is installed\\n");
+                out.append("Wine may temporarily enable bootstrap mode for internal auto --init; no override is installed\n");
                 peProc=p.start();
                 boolean finished=false, expired=false, overflow=false;
                 int exit=-999;
@@ -366,9 +366,9 @@ public final class CharoiteWine29V2BootstrapProbe {
                 }
                 String peText=boundedLog(peLog);
                 boolean help=peText.contains("Usage: wineboot");
-                out.append("V2 PE trace kernel32.dll mentioned: ").append(peText.toLowerCase(Locale.US).contains("kernel32.dll")).append('\\n');
-                out.append("V2 PE trace c0000135 seen: ").append(peText.toLowerCase(Locale.US).contains("c0000135")).append('\\n');
-                out.append("V2 PE trace bootstrap-mode text seen: ").append(peText.contains("WINEBOOTSTRAPMODE")).append(" (absence not proof of mode)\\n");
+                out.append("V2 PE trace kernel32.dll mentioned: ").append(peText.toLowerCase(Locale.US).contains("kernel32.dll")).append('\n');
+                out.append("V2 PE trace c0000135 seen: ").append(peText.toLowerCase(Locale.US).contains("c0000135")).append('\n');
+                out.append("V2 PE trace bootstrap-mode text seen: ").append(peText.contains("WINEBOOTSTRAPMODE")).append(" (absence not proof of mode)\n");
                 out.append("Windows PE attempted: true (wineboot.exe --help ONLY; never -i)\n");
                 out.append("PE process completed within 12s: ").append(finished).append('\n');
                 out.append("PE exit code: ").append(finished?Integer.toString(exit):"BOUNDED STOP").append('\n');
@@ -400,8 +400,8 @@ public final class CharoiteWine29V2BootstrapProbe {
                 if (serverLog!=null)
                     String serverText=boundedLog(serverLog);
                     out.append("V2 server trace internal auto-init marker observed: ")
-                       .append(serverText.contains("--init")).append(" (absence not proof it did not run)\\n");
-                    out.append("V2 server debug log bounded and redacted:\\n").append(serverText).append('\\n');
+                       .append(serverText.contains("--init")).append(" (absence not proof it did not run)\n");
+                    out.append("V2 server debug log bounded and redacted:\n").append(serverText).append('\n');
             } catch (Exception e) {
                 out.append("V2 cleanup/reading diagnostics: ")
                    .append(e.getClass().getSimpleName()).append('\n');

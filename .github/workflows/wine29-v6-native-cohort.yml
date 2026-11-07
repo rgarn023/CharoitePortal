@@ -83,6 +83,9 @@ jobs:
           grep -a -Fq 'libcharoite_wine29_v6_ntdll.so' "$OUT/libcharoite_wine29_v6_loader.so"
           grep -a -Fq 'CHAROITE_WINE29_V6_LOADER_EXEC' "$OUT/libcharoite_wine29_v6_ntdll.so"
           grep -a -Fq 'libcharoite_wine29_v6_loader.so' "$OUT/libcharoite_wine29_v6_ntdll.so"
+          grep -a -Fq 'CHAROITE_WINE29_V6_PE_DIR' "$OUT/libcharoite_wine29_v6_ntdll.so"
+          grep -a -Fq 'CHAROITE_WINE29_V6_DATA_DIR' "$OUT/libcharoite_wine29_v6_ntdll.so"
+          grep -a -Fq 'CHAROITE_WINE29_V6_DATA_DIR' "$OUT/libcharoite_wine29_v6_wineserver.so"
           echo "WINE29_V6_MATCHED_NATIVE_CHILD_SELECTOR_STRINGS=PASS"
           (cd "$OUT" && sha256sum ./*.so > native-sha256.txt)
           python3 - "$OUT" <<'PY'

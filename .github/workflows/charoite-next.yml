@@ -700,7 +700,7 @@ jobs:
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v8_short_forensics_contract.py' -v
           grep -Fq 'final boolean showArchivedWine29V8Execution = false;' next-generation/prepare_next.py
           grep -Fq 'END OF SHORT V8 REPORT' next-generation/CharoiteWine29V8ReadOnlyForensics.java
-          ! grep -Eq 'new ProcessBuilder|Runtime.getRuntime|FileOutputStream|FileWriter|mkdir\\(|mkdirs\\(|\\.delete\\(|renameTo\\(' next-generation/CharoiteWine29V8ReadOnlyForensics.java
+          ! grep -Eq 'new ProcessBuilder|Runtime.getRuntime|FileOutputStream|FileWriter|mkdir\(|mkdirs\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V8ReadOnlyForensics.java
           echo WINE29_V8_PRESERVED_SHORT_READONLY_POSTMORTEM=PASS
 
       - name: Build integrated Windows runtime preview

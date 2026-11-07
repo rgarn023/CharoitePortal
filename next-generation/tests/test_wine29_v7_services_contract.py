@@ -57,7 +57,7 @@ class V7SourceBuiltServicesContract(unittest.TestCase):
             'Cancel — do not execute',
             'CharoiteWine29V7ServicesProbe.run(this)',
             'nextCoreCard.addView(wine29V7Services);',
-            'versionCode 119','11.2-next.0.88',
+            'versionCode 120','11.2-next.0.89',
         ):
             self.assertIn(text, UI)
         self.assertNotIn('CharoiteWine29V7ServicesProbe.run(this)',
@@ -69,7 +69,7 @@ class V7SourceBuiltServicesContract(unittest.TestCase):
             'WINE29_V7_ONE_SHOT_SERVICES_CONSENT_AND_ISOLATION=PASS',
             'WINE29_V7_SIGNED_APK_SOURCE_BUILT_ARM64_SERVICES_SHA256=PASS',
             'WINE29_V7_PREVIOUS_V6_NATIVE_SEALED_111_UNCHANGED=PASS',
-            "versionCode='119' versionName='11.2-next.0.88'",
+            "versionCode='120' versionName='11.2-next.0.89'",
             'cp next-generation/CharoiteWine29V7ServicesProbe.java legal-bundle/CharoiteWine29V7ServicesProbe.java'
         ):
             self.assertIn(text, WF)

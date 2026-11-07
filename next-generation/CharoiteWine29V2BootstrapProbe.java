@@ -142,7 +142,7 @@ public final class CharoiteWine29V2BootstrapProbe {
             String lower = line.toLowerCase(Locale.US);
             if (lower.contains("env=") || lower.contains("password")
                     || lower.contains("secret") || lower.contains("token=")) {
-                safe.append("[redacted sensitive process line]\\n");
+                safe.append("[redacted sensitive process line]\n");
                 continue;
             }
             String cleaned = line.replace(prefix, "[v2-private-scratch]")
@@ -348,7 +348,7 @@ public final class CharoiteWine29V2BootstrapProbe {
                 Map<String,String> helpEnv = cleanEnv(p,nativeDir,server,scratch,prefix,lib);
                 if (helpEnv.containsKey("WINEBOOTSTRAPMODE"))
                     throw new SecurityException("Explicit Wineboot help inherited bootstrap mode");
-                out.append("V2 help launcher WINEBOOTSTRAPMODE: UNSET (verified)\\n");
+                out.append("V2 help launcher WINEBOOTSTRAPMODE: UNSET (verified)\n");
                 out.append("Wine may temporarily enable bootstrap mode for internal auto --init; no override is installed\\n");
                 peProc=p.start();
                 boolean finished=false, expired=false, overflow=false;

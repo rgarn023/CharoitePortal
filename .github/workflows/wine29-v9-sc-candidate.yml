@@ -1,0 +1,141 @@
+name: Wine29 V9 ARM64 SCM Client Source Candidate (No APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-v9-sc-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-only-scm-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify source-only v9 contract and pinned provenance
+        run: |
+          set -euo pipefail
+          test -f next-generation/charoite-wine/prepare-source.sh
+          test -f analysis/wine29_bootstrap/patch_v6_child_loader.py
+          test -f next-generation/stage_wine29_sealed012.py
+          test -f next-generation/wine29-imports/classify.py
+          grep -Fq c74acb09d51b447f5d5ac56c87608d3ec565a767 next-generation/charoite-wine/prepare-source.sh
+          test -f docs/WINE29_V9_SCM_CLIENT_PREPARATION.md
+          echo WINE29_V9_SOURCE_ONLY_NO_PHONE_PREFIX=PASS
+
+      - name: Retrieve source-verified sealed provider cohort (READ ONLY)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-v9-sealed"
+          gh run download 41947164001 --repo "$GITHUB_REPOSITORY"             --name Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK             --dir "$RUNNER_TEMP/wine29-v9-sealed"
+          echo "ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e  $RUNNER_TEMP/wine29-v9-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" | sha256sum --check
+
+      - uses: android-actions/setup-android@v4
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Retrieve checksummed LLVM-MinGW (host tooling only)
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/llvm-mingw-20261020.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors             --connect-timeout 25 --max-time 300             "https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare identical pinned Wine10 source in NEW ephemeral CI workspace
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v9-sc-source"
+          test ! -e "$ROOT"
+          bash next-generation/charoite-wine/prepare-source.sh "$ROOT"
+          python3 analysis/wine29_bootstrap/patch_v6_child_loader.py "$ROOT"
+          test -f "$ROOT/programs/sc/Makefile.in"
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*sc\.exe$' "$ROOT/programs/sc/Makefile.in"
+          grep -Eq '^IMPORTS[[:space:]]*=[[:space:]]*advapi32$' "$ROOT/programs/sc/Makefile.in"
+          git -C "$ROOT" diff --check
+          echo WINE29_V9_PINNED_SCM_CLIENT_SOURCE=PASS
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh             "$ROOT" "$ANDROID_HOME/ndk/27.3.13750724"             "$RUNNER_TEMP/charoite-llvm-mingw"
+
+      - name: Cross-build and audit Windows ARM64 sc.exe (NEVER RUN)
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v9-sc-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-v9-sc-candidate"
+          test ! -e "$OUT"
+          cd "$BUILD"
+          make -j2 programs/sc/aarch64-windows/sc.exe
+          BIN="$BUILD/programs/sc/aarch64-windows/sc.exe"
+          test -s "$BIN"
+          test ! -L "$BIN"
+          mkdir "$OUT"
+          cp "$BIN" "$OUT/sc-arm64.exe"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/sc-pe-header.txt"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$BIN" > "$OUT/sc-coff-imports.txt"
+          cd "$GITHUB_WORKSPACE"
+          python3 - "$OUT" "$RUNNER_TEMP" "$GITHUB_SHA" <<'PY'
+          import hashlib, importlib.util, json, pathlib, struct, sys
+          folder=pathlib.Path(sys.argv[1]); runner=pathlib.Path(sys.argv[2])
+          raw=(folder/"sc-arm64.exe").read_bytes()
+          assert 1024 < len(raw) < 32*1024*1024 and raw[:2] == b"MZ"
+          pe_off=struct.unpack_from("<I",raw,0x3c)[0]
+          assert 64 <= pe_off < len(raw)-24 and raw[pe_off:pe_off+4] == b"PE\0\0"
+          machine=struct.unpack_from("<H",raw,pe_off+4)[0]
+          assert machine == 0xAA64, f"Not source-built ARM64 sc.exe: machine {machine:#06x}"
+          assert "ARM64" in (folder/"sc-pe-header.txt").read_text()
+          def load(path,name):
+              spec=importlib.util.spec_from_file_location(name,path)
+              obj=importlib.util.module_from_spec(spec); spec.loader.exec_module(obj)
+              return obj
+          repo=pathlib.Path.cwd()
+          sealed=load(repo/"next-generation/stage_wine29_sealed012.py","wine29_v9_sealed")
+          pe=load(repo/"next-generation/wine29-imports/classify.py","wine29_v9_imports")
+          manifest,payload=sealed.validate_archive(runner/"wine29-v9-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz")
+          providers={name.rsplit("/",1)[-1] for name in payload if name.startswith("data/pe/arm64ec/")}
+          assert len(providers)==34 and manifest["pe_dll_count"]==34
+          ordinary,delayed=pe.pe_imports(raw)
+          assert "advapi32.dll" in ordinary, ordinary
+          gaps=sorted((set(ordinary)|set(delayed))-providers)
+          report={
+              "schema_version":1,
+              "generation":"wine29-v9-scm-client-source-only",
+              "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+              "source_build_commit":sys.argv[3],
+              "package_intended":"com.charoitx",
+              "file":"sc-arm64.exe","image_name":"sc.exe",
+              "pe_machine":"0xAA64",
+              "size":len(raw),"sha256":hashlib.sha256(raw).hexdigest(),
+              "ordinary_imports":ordinary,"delay_imports":delayed,
+              "sealed_34_provider_count":len(providers),
+              "unbundled_imports":gaps,
+              "source_candidate_only":True,"android_apk_built":False,
+              "native_elf_included":False,"wine_executed":False,
+              "windows_pe_executed":False,"device_tested":False,
+              "prefix_created":False,"scm_verified":False,"launch_ready":False
+          }
+          (folder/"sc-manifest.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+          print("WINE29_V9_SOURCE_BUILT_ARM64_SC_EXE=PASS")
+          print("SCM_CLIENT_UNBUNDLED_IMPORTS",gaps)
+          print("SCM_RUNTIME_AND_PHONE_VALIDATION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish candidate PE and provenance only (NOT an APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-V9-Source-Built-ARM64-SC-EXE-NOT-APK
+          path: wine29-v9-sc-candidate/
+          retention-days: 60
+          if-no-files-found: error

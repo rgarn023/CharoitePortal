@@ -1,6 +1,6 @@
 # Wine29 v3: source-verified matched PE directory test
 
-State: Diagnostic source only until CI passes; **NO phone v3 execution has been authorized or performed**.
+State: Signed APK v0.77 CI VERIFIED from source commit `d697ad233e7b51c6dbc5aa0f63f3c892d737b79f`, Actions [42323081153](https://github.com/rgarn023/CharoitePortal/actions/runs/42323081153) SUCCESS: 138 stable + 163 Next tests PASS, Gradle/AAPT/signature PASS. [APK artifact 13554052236](https://github.com/rgarn023/CharoitePortal/actions/runs/42323081153/artifacts/13554052236) unexpired, expires 2027-02-05. **NO phone v3 execution has occurred.** Explicit opt-in is still required for a new private scratch. Successful build does not establish functional Wineboot.
 
 ## Evidence from v2 (preserve as-is)
 - v2 had fresh sealed PE/NLS/native hashes PASS and a running foreground wineserver.

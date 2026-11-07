@@ -15,9 +15,9 @@ class ModularCoreManagerContract(unittest.TestCase):
         self.assertIn('CharoiteCoreManager.show(this)', PREP)
         self.assertIn('nextCoreCard.addView(coreModules);', PREP)
         self.assertIn('cp next-generation/CharoiteCoreManager.java legal-bundle/CharoiteCoreManager.java', WF)
-        self.assertIn('versionCode 119', PREP)
-        self.assertIn('11.2-next.0.88', PREP)
-        self.assertIn("versionCode='119' versionName='11.2-next.0.88'", WF)
+        self.assertIn('versionCode 120', PREP)
+        self.assertIn('11.2-next.0.89', PREP)
+        self.assertIn("versionCode='120' versionName='11.2-next.0.89'", WF)
 
     def test_defaults_to_existing_runtime_only(self):
         for phrase in (

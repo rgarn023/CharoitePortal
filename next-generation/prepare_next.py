@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.82"')
-text = text.replace("versionCode 33", "versionCode 113")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.83"')
+text = text.replace("versionCode 33", "versionCode 114")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -1472,12 +1472,12 @@ ui = ui.replace(anchor, anchor + """
         } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
         nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
         nextCoreCard.addView(label(
-                "Wine29 v6 native child reached its own wineboot.exe PE image, NTDLL " +
-                "and API-set DLL (previous v5 failed to start child). " +
-                "V6 direct -i exited 0 and created C: Windows/users and registries. " +
-                "Child completion and full prefix initialization NOT YET verified. " +
-                "Inspect preserved v6 diagnostics READ ONLY; old one-shot execution " +
-                "buttons archived. Game runtime remains UNVERIFIED.",
+                "Wine29 v6 parent/child Wineboot both EXITED 0. Additional process 0034 " +
+                "EXITED 0xC0000135 (STATUS_DLL_NOT_FOUND); process and DLL identity " +
+                "not yet established. Preserved v6 server trace exceeded an earlier " +
+                "read-only parser guard; new bounded forensics identifies the helper " +
+                "and skips oversized server lines safely. No Wine execution or " +
+                "scratch writes. Windows game runtime remains UNVERIFIED.",
                 12, SECONDARY, false));
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
@@ -1779,7 +1779,7 @@ ui = ui.replace(anchor, anchor + """
         // v6 one-shot. No Wine or process creation; no further authorization
         // or writes necessary. Limited to two named logs and file metadata.
         android.widget.Button wine29V6Forensics = new android.widget.Button(this);
-        wine29V6Forensics.setText("Inspect Wine29 v6 child startup (read-only)");
+        wine29V6Forensics.setText("Inspect Wine29 v6 helper failure (read-only)");
         wine29V6Forensics.setAllCaps(false);
         wine29V6Forensics.setOnClickListener(v -> {
             wine29V6Forensics.setEnabled(false);

@@ -18,7 +18,7 @@ class SelectorAuditTests(unittest.TestCase):
     def make_inputs(self, root, selectors=None):
         root = Path(root)
         natives = root / "jniLibs"
-        natives.mkdir()
+        natives.mkdir(parents=True)
         selectors = selectors or {}
         items = {}
         for key, (source, filename) in AUDIT.EXPECTED.items():

@@ -55,19 +55,19 @@ class Wine29V5CDriveContracts(unittest.TestCase):
    'setNegativeButton("Cancel — do not execute", null)',
    'CharoiteWine29V5DriveCProbe.run(this)',
    'nextCoreCard.addView(wine29V5DriveC);',
-   'versionCode 111', '11.2-next.0.80'
+   'versionCode 112', '11.2-next.0.81'
   ):
    with self.subTest(marker=marker):self.assertIn(marker,UI)
   before=UI.split('wine29V5DriveC.setOnClickListener(v ->')[0]
   self.assertNotIn('CharoiteWine29V5DriveCProbe.run(this)',before)
-  self.assertIn('Wine29 v3 PE --help PASSED (exit 0)',UI)
+  self.assertIn('Wine29 v5 direct -i exited 0',UI)
 
  def test_ci_and_licensing(self):
   for marker in (
     'test_wine29_v5_c_drive_contract.py',
     'WINE29_V5_C_DRIVE_FRESH_MAPPING_CONSENT=PASS',
     'cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java',
-    "versionCode='111' versionName='11.2-next.0.80'"
+    "versionCode='112' versionName='11.2-next.0.81'"
   ):
    with self.subTest(marker=marker):self.assertIn(marker,WF)
 

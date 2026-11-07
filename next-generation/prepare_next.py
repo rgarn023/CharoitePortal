@@ -1471,7 +1471,8 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(label(
                 "Wine29 v3 PE --help PASSED (exit 0), with kernel32/kernelbase loaded; " +
                 "the prefix still lacks drive_c. Native automatic Wineboot child creation " +
-                "returns status 0x1 and may be failing in loader re-execution. " +
+                "returns status 0x1 (not a Wineboot exit code) and may be failing " +
+                "in loader re-execution. " +
                 "V4 separately tests direct Wineboot -i in NEW private scratch; manual " +
                 "confirmation is required. V1-V3 executions stay archived.",
                 12, SECONDARY, false));

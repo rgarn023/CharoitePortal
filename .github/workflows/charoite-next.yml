@@ -559,6 +559,15 @@ jobs:
           ! grep -Eq 'ProcessBuilder|Runtime.getRuntime|FileOutputStream|mkdir\(|mkdirs\(|\.delete\(' next-generation/CharoiteWine29V3AutoInitForensics.java
           echo WINE29_V3_POSTMORTEM_NO_EXECUTION_OR_WRITES=PASS
 
+      - name: Verify Wine29 v4 source-coherent one-shot direct -i and retained data isolation
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v4_direct_init_contract.py' -v
+          grep -Fq 'bootBuiltin.getAbsolutePath(),"-i"' next-generation/CharoiteWine29V4DirectInitProbe.java
+          grep -Fq 'charoite-next-wine29-direct-init-v4' next-generation/CharoiteWine29V4DirectInitProbe.java
+          ! grep -Eq 'env.put\("WINEBOOTSTRAPMODE"|\.delete\(|Runtime.getRuntime\(' next-generation/CharoiteWine29V4DirectInitProbe.java
+          echo WINE29_V4_ONE_SHOT_DIRECT_INIT_CONSENT=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1056,7 +1065,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='109' versionName='11.2-next.0.78'"
+            grep -F "package: name='com.charoitx' versionCode='110' versionName='11.2-next.0.79'"
 
       - name: Verify APK signing matches persisted Charoite key
         run: |
@@ -1220,6 +1229,7 @@ jobs:
           cp next-generation/CharoiteWine29V2BootstrapProbe.java legal-bundle/CharoiteWine29V2BootstrapProbe.java
           cp next-generation/CharoiteWine29V3LayoutProbe.java legal-bundle/CharoiteWine29V3LayoutProbe.java
           cp next-generation/CharoiteWine29V3AutoInitForensics.java legal-bundle/CharoiteWine29V3AutoInitForensics.java
+          cp next-generation/CharoiteWine29V4DirectInitProbe.java legal-bundle/CharoiteWine29V4DirectInitProbe.java
           cp next-generation/stage_wine28.py legal-bundle/stage_wine28.py
           cp next-generation/stage_wine28_native.py legal-bundle/stage_wine28_native.py
           cp next-generation/stage_wine29.py legal-bundle/stage_wine29.py

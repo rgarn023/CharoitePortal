@@ -429,7 +429,7 @@ jobs:
             --name Wine29-V6-Native-Child-Loader-Candidate-NOT-APK \
             --dir "$RUNNER_TEMP/charoite-wine29-v6-source"
           python3 next-generation/stage_wine29_v6_native.py \
-            "$RUNNER_TEMP/charoite-wine29-v6-source" upstream
+            "$RUNNER_TEMP/charoite-wine29-v6-source" "$GITHUB_WORKSPACE/upstream"
           test -s upstream/app/src/main/assets/charoite-next/wine29-v6/wine29-v6-native-index.json
           for component in loader ntdll wineserver; do
             test -s "upstream/app/src/main/jniLibs/arm64-v8a/libcharoite_wine29_v6_$component.so"

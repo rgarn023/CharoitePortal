@@ -60,11 +60,20 @@ the particular APK's verified native ELF files. Preserved phone evidence
 also shows that ntdll PE mapped and the API-set schema loaded, so their
 initial selector logic cannot simply be declared broken.
 
-**Next read-only CI step (not yet implemented):** inspect the exact
-source-hash-verified Wine29 .0.7 loader, Unix ntdll and wineserver ELF
-string tables for the effective Wine29/28 selector names and compare
-against the isolated v1 environment before proposing a native-loader fix.
-Do not change or rerun an existing phone scratch on this hypothesis.
+**Read-only CI audit implemented (November 6, 2026; results pending):**
+`next-generation/audit_wine29_07_selectors.py` runs in GitHub Actions
+immediately after staging the exact Wine29 .0.7 source archive. The audit
+rechecks each of the three APK-native AArch64 ELF file hashes against the
+immutable same-source module index, then records literal Wine28/Wine29
+selector marker presence for loader, Unix ntdll and wineserver in a bounded
+JSON artifact. It compares marker coverage to the v1 Java environment names.
+
+**Interpretation limit:** finding an ASCII selector string does not establish
+that it is used at runtime, or how a DLL was searched/mapped; a missing string
+also does not establish a kernel32 root cause. This is evidence gathering,
+not an executable fix. No phone files, Wine process, PE, existing scratch or
+user data are touched. Source code and contract tests are committed on
+`main`; build/selector results must be checked before calling this PASS.
 
 ## Decision tree for the next investigation
 

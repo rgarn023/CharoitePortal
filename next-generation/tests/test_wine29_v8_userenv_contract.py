@@ -64,7 +64,7 @@ class Wine29V8SourceUserenvContract(unittest.TestCase):
             "WINE29_V8_SIGNED_APK_SOURCE_BUILT_USERENV_SHA256=PASS",
             "WINE29_V8_V7_SERVICES_V6_NATIVE_111_SEALED_PRESERVED=PASS",
             "cp next-generation/CharoiteWine29V8UserenvProbe.java legal-bundle/CharoiteWine29V8UserenvProbe.java",
-            "versionCode='120' versionName='11.2-next.0.90'",
+            "versionCode='121' versionName='11.2-next.0.90'",
         ):
             with self.subTest(token=token): self.assertIn(token, WF)
 

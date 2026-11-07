@@ -115,12 +115,14 @@ jobs:
           folder=pathlib.Path(sys.argv[1])
           runner=pathlib.Path(sys.argv[2])
           raw=(folder/"userenv-arm64.dll").read_bytes()
-          assert 1024 < len(raw) < 32*1024*1024 and raw[:2]==b"MZ"
+          assert 1024 < len(raw) < 32*1024*1024 and raw[:2]==b"MZ", "Candidate missing reasonable PE/DOS header"
           offset=struct.unpack_from("<I",raw,0x3c)[0]
-          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b"PE\0\0"
-          assert struct.unpack_from("<H",raw,offset+4)[0]==0xAA64
+          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b"PE\0\0", "Malformed candidate PE signature"
+          machine=struct.unpack_from("<H",raw,offset+4)[0]
           header=(folder/"userenv-pe-header.txt").read_text()
-          assert "ARM64" in header and "AA64" in header
+          print("WINE29_V8_PE_HEADER_DIAGNOSTIC machine",hex(machine),"header",header[:1000])
+          assert machine==0xAA64, f"Expected ARM64 AA64 PE but received {machine:#06x}"
+          assert "ARM64" in header and "AA64" in header, "Independent LLVM machine header format mismatch"
           def load(path,name):
               spec=importlib.util.spec_from_file_location(name,path)
               mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)

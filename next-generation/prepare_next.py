@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.87"')
-text = text.replace("versionCode 33", "versionCode 118")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.88"')
+text = text.replace("versionCode 33", "versionCode 119")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -187,7 +187,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V6ChildLoaderProbe.java",
                  "CharoiteWine29V6ReadOnlyForensics.java",
                  "CharoiteWine29V7ServicesProbe.java",
-                 "CharoiteWine29V7ReadOnlyForensics.java"):
+                 "CharoiteWine29V7ReadOnlyForensics.java",
+                 "CharoiteWine29V8UserenvProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1855,8 +1856,10 @@ ui = ui.replace(anchor, anchor + """
 
         } // v7 execution remains in source, but cannot be launched again.
 
-        // CURRENT TEST ONLY: bounded, structured, read-only analysis of the
-        // EXISTING v7 PE/server logs. No wineserver/PE/process creation.
+        // Archived v7 audit is retained in code for provenance but no longer shown
+        // as an active System control after the owner completed the read-only audit.
+        final boolean showArchivedWine29V7ReadOnly = false;
+        if (showArchivedWine29V7ReadOnly) {
         android.widget.Button wine29V7Audit = new android.widget.Button(this);
         wine29V7Audit.setText("Inspect Wine29 v7 DLL failure (read-only)");
         wine29V7Audit.setAllCaps(false);
@@ -1883,6 +1886,51 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V7ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V7Audit);
+
+        } // Completed preserved v7 read-only audit archived from System.
+
+        // CURRENT ONE-SHOT ONLY: NEW independent v8 scratch, never v7, explicit opt-in.
+        android.widget.Button wine29V8Userenv = new android.widget.Button(this);
+        wine29V8Userenv.setText("Test Wine29 v8 userenv.dll services bootstrap (one-shot)");
+        wine29V8Userenv.setAllCaps(false);
+        wine29V8Userenv.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new Wine29 v8 services bootstrap?")
+                .setMessage("This is NOT read-only. Creates ONE NEW private v8 prefix "
+                    + "and starts verified Wine29 wineserver and Wineboot -i. Wine "
+                    + "may spawn services.exe, userenv.dll, and internal helper programs. "
+                    + "This does NOT start games or install Windows apps. The new "
+                    + "source-built userenv DLL, prior services.exe, original sealed "
+                    + "111 PE/NLS and native executables are SHA-256 checked. "
+                    + "Existing Wine29 v1–v7 scratch, stable Portal, games, saves, "
+                    + "user prefixes and rootfs are NOT accessed, retried or cleaned. "
+                    + "The new v8 scratch is retained after one use. "
+                    + "Authorize exactly ONE new v8 process experiment?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE v8 test", (dialog, which) -> {
+                    wine29V8Userenv.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V8UserenvProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V8Userenv.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — v8 userenv + services bootstrap")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null)
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 v8 userenv bootstrap report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V8UserenvProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V8Userenv);
+
 
 
 

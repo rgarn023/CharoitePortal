@@ -55,19 +55,19 @@ class Wine29V5CDriveContracts(unittest.TestCase):
    'setNegativeButton("Cancel — do not execute", null)',
    'CharoiteWine29V5DriveCProbe.run(this)',
    'nextCoreCard.addView(wine29V5DriveC);',
-   'versionCode 113', '11.2-next.0.82'
+   'versionCode 114', '11.2-next.0.83'
   ):
    with self.subTest(marker=marker):self.assertIn(marker,UI)
   before=UI.split('wine29V5DriveC.setOnClickListener(v ->')[0]
   self.assertNotIn('CharoiteWine29V5DriveCProbe.run(this)',before)
-  self.assertIn('Wine29 v6 native child reached its own wineboot.exe PE image',UI)
+  self.assertIn('Wine29 v6 parent/child Wineboot both EXITED 0.',UI)
 
  def test_ci_and_licensing(self):
   for marker in (
     'test_wine29_v5_c_drive_contract.py',
     'WINE29_V5_C_DRIVE_FRESH_MAPPING_CONSENT=PASS',
     'cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java',
-    "versionCode='113' versionName='11.2-next.0.82'"
+    "versionCode='114' versionName='11.2-next.0.83'"
   ):
    with self.subTest(marker=marker):self.assertIn(marker,WF)
 

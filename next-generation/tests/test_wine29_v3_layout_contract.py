@@ -57,8 +57,8 @@ class Wine29V3LayoutContracts(unittest.TestCase):
         self.assertIn('final boolean showArchivedWine29V2Execution = false;', UI)
         self.assertIn('final boolean showArchivedWine29V3Execution = false;', UI)
         self.assertIn('wine29V1Forensics.setText(', UI)
-        self.assertIn('versionCode 113', UI)
-        self.assertIn('11.2-next.0.82', UI)
+        self.assertIn('versionCode 114', UI)
+        self.assertIn('11.2-next.0.83', UI)
         before = UI.split('wine29V3Layout.setOnClickListener(v ->', 1)[0]
         self.assertNotIn('CharoiteWine29V3LayoutProbe.run(this)', before)
 
@@ -66,7 +66,7 @@ class Wine29V3LayoutContracts(unittest.TestCase):
         self.assertIn("test_wine29_v3_layout_contract.py", WF)
         self.assertIn("WINE29_V3_MATCHED_PE_DIRECTORY_CONSENT=PASS", WF)
         self.assertIn("cp next-generation/CharoiteWine29V3LayoutProbe.java legal-bundle/CharoiteWine29V3LayoutProbe.java", WF)
-        self.assertIn("versionCode='113' versionName='11.2-next.0.82'", WF)
+        self.assertIn("versionCode='114' versionName='11.2-next.0.83'", WF)
 
 if __name__ == "__main__":
     unittest.main()

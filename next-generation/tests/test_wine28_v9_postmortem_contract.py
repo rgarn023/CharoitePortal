@@ -33,11 +33,11 @@ class Wine28V9PostmortemContract(unittest.TestCase):
             '"CharoiteWine28V9Forensics.java"',
             'Inspect preserved Wine28 v9 logs (read-only)',
             'CharoiteWine28V9Forensics.run(this)',
-            'versionCode 117',
-            '11.2-next.0.86'):
+            'versionCode 118',
+            '11.2-next.0.87'):
             self.assertIn(marker, PREP)
         self.assertIn('cp next-generation/CharoiteWine28V9Forensics.java legal-bundle/CharoiteWine28V9Forensics.java', WF)
-        self.assertIn("versionCode='117' versionName='11.2-next.0.86'", WF)
+        self.assertIn("versionCode='118' versionName='11.2-next.0.87'", WF)
 
 if __name__=="__main__":
     unittest.main()

@@ -122,7 +122,7 @@ jobs:
           header=(folder/"userenv-pe-header.txt").read_text()
           print("WINE29_V8_PE_HEADER_DIAGNOSTIC machine",hex(machine),"header",header[:1000])
           assert machine==0xAA64, f"Expected ARM64 AA64 PE but received {machine:#06x}"
-          assert "ARM64" in header and "AA64" in header, "Independent LLVM machine header format mismatch"
+          assert "Format: COFF-ARM64X" in header and "Machine: IMAGE_FILE_MACHINE_ARM64X (0xA64E)" in header, "Source-built hybrid ARM64X container header mismatch"
           def load(path,name):
               spec=importlib.util.spec_from_file_location(name,path)
               mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)

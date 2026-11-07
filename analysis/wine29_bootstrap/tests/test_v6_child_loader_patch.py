@@ -15,6 +15,7 @@ static void init_paths( char *argv[] )
 {
     wineloader = build_path( bin_dir, basename );
     asprintf( &env, "WINELOADER=%s", wineloader );
+    execv( argv[1], argv + 1 );
 }
 void __wine_main(void)
 {
@@ -31,7 +32,9 @@ class V6ChildLoaderSourceContract(unittest.TestCase):
         self.assertIn('wineloader = canonical;', out)
         self.assertIn('asprintf( &env, "WINELOADER=%s", wineloader );', out)
         self.assertIn("fatal_error(", out)
-        self.assertEqual(out.replace(patch.ANDROID_SELECTOR, ""), FIXTURE)
+        self.assertIn("CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE", out)
+        self.assertIn("execv( argv[1], argv + 1 );", out)
+        self.assertEqual(out.count("CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE"), 1)
 
     def test_no_fallback_to_wine_bindir_on_android(self):
         out = patch.patch_text(FIXTURE)

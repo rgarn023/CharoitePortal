@@ -1,0 +1,131 @@
+name: Wine29 V7 ARM64 Services Bootstrap Candidate (No APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-v7-services-candidate.yml'
+      - 'analysis/wine29_bootstrap/patch_v6_child_loader.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-wine29-services-pe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source contract — services.exe lookup failure, no device processes
+        run: |
+          set -euo pipefail
+          test -f next-generation/charoite-wine/prepare-source.sh
+          test -f analysis/wine29_bootstrap/patch_v6_child_loader.py
+          grep -Fq 'c74acb09d51b447f5d5ac56c87608d3ec565a767' next-generation/charoite-wine/prepare-source.sh
+          grep -Fq 'CHAROITE_WINE29_V6_LOADER_EXEC' analysis/wine29_bootstrap/patch_v6_child_loader.py
+          echo WINE29_V7_SERVICES_PROVENANCE_SOURCE_GATE=PASS
+
+      - uses: android-actions/setup-android@v4
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Download checksum-pinned LLVM-MinGW toolchain
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/llvm-mingw-20261020.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 \
+            "https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare pinned Wine10 source with matching V6 native paths, in fresh CI only
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v7-services-source"
+          bash next-generation/charoite-wine/prepare-source.sh "$ROOT"
+          python3 analysis/wine29_bootstrap/patch_v6_child_loader.py "$ROOT"
+          test -f "$ROOT/programs/services/Makefile.in"
+          grep -Fxq 'MODULE    = services.exe' "$ROOT/programs/services/Makefile.in"
+          grep -Fxq 'IMPORTS   = rpcrt4 advapi32 userenv setupapi' "$ROOT/programs/services/Makefile.in"
+          git -C "$ROOT" diff --check
+          echo WINE29_V7_SERVICES_SAME_PINNED_SOURCE=PASS
+
+      - name: Build ARM64EC-capable Wine build host and Android native toolchain (CI only)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/charoite-wine29-v7-services-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          echo WINE29_V7_NATIVE_SOURCE_PREPARED_NOT_INSTALLED=PASS
+
+      - name: Cross-compile Windows ARM64 services.exe and seal candidate
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v7-services-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-v7-services-candidate"
+          test ! -e "$OUT"
+          cd "$BUILD"
+          make -j2 programs/services/aarch64-windows/services.exe
+          BIN="$BUILD/programs/services/aarch64-windows/services.exe"
+          test -s "$BIN"
+          test ! -L "$BIN"
+          mkdir "$OUT"
+          cp "$BIN" "$OUT/services-arm64.exe"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/services-pe-header.txt"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$BIN" > "$OUT/services-coff-imports.txt"
+          python3 - "$OUT" "$GITHUB_SHA" <<'PY'
+          import hashlib, json, pathlib, struct, sys
+          folder=pathlib.Path(sys.argv[1]); file=folder/"services-arm64.exe"; raw=file.read_bytes()
+          assert 1000<len(raw)<32*1024*1024, "Unreasonable source-built PE size"
+          assert raw[:2]==b'MZ'
+          offset=struct.unpack_from("<I",raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b'PE\\0\\0'
+          machine=struct.unpack_from("<H",raw,offset+4)[0]
+          assert machine==0xAA64, f"services.exe must be true ARM64 PE, got {machine:04x}"
+          hdr=(folder/"services-pe-header.txt").read_text()
+          assert "ARM64" in hdr and "AA64" in hdr, "llvm-readobj header mismatch"
+          import importlib.util
+          mod_path=pathlib.Path.cwd().parents[2]/"next-generation/wine29-imports/classify.py"
+          # Resolve via Actions checkout rather than Wine source/build tree.
+          mod_path=pathlib.Path(__import__("os").environ["GITHUB_WORKSPACE"])/"next-generation/wine29-imports/classify.py"
+          spec=importlib.util.spec_from_file_location("classify_wine29_services",mod_path)
+          mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+          ordinary,delayed=mod.pe_imports(raw)
+          allowed={"rpcrt4.dll","advapi32.dll","userenv.dll","setupapi.dll",
+                   "kernel32.dll","kernelbase.dll","ntdll.dll"}
+          assert set(ordinary).issubset(allowed) and "advapi32.dll" in ordinary and "rpcrt4.dll" in ordinary, ordinary
+          manifest={
+            "schema_version":1, "generation":"wine29-v7-services-source-candidate",
+            "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+            "source_build_commit":sys.argv[2], "android_package":"com.charoitx",
+            "source_path":"programs/services/Makefile.in",
+            "image_name":"services.exe", "file":"services-arm64.exe",
+            "pe_machine":"0xAA64", "size":len(raw),
+            "sha256":hashlib.sha256(raw).hexdigest(),
+            "ordinary_imports":ordinary, "delay_imports":delayed,
+            "native_elf_included":False, "wine_executed":False,
+            "windows_exe_executed":False, "device_tested":False,
+            "prefix_initialized":False, "launch_ready":False
+          }
+          (folder/"services-manifest.json").write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+          print("WINE29_V7_SOURCE_BUILT_ARM64_SERVICES_EXE=PASS")
+          print("WINE29_V7_SERVICES_IMPORTS", ordinary, "delayed", delayed)
+          print("WINE29_V7_ANDROID_WINEBOOT_NOT_ATTEMPTED")
+          PY
+
+      - name: Publish source-verified services candidate (not installable)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-V7-Source-Built-ARM64-Services-EXE-NOT-APK
+          path: wine29-v7-services-candidate/
+          retention-days: 60
+          if-no-files-found: error

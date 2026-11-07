@@ -63,7 +63,7 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
             'test_wine29_v8_short_forensics_contract.py',
             'WINE29_V8_PRESERVED_SHORT_READONLY_POSTMORTEM=PASS',
             'cp next-generation/CharoiteWine29V8ReadOnlyForensics.java legal-bundle/CharoiteWine29V8ReadOnlyForensics.java',
-            "versionCode='120' versionName='11.2-next.0.90'",
+            "versionCode='121' versionName='11.2-next.0.90'",
         ):
             with self.subTest(token=token): self.assertIn(token,WF)
 

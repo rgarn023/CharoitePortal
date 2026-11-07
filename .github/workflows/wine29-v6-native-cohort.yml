@@ -1,0 +1,111 @@
+name: Wine29 V6 Native Child Loader Candidate (No APK)
+on:
+  push:
+    paths:
+      - '.github/workflows/wine29-v6-native-cohort.yml'
+      - 'analysis/wine29_bootstrap/patch_v6_child_loader.py'
+      - 'analysis/wine29_bootstrap/tests/test_v6_child_loader_patch.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-source-and-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source patch contract without running Wine
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p 'test_*.py' -v
+          python3 -m py_compile analysis/wine29_bootstrap/patch_v6_child_loader.py
+          echo "WINE29_V6_FAIL_CLOSED_SOURCE_CONTRACT=PASS"
+
+      - uses: android-actions/setup-android@v4
+      - name: Install pinned Android NDK r27d
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Download independently checksum-pinned LLVM-MinGW
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/llvm-mingw-20261020.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 25 --max-time 300 \
+            "https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare NEW pinned Wine source without modifying prior cohorts
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/prepare-source.sh "$RUNNER_TEMP/charoite-wine29-v6-prepared"
+          python3 analysis/wine29_bootstrap/patch_v6_child_loader.py "$RUNNER_TEMP/charoite-wine29-v6-prepared"
+          test -s "$RUNNER_TEMP/charoite-wine29-v6-prepared/charoite-wine29-v6-loader-patch.json"
+          git -C "$RUNNER_TEMP/charoite-wine29-v6-prepared" diff --check
+          echo "WINE29_V6_PINNED_SOURCE_PATCH=PASS"
+
+      - name: Cross-build same-source Android ARM64 native loader NTDLL and wineserver
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/charoite-wine29-v6-prepared" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+          python3 next-generation/charoite-wine/verify-runtime-slice.py \
+            "$RUNNER_TEMP/charoite-wine29-v6-prepared/charoite-wine-arm64ec-base-slice.tar.gz"
+
+      - name: Seal exactly three native ELF candidates and record hashes
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v6-prepared"
+          OUT="$GITHUB_WORKSPACE/wine29-v6-native-candidate"
+          mkdir "$OUT"
+          cp "$ROOT/charoite-arm64ec-android/loader/wine" "$OUT/libcharoite_wine29_v6_loader.so"
+          cp "$ROOT/charoite-arm64ec-android/dlls/ntdll/ntdll.so" "$OUT/libcharoite_wine29_v6_ntdll.so"
+          cp "$ROOT/charoite-arm64ec-android/server/wineserver" "$OUT/libcharoite_wine29_v6_wineserver.so"
+          cp "$ROOT/charoite-wine29-v6-loader-patch.json" "$OUT/source-patch-evidence.json"
+          cp "$ROOT/charoite-arm64ec-artifact/build-report.txt" "$OUT/"
+          READELF="$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for elf in "$OUT"/*.so; do
+            test -s "$elf"
+            "$READELF" -h "$elf" | grep -F 'AArch64'
+            "$READELF" -lW "$elf" > "$elf.program-headers.txt"
+          done
+          (cd "$OUT" && sha256sum ./*.so > native-sha256.txt)
+          python3 - "$OUT" <<'PY'
+          import json,pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1])
+          names=sorted(v.name for v in p.glob("*.so"))
+          assert names==["libcharoite_wine29_v6_loader.so","libcharoite_wine29_v6_ntdll.so","libcharoite_wine29_v6_wineserver.so"]
+          for f in p.glob("*.so"):
+              raw=f.read_bytes()
+              assert raw[:6]==b"\x7fELF\x02\x01",f.name
+              assert struct.unpack_from("<H",raw,18)[0]==183,f.name
+              alignment=[]
+              for line in (p/(f.name+".program-headers.txt")).read_text().splitlines():
+                  if line.lstrip().startswith("LOAD "):
+                      alignment.append(int(line.split()[-1],16))
+              assert alignment and min(alignment)>=16384,(f.name,alignment)
+          data=json.loads((p/"source-patch-evidence.json").read_text())
+          assert data["source_revision"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+          assert data["selector_env"]=="CHAROITE_WINE29_V6_LOADER_EXEC"
+          print("WINE29_V6_THREE_NATIVE_ELF_CANDIDATES=PASS")
+          print("WINE29_V6_16K_ARM64_ELF=PASS")
+          print("WINE29_V6_APK_AND_PHONE_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish independent, non-installable v6 native candidate
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-V6-Native-Child-Loader-Candidate-NOT-APK
+          path: wine29-v6-native-candidate/
+          retention-days: 30
+          if-no-files-found: error

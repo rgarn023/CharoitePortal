@@ -1,6 +1,6 @@
 # Wine29 v4 — isolated direct `wineboot.exe -i` test
 
-State: **SOURCE ONLY** until Android CI verifies signed APK. Nothing from v4 runs on install, start, or app switch. Requires separate user-authorized one-shot confirmation.
+State: **VERIFIED SIGNED Android Next v0.79 diagnostic APK**; source commit `d3f5276162d98d07d89f76a8900b8c31bec080be` built by [GitHub Actions run 42343528123](https://github.com/rgarn023/CharoitePortal/actions/runs/42343528123) SUCCESS. **138 stable + 169 Next tests passed**, v4 one-shot safety gate PASS, Gradle/AAPT `com.charoitx` code 110/name `11.2-next.0.79` and unchanged signing cert verified. **[APK artifact 13562782885](https://github.com/rgarn023/CharoitePortal/actions/runs/42343528123/artifacts/13562782885)** unexpired ZIP 460,816,284 bytes, expires 2027-02-05. Nothing from v4 runs on install, start, or app switch. **No v4 phone execution or verified initialized prefix yet.** Requires separate user-authorized one-shot confirmation; install in place only; never clear app data.
 
 ## v3 evidence (Galaxy S26 Ultra)
 

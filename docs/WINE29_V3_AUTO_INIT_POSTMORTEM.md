@@ -2,7 +2,7 @@
 
 **Evidence:** Owner's Charoite Next v0.77, Galaxy S26 Ultra readout. v3 one-shot diagnostic ran in private `charoite-next-wine29-pe-dir-v3` with complete original logs retained in the experimental app.
 
-## What v3 PROVED
+**Build verification (November 7, 2026):** Charoite Next v0.78 `com.charoitx`, versionCode 109, versionName `11.2-next.0.78` signed GitHub Actions [42341443574](https://github.com/rgarn023/CharoitePortal/actions/runs/42341443574) **SUCCESS** from APK commit `932fbe4b22093d157e60a7f9bae8994c3576772b`. 138 stable + 166 Next tests PASS, read-only no-exec/no-write contract PASS, Gradle build, APK manifest and existing Next signing certificate verified. [Direct APK artifact 13561691880](https://github.com/rgarn023/CharoitePortal/actions/runs/42341443574/artifacts/13561691880), 460,791,177-byte ZIP, expires February 5, 2027. Only an **in-place update** is permitted; never uninstall or clear storage. This source-and-APK check does not establish successful Wine prefix initialization. No new Wine process was executed by development.\n\n## What v3 PROVED
 
 - Verified native Wine29 wineserver socket/lock and 34 PE DLL + ARM64 Wineboot executable + 76 NLS sealed hash checks PASS.
 - Wineboot.exe `--help` launched from `runtime/lib/wine/aarch64-windows/wineboot.exe`, beside the hash-verified kernel32.dll. This resolved the explicit Wineboot PE-help path mismatch seen in v2.

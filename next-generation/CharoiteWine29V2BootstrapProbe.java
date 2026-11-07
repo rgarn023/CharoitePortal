@@ -397,11 +397,12 @@ public final class CharoiteWine29V2BootstrapProbe {
                     serverProc.destroyForcibly(); serverProc.waitFor(2,TimeUnit.SECONDS);
                 }
                 out.append("Foreground v2 server terminated if running; no other prefix/server targeted\n");
-                if (serverLog!=null)
+                if (serverLog!=null) {
                     String serverText=boundedLog(serverLog);
                     out.append("V2 server trace internal auto-init marker observed: ")
                        .append(serverText.contains("--init")).append(" (absence not proof it did not run)\n");
                     out.append("V2 server debug log bounded and redacted:\n").append(serverText).append('\n');
+                }
             } catch (Exception e) {
                 out.append("V2 cleanup/reading diagnostics: ")
                    .append(e.getClass().getSimpleName()).append('\n');

@@ -145,38 +145,59 @@ def stage(root: Path):
         raise ValueError("The 11 existing Charoite Android patches must be verified first")
     target = root / SOURCE
     entry_target = root / NATIVE_ENTRY_SOURCE
-    for item in (target, entry_target):
+    server_target = root / "server/unicode.c"
+    for item in (target, entry_target, server_target):
         if item.is_symlink() or not item.is_file() or not 0 < item.stat().st_size < 300000:
             raise ValueError("Unsafe pinned Wine source file: " + str(item.name))
     before = target.read_text(encoding="utf-8")
     entry_before = entry_target.read_text(encoding="utf-8")
+    server_before = server_target.read_text(encoding="utf-8")
     if git(["show", "HEAD:" + NATIVE_ENTRY_SOURCE], root).decode("utf-8").count(
             "static void *load_ntdll( char *argv0 )") != 1:
         raise ValueError("Pinned Wine native main source differs from expected")
     after = patch_text(before)
     entry_after = patch_native_entry(entry_before)
+    # The v6 native generation must bind its own PE/NLS selectors rather
+    # than inherit Wine28 and Wine26 symbolic environment names. These
+    # replacements apply only in this freshly prepared source tree.
+    for old_name, new_name in (
+        ("CHAROITE_WINE28_PE_DIR", "CHAROITE_WINE29_V6_PE_DIR"),
+        ("CHAROITE_WINE26_DATA_DIR", "CHAROITE_WINE29_V6_DATA_DIR"),
+    ):
+        if old_name not in after:
+            raise ValueError("Missing source-matched v6 selector rebasing anchor " + old_name)
+        after = after.replace(old_name, new_name)
+    if "CHAROITE_WINE26_DATA_DIR" not in server_before:
+        raise ValueError("Missing native Wine NLS server selector rebase")
+    server_after = server_before.replace("CHAROITE_WINE26_DATA_DIR",
+                                         "CHAROITE_WINE29_V6_DATA_DIR")
     report = root / "charoite-wine29-v6-loader-patch.json"
     if report.exists() or report.is_symlink():
         raise ValueError("Refusing to overwrite v6 report")
     target.write_text(after, encoding="utf-8")
     entry_target.write_text(entry_after, encoding="utf-8")
+    server_target.write_text(server_after, encoding="utf-8")
     try:
         git(["diff", "--check"], root)
     except Exception:
         target.write_text(before, encoding="utf-8")
         entry_target.write_text(entry_before, encoding="utf-8")
+        server_target.write_text(server_before, encoding="utf-8")
         raise
     evidence = {
         "source_revision": PIN,
         "original_loader_git_blob": RAW_LOADER_BLOB,
-        "modified_files": [SOURCE, NATIVE_ENTRY_SOURCE],
+        "modified_files": [SOURCE, NATIVE_ENTRY_SOURCE, "server/unicode.c"],
         "candidate_native_loader": "libcharoite_wine29_v6_loader.so",
         "selector_env": MARKER,
         "matched_native_ntdll_env": NTDLL_MARKER,
+        "isolated_pe_selector": "CHAROITE_WINE29_V6_PE_DIR",
+        "isolated_nls_selector": "CHAROITE_WINE29_V6_DATA_DIR",
         "matched_native_ntdll": "libcharoite_wine29_v6_ntdll.so",
         "mode": "SOURCE_PATCH_ONLY_FAIL_CLOSED",
         "source_patch_sha256": hashlib.sha256(after.encode()).hexdigest(),
         "main_loader_patch_sha256": hashlib.sha256(entry_after.encode()).hexdigest(),
+        "nls_server_patch_sha256": hashlib.sha256(server_after.encode()).hexdigest(),
         "three_elf_cohort_built": False,
         "pe_nls_cohort_validated": False,
         "android_apk_built": False,

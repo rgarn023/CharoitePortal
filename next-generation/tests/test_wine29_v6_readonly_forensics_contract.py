@@ -14,7 +14,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'v6-wine-direct-init.log',
             'v6-foreground-wineserver.log',
             'getNoBackupFilesDir()', 'MAX_PE_LOG = 2L * 1024L * 1024L',
-            'MAX_SERVER_LOG = 256L * 1024L', 'MAX_PROCESSES = 24',
+            'MAX_SERVER_LOG = 512L * 1024L', 'MAX_PROCESSES = 24',
             'ntcreateuserprocess', 'run_wineboot failed to start wineboot',
             'charoite_wine29_v6_child_execv_failure',
             'mapping pe file', 'load_apiset_dll loaded',
@@ -55,7 +55,7 @@ class V6PreservedReadOnly(unittest.TestCase):
 
     def test_new_helper_failure_and_long_server_line_diagnostics(self):
         for source in (
-            'AUDIT_REVISION = "v2-0034-bounded-server-log"',
+            'AUDIT_REVISION = "v3-0034-correlated-pe-server-evidence"',
             'auditNonzeroProcesses(scratch,out)',
             'STATUS_DLL_NOT_FOUND',
             '0xC0000135',
@@ -66,6 +66,12 @@ class V6PreservedReadOnly(unittest.TestCase):
             'SERVER AUDIT ONLY BLOCKED:',
             'reason: ',
             'contents NOT READ; PE audit preserved',
+            'PE chronological process-create clues:',
+            'PE process 0034 trace lines:',
+            'Server 0034 text mentions:',
+            'At most 16 bounded server clue lines',
+            'Chronological clues only:',
+            'explicit v3 512 KiB whole-file cap',
         ):
             with self.subTest(source=source):
                 self.assertIn(source, JAVA)
@@ -76,10 +82,10 @@ class V6PreservedReadOnly(unittest.TestCase):
         for q in (
             '"CharoiteWine29V6ReadOnlyForensics.java"',
             'final boolean showArchivedWine29V6Execution = false;',
-            'wine29V6Forensics.setText("Inspect Wine29 v6 helper failure (read-only)")',
+            'wine29V6Forensics.setText("Inspect Wine29 v6 helper causal trace (read-only)")',
             'CharoiteWine29V6ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V6Forensics);',
-            'versionCode 114', '11.2-next.0.83',
+            'versionCode 115', '11.2-next.0.84',
         ):
             with self.subTest(required=q):
                 self.assertIn(q, UI)
@@ -91,7 +97,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'test_wine29_v6_readonly_forensics_contract.py',
             'WINE29_V6_PRESERVED_READONLY_FORENSICS=PASS',
             'cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java',
-            "versionCode='114' versionName='11.2-next.0.83'",
+            "versionCode='115' versionName='11.2-next.0.84'",
         ):
             self.assertIn(q, WF)
 

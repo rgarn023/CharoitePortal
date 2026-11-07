@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.83"')
-text = text.replace("versionCode 33", "versionCode 114")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.84"')
+text = text.replace("versionCode 33", "versionCode 115")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -1779,7 +1779,7 @@ ui = ui.replace(anchor, anchor + """
         // v6 one-shot. No Wine or process creation; no further authorization
         // or writes necessary. Limited to two named logs and file metadata.
         android.widget.Button wine29V6Forensics = new android.widget.Button(this);
-        wine29V6Forensics.setText("Inspect Wine29 v6 helper failure (read-only)");
+        wine29V6Forensics.setText("Inspect Wine29 v6 helper causal trace (read-only)");
         wine29V6Forensics.setAllCaps(false);
         wine29V6Forensics.setOnClickListener(v -> {
             wine29V6Forensics.setEnabled(false);

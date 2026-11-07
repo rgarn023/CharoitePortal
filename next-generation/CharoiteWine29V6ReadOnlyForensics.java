@@ -27,9 +27,9 @@ public final class CharoiteWine29V6ReadOnlyForensics {
     private static final String SCRATCH = "charoite-next-wine29-child-loader-v6";
     private static final String PE_LOG = "v6-wine-direct-init.log";
     private static final String SERVER_LOG = "v6-foreground-wineserver.log";
-    private static final String AUDIT_REVISION = "v2-0034-bounded-server-log";
+    private static final String AUDIT_REVISION = "v3-0034-correlated-pe-server-evidence";
     private static final long MAX_PE_LOG = 2L * 1024L * 1024L;
-    private static final long MAX_SERVER_LOG = 256L * 1024L;
+    private static final long MAX_SERVER_LOG = 512L * 1024L; // Explicit v3 bounded server evidence (v0.83 was 256 KiB).
     private static final int MAX_LINES = 120000;
     private static final int MAX_LINE = 16384;
     private static final int MAX_PROCESSES = 24;
@@ -202,6 +202,10 @@ public final class CharoiteWine29V6ReadOnlyForensics {
         }
         LinkedHashMap<String,ProcessInfo> processes=new LinkedHashMap<>();
         int lines=0, totalNonzero=0;
+        int processRequests=0, helperLines=0, statusClues=0;
+        java.util.ArrayList<String> requestSamples=new java.util.ArrayList<>();
+        java.util.ArrayList<String> helperSamples=new java.util.ArrayList<>();
+        java.util.ArrayList<String> statusSamples=new java.util.ArrayList<>();
         try (BufferedReader reader=new BufferedReader(new InputStreamReader(
                 new FileInputStream(log), StandardCharsets.UTF_8), 16384)) {
             String line;
@@ -218,6 +222,25 @@ public final class CharoiteWine29V6ReadOnlyForensics {
                 }
                 if (p==null) continue;
                 String lower=line.toLowerCase(Locale.US);
+                // Chronological clues only: the trace PID is NOT a proved
+                // parent/child relationship or executable identity.
+                if (lower.contains("ntcreateuserprocess")
+                        || lower.contains("create_process")
+                        || lower.contains("start_process")) {
+                    processRequests++;
+                    if (requestSamples.size()<8)
+                        requestSamples.add("PE line "+lines+": "+safeLine(line,scratch.getAbsolutePath()));
+                }
+                if ("0034".equals(pid)) {
+                    helperLines++;
+                    if (helperSamples.size()<8)
+                        helperSamples.add("PE line "+lines+": "+safeLine(line,scratch.getAbsolutePath()));
+                }
+                if (lower.contains("c0000135") || lower.contains("status_dll_not_found")) {
+                    statusClues++;
+                    if (statusSamples.size()<4)
+                        statusSamples.add("PE line "+lines+": "+safeLine(line,scratch.getAbsolutePath()));
+                }
                 if (lower.contains("mapping pe file") && lower.contains(".exe")
                         && "not identified".equals(p.firstExe)) {
                     int end=lower.indexOf(".exe");
@@ -269,6 +292,15 @@ public final class CharoiteWine29V6ReadOnlyForensics {
         }
         out.append("Two wineboot exit-0 processes do not exclude a failed helper ")
            .append("or prove complete Windows prefix initialization.\n");
+        out.append("PE chronological process-create clues: ").append(processRequests)
+           .append("; captured at most 8. These are NOT proof of PID 0034 identity.\n");
+        for (String event:requestSamples) out.append("  ").append(event).append('\n');
+        out.append("PE process 0034 trace lines: ").append(helperLines)
+           .append("; captured at most 8, bounded/redacted.\n");
+        for (String event:helperSamples) out.append("  ").append(event).append('\n');
+        out.append("PE DLL-not-found status text clues: ").append(statusClues)
+           .append("; captured at most 4.\n");
+        for (String event:statusSamples) out.append("  ").append(event).append('\n');
     }
 
     private static void auditServer(File scratch, StringBuilder out) throws Exception {
@@ -280,11 +312,13 @@ public final class CharoiteWine29V6ReadOnlyForensics {
         long size = log.length();
         if (size <= 0 || size > MAX_SERVER_LOG) {
             out.append("v6 retained wineserver log ").append(size)
-               .append(" bytes exceeds strict read-only 256 KiB cap or is empty; ")
+               .append(" bytes exceeds explicit read-only 512 KiB cap or is empty; ")
                .append("server contents NOT READ; PE audit preserved.\n");
             return;
         }
         int lines=0, startup=0, clientThreads=0, noSuchFile=0, errors=0, oversizedLines=0;
+        int helperMentions=0, dllStatusMentions=0, processClueLines=0;
+        java.util.ArrayList<String> boundedHints=new java.util.ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 new FileInputStream(log), StandardCharsets.UTF_8), 16384)) {
             String s;
@@ -299,6 +333,19 @@ public final class CharoiteWine29V6ReadOnlyForensics {
                 if (x.contains("init_first_thread")) clientThreads++;
                 if (x.contains("no_such_file")) noSuchFile++;
                 if (x.contains("fatal") || x.contains("err:")) errors++;
+                boolean mentionsHelper=x.contains("0034");
+                boolean dllNotFound=x.contains("c0000135")
+                        || x.contains("status_dll_not_found");
+                boolean processClue=x.contains("get_new_process_info")
+                        || x.contains("create_process") || x.contains("new_process")
+                        || x.contains("wineboot.exe");
+                if (mentionsHelper) helperMentions++;
+                if (dllNotFound) dllStatusMentions++;
+                if (processClue) processClueLines++;
+                if ((mentionsHelper || dllNotFound || processClue)
+                        && boundedHints.size()<16)
+                    boundedHints.add("server line "+lines+": "
+                            +safeLine(s,scratch.getAbsolutePath()));
             }
         }
         out.append("v6 server log: ").append(size).append(" bytes; ").append(lines).append(" lines; READ ONLY\n")
@@ -307,6 +354,11 @@ public final class CharoiteWine29V6ReadOnlyForensics {
            .append("; NO_SUCH_FILE statuses: ").append(noSuchFile)
            .append("; fatal/err markers: ").append(errors)
            .append("; overlong lines skipped: ").append(oversizedLines).append('\n');
+        out.append("Server 0034 text mentions: ").append(helperMentions)
+           .append("; DLL-not-found text mentions: ").append(dllStatusMentions)
+           .append("; process-start text clues: ").append(processClueLines).append('\n');
+        out.append("At most 16 bounded server clue lines (chronological, NOT verified PID linkage):\n");
+        for (String clue:boundedHints) out.append("  ").append(clue).append('\n');
         out.append("Server termination after direct -i is not by itself proof of failure.\n");
     }
 
@@ -361,7 +413,7 @@ public final class CharoiteWine29V6ReadOnlyForensics {
             }
             auditPe(scratch,out);
             auditNonzeroProcesses(scratch,out);
-            out.append("Server-log audit: read-only, original 256 KiB cap; ")
+            out.append("Server-log audit: read-only, explicit v3 512 KiB whole-file cap; ")
                .append("oversized individual lines safely skipped.\n");
             try {
                 auditServer(scratch,out);

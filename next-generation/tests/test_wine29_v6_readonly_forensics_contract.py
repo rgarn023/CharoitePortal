@@ -53,14 +53,33 @@ class V6PreservedReadOnly(unittest.TestCase):
         self.assertIn('exit=0 or mapping alone', JAVA)
         self.assertIn('REGISTRY', JAVA.upper())
 
+    def test_new_helper_failure_and_long_server_line_diagnostics(self):
+        for source in (
+            'AUDIT_REVISION = "v2-0034-bounded-server-log"',
+            'auditNonzeroProcesses(scratch,out)',
+            'STATUS_DLL_NOT_FOUND',
+            '0xC0000135',
+            'Nonzero exit process 0x',
+            'first exit=',
+            'Earliest module/load error:',
+            'oversizedLines++;continue;',
+            'SERVER AUDIT ONLY BLOCKED:',
+            'reason: ',
+            'contents NOT READ; PE audit preserved',
+        ):
+            with self.subTest(source=source):
+                self.assertIn(source, JAVA)
+        self.assertLess(JAVA.index('auditPe(scratch,out);'), JAVA.index('auditNonzeroProcesses(scratch,out);'))
+        self.assertLess(JAVA.index('auditNonzeroProcesses(scratch,out);'), JAVA.index('auditServer(scratch,out);'))
+
     def test_old_v6_execution_archived_and_new_readonly_button(self):
         for q in (
             '"CharoiteWine29V6ReadOnlyForensics.java"',
             'final boolean showArchivedWine29V6Execution = false;',
-            'wine29V6Forensics.setText("Inspect Wine29 v6 child startup (read-only)")',
+            'wine29V6Forensics.setText("Inspect Wine29 v6 helper failure (read-only)")',
             'CharoiteWine29V6ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V6Forensics);',
-            'versionCode 113', '11.2-next.0.82',
+            'versionCode 114', '11.2-next.0.83',
         ):
             with self.subTest(required=q):
                 self.assertIn(q, UI)
@@ -72,7 +91,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'test_wine29_v6_readonly_forensics_contract.py',
             'WINE29_V6_PRESERVED_READONLY_FORENSICS=PASS',
             'cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java',
-            "versionCode='113' versionName='11.2-next.0.82'",
+            "versionCode='114' versionName='11.2-next.0.83'",
         ):
             self.assertIn(q, WF)
 

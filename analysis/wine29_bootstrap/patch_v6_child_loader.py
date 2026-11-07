@@ -13,8 +13,10 @@ import subprocess
 PIN = "c74acb09d51b447f5d5ac56c87608d3ec565a767"
 RAW_LOADER_BLOB = "2f978520af6c216586baa081caa4c1db38207fd4"
 SOURCE = "dlls/ntdll/unix/loader.c"
+NATIVE_ENTRY_SOURCE = "loader/main.c"
 ANCHOR = '    asprintf( &env, "WINELOADER=%s", wineloader );'
 MARKER = "CHAROITE_WINE29_V6_LOADER_EXEC"
+NTDLL_MARKER = "CHAROITE_WINE29_V6_NATIVE_DIR"
 
 # All checks occur before Wine's existing WINELOADER export. Native Android
 # runtime can receive ONLY the full canonical, APK-extracted, owner-verified
@@ -50,6 +52,61 @@ ANDROID_SELECTOR = r'''
 #endif
 
 '''
+
+
+# Android-only Wine loader must dlopen its OWN v6 NTDLL, never the legacy
+# Wine28/Wine29 ntdll or the regular WINEDLLPATH fallback chain.
+NATIVE_NTDLL_SELECTOR = r'''
+#if defined(__ANDROID__) && defined(__aarch64__)
+    {
+        const char *native_dir = getenv( "CHAROITE_WINE29_V6_NATIVE_DIR" );
+        const char *suffix = "/lib/arm64";
+        struct stat st;
+        char *canonical;
+        size_t len;
+
+        if (!native_dir || strncmp( native_dir, "/data/app/", 10 ) ||
+            (len = strlen( native_dir )) < strlen( suffix ) ||
+            strcmp( native_dir + len - strlen( suffix ), suffix ) ||
+            strstr( native_dir, ".." ) || strchr( native_dir, ':' ) ||
+            lstat( native_dir, &st ) || !S_ISDIR( st.st_mode ))
+        {
+            fprintf( stderr, "wine: Wine29 v6 APK native NTDLL directory invalid\n" );
+            exit(1);
+        }
+        canonical = realpath( native_dir, NULL );
+        if (!canonical || strcmp( canonical, native_dir ))
+        {
+            fprintf( stderr, "wine: Wine29 v6 APK native NTDLL directory noncanonical\n" );
+            exit(1);
+        }
+        free( canonical );
+        handle = try_dlopen( native_dir, "libcharoite_wine29_v6_ntdll.so" );
+        if (!handle)
+        {
+            fprintf( stderr, "wine: Wine29 v6 matched native NTDLL cannot load: %s\n", dlerror() );
+            exit(1);
+        }
+        return handle; /* Intentional: no legacy Wine or WINEDLLPATH fallback. */
+    }
+#endif
+
+'''
+
+def patch_native_entry(original):
+    """Pin the v6 executable to a new v6 native NTDLL before any Wine fallback."""
+    signature = "static void *load_ntdll( char *argv0 )"
+    anchor = '    if (self && ((path = realpath_dirname( self ))))'
+    if original.count(signature) != 1 or original.count(anchor) != 1:
+        raise ValueError("Pinned native Wine main loader anchor missing or ambiguous")
+    if NTDLL_MARKER in original:
+        raise ValueError("Refusing to repatch matched v6 native NTDLL selector")
+    if original.index(signature) > original.index(anchor):
+        raise ValueError("Wine main loader startup order changed")
+    for required in ("void *handle = NULL;", "static void *try_dlopen(", "#include <stdlib.h>"):
+        if required not in original:
+            raise ValueError("Pinned native Wine main prerequisite missing: " + required)
+    return original.replace(anchor, NATIVE_NTDLL_SELECTOR + anchor, 1)
 
 def git(args, root):
     completed = subprocess.run(["git", "-C", str(root), *args],
@@ -87,27 +144,39 @@ def stage(root: Path):
     if not (root / "charoite-source-validation.txt").is_file():
         raise ValueError("The 11 existing Charoite Android patches must be verified first")
     target = root / SOURCE
-    if target.is_symlink() or not target.is_file() or target.stat().st_size > 300000:
-        raise ValueError("Unsafe source file")
+    entry_target = root / NATIVE_ENTRY_SOURCE
+    for item in (target, entry_target):
+        if item.is_symlink() or not item.is_file() or not 0 < item.stat().st_size < 300000:
+            raise ValueError("Unsafe pinned Wine source file: " + str(item.name))
     before = target.read_text(encoding="utf-8")
+    entry_before = entry_target.read_text(encoding="utf-8")
+    if git(["show", "HEAD:" + NATIVE_ENTRY_SOURCE], root).decode("utf-8").count(
+            "static void *load_ntdll( char *argv0 )") != 1:
+        raise ValueError("Pinned Wine native main source differs from expected")
     after = patch_text(before)
+    entry_after = patch_native_entry(entry_before)
     report = root / "charoite-wine29-v6-loader-patch.json"
     if report.exists() or report.is_symlink():
         raise ValueError("Refusing to overwrite v6 report")
     target.write_text(after, encoding="utf-8")
+    entry_target.write_text(entry_after, encoding="utf-8")
     try:
         git(["diff", "--check"], root)
     except Exception:
         target.write_text(before, encoding="utf-8")
+        entry_target.write_text(entry_before, encoding="utf-8")
         raise
     evidence = {
         "source_revision": PIN,
         "original_loader_git_blob": RAW_LOADER_BLOB,
-        "modified_file": SOURCE,
+        "modified_files": [SOURCE, NATIVE_ENTRY_SOURCE],
         "candidate_native_loader": "libcharoite_wine29_v6_loader.so",
         "selector_env": MARKER,
+        "matched_native_ntdll_env": NTDLL_MARKER,
+        "matched_native_ntdll": "libcharoite_wine29_v6_ntdll.so",
         "mode": "SOURCE_PATCH_ONLY_FAIL_CLOSED",
         "source_patch_sha256": hashlib.sha256(after.encode()).hexdigest(),
+        "main_loader_patch_sha256": hashlib.sha256(entry_after.encode()).hexdigest(),
         "three_elf_cohort_built": False,
         "pe_nls_cohort_validated": False,
         "android_apk_built": False,

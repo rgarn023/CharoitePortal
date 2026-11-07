@@ -69,6 +69,45 @@ class V6ChildLoaderSourceContract(unittest.TestCase):
         self.assertNotIn("libcharoite_wine28_loader.so", patch.ANDROID_SELECTOR)
         self.assertIn("v6", patch.ANDROID_SELECTOR)
 
+    def test_native_main_loads_only_own_v6_ntdll(self):
+        main = '''
+#include <stdlib.h>
+static void *try_dlopen( const char *dir, const char *name ) { return 0; }
+static void *load_ntdll( char *argv0 )
+{
+    void *handle = NULL;
+    if (self && ((path = realpath_dirname( self ))))
+        return NULL;
+}
+'''
+        result = patch.patch_native_entry(main)
+        self.assertEqual(result.count(patch.NTDLL_MARKER), 1)
+        self.assertIn('libcharoite_wine29_v6_ntdll.so', result)
+        selector = result.split('#if defined(__ANDROID__) && defined(__aarch64__)', 1)[1].split('#endif', 1)[0]
+        self.assertIn('return handle;', selector)
+        self.assertIn('exit(1)', selector)
+        self.assertNotIn('libcharoite_wine29_ntdll.so', selector)
+        self.assertNotIn('libcharoite_wine28_ntdll.so', selector)
+        self.assertIn('lstat( native_dir, &st )', selector)
+        self.assertIn('strcmp( canonical, native_dir )', selector)
+        self.assertEqual(result.replace(patch.NATIVE_NTDLL_SELECTOR, ''), main)
+
+    def test_main_native_selector_repatch_and_missing_anchor_fail(self):
+        main = '''
+#include <stdlib.h>
+static void *try_dlopen( const char *dir, const char *name ) { return 0; }
+static void *load_ntdll( char *argv0 )
+{
+    void *handle = NULL;
+    if (self && ((path = realpath_dirname( self ))))
+        return NULL;
+}
+'''
+        with self.assertRaisesRegex(ValueError, 'repatch'):
+            patch.patch_native_entry(patch.patch_native_entry(main))
+        with self.assertRaisesRegex(ValueError, 'anchor'):
+            patch.patch_native_entry(main.replace('static void *load_ntdll( char *argv0 )', ''))
+
     def test_git_blob_fails_on_tampering(self):
         self.assertNotEqual(patch.git_blob_sha(b"modified"), patch.RAW_LOADER_BLOB)
         self.assertEqual(len(patch.RAW_LOADER_BLOB), 40)

@@ -1,0 +1,59 @@
+name: Wine29 Bootstrap Source Audit (No APK)
+on:
+  push:
+    paths:
+      - '.github/workflows/wine29-bootstrap-source-audit.yml'
+      - 'analysis/wine29_bootstrap/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source audit contracts
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p 'test_*.py' -v
+
+      - name: Fetch pinned Git source files for read-only inspection
+        run: |
+          set -euo pipefail
+          REV=c74acb09d51b447f5d5ac56c87608d3ec565a767
+          for file in dlls/ntdll/loader.c dlls/ntdll/unix/env.c dlls/ntdll/unix/loader.c; do
+            mkdir -p "$RUNNER_TEMP/wine29-source/$(dirname "$file")"
+            curl --fail --location --silent --show-error --retry 3 \
+              --connect-timeout 15 --max-time 90 \
+              "https://raw.githubusercontent.com/The412Banner/proton-wine/$REV/$file" \
+              -o "$RUNNER_TEMP/wine29-source/$file"
+          done
+
+      - name: Download original Wine29 source-matched archive, no recompilation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-archive"
+          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
+            --dir "$RUNNER_TEMP/wine29-archive"
+
+      - name: Confirm pinned bootstrap control flow
+        run: |
+          set -euo pipefail
+          python3 analysis/wine29_bootstrap/audit_bootstrap.py \
+            "$RUNNER_TEMP/wine29-source" \
+            "$RUNNER_TEMP/wine29-archive/charoite-wine-bootstrap-bundle.tar.gz" \
+            next-generation/CharoiteWine29V1PeHelpProbe.java \
+            --output "$RUNNER_TEMP/wine29-bootstrap-source-evidence.json"
+
+      - name: Publish source-flow evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Bootstrap-Source-Flow-Read-Only
+          path: ${{ runner.temp }}/wine29-bootstrap-source-evidence.json
+          retention-days: 30
+          if-no-files-found: error

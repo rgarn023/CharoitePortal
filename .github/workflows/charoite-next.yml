@@ -649,6 +649,18 @@ jobs:
           ! grep -Eq 'env.put\("WINEBOOTSTRAPMODE"|\.delete\(|Runtime.getRuntime\(' next-generation/CharoiteWine29V7ServicesProbe.java
           echo WINE29_V7_ONE_SHOT_SERVICES_CONSENT_AND_ISOLATION=PASS
 
+
+      - name: Gate preserved v7 services startup read-only forensic contract
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v7_readonly_forensics_contract.py' -v
+          grep -Fq 'final boolean showArchivedWine29V7Execution = false;' next-generation/prepare_next.py
+          grep -Fq 'charoite-next-wine29-services-v7' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          grep -Fq 'v7-foreground-wineserver.log' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          grep -Fq 'v7-wine-direct-init.log' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          ! grep -Eq 'new ProcessBuilder|Runtime.getRuntime|FileOutputStream|FileWriter|mkdir\(|mkdirs\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V7ReadOnlyForensics.java
+          echo WINE29_V7_PRESERVED_READONLY_SERVICE_CORRELATION=PASS
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1146,7 +1158,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='116' versionName='11.2-next.0.85'"
+            grep -F "package: name='com.charoitx' versionCode='117' versionName='11.2-next.0.86'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1378,6 +1390,7 @@ jobs:
           cp next-generation/CharoiteWine29V6ChildLoaderProbe.java legal-bundle/CharoiteWine29V6ChildLoaderProbe.java
           cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V7ServicesProbe.java legal-bundle/CharoiteWine29V7ServicesProbe.java
+          cp next-generation/CharoiteWine29V7ReadOnlyForensics.java legal-bundle/CharoiteWine29V7ReadOnlyForensics.java
           cp next-generation/stage_wine29_v7_services.py legal-bundle/stage_wine29_v7_services.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v7-services/services-index.json legal-bundle/wine29-v7-services-index.json
           cp next-generation/stage_wine29_v6_native.py legal-bundle/stage_wine29_v6_native.py

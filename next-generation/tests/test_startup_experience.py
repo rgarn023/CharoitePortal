@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 116", PREP)
-        self.assertIn("11.2-next.0.85", PREP)
+        self.assertIn("versionCode 117", PREP)
+        self.assertIn("11.2-next.0.86", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -143,7 +143,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL", BOOT)
         self.assertIn("boot.addView(version, versionLayout)", BOOT)
         self.assertIn("CharoiteNextBootActivity.installedVersionLabel(this)", PREP)
-        self.assertNotIn("11.2-next.0.85", BOOT, "Boot must read installed version, not hardcode it")
+        self.assertNotIn("11.2-next.0.86", BOOT, "Boot must read installed version, not hardcode it")
 
     def test_system_hides_archived_wine_experiments_and_keeps_current_readonly_probe(self):
         self.assertIn("final boolean showArchivedWineTests = false;", PREP)

@@ -1,0 +1,17 @@
+# Wine29 v7 — preserved services.exe process audit (read only)
+
+**Date:** November 7, 2026. **Build target:** Next v0.86, package `com.charoitx`.
+
+## Owner's v0.85 one-shot device evidence
+
+The owner ran exactly one newly isolated v7 Wine29 services bootstrap on the Galaxy S26 Ultra and shared its report. Source-built ARM64 `services.exe` SHA-256 and header PASS, original 111 PE/NLS and v6 APK-native ELF source gates PASS, Wineboot `-i` exit **0**, existing new scratch contains a correctly mapped `dosdevices/c:` link, Windows-created `windows`, `windows/system32`, `users`, `users/xuser/AppData`, and three registry files. `Program Files` absent. The PE-log *report-level checks* had `services.exe mention=false`, `cannot find builtin library=false`, `c0000135=false`, no native child execv error marker; wineserver socket and lock observed, server no longer alive at end. This does NOT verify `services.exe` execution, complete service initialization, or functioning Windows apps/games. The old report misleadingly reuses **V6** labels and redaction marker, despite using the distinct **v7** scratch.
+
+## Next bounded read-only diagnostic
+
+`next-generation/CharoiteWine29V7ReadOnlyForensics.java` reads ONLY existing `charoite-next-wine29-services-v7/v7-wine-direct-init.log`, `v7-foreground-wineserver.log` (each cap **2 MiB**), plus named v7 file/directory metadata. Line count max 60,000 per log and line guard 16,384 characters; too-large files are not read, oversized individual lines safely skipped. A fixed set of metadata paths includes the source-built `services.exe` staged in `runtime/lib/wine/aarch64-windows`, Wineboot sibling, three registry file *existence* checks without reading content, Windows paths and C: symlink `lstat/readlink` without following it. No other generations, user prefixes, games, saves, rootfs, settings, scratch or stable Portal are accessed.
+
+The report returns **counts and scrubbed event TYPES**, never raw paths, command lines, environment or full log dumps. Per-PID PE mapping/exit evidence, `NtCreateUserProcess` image requests, `services.exe` mentions, PE mapping, builtin lookup and `0xC0000135`, plus independent wineserver `new_process`, thread/handshake and failure counts may help determine if `services.exe` was started. **Correlation is diagnostic, not proof of full service initialization.** No Wine, Wineboot, services.exe, wineserver or other process is started; no prefix, file, scratch or log is created/modified, retried, cleaned or deleted. Existing v7 one-shot button is archived/hidden. The only current manual System test is **Inspect Wine29 v7 services startup (read-only)**.
+
+## Release gate
+
+CI must pass the stable and Next regression suites and the new `test_wine29_v7_readonly_forensics_contract.py`; build an APK signed with the existing `com.charoitx` key at versionName **11.2-next.0.86**, versionCode **117**, while preserving the original source-matched sealed 111-file cohort, v6 ELF hashes, and source-built v7 `services.exe` hash. Only a completed, verified Actions run can establish an installable APK artifact. **No CI step executes on-device Wine; v7 runtime state remains PARTIAL pending the actual phone read-only report.** Install in place; never uninstall or clear storage.

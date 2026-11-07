@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.85"')
-text = text.replace("versionCode 33", "versionCode 116")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.86"')
+text = text.replace("versionCode 33", "versionCode 117")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -186,7 +186,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V5DriveCProbe.java",
                  "CharoiteWine29V6ChildLoaderProbe.java",
                  "CharoiteWine29V6ReadOnlyForensics.java",
-                 "CharoiteWine29V7ServicesProbe.java"):
+                 "CharoiteWine29V7ServicesProbe.java",
+                 "CharoiteWine29V7ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1809,6 +1810,8 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V6Forensics);
 
         } // The v6 report remains in source but is hidden from current System.
+        final boolean showArchivedWine29V7Execution = false;
+        if (showArchivedWine29V7Execution) {
         android.widget.Button wine29V7Services = new android.widget.Button(this);
         wine29V7Services.setText("Test Wine29 v7 services.exe bootstrap (one-shot)");
         wine29V7Services.setAllCaps(false);
@@ -1849,6 +1852,38 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V7ServicesProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V7Services);
+
+        } // v7 execution remains in source, but cannot be launched again.
+
+        // CURRENT TEST ONLY: bounded, structured, read-only analysis of the
+        // EXISTING v7 PE/server logs. No wineserver/PE/process creation.
+        android.widget.Button wine29V7Audit = new android.widget.Button(this);
+        wine29V7Audit.setText("Inspect Wine29 v7 services startup (read-only)");
+        wine29V7Audit.setAllCaps(false);
+        wine29V7Audit.setOnClickListener(v -> {
+            wine29V7Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V7ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V7Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — preserved v7 services.exe audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dlg, which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null)
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                    "Charoite Wine29 v7 READ-ONLY postmortem", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V7ReadOnlyForensics").start();
+        });
+        nextCoreCard.addView(wine29V7Audit);
+
 
 
 

@@ -33,3 +33,24 @@ No Wine, wineserver, Wineboot, services.exe, games, native code, Android process
 4. Correlate per-PID PE termination with services/userenv lookup and read-only registry presence **after server shutdown**. Only then decide whether an explicitly authorized fresh v9 scratch is justified.
 
 **Interpretation:** Direct Wineboot exit 0 is a real bootstrap improvement but is **not** proof that a usable Windows compatibility environment exists.
+
+
+## Received preserved short report — after v8 server stopped
+
+The owner completed the **signed v0.89 read-only audit**. The entire short report included the `END OF SHORT V8 REPORT` marker; no rerun or additional Wine execution occurred. Only fixed v8 logs and explicitly named metadata were inspected.
+
+- Preserved prefix: `system.reg`, `user.reg`, and `userdef.reg` are **all present**. They had previously been absent at an earlier checkpoint before foreground wineserver stop. Their contents were **not opened**, so validity/completeness remains unknown; `Program Files` is still absent.
+- PE trace: **601,313 bytes / 3,891 lines**; no overlong skips; 3 child-create requests; 1 Wineboot internal `--init` request; 2 `services.exe` requests; **1 services.exe PE mapping**; **58 userenv.dll mentions**; **0 module errors and 0 missing-DLL markers**.
+- PE PIDs `0x0024` and `0x002c`: mapped Wineboot/NTDLL/kernel32/API set and each has two recorded **zero** exit events. PID `0x0034`: maps **services.exe**, **userenv.dll**, NTDLL/kernel32/API set, with **no recorded module failure** and **no recorded PE exit**. Absence of an exit event is NOT evidence that services remains active or SCM is functional.
+- Wineserver: **482,538 bytes / 5,071 lines**, 1 server start, 2 process requests and 2 replies, 10 services mentions, no missing-DLL or registry-error marker, 1 shutdown mention. Log counts do not certify successful service-controller initialization.
+- No full Windows prefix, functioning SCM, generic Windows process invocation, graphics or game support has been proven.
+
+**Interpretation:** v8 resolves the specific v7 `userenv.dll` lookup failure and shows registry files **present later**; earlier assertions that the PE trace had no services mention and that registry files were absent were limited to the earlier reporting checkpoint. Later file presence does NOT by itself prove Wineboot completed all initialization tasks.
+
+## Next candidate — v0.90 strictly read-only registry/services correlation
+
+Source changes on `main` enhance **the same preserved v8 auditor** to obtain byte lengths of precisely the three named registry files as **metadata only** (never open files, read registry content or follow links) and summarize how many mapped `services.exe` PIDs also mapped `userenv.dll`, whether a module failure or explicit PE exit was observed. This does not run Wine or visit any other generation.
+
+The System action is now **Inspect Wine29 v8 registry + services (read-only)**. `next-generation/prepare_next.py` targets `com.charoitx` **versionCode 121 / versionName 11.2-next.0.90**; CI source changes and read-only contract checks have been committed. **Candidate, not yet a verified installable release:** inspect [Actions run 42424138119](https://github.com/rgarn023/CharoitePortal/actions/runs/42424138119) for the final result and signed APK artifact. Until the build is independently verified, keep [signed v0.89 artifact 13594690627](https://github.com/rgarn023/CharoitePortal/actions/runs/42423001295/artifacts/13594690627) as the last verified install.
+
+Do **not** rerun v8, delete its scratch, clear `com.charoitx` storage, or touch Portal and user-game data. A fresh v9 execution remains **unauthorized** and would require distinct consent, source-coherent dependencies, separate scratch, and a strictly scoped new validation hypothesis.

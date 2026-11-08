@@ -131,7 +131,7 @@ class Wine29ModuleStage(unittest.TestCase):
         self.assertIn("CharoiteWine29Native07Stage.java", WORKFLOW)
         self.assertIn("versionCode 138", PREP)
         self.assertIn("11.2-next.0.107", PREP)
-        self.assertIn("versionCode='137'", WORKFLOW)
+        self.assertIn("versionCode='138'", WORKFLOW)
         self.assertIn("versionName='11.2-next.0.107'", WORKFLOW)
 
     def test_sealed_100_module_readonly_audit_rejects_extra_files(self):

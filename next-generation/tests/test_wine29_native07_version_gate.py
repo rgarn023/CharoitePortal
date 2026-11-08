@@ -101,7 +101,7 @@ class Wine29VersionGateContract(unittest.TestCase):
         self.assertIn("versionCode 138",PREP)
         self.assertIn("11.2-next.0.107",PREP)
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",RUNTIME)
-        self.assertIn("versionCode='137'",WORKFLOW)
+        self.assertIn("versionCode='138'",WORKFLOW)
         self.assertIn("versionName='11.2-next.0.107'",WORKFLOW)
         self.assertIn("CharoiteWine29Native07VersionGate.java",WORKFLOW)
         self.assertIn('wine29Audit.setText("Verify Wine29 0.7 package (read-only)")',PREP)

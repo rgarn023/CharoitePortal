@@ -33,16 +33,20 @@ Relevant source references: [V10 ProcessBuilder and cleanEnv](../next-generation
 
 ## Recommended V11 — future separately authorized fresh-scratch diagnostic
 
-**Phase A: source-only preparation and CI gates; safe now.**
+**Phase A: source-only preparation and CI gates; in progress.**
 
 1. Review the *exact pinned source and applied v6 patch*, including Wine `check_command_line`, `WINELOADERNOEXEC`, and any loader-reexec behaviour. Treat upstream snippets as supporting context, not exact patched-source proof.
-2. Implement a **separate V11 class**, never call or change the consumed V10 runner. Verify the same sealed 34 DLL, 111 PE/NLS, native three ELF hashes, source-built services/userenv/sc bytes **before creating any V11 scratch**. Do not read scratch V1–V10.
-3. Give native *version-only* probes a deliberately distinct environment: one control `--version` with the inherited NOEXEC switch, one `--version` with it **unset**, both bounded and independently logged. Do not silently strip it from PE execution, Wineboot or child-loader paths.
+2. A separate **source-only V11 class** is now committed as [`CharoiteWine29V11EntryProbe.java`](../next-generation/CharoiteWine29V11EntryProbe.java), but **not copied into the APK** or called by UI. Never call or change the consumed V10 runner. Verify the same sealed 34 DLL, 111 PE/NLS, native three ELF hashes, source-built services/userenv/sc bytes **before creating any V11 scratch**. Do not read scratch V1–V10.
+3. The V11 source gives native *version-only* probes a deliberately distinct environment: one control `--version` with the inherited NOEXEC switch, one `--version` with it **unset**, both bounded and independently logged. Do not silently strip it from PE execution, Wineboot or child-loader paths.
 4. If separately authorized later, start exactly one new `charoite-next-wine29-...-v11` private wineserver/prefix and source-verified Wineboot `-i`. When the foreground server and Wineboot gates succeed, try **only** source-matched ARM64 `sc.exe` with **no arguments** for a PE-entry/usage handshake. **Do not gate that independent PE-entry attempt solely on `wine --version`**; the V10 gate was a suspect test artefact. No `query`, `start`, `stop`, `create`, SCM mutation, Windows installers, games or other apps.
-5. Bound each invocation's time and byte output; retain separately named V11 logs on the device, correlate PE mapping/usage output/exit and server observations. A nonzero Windows usage exit is not itself a failure if PE mapping and expected usage are proven. No process exit code alone proves PE entry.
-6. Hard-fail if the V11 scratch already exists; never delete, retry or clean it. No automatic execution on installation, boot, or update. A new System button must require a separate clear **one-shot consent dialog** and archive all older Wine29 active actions. Preserve stable Portal `com.charoite`, Wine28 and Wine29 v1–v10, rootfs, existing user prefixes, games, and saves.
+5. The source candidate bounds each invocation's time and byte output; retain separately named V11 logs on the device, correlate PE mapping/usage output/exit and server observations. A nonzero Windows usage exit is not itself a failure if PE mapping and expected usage are proven. No process exit code alone proves PE entry.
+6. The source candidate hard-fails if the V11 scratch already exists; never delete, retry or clean it. No automatic execution on installation, boot, or update. A new System button must require a separate clear **one-shot consent dialog** and archive all older Wine29 active actions. Preserve stable Portal `com.charoite`, Wine28 and Wine29 v1–v10, rootfs, existing user prefixes, games, and saves.
 
 **Phase B: only after CI and signing are verified.** Publish a new uniquely versioned signed `com.charoitx` APK artifact with exact Actions run, artifact, source SHA, signing fingerprint and passing tests; install **in place**; authorize one V11 phone test. A GitHub source commit or source-only CI run must not be described as a build-ready APK.
+
+## Current implementation status
+
+Source-only V11 Java runner: [commit fa7b48c6](https://github.com/rgarn023/CharoitePortal/commit/fa7b48c6bcd5fff708e85a0723e8dab202c87434). [Static isolation contract tests](../next-generation/tests/test_wine29_v11_source_only_contract.py): [commit f636fba5](https://github.com/rgarn023/CharoitePortal/commit/f636fba55645a26e0b783b2545a5460b7445c14f). V11 is **NOT** in `next-generation/prepare_next.py`, System UI, or any shipped/signed APK. Test execution, CI result, and Android compilation are **NOT yet verified**. The latest signed APK remains v0.94 and contains **only the archived V10 execution plus V10 read-only audit**. Any future V11 one-shot requires a separate code+APK release, explicit consent and fresh V11 scratch.
 
 ## Current conclusion
 

@@ -504,16 +504,16 @@ public final class CharoiteWine29V16ExecBoundaryProbe {
         out.append("Source-verified v9 sc.exe, v8 userenv.dll, v7 services.exe and original native/sealed modules, NEW v16 scratch ONLY\n");
         out.append("Wine28, prior Wine29 v1-v15 scratch, stable Portal, games/saves/user prefixes/rootfs: NOT ACCESSED\n");
         if (!PACKAGE.equals(context.getPackageName()) || Build.VERSION.SDK_INT < 26)
-            return out.append("RESULT: BLOCKED — unsupported package/device\n").toString();
+            return shortReport(out.append("RESULT: BLOCKED — unsupported package/device\n"));
         String preflight = CharoiteWine29Sealed012PePreflight.run(context);
         if (!preflight.contains("RESULT: PASS — isolated Wine29 0.12 34-DLL direct/delay PE preflight; NOT RUNNABLE"))
-            return out.append("RESULT: BLOCKED — sealed Wine29 34-DLL PE import preflight failed; NO new scratch\n")
-                .append(preflight).toString();
+            return shortReport(out.append("RESULT: BLOCKED — sealed Wine29 34-DLL PE import preflight failed; NO new scratch\n")
+                .append(preflight));
         out.append("Wine29 34-DLL header/ordinary/delay import preflight: PASS\n");
         String gate = CharoiteWine29Sealed012Stage.verifyOnly(context);
         if (!gate.contains("RESULT: PASS — isolated Wine29 0.12 data-only stage; NOT RUNNABLE"))
-            return out.append("RESULT: BLOCKED — matched Wine29 111-file source/PE/NLS/native SHA-256 gate failed\n")
-                .append(gate).toString();
+            return shortReport(out.append("RESULT: BLOCKED — matched Wine29 111-file source/PE/NLS/native SHA-256 gate failed\n")
+                .append(gate));
         out.append("Wine29 staged 111 PE/NLS and APK-native three ELF hashes: PASS\n");
 
         byte[] servicesImage;
@@ -531,8 +531,8 @@ public final class CharoiteWine29V16ExecBoundaryProbe {
             out.append("V8 child-loader selector: APK nativeLibraryDir; v6 NTDLL-only loader\n");
             out.append("V8 PE/NLS paths: source-isolated, matched v6 selectors\n");
         } catch (Exception e) {
-            return out.append("RESULT: BLOCKED — V16 source preflight: ")
-                      .append(e.getClass().getSimpleName()).append('\n').toString();
+            return shortReport(out.append("RESULT: BLOCKED — V16 source preflight: ")
+                      .append(e.getClass().getSimpleName()).append('\n'));
         }
 
         Process serverProc = null, peProc = null, scProc = null;

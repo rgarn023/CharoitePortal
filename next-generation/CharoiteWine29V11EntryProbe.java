@@ -23,7 +23,7 @@ import org.json.JSONObject;
  * Explicit opt-in, one-shot V11 comparative native version flags and ARM64 sc.exe entry diagnostic.
  * A brand-new V11 private prefix only; Wineboot and internal helpers may run.
  * The sc.exe command has NO arguments, does not query the SCM, and never runs games.
- * Previous V9 and older scratch, user prefixes, games, saves, rootfs and stable Portal
+ * Previous V10 and older scratch, user prefixes, games, saves, rootfs and stable Portal
  * are never accessed. The V11 scratch is retained and never retried or deleted.
  */
 public final class CharoiteWine29V11EntryProbe {
@@ -787,7 +787,7 @@ public final class CharoiteWine29V11EntryProbe {
                    .append(peText.contains("arm64-windows\\kernel32.dll")
                            || peText.contains("arm64-windows/kernel32.dll")).append('\n');
                 out.append("V11 PE trace bootstrap-mode text seen: ").append(peText.contains("WINEBOOTSTRAPMODE")).append(" (absence not proof of mode)\n");
-                out.append("Windows PE attempted: true (source-verified wineboot.exe -i ONLY; not a game)\n");
+                out.append("Windows PE attempted: true (source-verified Wineboot -i; separate no-argument sc.exe PE entry may follow; no games)\n");
                 out.append("Direct -i PE process completed within 45s: ").append(finished).append('\n');
                 out.append("PE exit code: ").append(finished?Integer.toString(exit):"BOUNDED STOP").append('\n');
                 out.append("PE 45s deadline exceeded: ").append(expired).append('\n');

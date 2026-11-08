@@ -1237,7 +1237,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='122' versionName='11.2-next.0.91'"
+            grep -F "package: name='com.charoitx' versionCode='123' versionName='11.2-next.0.92'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1532,6 +1532,7 @@ jobs:
           cp next-generation/CharoiteWine29V7ReadOnlyForensics.java legal-bundle/CharoiteWine29V7ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V8UserenvProbe.java legal-bundle/CharoiteWine29V8UserenvProbe.java
           cp next-generation/CharoiteWine29V8ReadOnlyForensics.java legal-bundle/CharoiteWine29V8ReadOnlyForensics.java
+          cp next-generation/CharoiteWine29V9ReadOnlyForensics.java legal-bundle/CharoiteWine29V9ReadOnlyForensics.java
           cp next-generation/stage_wine29_v8_userenv.py legal-bundle/stage_wine29_v8_userenv.py
           cp next-generation/CharoiteWine29V9ScmProbe.java legal-bundle/CharoiteWine29V9ScmProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py

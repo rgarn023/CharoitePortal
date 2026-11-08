@@ -47,6 +47,7 @@ class Wine29V11ReadOnlyContract(unittest.TestCase):
         ): self.assertIn(t, UI)
         self.assertIn("test_wine29_v11_readonly_contract.py", WF)
         self.assertIn("WINE29_V11_PRESERVED_READONLY_POSTMORTEM=PASS", WF)
+        self.assertIn("cp next-generation/CharoiteWine29V11ReadOnlyForensics.java legal-bundle/CharoiteWine29V11ReadOnlyForensics.java", WF)
         self.assertIn("versionCode='127' versionName='11.2-next.0.96'", WF)
 
 if __name__ == "__main__":

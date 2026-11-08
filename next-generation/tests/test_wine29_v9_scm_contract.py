@@ -23,7 +23,7 @@ class Wine29V9Scm(unittest.TestCase):
             'scBuiltin=child(lib,"sc.exe")', "v9-sc-query.log",
             'scBuiltin.getAbsolutePath(),"query"', "serverProc.isAlive()",
             "source-built sc.exe query attempted", "V9 scratch retained",
-            "END OF SHORT V9 SCM REPORT", "private v9 server",
+            "END OF SHORT V9 SCM REPORT", "v9 server remains alive",
             "SCM functional readiness: NOT ESTABLISHED BY EXIT 0 ALONE"):
             with self.subTest(token=token):self.assertIn(token,JAVA)
         self.assertLess(JAVA.index("verifyV9Sc(context);"),JAVA.index("scratch = child(privateBase, SCRATCH);"))

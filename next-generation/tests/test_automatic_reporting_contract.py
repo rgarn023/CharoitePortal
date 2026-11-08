@@ -98,7 +98,7 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
             else:
                 self.assertIn(item, PREP)
         self.assertIn('Experimental Wine29 v10 PE-entry diagnostic; SCM not verified', RUNTIME)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'", WF)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 
 if __name__=="__main__":

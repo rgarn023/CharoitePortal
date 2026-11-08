@@ -82,7 +82,7 @@ class IsolatedStagingContract(unittest.TestCase):
         self.assertIn("versionCode 125",PREP)
         self.assertIn("11.2-next.0.94",PREP)
         self.assertIn("CHAROITE_NEXT_95_ISOLATED_PE_NLS_ASSETS_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WF)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WF)
 
 if __name__=="__main__":
     unittest.main()

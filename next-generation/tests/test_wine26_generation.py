@@ -101,7 +101,7 @@ class Wine26GenerationContract(unittest.TestCase):
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",ENGINE)
         self.assertIn("stage_wine26.py",WORKFLOW)
         self.assertIn("CHAROITE_NEXT_WINE26_99_PE_NLS_APK_ASSETS_VERIFIED=PASS",WORKFLOW)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WORKFLOW)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WORKFLOW)
 
 if __name__=="__main__":
     unittest.main()

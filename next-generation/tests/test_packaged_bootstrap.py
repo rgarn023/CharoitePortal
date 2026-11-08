@@ -81,7 +81,7 @@ class PackagedBootstrapTest(unittest.TestCase):
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",ENGINE)
         self.assertIn("stage_bootstrap_payload.py",WF)
         self.assertIn("CHAROITE_NEXT_WINE_ARCHIVE_APK_SHA256_VERIFIED=PASS",WF)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WF)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WF)
 
 if __name__=="__main__":
     unittest.main()

@@ -105,7 +105,7 @@ class Wine26NativeGateTests(unittest.TestCase):
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",ENGINE)
         for token in ("stage_wine26_native.py","CHAROITE_NEXT_WINE26_THREE_MATCHED_NATIVE_APK_ELF_HASHES=PASS",
                       "CHAROITE_NEXT_WINE26_NATIVE_ELF_VERSION_EXECUTION_DEVICE_ONLY=PASS",
-                      "versionCode='124' versionName='11.2-next.0.94'"):
+                      "versionCode='125' versionName='11.2-next.0.94'"):
             self.assertIn(token,WORKFLOW)
 if __name__=="__main__":
     unittest.main()

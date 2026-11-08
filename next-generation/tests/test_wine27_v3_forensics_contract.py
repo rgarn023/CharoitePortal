@@ -41,7 +41,7 @@ class ReadOnlyV3ForensicsContract(unittest.TestCase):
         self.assertIn('CharoiteWine27V3Forensics.java', CI)
         self.assertIn('CharoiteWine27PEAudit.java', CI)
         self.assertIn('CharoiteWine27PEAudit.inspect(', FORENSICS)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'", CI)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'", CI)
 
 if __name__ == "__main__":
     unittest.main()

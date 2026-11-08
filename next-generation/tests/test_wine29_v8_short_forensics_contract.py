@@ -52,7 +52,7 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
             'CharoiteWine29V8ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V8Audit);',
             'Copy short report',
-            'versionCode 122', '11.2-next.0.91',
+            'versionCode 123', '11.2-next.0.92',
         ):
             with self.subTest(token=token): self.assertIn(token,UI)
         self.assertLess(UI.index('final boolean showArchivedWine29V8Execution = false;'),
@@ -63,7 +63,7 @@ class V8ShortReadOnlyForensics(unittest.TestCase):
             'test_wine29_v8_short_forensics_contract.py',
             'WINE29_V8_PRESERVED_SHORT_READONLY_POSTMORTEM=PASS',
             'cp next-generation/CharoiteWine29V8ReadOnlyForensics.java legal-bundle/CharoiteWine29V8ReadOnlyForensics.java',
-            "versionCode='122' versionName='11.2-next.0.91'",
+            "versionCode='123' versionName='11.2-next.0.92'",
         ):
             with self.subTest(token=token): self.assertIn(token,WF)
 

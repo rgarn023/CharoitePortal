@@ -38,22 +38,32 @@ class V15ReadOnlyContract(unittest.TestCase):
         self.assertIn("sc.exe mentions=", JAVA)
         self.assertNotIn("RESULT: PASS — sc.exe", JAVA)
 
+    def test_handoff_is_first_and_short_report_remains_bounded(self):
+        self.assertIn('String head = "Handoff: ', JAVA)
+        self.assertIn('int limit = MAX_REPORT_CHARS - head.length() - tail.length();', JAVA)
+        self.assertIn('return head + b.append(tail).toString();', JAVA)
+        self.assertIn('END OF SHORT V15 READ-ONLY REPORT', JAVA)
+
     def test_consumed_v15_hidden_only_new_readonly_active(self):
         for good in (
             "final boolean showArchivedWine29V15Execution = false;",
             "final boolean showArchivedWine29V14ReadOnly = false;",
             "Inspect Wine29 v15 sc.exe + server (read-only)",
             "CharoiteWine29V15ReadOnlyForensics.run(this)",
-            "nextCoreCard.addView(wine29V15Audit);",
+            "wine29CurrentAction.addView(wine29V15Audit);",
+            "wine29CurrentAction.addView(handoffButton);",
+            "nextCoreCard.addView(wine29CurrentAction);",
+            "Open current project handoff",
+            "The handoff link is the ",
             '"CharoiteWine29V15ReadOnlyForensics.java"',
-            "versionCode 135", "11.2-next.0.104",
+            "versionCode 136", "11.2-next.0.105",
         ):
             with self.subTest(good=good): self.assertIn(good, UI)
         for good in (
             "test_wine29_v15_readonly_contract.py",
             "WINE29_V15_PRESERVED_SERVER_EXIT_READONLY_POSTMORTEM=PASS",
             "cp next-generation/CharoiteWine29V15ReadOnlyForensics.java legal-bundle/CharoiteWine29V15ReadOnlyForensics.java",
-            "versionCode='135' versionName='11.2-next.0.104'",
+            "versionCode='136' versionName='11.2-next.0.105'",
         ):
             with self.subTest(good=good): self.assertIn(good, WF)
 

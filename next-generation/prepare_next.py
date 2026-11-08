@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.104"')
-text = text.replace("versionCode 33", "versionCode 135")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.105"')
+text = text.replace("versionCode 33", "versionCode 136")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -1488,14 +1488,9 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29PeHelpV1);
 
         } // Archived test controls — hidden; no stale or repeatable one-shot buttons.
-        nextCoreCard.addView(label("CURRENT WINE29 DIAGNOSTIC", 16, FOREGROUND, true));
-        nextCoreCard.addView(label(
-                "Wine29 v8 direct Wineboot -i exited 0 and created Windows directories, " +
-                "but the on-device report found all three registry files missing " +
-                "and did not establish services.exe startup. The long raw v8 trace " +
-                "is preserved; the current read-only diagnostic produces a short, " +
-                "pasteable summary without executing Wine or modifying scratch.",
-                12, SECONDARY, false));
+        // The actionable current diagnostic and its instructions are grouped
+        // together below, next to the V15 inspect / handoff buttons.
+        // All old execution buttons and V1–V14 read-only probes remain hidden.
 
         // Inspect ONLY the retained Wine29 v1 scratch, named PE copies and
         // bounded logs. Do not execute Wine, Wineboot, or even wineserver.
@@ -2497,6 +2492,22 @@ ui = ui.replace(anchor, anchor + """
         } // V15 consumed: no replay, cleanup or write actions.
 
         // Sole ACTIVE Wine29 diagnostic: V15 preserved evidence, STRICT READ ONLY.
+        // Keep instructions, the actual test button, and the handoff link together
+        // within System; never force the owner to search another tab for steps.
+        LinearLayout wine29CurrentAction = card();
+        wine29CurrentAction.addView(label("CURRENT WINE29 ACTION — V15 READ-ONLY",
+                16, FOREGROUND, true));
+        wine29CurrentAction.addView(label(
+                "V15 execution and its preserved audit are COMPLETE. No further V15 " +
+                "execution is authorized. The independent Windows sc.exe attempt " +
+                "returned 127 with no output; PE entry, SCM and root cause remain " +
+                "unverified. To re-copy the existing evidence for a new chat ONLY: " +
+                "tap Inspect, then Copy short report. The handoff link is the " +
+                "FIRST line of the copied report. This inspection reads three " +
+                "existing V15 logs and named metadata ONLY: no Wine execution, " +
+                "retry, scratch changes or cleanup. Preserve all old prefixes, " +
+                "games and saves. A NEW V16 test is not yet authorized or available.",
+                12, SECONDARY, false));
         android.widget.Button wine29V15Audit = new android.widget.Button(this);
         wine29V15Audit.setText("Inspect Wine29 v15 sc.exe + server (read-only)");
         wine29V15Audit.setAllCaps(false);
@@ -2521,8 +2532,15 @@ ui = ui.replace(anchor, anchor + """
                 });
             }, "CharoiteWine29V15ReadOnlyForensics").start();
         });
-        nextCoreCard.addView(wine29V15Audit);
-
+        wine29CurrentAction.addView(wine29V15Audit);
+        android.widget.Button handoffButton = new android.widget.Button(this);
+        handoffButton.setText("Open current project handoff");
+        handoffButton.setAllCaps(false);
+        handoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29CurrentAction.addView(handoffButton);
+        nextCoreCard.addView(wine29CurrentAction);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

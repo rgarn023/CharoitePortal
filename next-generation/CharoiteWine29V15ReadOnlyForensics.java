@@ -53,14 +53,16 @@ public final class CharoiteWine29V15ReadOnlyForensics {
     }
 
     private static String result(StringBuilder b) {
-        String tail = "\nHandoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n" +
-            "END OF SHORT V15 READ-ONLY REPORT — raw traces remain on phone, unchanged.\n";
-        int limit = MAX_REPORT_CHARS - tail.length();
+        // Put the clickable project handoff FIRST in every copied report so
+        // a new ChatGPT conversation can recover the current project state.
+        String head = "Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n\n";
+        String tail = "\nEND OF SHORT V15 READ-ONLY REPORT — raw traces remain on phone, unchanged.\n";
+        int limit = MAX_REPORT_CHARS - head.length() - tail.length();
         if (b.length() > limit) {
             b.setLength(limit - 85);
             b.append("\n[Summary clipped at 9,000 characters; raw evidence NOT deleted.]\n");
         }
-        return b.append(tail).toString();
+        return head + b.append(tail).toString();
     }
 
     private static String pid(String line) {

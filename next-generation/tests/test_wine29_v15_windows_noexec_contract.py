@@ -39,7 +39,7 @@ class V15WindowsNoexecContract(unittest.TestCase):
             "CharoiteWine29V15ScWindowsNoexecProbe.run(this)",
             "nextCoreCard.addView(wine29V15Entry);",
             '"CharoiteWine29V15ScWindowsNoexecProbe.java"',
-            "versionCode 137","11.2-next.0.106",
+            "versionCode 138","11.2-next.0.107",
         ):
             with self.subTest(s=s):self.assertIn(s,UI)
     def test_ci_is_not_phone_execution(self):
@@ -48,7 +48,7 @@ class V15WindowsNoexecContract(unittest.TestCase):
             "WINE29_V15_WINDOWS_PATH_NOEXEC_ONE_SHOT=PASS",
             "WINE29_V15_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI",
             "cp next-generation/CharoiteWine29V15ScWindowsNoexecProbe.java legal-bundle/CharoiteWine29V15ScWindowsNoexecProbe.java",
-            "versionCode='137' versionName='11.2-next.0.106'",
+            "versionCode='138' versionName='11.2-next.0.107'",
         ):
             with self.subTest(s=s):self.assertIn(s,WF)
 if __name__=="__main__":

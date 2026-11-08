@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.106"')
-text = text.replace("versionCode 33", "versionCode 137")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.107"')
+text = text.replace("versionCode 33", "versionCode 138")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -204,7 +204,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                   "CharoiteWine29V14ReadOnlyForensics.java",
                   "CharoiteWine29V15ScWindowsNoexecProbe.java",
                   "CharoiteWine29V15ReadOnlyForensics.java",
-                  "CharoiteWine29V16ExecBoundaryProbe.java"):
+                  "CharoiteWine29V16ExecBoundaryProbe.java",
+                  "CharoiteWine29V16ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2550,6 +2551,8 @@ ui = ui.replace(anchor, anchor + """
 
         // Current one-shot V16: instructions, opt-in, report copy, and handoff
         // button are adjacent under System. Never auto-execute on opening app.
+        final boolean showArchivedWine29V16Execution = false;
+        if (showArchivedWine29V16Execution) {
         LinearLayout wine29V16Action = card();
         wine29V16Action.addView(label("CURRENT WINE29 ACTION — V16 NATIVE EXEC BOUNDARY",
                 16, FOREGROUND, true));
@@ -2618,6 +2621,50 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V16Action.addView(v16HandoffButton);
         nextCoreCard.addView(wine29V16Action);
+        } // Consumed V16: original execution action permanently hidden.
+        LinearLayout wine29V16ReadOnlyAction = card();
+        wine29V16ReadOnlyAction.addView(label("CURRENT WINE29 ACTION — V16 PRESERVED READ-ONLY", 16, FOREGROUND, true));
+        wine29V16ReadOnlyAction.addView(label(
+                "V16 one-shot execution has completed and must NEVER be repeated. " +
+                "Android accepted the native loader, but independent Windows sc.exe " +
+                "exited 127 with no output; the foreground server stopped and PE mapping " +
+                "and SCM remain UNVERIFIED. TO ACT: tap the read-only inspection button, " +
+                "then Copy short report into your next chat. The first report line is " +
+                "the handoff URL. This only reads three preserved V16 logs and named " +
+                "V16 metadata. No Wine, process creation, retries, cleanup, other " +
+                "generations, registry contents, games, saves or app-data clearing.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V16ReadOnly = new android.widget.Button(this);
+        wine29V16ReadOnly.setText("Inspect Wine29 v16 sc.exe + server (read-only)");
+        wine29V16ReadOnly.setAllCaps(false);
+        wine29V16ReadOnly.setOnClickListener(v -> {
+            wine29V16ReadOnly.setEnabled(false);
+            new Thread(() -> {
+                final String report = com.charoitegames.core.CharoiteWine29V16ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V16ReadOnly.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — V16 preserved native boundary audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy short report", (dlg, btn) -> {
+                            android.content.ClipboardManager cb = (android.content.ClipboardManager)
+                                getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                "Charoite Wine29 V16 preserved read-only report", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V16ReadOnlyForensics").start();
+        });
+        wine29V16ReadOnlyAction.addView(wine29V16ReadOnly);
+        android.widget.Button v16ReadOnlyHandoff = new android.widget.Button(this);
+        v16ReadOnlyHandoff.setText("Open current project handoff");
+        v16ReadOnlyHandoff.setAllCaps(false);
+        v16ReadOnlyHandoff.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V16ReadOnlyAction.addView(v16ReadOnlyHandoff);
+        nextCoreCard.addView(wine29V16ReadOnlyAction);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

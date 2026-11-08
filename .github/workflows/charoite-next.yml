@@ -828,6 +828,14 @@ jobs:
           echo WINE29_V15_WINDOWS_PATH_NOEXEC_ONE_SHOT=PASS
           echo WINE29_V15_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify isolated V16 preserved read-only native boundary postmortem
+        run: |
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v16_readonly_contract.py' -v
+          grep -Fq 'Only THREE V16 logs' next-generation/CharoiteWine29V16ReadOnlyForensics.java
+          ! grep -Eq 'new ProcessBuilder\\(|Runtime.getRuntime\\(|FileOutputStream|\\.delete\\(|mkdirs\\(' next-generation/CharoiteWine29V16ReadOnlyForensics.java
+          echo WINE29_V16_PRESERVED_EXEC_BOUNDARY_READONLY_POSTMORTEM=PASS
+          echo WINE29_V16_PHONE_INSPECTION=NOT_ATTEMPTED_IN_CI
+
       - name: Verify isolated V16 Android sc.exe launch-boundary one-shot
         run: |
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v16_exec_boundary_contract.py' -v
@@ -1379,7 +1387,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='137' versionName='11.2-next.0.106'"
+            grep -F "package: name='com.charoitx' versionCode='138' versionName='11.2-next.0.107'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1689,6 +1697,7 @@ jobs:
           cp next-generation/CharoiteWine29V15ScWindowsNoexecProbe.java legal-bundle/CharoiteWine29V15ScWindowsNoexecProbe.java
           cp next-generation/CharoiteWine29V15ReadOnlyForensics.java legal-bundle/CharoiteWine29V15ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V16ExecBoundaryProbe.java legal-bundle/CharoiteWine29V16ExecBoundaryProbe.java
+          cp next-generation/CharoiteWine29V16ReadOnlyForensics.java legal-bundle/CharoiteWine29V16ReadOnlyForensics.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

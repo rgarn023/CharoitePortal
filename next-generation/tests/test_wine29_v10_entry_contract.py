@@ -49,13 +49,13 @@ class Wine29V10Entry(unittest.TestCase):
                       "CharoiteWine29V10EntryProbe.run(this)",
                       "nextCoreCard.addView(wine29V10Entry);",
                       '"CharoiteWine29V10EntryProbe.java"',
-                      "versionCode 137", "11.2-next.0.106"):
+                      "versionCode 138", "11.2-next.0.107"):
             with self.subTest(token=token): self.assertIn(token,UI)
         self.assertIn("final boolean showArchivedWine29V10Execution = false;", UI)
         self.assertIn("Inspect Wine29 v10 native loader failure (read-only)", UI)
         for token in ("test_wine29_v10_entry_contract.py",
                       "WINE29_V10_NEW_PREFIX_PE_ENTRY_CONSENT=PASS",
-                      "versionCode='137' versionName='11.2-next.0.106'"):
+                      "versionCode='138' versionName='11.2-next.0.107'"):
             with self.subTest(token=token): self.assertIn(token,WORKFLOW)
 
 if __name__ == "__main__":

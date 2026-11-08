@@ -2578,7 +2578,7 @@ ui = ui.replace(anchor, anchor + """
                 .setMessage("THIS EXECUTES WINE: creates exactly one NEW V16 private " +
                     "scratch/prefix, starts a bounded foreground wineserver and " +
                     "Wineboot/internal services, and attempts ONE no-argument " +
-                    "Windows C:\\windows\\system32\\sc.exe entry with NOEXEC=1. " +
+                    "Windows C:\\\\windows\\\\system32\\\\sc.exe entry with NOEXEC=1. " +
                     "Independent Android process-start and exit observations are " +
                     "recorded; a native launch is NOT proof of Windows PE entry " +
                     "or SCM. The test performs no service query or game launch. " +

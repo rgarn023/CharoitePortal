@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.100"')
-text = text.replace("versionCode 33", "versionCode 131")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.101"')
+text = text.replace("versionCode 33", "versionCode 132")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -199,7 +199,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V12ScEntryProbe.java",
                  "CharoiteWine29V12ReadOnlyForensics.java",
                  "CharoiteWine29V13ScNoexecProbe.java",
-                 "CharoiteWine29V13ReadOnlyForensics.java"):
+                 "CharoiteWine29V13ReadOnlyForensics.java",
+                 "CharoiteWine29V14ScWindowsPathProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2336,7 +2337,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V13Entry);
 
         } // V13 execution consumed; do not rerun or clear scratch.
-        // Only active Wine29 System diagnostic: preserved V13 evidence, READ ONLY.
+        // V13 preserved forensic report was supplied; keep inspector archived.
+        final boolean showArchivedWine29V13ReadOnly = false;
+        if (showArchivedWine29V13ReadOnly) {
+        // Archived Wine29 System diagnostic: preserved V13 evidence, READ ONLY.
         android.widget.Button wine29V13Audit = new android.widget.Button(this);
         wine29V13Audit.setText("Inspect Wine29 v13 sc.exe exit (read-only)");
         wine29V13Audit.setAllCaps(false);
@@ -2361,8 +2365,53 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V13ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V13Audit);
+        } // V13 read-only audit completed; scratch never modified.
 
 
+
+
+        // Only active Wine29 test. V14 is a NEW separate scratch and requires
+        // user consent; no automatic Wine starts or old generation access.
+        android.widget.Button wine29V14WindowsPath = new android.widget.Button(this);
+        wine29V14WindowsPath.setText("Test Wine29 v14 sc.exe Windows C: path (one-shot)");
+        wine29V14WindowsPath.setAllCaps(false);
+        wine29V14WindowsPath.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new private Wine29 v14 Windows-path test?")
+                .setMessage("NOT read-only. In a completely NEW v14 private scratch, verify "
+                    + "the source-pinned Wine29 modules, launch bounded Wineboot -i "
+                    + "and its internal helpers/private wineserver, then copy the "
+                    + "same verified ARM64 sc.exe ONLY into newly created private "
+                    + "C:\\windows\\system32 and attempt ONE no-argument sc.exe "
+                    + "using that Windows C: path (instead of V13's Unix path). "
+                    + "Keep V13's NOEXEC-unset sc.exe environment. NO SCM query, "
+                    + "service change, games, Steam/Battle.net or native --version. "
+                    + "V1-V13 scratch, Wine28, stable Portal, rootfs, user prefixes, "
+                    + "games/saves are NEVER accessed. If v14 scratch already exists, "
+                    + "the test is blocked. Never uninstall/clear data or delete scratch.")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v14 test", (dialog, which) -> {
+                    wine29V14WindowsPath.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V14ScWindowsPathProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V14WindowsPath.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V14 Windows-path sc.exe diagnostic")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 V14 one-shot report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V14ScWindowsPathProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V14WindowsPath);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

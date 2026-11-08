@@ -45,14 +45,14 @@ class V13ReadOnlyContract(unittest.TestCase):
             "CharoiteWine29V13ReadOnlyForensics.run(this)",
             "nextCoreCard.addView(wine29V13Audit);",
             '"CharoiteWine29V13ReadOnlyForensics.java"',
-            "versionCode 131","11.2-next.0.100",
+            "versionCode 132","11.2-next.0.101",
         ):
             self.assertIn(s,UI)
         for s in (
             "test_wine29_v13_readonly_contract.py",
             "WINE29_V13_PRESERVED_SC_EXIT127_READONLY_POSTMORTEM=PASS",
             "cp next-generation/CharoiteWine29V13ReadOnlyForensics.java legal-bundle/CharoiteWine29V13ReadOnlyForensics.java",
-            "versionCode='131' versionName='11.2-next.0.100'",
+            "versionCode='132' versionName='11.2-next.0.101'",
         ):
             self.assertIn(s,WF)
 

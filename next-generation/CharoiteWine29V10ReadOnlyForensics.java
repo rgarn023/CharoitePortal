@@ -27,7 +27,7 @@ public final class CharoiteWine29V10ReadOnlyForensics {
     private static final String PE_LOG = "v10-wine-direct-init.log";
     private static final String ENTRY_LOG = "v10-sc-entry.log";
     private static final String NATIVE_LOG = "v10-native-version.log";
-    private static final long MAX_ENTRY_LOG = 8L * 1024L * 1024L;
+    private static final long MAX_SC_LOG = 8L * 1024L * 1024L;
     private static final String SERVER_LOG = "v10-foreground-wineserver.log";
     private static final long MAX_PE_LOG = 8L * 1024L * 1024L;
     private static final long MAX_SERVER_LOG = 8L * 1024L * 1024L;

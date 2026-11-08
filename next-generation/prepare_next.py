@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.90"')
-text = text.replace("versionCode 33", "versionCode 121")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.91"')
+text = text.replace("versionCode 33", "versionCode 122")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -189,7 +189,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V7ServicesProbe.java",
                  "CharoiteWine29V7ReadOnlyForensics.java",
                  "CharoiteWine29V8UserenvProbe.java",
-                 "CharoiteWine29V8ReadOnlyForensics.java"):
+                 "CharoiteWine29V8ReadOnlyForensics.java",
+                 "CharoiteWine29V9ScmProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -1935,7 +1936,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V8Userenv);
         } // Archived v8 execution; preserved v8 data is never retried or deleted.
 
-        // CURRENT TEST: strict read-only v8 audit; clipboard contains a short
+        // ARCHIVED v8 read-only audit: completed and preserved; not current System test.
+        final boolean showArchivedWine29V8ReadOnly = false;
+        if (showArchivedWine29V8ReadOnly) {
+        // Former read-only v8 audit; clipboard was a short
         // bounded summary and explicit END marker, never raw 600KB+ traces.
         android.widget.Button wine29V8Audit = new android.widget.Button(this);
         wine29V8Audit.setText("Inspect Wine29 v8 registry + services (read-only)");
@@ -1963,6 +1967,49 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V8ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V8Audit);
+        } // Do not rerun historical v8 audit from the current System UI.
+
+        // Current Wine29 System test: explicit one-shot, NEW v9 isolated scratch ONLY.
+        android.widget.Button wine29V9Scm = new android.widget.Button(this);
+        wine29V9Scm.setText("Test Wine29 v9 Service Manager query (one-shot)");
+        wine29V9Scm.setAllCaps(false);
+        wine29V9Scm.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new Wine29 v9 SCM query?")
+                .setMessage("This is NOT read-only. It will create a NEW independent "
+                    + "private v9 prefix, start Wine29 wineserver and Wineboot -i, "
+                    + "and, ONLY if the same private server remains alive after a "
+                    + "successful Wineboot exit, start the verified Windows ARM64 "
+                    + "sc.exe query client to test Service Control Manager reachability. "
+                    + "Wine may also start services.exe and userenv.dll internally. "
+                    + "Existing v8 and earlier scratch, stable Charoite Portal, "
+                    + "games, saves, rootfs, user prefixes and app settings will NOT "
+                    + "be read, rerun, deleted or reset. The new v9 scratch and "
+                    + "three logs are preserved after this single attempt. "
+                    + "No Windows games or applications are installed or launched. "
+                    + "A second tap cannot retry a used v9 scratch.")
+                .setNegativeButton("Cancel — do not execute",null)
+                .setPositiveButton("Authorize ONE v9 query", (dialog,which) -> {
+                    wine29V9Scm.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine29V9ScmProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V9Scm.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — Wine29 v9 SCM query report")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg,button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if(cb!=null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 v9 one-shot SCM query",report));
+                                })
+                                .setNegativeButton("Close",null).show();
+                        });
+                    }, "CharoiteWine29V9ScmProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V9Scm);
 
 
 

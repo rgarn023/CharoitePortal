@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.105"')
-text = text.replace("versionCode 33", "versionCode 136")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.106"')
+text = text.replace("versionCode 33", "versionCode 137")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -203,7 +203,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V14ScWindowsPathProbe.java",
                   "CharoiteWine29V14ReadOnlyForensics.java",
                   "CharoiteWine29V15ScWindowsNoexecProbe.java",
-                  "CharoiteWine29V15ReadOnlyForensics.java"):
+                  "CharoiteWine29V15ReadOnlyForensics.java",
+                  "CharoiteWine29V16ExecBoundaryProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2491,6 +2492,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V15Entry);
         } // V15 consumed: no replay, cleanup or write actions.
 
+        // Archived V15 read-only copy: owner already supplied the complete audit.
+        // Keep implementation for source provenance but hide completed action.
+        final boolean showArchivedWine29V15ReadOnly = false;
+        if (showArchivedWine29V15ReadOnly) {
         // Sole ACTIVE Wine29 diagnostic: V15 preserved evidence, STRICT READ ONLY.
         // Keep instructions, the actual test button, and the handoff link together
         // within System; never force the owner to search another tab for steps.
@@ -2541,13 +2546,89 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29CurrentAction.addView(handoffButton);
         nextCoreCard.addView(wine29CurrentAction);
+        } // V15 inspected and retired; no UI routes to consumed data.
 
+        // Current one-shot V16: instructions, opt-in, report copy, and handoff
+        // button are adjacent under System. Never auto-execute on opening app.
+        LinearLayout wine29V16Action = card();
+        wine29V16Action.addView(label("CURRENT WINE29 ACTION — V16 NATIVE EXEC BOUNDARY",
+                16, FOREGROUND, true));
+        wine29V16Action.addView(label(
+                "NEW PRIVATE V16 ONLY. This is NOT read-only: after a separate " +
+                "confirmation it creates one new V16 scratch/prefix and can run " +
+                "private wineserver, Wineboot and internal services, followed by " +
+                "ONE no-argument Windows C: sc.exe launch with NOEXEC=1. No SCM " +
+                "query, games, installers, or network. Logs separately capture " +
+                "Android ProcessBuilder.start acceptance/failure, launch timing, " +
+                "process exit, and wineserver state. These do NOT prove PE mapping " +
+                "or cause of exit 127. Old V1–V15 and Wine28 scratch, stable Portal, " +
+                "user prefixes, saves and games are never accessed. If V16 exists, " +
+                "the test refuses to run again. Never uninstall, clear storage, " +
+                "retry or delete old evidence. TO RUN: tap the test, read the full " +
+                "consent, choose Authorize ONE fresh v16 test, then Copy short " +
+                "report through END marker into your next chat. The handoff URL " +
+                "is on the FIRST line of that report.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V16Exec = new android.widget.Button(this);
+        wine29V16Exec.setText("Test Wine29 v16 sc.exe native boundary (one-shot)");
+        wine29V16Exec.setAllCaps(false);
+        wine29V16Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new private V16 exec-boundary test?")
+                .setMessage("THIS EXECUTES WINE: creates exactly one NEW V16 private " +
+                    "scratch/prefix, starts a bounded foreground wineserver and " +
+                    "Wineboot/internal services, and attempts ONE no-argument " +
+                    "Windows C:\\windows\\system32\\sc.exe entry with NOEXEC=1. " +
+                    "Independent Android process-start and exit observations are " +
+                    "recorded; a native launch is NOT proof of Windows PE entry " +
+                    "or SCM. The test performs no service query or game launch. " +
+                    "All V1–V15/Wine28 previous scratch, stable Portal, existing " +
+                    "user prefixes, saves, games and rootfs remain untouched. " +
+                    "If V16 scratch already exists, execution is blocked. " +
+                    "No retry, cleanup, uninstall or data clear. Do you explicitly " +
+                    "authorize this ONE V16 execution test?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v16 test", (dialog, which) -> {
+                    wine29V16Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V16ExecBoundaryProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V16Exec.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V16 native exec boundary")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 V16 native exec boundary", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V16ExecBoundaryProbe").start();
+                }).show());
+        wine29V16Action.addView(wine29V16Exec);
+        android.widget.Button v16HandoffButton = new android.widget.Button(this);
+        v16HandoffButton.setText("Open current project handoff");
+        v16HandoffButton.setAllCaps(false);
+        v16HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V16Action.addView(v16HandoffButton);
+        nextCoreCard.addView(wine29V16Action);
+
+        // Optional auto-upload is not part of the V16 manual test; retire it.
+        final boolean showHistoricalAutomaticReporter = false;
+        if (showHistoricalAutomaticReporter) {
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");
         autoReporter.setAllCaps(false);
         autoReporter.setOnClickListener(v ->
             com.charoitegames.core.CharoiteNextAutoReports.showSettings(this));
         nextCoreCard.addView(autoReporter);
+        } // manual-only V16; no unrelated System diagnostic buttons.
 
         // Retain startup/audio diagnostic implementation for future support,
         // but do not clutter the current Wine29-only System test surface.

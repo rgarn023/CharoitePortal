@@ -40,7 +40,7 @@ class ModularCoreManagerContract(unittest.TestCase):
             self.assertNotIn(forbidden, MANAGER)
 
     def test_system_status_does_not_advertise_removed_buttons(self):
-        self.assertIn('public static final String VERSION = "Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked"', RUNTIME)
+        self.assertIn('public static final String VERSION = "Experimental Wine29 v10 PE-entry diagnostic; SCM not verified"', RUNTIME)
         self.assertIn('Wine29 v9 Wineboot exited 0; services.exe and userenv.dll mapped. SCM still unverified.', RUNTIME)
         self.assertNotIn('0.70 (Wine29 v1 kernel32 read-only postmortem', RUNTIME)
         self.assertIn('Current Wine29 System test: consent-gated V10 native-loader / sc.exe PE-entry one-shot.', RUNTIME)

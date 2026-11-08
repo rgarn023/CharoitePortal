@@ -27,3 +27,14 @@ Under **System → CURRENT WINE29 ACTION — V17 CONTROL COMPARISON**, all scope
 Candidate identity `com.charoitx`, **versionCode 139 / versionName 11.2-next.0.108**. Source gates and CI signing are not phone execution. **Do not install a candidate until exact successful Actions run, original signing certificate and signed APK artifact are verified.** Install in place; never uninstall/clear data.
 
 **Charoite 1.0 readiness: ~30% complete / ~70% remaining (unchanged).** Only verified functional independent PE/SCM and playable graphics/audio/input plus Portal/Core integration justify advancing.
+
+## VERIFIED signed V17 candidate — November 8, 2026
+
+- **[Actions run 42523239609](https://github.com/rgarn023/CharoitePortal/actions/runs/42523239609): SUCCESS**, source commit [d55cd15fd53b02d70011ec3877bdf80d5e054d4e](https://github.com/rgarn023/CharoitePortal/commit/d55cd15fd53b02d70011ec3877bdf80d5e054d4e).
+- **[Signed experimental Next APK artifact 13634382659](https://github.com/rgarn023/CharoitePortal/actions/runs/42523239609/artifacts/13634382659)**, one ZIP with one APK; 461,561,378 bytes ZIP; SHA-256 `295d7625033e3f975bb28316833f815f3e52327922a2f07eb46ee06e877b7e05`, expires 2027-02-06.
+- **[LGPL/source artifact 13634675974](https://github.com/rgarn023/CharoitePortal/actions/runs/42523239609/artifacts/13634675974)**, 581,704 bytes, `sha256:b98f976cc1ed56d8d65da766f40dbfa437e6b6fdb36484f45409d7002da99e41`.
+- 138 stable tests + 253 Next tests PASS, V17 source-only isolation/consent contract PASS, Android Java/native compilation and APK staging PASS; AAPT `com.charoitx`, `versionCode 139`, `versionName 11.2-next.0.108` confirmed.
+- APK certificate SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175` MATCHED the persisted experimental signing key, consistent with the previous released Next signer.
+- **CI did not execute V17 on the owner's phone**. No independent Wineboot --help/sc.exe mapping or SCM/game functionality is proven. Test remains owner-initiated, fresh V17-only, one-shot. Read all System instructions beside both V17 action/handoff buttons and never uninstall/reset previous data.
+
+**Readiness remains ~30% / 70% remaining**, despite build success.

@@ -779,7 +779,7 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V11Execution = false;' next-generation/prepare_next.py
           grep -Fq 'CharoiteWine29V11ReadOnlyForensics.java' next-generation/prepare_next.py
           grep -Fq 'Inspect Wine29 v11 server exit (read-only)' next-generation/prepare_next.py
-          ! grep -Eq 'new ProcessBuilder\\(|Runtime.getRuntime\\(|FileOutputStream|\\.delete\\(|mkdirs\\(' next-generation/CharoiteWine29V11ReadOnlyForensics.java
+          ! grep -Eq 'new ProcessBuilder\(|Runtime.getRuntime\(|FileOutputStream|\.delete\(|mkdirs\(' next-generation/CharoiteWine29V11ReadOnlyForensics.java
           echo WINE29_V11_PRESERVED_READONLY_POSTMORTEM=PASS
           echo WINE29_V11_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI
 

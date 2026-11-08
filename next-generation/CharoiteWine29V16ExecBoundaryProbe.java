@@ -489,7 +489,7 @@ public final class CharoiteWine29V16ExecBoundaryProbe {
     }
 
     private static String shortReport(StringBuilder report) {
-        final String tail="\nEND OF SHORT V16 ENTRY REPORT — new v16 logs preserved; all previous generations untouched.\n";
+        final String tail="\nEND OF SHORT V16 ENTRY REPORT — V16 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
         if(summary.length()>limit)

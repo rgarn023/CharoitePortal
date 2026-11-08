@@ -56,14 +56,14 @@ class V15ReadOnlyContract(unittest.TestCase):
             "Open current project handoff",
             "The handoff link is the ",
             '"CharoiteWine29V15ReadOnlyForensics.java"',
-            "versionCode 136", "11.2-next.0.105",
+            "versionCode 137", "11.2-next.0.106",
         ):
             with self.subTest(good=good): self.assertIn(good, UI)
         for good in (
             "test_wine29_v15_readonly_contract.py",
             "WINE29_V15_PRESERVED_SERVER_EXIT_READONLY_POSTMORTEM=PASS",
             "cp next-generation/CharoiteWine29V15ReadOnlyForensics.java legal-bundle/CharoiteWine29V15ReadOnlyForensics.java",
-            "versionCode='136' versionName='11.2-next.0.105'",
+            "versionCode='137' versionName='11.2-next.0.106'",
         ):
             with self.subTest(good=good): self.assertIn(good, WF)
 

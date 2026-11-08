@@ -16,8 +16,8 @@ class Wine29V1PeHelpContracts(unittest.TestCase):
         self.assertIn('setNegativeButton("Cancel — do not execute", null)', ui)
         self.assertIn('Wine MAY automatically initialize', ui)
         self.assertIn('CharoiteWine29V1PeHelpProbe.run(this)', ui)
-        self.assertIn('versionCode 136', ui)
-        self.assertIn('11.2-next.0.105', ui)
+        self.assertIn('versionCode 137', ui)
+        self.assertIn('11.2-next.0.106', ui)
         # Source invocation must be under its explicit consent button only.
         before = ui.split('wine29PeHelpV1.setOnClickListener(v ->', 1)[0]
         self.assertNotIn('CharoiteWine29V1PeHelpProbe.run(this)', before)
@@ -72,7 +72,7 @@ class Wine29V1PeHelpContracts(unittest.TestCase):
         wf = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("test_wine29_v1_pe_help_contract.py", wf)
         self.assertIn("WINE29_V1_ONE_SHOT_EXPLICIT_CONSENT_GUARD=PASS", wf)
-        self.assertIn("versionCode='136' versionName='11.2-next.0.105'", wf)
+        self.assertIn("versionCode='137' versionName='11.2-next.0.106'", wf)
         text = PROBE.read_text(encoding="utf-8")
         self.assertIn('NOT Wineboot -i or Windows gaming', text)
         self.assertIn('Wine WILL attempt internal auto --init', text)

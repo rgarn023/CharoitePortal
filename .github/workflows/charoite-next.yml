@@ -817,6 +817,17 @@ jobs:
           echo WINE29_V14_FRESH_WINDOWS_SC_PATH_ONE_SHOT=PASS
           echo WINE29_V14_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify consumed V14 sc.exe preserved read-only forensic contract
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v14_readonly_contract.py' -v
+          grep -Fq 'final boolean showArchivedWine29V14Execution = false;' next-generation/prepare_next.py
+          grep -Fq 'Inspect Wine29 v14 sc.exe exit (read-only)' next-generation/prepare_next.py
+          grep -Fq 'Only THREE V14 logs' next-generation/CharoiteWine29V14ReadOnlyForensics.java
+          ! grep -Eq 'new ProcessBuilder\\(|Runtime.getRuntime\\(|FileOutputStream|\\.delete\\(|mkdirs\\(' next-generation/CharoiteWine29V14ReadOnlyForensics.java
+          echo WINE29_V14_PRESERVED_SC_ENTRY_READONLY_POSTMORTEM=PASS
+          echo WINE29_V14_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Verify preserved V13 read-only sc.exe postmortem and archived one-shot
         run: |
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v13_readonly_contract.py' -v
@@ -1335,7 +1346,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='132' versionName='11.2-next.0.101'"
+            grep -F "package: name='com.charoitx' versionCode='133' versionName='11.2-next.0.102'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1641,6 +1652,7 @@ jobs:
            cp next-generation/CharoiteWine29V13ScNoexecProbe.java legal-bundle/CharoiteWine29V13ScNoexecProbe.java
           cp next-generation/CharoiteWine29V13ReadOnlyForensics.java legal-bundle/CharoiteWine29V13ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V14ScWindowsPathProbe.java legal-bundle/CharoiteWine29V14ScWindowsPathProbe.java
+          cp next-generation/CharoiteWine29V14ReadOnlyForensics.java legal-bundle/CharoiteWine29V14ReadOnlyForensics.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

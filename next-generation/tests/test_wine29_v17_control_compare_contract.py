@@ -12,7 +12,7 @@ class V17ControlCompareContract(unittest.TestCase):
         for required in ("charoite-next-wine29-entry-v17",
                          "if (scratch.exists() || !scratch.mkdir())",
                          "verifyV6Native(context);", "verifyV7Services(context)",
-                         "verifyV8Userenv(context)", "verifyV16Sc(context)",
+                         "verifyV8Userenv(context)", "verifyV17Sc(context)",
                          "v17-wine-direct-init.log","v17-foreground-wineserver.log",
                          "v17-independent-wineboot-help.log","v17-sc-entry.log",
                          "END OF SHORT V17 ENTRY REPORT",

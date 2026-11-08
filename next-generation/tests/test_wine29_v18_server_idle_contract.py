@@ -59,7 +59,7 @@ class V18IdleLifecycleContract(unittest.TestCase):
             'wine29V18Action.addView(v18HandoffButton);',
             'nextCoreCard.addView(wine29V18Action);',
             '"CharoiteWine29V18ServerIdleProbe.java"',
-            'versionCode 141', '11.2-next.0.110',
+            'versionCode 142', '11.2-next.0.111',
         ):
             with self.subTest(required=required):
                 self.assertIn(required, UI)
@@ -70,7 +70,7 @@ class V18IdleLifecycleContract(unittest.TestCase):
             'WINE29_V18_IDLE_LIFECYCLE_SOURCE_GATE=PASS',
             'WINE29_V18_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
             'cp next-generation/CharoiteWine29V18ServerIdleProbe.java legal-bundle/CharoiteWine29V18ServerIdleProbe.java',
-            "versionCode='141' versionName='11.2-next.0.110'",
+            "versionCode='142' versionName='11.2-next.0.111'",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, WF)

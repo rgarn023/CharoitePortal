@@ -18,3 +18,8 @@ The V15 scratch is permanently consumed and preserved. **NEVER rerun, delete, cl
 
 ## Next safe decision
 If the V15 preserved traces show no conclusive sc.exe lifecycle, do **not** replay V15 or infer an error cause from exit 127. A future V16 one-shot may instrument Android native launcher / exec-return and bounded independent sc.exe PE trace in a **new private V16** scratch with renewed consent. Avoid game execution until standalone PE entry is demonstrated.
+
+## Verified signed build — November 8, 2026
+[GitHub Actions run 42488143175](https://github.com/rgarn023/CharoitePortal/actions/runs/42488143175) **SUCCESS** at signed source commit [24b4ba196eeba7bff8c0a37cab18b2d76d66d2ab](https://github.com/rgarn023/CharoitePortal/commit/24b4ba196eeba7bff8c0a37cab18b2d76d66d2ab), 138 stable and 241 Next regression tests pass. V15 read-only source gate PASS; Gradle BUILD SUCCESSFUL; `com.charoitx` versionCode 135, versionName `11.2-next.0.104`, cached signing identity matches. [Direct signed APK artifact 13620064380](https://github.com/rgarn023/CharoitePortal/actions/runs/42488143175/artifacts/13620064380), ZIP digest `sha256:63325a996fd1c43a8ef9135481a583a9677836ecb9f1b9205f363391c559d98e`, expires 2027-02-06T14:06:23Z. [Source/LGPL artifact 13620054441](https://github.com/rgarn023/CharoitePortal/actions/runs/42488143175/artifacts/13620054441). The first attempt, run 42488062622, failed an escaped legacy version assertion and **is not a release**. Signed CI does not prove any on-phone Wine/SCM or games. Install in place only; run the V15 read-only inspection and copy the full end-marked report.
+
+[Current project handoff](CURRENT_HANDOFF.md).

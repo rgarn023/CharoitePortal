@@ -72,7 +72,7 @@ class Wine29V1PeHelpContracts(unittest.TestCase):
         wf = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("test_wine29_v1_pe_help_contract.py", wf)
         self.assertIn("WINE29_V1_ONE_SHOT_EXPLICIT_CONSENT_GUARD=PASS", wf)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'", wf)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'", wf)
         text = PROBE.read_text(encoding="utf-8")
         self.assertIn('NOT Wineboot -i or Windows gaming', text)
         self.assertIn('Wine WILL attempt internal auto --init', text)

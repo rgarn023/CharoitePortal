@@ -67,7 +67,7 @@ class Wine29V5CDriveContracts(unittest.TestCase):
     'test_wine29_v5_c_drive_contract.py',
     'WINE29_V5_C_DRIVE_FRESH_MAPPING_CONSENT=PASS',
     'cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java',
-    "versionCode='124' versionName='11.2-next.0.94'"
+    "versionCode='125' versionName='11.2-next.0.94'"
   ):
    with self.subTest(marker=marker):self.assertIn(marker,WF)
 

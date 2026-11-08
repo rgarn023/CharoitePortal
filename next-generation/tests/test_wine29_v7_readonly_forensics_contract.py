@@ -93,7 +93,7 @@ class V7PreservedServicesAudit(unittest.TestCase):
             'WINE29_V7_PRESERVED_READONLY_SERVICE_CORRELATION=PASS',
             'WINE29_V7_PRESERVED_DLL_FAILURE_TRIAGE=PASS',
             'cp next-generation/CharoiteWine29V7ReadOnlyForensics.java legal-bundle/CharoiteWine29V7ReadOnlyForensics.java',
-            "versionCode='124' versionName='11.2-next.0.94'",
+            "versionCode='125' versionName='11.2-next.0.94'",
         ):
             self.assertIn(required, WF)
 

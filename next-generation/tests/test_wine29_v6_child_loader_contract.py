@@ -75,7 +75,7 @@ class Wine29V6ChildLoaderContract(unittest.TestCase):
             'test_wine29_v6_child_loader_contract.py',
             'WINE29_V6_NATIVE_CHILD_LOADER_ONE_SHOT_CONSENT=PASS',
             'cp next-generation/CharoiteWine29V6ChildLoaderProbe.java legal-bundle/CharoiteWine29V6ChildLoaderProbe.java',
-            "versionCode='124' versionName='11.2-next.0.94'",
+            "versionCode='125' versionName='11.2-next.0.94'",
         ):
             self.assertIn(token,WF)
 

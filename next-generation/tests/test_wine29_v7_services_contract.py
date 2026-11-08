@@ -69,7 +69,7 @@ class V7SourceBuiltServicesContract(unittest.TestCase):
             'WINE29_V7_ONE_SHOT_SERVICES_CONSENT_AND_ISOLATION=PASS',
             'WINE29_V7_SIGNED_APK_SOURCE_BUILT_ARM64_SERVICES_SHA256=PASS',
             'WINE29_V7_PREVIOUS_V6_NATIVE_SEALED_111_UNCHANGED=PASS',
-            "versionCode='124' versionName='11.2-next.0.94'",
+            "versionCode='125' versionName='11.2-next.0.94'",
             'cp next-generation/CharoiteWine29V7ServicesProbe.java legal-bundle/CharoiteWine29V7ServicesProbe.java'
         ):
             self.assertIn(text, WF)

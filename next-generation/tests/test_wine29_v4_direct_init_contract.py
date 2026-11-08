@@ -50,6 +50,6 @@ class Wine29V4DirectInitContract(unittest.TestCase):
   self.assertIn("test_wine29_v4_direct_init_contract.py",WF)
   self.assertIn("WINE29_V4_ONE_SHOT_DIRECT_INIT_CONSENT=PASS",WF)
   self.assertIn("cp next-generation/CharoiteWine29V4DirectInitProbe.java legal-bundle/CharoiteWine29V4DirectInitProbe.java",WF)
-  self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WF)
+  self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WF)
 if __name__=="__main__":
  unittest.main()

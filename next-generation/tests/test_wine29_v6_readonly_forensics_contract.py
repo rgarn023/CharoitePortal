@@ -97,7 +97,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'test_wine29_v6_readonly_forensics_contract.py',
             'WINE29_V6_PRESERVED_READONLY_FORENSICS=PASS',
             'cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java',
-            "versionCode='124' versionName='11.2-next.0.94'",
+            "versionCode='125' versionName='11.2-next.0.94'",
         ):
             self.assertIn(q, WF)
 

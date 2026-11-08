@@ -69,7 +69,7 @@ class Wine29V2BootstrapContracts(unittest.TestCase):
         self.assertIn("test_wine29_v2_bootstrap_contract.py", WF)
         self.assertIn("WINE29_V2_ONE_SHOT_CONSENT_ISOLATION=PASS", WF)
         self.assertIn("cp next-generation/CharoiteWine29V2BootstrapProbe.java legal-bundle/CharoiteWine29V2BootstrapProbe.java", WF)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'", WF)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'", WF)
 
 if __name__ == "__main__":
     unittest.main()

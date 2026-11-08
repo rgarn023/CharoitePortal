@@ -14,7 +14,7 @@ class V16ExecBoundaryContract(unittest.TestCase):
             "if (scratch.exists() || !scratch.mkdir())",
             "V16 prior Wine29 v1-v15 scratch directories: NOT ACCESSED",
             "V16 private Windows system32/sc.exe SHA-256: PASS",
-            "C:\\windows\\system32\\sc.exe",
+            "C:\\\\windows\\\\system32\\\\sc.exe",
             'scEnv.get("WINELOADERNOEXEC")',
             'scProc=entry.start();',
             "TimeUnit.SECONDS.toNanos(12)",

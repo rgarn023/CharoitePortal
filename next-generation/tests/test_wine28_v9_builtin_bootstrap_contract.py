@@ -38,8 +38,8 @@ class Wine28V9BuiltinBootstrapContract(unittest.TestCase):
                        'Run ONE new v9 Wineboot lookup test',
                        'Wine WILL automatically attempt wineboot --init',
                        'CharoiteWine28V9BuiltinBootstrapProbe.run(this)',
-                       'versionCode 140', '11.2-next.0.109'):
+                       'versionCode 141', '11.2-next.0.110'):
             self.assertIn(marker,PREP)
         self.assertIn('CharoiteWine28V9BuiltinBootstrapProbe.java; do',WF)
-        self.assertIn("versionCode='140' versionName='11.2-next.0.109'",WF)
+        self.assertIn("versionCode='141' versionName='11.2-next.0.110'",WF)
 if __name__=="__main__": unittest.main()

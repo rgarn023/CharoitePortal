@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.109"')
-text = text.replace("versionCode 33", "versionCode 140")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.110"')
+text = text.replace("versionCode 33", "versionCode 141")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -207,7 +207,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                   "CharoiteWine29V16ExecBoundaryProbe.java",
                   "CharoiteWine29V16ReadOnlyForensics.java",
                   "CharoiteWine29V17ControlCompareProbe.java",
-                  "CharoiteWine29V17ReadOnlyForensics.java"):
+                  "CharoiteWine29V17ReadOnlyForensics.java",
+                  "CharoiteWine29V18ServerIdleProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2750,6 +2751,8 @@ ui = ui.replace(anchor, anchor + """
 
         // Only ACTIVE Wine29 action: four V17 preserved logs, STRICT READ ONLY.
         // All instructions and both buttons grouped under System.
+        final boolean showArchivedWine29V17ReadOnly = false;
+        if (showArchivedWine29V17ReadOnly) {
         LinearLayout wine29V17ReadOnlyAction = card();
         wine29V17ReadOnlyAction.addView(label(
                 "CURRENT WINE29 ACTION — V17 PRESERVED READ-ONLY",
@@ -2800,6 +2803,77 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V17ReadOnlyAction.addView(v17ReadOnlyHandoff);
         nextCoreCard.addView(wine29V17ReadOnlyAction);
+        } // V17 preserved report already supplied; V17 UI retired, evidence retained.
+
+
+        // ACTIVE V18: fresh, explicit one-shot private server idle lifecycle baseline.
+        // Instructions remain in the same System card as the test and handoff.
+        LinearLayout wine29V18Action = card();
+        wine29V18Action.addView(label(
+                "CURRENT WINE29 ACTION — V18 SERVER IDLE LIFECYCLE",
+                16, FOREGROUND, true));
+        wine29V18Action.addView(label(
+                "NEW PRIVATE V18 SCRATCH ONLY. NOT READ ONLY: if separately authorized, " +
+                "this one-shot test verifies the pinned Wine29 modules, starts a private " +
+                "wineserver and one Wineboot -i with internal Wine services, then observes " +
+                "the foreground server at 0, 1, 3, 8 and 12 seconds after Wineboot. " +
+                "NO independent Wineboot --help, sc.exe, SCM query, installers, games or " +
+                "network; no retries or deletion. When the observation is complete the " +
+                "test stops only its private server process, without deleting scratch " +
+                "or traces. V17 and V1–V16, Wine28, stable Portal, user prefixes, saves " +
+                "and rootfs are NOT ACCESSED. This records timing, not causation or " +
+                "game readiness. To run: tap Test, read the scope and explicitly choose " +
+                "Authorize ONE fresh v18 test, then Copy short report from first-line " +
+                "Handoff through END OF SHORT V18 IDLE REPORT into a new chat. " +
+                "Never uninstall, clear app data or touch prior scratch.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V18Exec = new android.widget.Button(this);
+        wine29V18Exec.setText("Test Wine29 v18 server lifecycle (one-shot)");
+        wine29V18Exec.setAllCaps(false);
+        wine29V18Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh V18 server idle-lifecycle test?")
+                .setMessage("THIS EXECUTES WINE ONCE in a NEW private V18 scratch. " +
+                    "It runs private wineserver and Wineboot -i/internal services, " +
+                    "then observes server liveness for up to 12 seconds, WITHOUT " +
+                    "any second native launcher, independent sc.exe, SCM operation, " +
+                    "installer or game. At completion only the owned V18 process may " +
+                    "be terminated; V18 scratch and logs remain forever. The probe " +
+                    "fails closed if V18 scratch already exists. V17 and all earlier " +
+                    "generations, stable Portal, saved games and user prefixes are " +
+                    "NOT ACCESSED. Never retry, delete, uninstall or clear storage. " +
+                    "Do you explicitly authorize this ONE new V18 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v18 test", (dialog, which) -> {
+                    wine29V18Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V18ServerIdleProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V18Exec.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V18 server idle lifecycle")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 V18 server lifecycle report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V18ServerIdleProbe").start();
+                }).show());
+        wine29V18Action.addView(wine29V18Exec);
+        android.widget.Button v18HandoffButton = new android.widget.Button(this);
+        v18HandoffButton.setText("Open current project handoff");
+        v18HandoffButton.setAllCaps(false);
+        v18HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V18Action.addView(v18HandoffButton);
+        nextCoreCard.addView(wine29V18Action);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

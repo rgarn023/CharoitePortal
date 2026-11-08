@@ -49,7 +49,7 @@ class Wine29V6ChildLoaderContract(unittest.TestCase):
             'setPositiveButton("Authorize ONE new v6 test"',
             'CharoiteWine29V6ChildLoaderProbe.run(this)',
             'nextCoreCard.addView(wine29V6Child);',
-            '11.2-next.0.109', 'versionCode 140',
+            '11.2-next.0.110', 'versionCode 141',
         ):
             self.assertIn(token, UI)
         self.assertNotIn('CharoiteWine29V6ChildLoaderProbe.run(this)',
@@ -75,7 +75,7 @@ class Wine29V6ChildLoaderContract(unittest.TestCase):
             'test_wine29_v6_child_loader_contract.py',
             'WINE29_V6_NATIVE_CHILD_LOADER_ONE_SHOT_CONSENT=PASS',
             'cp next-generation/CharoiteWine29V6ChildLoaderProbe.java legal-bundle/CharoiteWine29V6ChildLoaderProbe.java',
-            "versionCode='140' versionName='11.2-next.0.109'",
+            "versionCode='141' versionName='11.2-next.0.110'",
         ):
             self.assertIn(token,WF)
 

@@ -23,9 +23,9 @@ class CallsiteContract(unittest.TestCase):
         self.assertIn("Charoite-Wine29-Native-Callsite-Audit-Read-Only", WORKFLOW)
         self.assertLess(WORKFLOW.index("Audit exact Wine29 native source selector call sites"),
                         WORKFLOW.index("Stage independent Wine29 0.12 111-file sealed DATA-only assets"))
-        self.assertIn("versionCode='140' versionName='11.2-next.0.109'", WORKFLOW)
-        self.assertIn("versionCode 140", PREP)
-        self.assertIn("11.2-next.0.109", PREP)
+        self.assertIn("versionCode='141' versionName='11.2-next.0.110'", WORKFLOW)
+        self.assertIn("versionCode 141", PREP)
+        self.assertIn("11.2-next.0.110", PREP)
 
     def test_fails_on_incomplete_patch_without_faking_success(self):
         with self.assertRaisesRegex(ValueError, "loader source delta"):

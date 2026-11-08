@@ -870,6 +870,18 @@ jobs:
           echo WINE29_V17_PRESERVED_CONTROL_READONLY_POSTMORTEM=PASS
           echo WINE29_V17_PHONE_INSPECTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify isolated V18 private wineserver idle-lifecycle source and explicit consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v18_server_idle_contract.py' -v
+          grep -Fq 'charoite-next-wine29-entry-v18' next-generation/CharoiteWine29V18ServerIdleProbe.java
+          grep -Fq 'idleCheckpointsMs = {0L,1000L,3000L,8000L,12000L}' next-generation/CharoiteWine29V18ServerIdleProbe.java
+          grep -Fq 'Authorize ONE fresh v18 test' next-generation/prepare_next.py
+          grep -Fq 'final boolean showArchivedWine29V17ReadOnly = false;' next-generation/prepare_next.py
+          ! grep -Eq 'controlProc|scProc|control.start\(|entry.start\(|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V18ServerIdleProbe.java
+          echo WINE29_V18_IDLE_LIFECYCLE_SOURCE_GATE=PASS
+          echo WINE29_V18_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Verify consumed V15 preserved server/PE-entry read-only forensic contract
         run: |
           set -euo pipefail
@@ -1410,7 +1422,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='140' versionName='11.2-next.0.109'"
+            grep -F "package: name='com.charoitx' versionCode='141' versionName='11.2-next.0.110'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1723,6 +1735,7 @@ jobs:
           cp next-generation/CharoiteWine29V16ReadOnlyForensics.java legal-bundle/CharoiteWine29V16ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V17ControlCompareProbe.java legal-bundle/CharoiteWine29V17ControlCompareProbe.java
           cp next-generation/CharoiteWine29V17ReadOnlyForensics.java legal-bundle/CharoiteWine29V17ReadOnlyForensics.java
+          cp next-generation/CharoiteWine29V18ServerIdleProbe.java legal-bundle/CharoiteWine29V18ServerIdleProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

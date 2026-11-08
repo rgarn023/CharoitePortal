@@ -55,10 +55,10 @@ class NativeGateContract(unittest.TestCase):
                   "Test native Wine startup prerequisites",
                   "Run version tests",
                   "CharoiteWineBootstrapGate.run(this)",
-                  "versionCode 140","11.2-next.0.109"):
+                  "versionCode 141","11.2-next.0.110"):
             self.assertIn(s,PREP)
         self.assertIn('Experimental Wine29 v10 PE-entry diagnostic; SCM not verified',ENGINE)
-        self.assertIn("versionCode='140' versionName='11.2-next.0.109'",WORKFLOW)
+        self.assertIn("versionCode='141' versionName='11.2-next.0.110'",WORKFLOW)
         self.assertIn("CharoiteWineBootstrapGate.java legal-bundle",WORKFLOW)
 
 if __name__=="__main__":

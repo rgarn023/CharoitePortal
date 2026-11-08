@@ -13,7 +13,7 @@ import java.io.File;
  */
 public final class CharoiteNextRuntime {
     public static final String EDITION = "Charoite Core Next";
-    public static final String VERSION = "Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked";
+    public static final String VERSION = "Experimental Wine29 v10 PE-entry diagnostic; SCM not verified";
 
     public static final String WINE_BOX64 = "wine-box64";
     public static final String PROTON_ARM64EC_FEX = "proton-arm64ec-fex";
@@ -74,10 +74,10 @@ public final class CharoiteNextRuntime {
         Engine staging = inspect(context, WINE_STAGING_BOX64);
         return "Current runtime: " + legacy.label + " (existing engine).\n"
                 + "Modular Core Manager: inventory and automatic mode available.\n"
-                + "Wine29 Wineboot: preserved v1 failed at kernel32.dll c0000135; not launch-ready.\n"
+                + "Wine29 v9 Wineboot exited 0; services.exe and userenv.dll mapped. SCM still unverified.\n"
                 + proton.label + ": NOT READY.\n"
                 + staging.label + ": NOT READY.\n"
-                + "Only the preserved Wine29 v1 read-only diagnostic is offered below.\n"
-                + "No Wine execution, new scratch, module switch or anti-cheat bypass is authorized.";
+                + "Current Wine29 System test: consent-gated V10 native-loader / sc.exe PE-entry one-shot.\n"
+                + "No Wine process launches automatically; V10 needs a distinct in-app one-shot opt-in. No engine/game or anti-cheat readiness.";
     }
 }

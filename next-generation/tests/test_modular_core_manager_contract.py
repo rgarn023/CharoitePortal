@@ -41,9 +41,9 @@ class ModularCoreManagerContract(unittest.TestCase):
 
     def test_system_status_does_not_advertise_removed_buttons(self):
         self.assertIn('public static final String VERSION = "Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked"', RUNTIME)
-        self.assertIn('Wine29 Wineboot: preserved v1 failed at kernel32.dll c0000135', RUNTIME)
+        self.assertIn('Wine29 v9 Wineboot exited 0; services.exe and userenv.dll mapped. SCM still unverified.', RUNTIME)
         self.assertNotIn('0.70 (Wine29 v1 kernel32 read-only postmortem', RUNTIME)
-        self.assertIn('Only the preserved Wine29 v1 read-only diagnostic is offered below.', RUNTIME)
+        self.assertIn('Current Wine29 System test: consent-gated V10 native-loader / sc.exe PE-entry one-shot.', RUNTIME)
         self.assertNotIn('Use Test native Wine startup prerequisites', RUNTIME)
         self.assertNotIn('Use Stage expanded Wine 26-module data', RUNTIME)
         self.assertNotIn('Use Test source-built Wine --version', RUNTIME)

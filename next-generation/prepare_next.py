@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.101"')
-text = text.replace("versionCode 33", "versionCode 132")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.102"')
+text = text.replace("versionCode 33", "versionCode 133")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -200,7 +200,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V12ReadOnlyForensics.java",
                  "CharoiteWine29V13ScNoexecProbe.java",
                  "CharoiteWine29V13ReadOnlyForensics.java",
-                 "CharoiteWine29V14ScWindowsPathProbe.java"):
+                 "CharoiteWine29V14ScWindowsPathProbe.java",
+                  "CharoiteWine29V14ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2370,8 +2371,10 @@ ui = ui.replace(anchor, anchor + """
 
 
 
-        // Only active Wine29 test. V14 is a NEW separate scratch and requires
-        // user consent; no automatic Wine starts or old generation access.
+        // Archived one-shot V14 execution: owner has consumed this private scratch.
+        // Do not expose any way to replay it after the preserved V14 report.
+        final boolean showArchivedWine29V14Execution = false;
+        if (showArchivedWine29V14Execution) {
         android.widget.Button wine29V14WindowsPath = new android.widget.Button(this);
         wine29V14WindowsPath.setText("Test Wine29 v14 sc.exe Windows C: path (one-shot)");
         wine29V14WindowsPath.setAllCaps(false);
@@ -2412,6 +2415,35 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V14ScWindowsPathProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V14WindowsPath);
+
+        } // V14 execution permanently consumed; no rerun or cleanup.
+        // Only ACTIVE Wine29 System diagnostic: V14 preserved logs and named metadata.
+        // Read-only: no process or Wine execution; never creates new scratch or follows C:.
+        android.widget.Button wine29V14Audit = new android.widget.Button(this);
+        wine29V14Audit.setText("Inspect Wine29 v14 sc.exe exit (read-only)");
+        wine29V14Audit.setAllCaps(false);
+        wine29V14Audit.setOnClickListener(v -> {
+            wine29V14Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V14ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V14Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — V14 preserved sc.exe exit 127")
+                        .setMessage(report)
+                        .setPositiveButton("Copy short report", (dlg, btn) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                    getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                "Charoite Wine29 V14 preserved read-only report", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V14ReadOnlyForensics").start();
+        });
+        nextCoreCard.addView(wine29V14Audit);
 
         android.widget.Button autoReporter = new android.widget.Button(this);
         autoReporter.setText("Automatic phone diagnostics (GitHub opt-in)");

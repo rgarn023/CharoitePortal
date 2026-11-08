@@ -723,6 +723,13 @@ jobs:
           ! grep -Eq 'new ProcessBuilder|Runtime.getRuntime|FileOutputStream|FileWriter|mkdir\(|mkdirs\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V8ReadOnlyForensics.java
           echo WINE29_V8_PRESERVED_SHORT_READONLY_POSTMORTEM=PASS
 
+      - name: Verify preserved v9 SCM read-only audit and archived execution control
+        run: |
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v9_readonly_forensics_contract.py' -v
+          grep -Fq 'Inspect Wine29 v9 SCM failure (read-only)' next-generation/prepare_next.py
+          ! grep -Eq 'new ProcessBuilder\(|Runtime.getRuntime\(|FileOutputStream|\.delete\(|mkdirs\(' next-generation/CharoiteWine29V9ReadOnlyForensics.java
+          echo WINE29_V9_PRESERVED_SC_READONLY_POSTMORTEM=PASS
+
       - name: Verify v9 source-verified SCM executable and strict new-prefix one-shot
         run: |
           set -euo pipefail

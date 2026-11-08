@@ -52,7 +52,7 @@ class Wine29V8SourceUserenvContract(unittest.TestCase):
             "Authorize ONE v8 test", "Cancel — do not execute",
             "CharoiteWine29V8UserenvProbe.run(this)",
             "nextCoreCard.addView(wine29V8Userenv);",
-            "versionCode 134", "11.2-next.0.103",
+            "versionCode 135", "11.2-next.0.104",
         ):
             with self.subTest(token=token): self.assertIn(token, UI)
 
@@ -64,7 +64,7 @@ class Wine29V8SourceUserenvContract(unittest.TestCase):
             "WINE29_V8_SIGNED_APK_SOURCE_BUILT_USERENV_SHA256=PASS",
             "WINE29_V8_V7_SERVICES_V6_NATIVE_111_SEALED_PRESERVED=PASS",
             "cp next-generation/CharoiteWine29V8UserenvProbe.java legal-bundle/CharoiteWine29V8UserenvProbe.java",
-            "versionCode='134' versionName='11.2-next.0.103'",
+            "versionCode='135' versionName='11.2-next.0.104'",
         ):
             with self.subTest(token=token): self.assertIn(token, WF)
 

@@ -1,5 +1,12 @@
 # Wine29 V11 completed report — preserved read-only audit and V12 gate
 
+## V12 explicit-consent APK source candidate — November 8, 2026
+
+New experimental Next **v0.97 source candidate** (`com.charoitx`, versionCode **128**, versionName `11.2-next.0.97`) wires the source-pinned V12 fresh-prefix entry probe in the System page behind **Authorize ONE fresh v12 test**. The prior V11 read-only button is archived. If any V12 scratch exists, the runner refuses to execute or reuse it. Preflight validates all sealed module and native/Windows source hashes **before** any new scratch; no prior prefix is inspected. New V12 scratch is preserved, never cleaned or retried. Success criterion is an independently trace-correlated no-argument ARM64 `sc.exe` **PE mapping**, not a subprocess exit status alone. The private server's liveness is recorded immediately before/after sc.exe. No native version checks or SCM query are in the execution sequence. This is an experimental boundary diagnostic, not a working SCM or Windows game runtime.
+
+The source workflow includes `WINE29_V12_NEW_PRIVATE_FIRST_SC_ENTRY_CONSENT` gate, Next/stable regression tests, Android Gradle APK build, original experimental signing identity verification, AAPT package/version check and an LGPL/source bundle. **These results and any signed v0.97 artifact are NOT YET VERIFIED at the time this source candidate is recorded.** GitHub CI cannot execute Wine on the owner's phone. **Never install a failed/unverified build or uninstall/clear Next data.** Even with a verified signed APK, the fresh-V12 attempt is separate, explicit, on-phone opt-in only. See [V12 detailed scope and user instructions](WINE29_V12_FIRST_SC_ENTRY.md).
+
+
 ## V11 preserved read-only findings received — November 8, 2026
 
 The owner supplied the complete bounded output ending `END OF SHORT V11 READ-ONLY REPORT`. This is **device-reported metadata**, not a direct inspection of private phone logs. V11 scratch remains preserved/immutable; no V11 execution, cleanup, retry, registry-content read or other-generation access is authorized.

@@ -1,4 +1,4 @@
-"""Source-only Wine29 V12 first-sc.exe probe: NO APK wiring or phone execution."""
+"""One-shot Wine29 V12 first-sc.exe probe: opt-in APK wiring, no CI phone execution."""
 import unittest
 from pathlib import Path
 
@@ -57,13 +57,17 @@ class Wine29V12SourceOnlyContract(unittest.TestCase):
         self.assertNotIn('scBuiltin.getAbsolutePath(),"start"', JAVA)
         self.assertNotIn('scBuiltin.getAbsolutePath(),"stop"', JAVA)
 
-    def test_source_only_not_visible_or_auto_executed(self):
-        self.assertNotIn('"CharoiteWine29V12ScEntryProbe.java"', UI)
-        self.assertNotIn('CharoiteWine29V12ScEntryProbe.run(this)', UI)
+    def test_explicit_consent_wired_not_auto_executed(self):
+        self.assertIn('"CharoiteWine29V12ScEntryProbe.java"', UI)
+        self.assertIn('CharoiteWine29V12ScEntryProbe.run(this)', UI)
         self.assertIn('final boolean showArchivedWine29V11Execution = false;', UI)
+        self.assertIn('final boolean showArchivedWine29V11ReadOnly = false;', UI)
+        self.assertIn('Authorize ONE fresh v12 test', UI)
+        self.assertIn('Cancel — do not execute', UI)
+        self.assertIn('nextCoreCard.addView(wine29V12Entry);', UI)
         self.assertIn('Inspect Wine29 v11 server exit (read-only)', UI)
-        self.assertIn('versionCode 127', UI)
-        self.assertIn('11.2-next.0.96', UI)
+        self.assertIn('versionCode 128', UI)
+        self.assertIn('11.2-next.0.97', UI)
 
 
 if __name__ == "__main__":

@@ -33,8 +33,8 @@ class Wine29V1LoaderHeaderContract(unittest.TestCase):
         self.assertIn('com.charoitx', DOC)
         self.assertIn('user-initiated', DOC)
         self.assertIn('root cause unresolved', AUDIT)
-        self.assertIn('versionCode 127', PREP)
-        self.assertIn('11.2-next.0.96', PREP)
+        self.assertIn('versionCode 128', PREP)
+        self.assertIn('11.2-next.0.97', PREP)
 
 if __name__ == "__main__":
     unittest.main()

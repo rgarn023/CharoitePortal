@@ -15,5 +15,12 @@ V13 changes precisely one launch variable: the final no-argument sc.exe `Process
 - Only successful sc.exe PE mapping plus observable entrypoint evidence can clear the PE-entry gate; exit 0 alone, usage text alone, or module presence alone is not proof of SCM. Exit 127 again means investigate preserved V13 native/PE/server traces read-only; no retry.
 - Stable Portal `com.charoite`, user prefixes, rootfs, games and saves untouched. Install any future verified APK **in place** only, never uninstall or clear app data.
 
-## Build gate
-Source candidate `com.charoitx` **versionCode 130**, **11.2-next.0.99**; CI must PASS stable + Next tests, Android Gradle, AAPT identity, original experimental signing certificate SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`, and verifiable Actions artifact. No v0.99 signed APK claimed until those checks complete. Latest verified signed v0.98 is [Actions 42452319230](https://github.com/rgarn023/CharoitePortal/actions/runs/42452319230), [artifact 13605744619](https://github.com/rgarn023/CharoitePortal/actions/runs/42452319230/artifacts/13605744619).
+## Verified signed v0.99 release — November 8, 2026
+
+[GitHub Actions 42453554339](https://github.com/rgarn023/CharoitePortal/actions/runs/42453554339) completed **SUCCESS** at exact signed source `17223608ea0ea542f8aacebb1bdaad6ebd56b2e1`. **138 stable + 226 Next tests PASS**, V13 consent/NOEXEC isolation gate PASS, Gradle BUILD SUCCESSFUL. AAPT `com.charoitx`, versionCode **130**, versionName **11.2-next.0.99**; original Next signing fingerprint `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175` **MATCH**.
+
+- [Signed v0.99 APK Actions artifact 13607130952](https://github.com/rgarn023/CharoitePortal/actions/runs/42453554339/artifacts/13607130952): ZIP **461,560,825 bytes**, `sha256:fa5dd82de0b4a92b7eaca84bce552a6f979f10e01155275d305dbca528681f0c`; expires 2027-02-06T06:09:06Z.
+- [Source/LGPL attribution artifact 13606562754](https://github.com/rgarn023/CharoitePortal/actions/runs/42453554339/artifacts/13606562754): ZIP 498,365 bytes, SHA-256 `710cc584cfe5ca5140335c3a1f627597c657006a36dace47c793b1aec088e83a`.
+- **CI did not run Wine or Windows PE on phone**. Windows sc.exe mapping and SCM readiness remain UNVERIFIED.
+
+Install **in place** over existing signed experimental `com.charoitx`; NEVER uninstall/clear storage or touch stable `com.charoite`. The System action **Test Wine29 v13 sc.exe loader handoff (one-shot)** is executable only after explicit affirmative consent; it is **not** a read-only audit. Copy complete bounded report through `END OF SHORT V13 ENTRY REPORT`. Never rerun if V13 scratch exists. Later forensic analysis should be read-only before any new-generation experiment.

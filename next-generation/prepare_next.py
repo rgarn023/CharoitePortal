@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.107"')
-text = text.replace("versionCode 33", "versionCode 138")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.108"')
+text = text.replace("versionCode 33", "versionCode 139")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -205,7 +205,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                   "CharoiteWine29V15ScWindowsNoexecProbe.java",
                   "CharoiteWine29V15ReadOnlyForensics.java",
                   "CharoiteWine29V16ExecBoundaryProbe.java",
-                  "CharoiteWine29V16ReadOnlyForensics.java"):
+                  "CharoiteWine29V16ReadOnlyForensics.java",
+                  "CharoiteWine29V17ControlCompareProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2622,6 +2623,8 @@ ui = ui.replace(anchor, anchor + """
         wine29V16Action.addView(v16HandoffButton);
         nextCoreCard.addView(wine29V16Action);
         } // Consumed V16: original execution action permanently hidden.
+        final boolean showArchivedWine29V16ReadOnly = false;
+        if (showArchivedWine29V16ReadOnly) {
         LinearLayout wine29V16ReadOnlyAction = card();
         wine29V16ReadOnlyAction.addView(label("CURRENT WINE29 ACTION — V16 PRESERVED READ-ONLY", 16, FOREGROUND, true));
         wine29V16ReadOnlyAction.addView(label(
@@ -2665,6 +2668,80 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V16ReadOnlyAction.addView(v16ReadOnlyHandoff);
         nextCoreCard.addView(wine29V16ReadOnlyAction);
+        } // Read-only V16 audit retired from System; evidence retained unchanged.
+
+        // Current new-generation action; independent, fresh one-shot V17 only.
+        LinearLayout wine29V17Action = card();
+        wine29V17Action.addView(label("CURRENT WINE29 ACTION — V17 CONTROL COMPARISON",
+                16, FOREGROUND, true));
+        wine29V17Action.addView(label(
+                "NEW PRIVATE V17 ONLY. This is NOT read-only: after a separate " +
+                "confirmation it creates one new V17 scratch/prefix and can run " +
+                "private wineserver, Wineboot and internal services, then ONE " +
+                "independent Wineboot.exe --help positive control, followed by " +
+                "ONE no-argument Windows C: sc.exe launch with NOEXEC=1. No SCM " +
+                "query, games, installers, or network. Logs separately capture " +
+                "two independent Android native launches, timing, distinct exits " +
+                "and wineserver state. If the control shuts down the server, " +
+                "sc.exe will NOT launch. These do NOT prove PE mapping " +
+                "or cause of exit 127. Old V1–V16 and Wine28 scratch, stable Portal, " +
+                "user prefixes, saves and games are never accessed. If V17 exists, " +
+                "the test refuses to run again. Never uninstall, clear storage, " +
+                "retry or delete old evidence. TO RUN: tap the test, read the full " +
+                "consent, choose Authorize ONE fresh v17 test, then Copy short " +
+                "report through END marker into your next chat. The handoff URL " +
+                "is on the FIRST line of that report.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V17Exec = new android.widget.Button(this);
+        wine29V17Exec.setText("Test Wine29 v17 control vs sc.exe (one-shot)");
+        wine29V17Exec.setAllCaps(false);
+        wine29V17Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE new private V17 exec-boundary test?")
+                .setMessage("THIS EXECUTES WINE: creates exactly one NEW V17 private " +
+                    "scratch/prefix, starts a bounded foreground wineserver and " +
+                    "Wineboot/internal services, then independently runs ONE verified " +
+                    "Wineboot.exe --help positive control followed by ONE no-argument " +
+                    "Windows C:\\\\windows\\\\system32\\\\sc.exe entry with NOEXEC=1. " +
+                    "Independent Android process-start and exit observations are " +
+                    "recorded; a native launch is NOT proof of Windows PE entry " +
+                    "or SCM. The test performs no service query or game launch. " +
+                    "All V1–V16/Wine28 previous scratch, stable Portal, existing " +
+                    "user prefixes, saves, games and rootfs remain untouched. " +
+                    "If V17 scratch already exists, execution is blocked. " +
+                    "No retry, cleanup, uninstall or data clear. Do you explicitly " +
+                    "authorize this ONE V17 execution test?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v17 test", (dialog, which) -> {
+                    wine29V17Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V17ControlCompareProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V17Exec.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V17 control comparison")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 V17 native exec boundary", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V17ControlCompareProbe").start();
+                }).show());
+        wine29V17Action.addView(wine29V17Exec);
+        android.widget.Button v17HandoffButton = new android.widget.Button(this);
+        v17HandoffButton.setText("Open current project handoff");
+        v17HandoffButton.setAllCaps(false);
+        v17HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V17Action.addView(v17HandoffButton);
+        nextCoreCard.addView(wine29V17Action);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

@@ -61,7 +61,7 @@ def validate(candidate:Path):
     if exe[:2]!=b"MZ" or len(exe)<128:
         raise ValueError("SCM candidate DOS header invalid")
     offset=struct.unpack_from("<I",exe,0x3c)[0]
-    if not 64<=offset<len(exe)-24 or exe[offset:offset+4]!=b"PE\\0\\0" or struct.unpack_from("<H",exe,offset+4)[0]!=0xaa64:
+    if not 64<=offset<len(exe)-24 or exe[offset:offset+4]!=b"PE\0\0" or struct.unpack_from("<H",exe,offset+4)[0]!=0xaa64:
         raise ValueError("SCM candidate must be Windows ARM64 executable")
     header=read_safe(candidate/"sc-pe-header.txt",65536).decode("utf-8")
     imports=read_safe(candidate/"sc-coff-imports.txt",65536).decode("utf-8")

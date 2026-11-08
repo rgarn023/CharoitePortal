@@ -31,8 +31,8 @@ class Wine29Sealed012Contracts(unittest.TestCase):
         self.assertIn('setPositiveButton("Stage new DATA only"', prepare)
         self.assertIn('CharoiteWine29Sealed012Stage.run(this)', prepare)
         self.assertIn('CharoiteWine29Sealed012Stage.verifyOnly(this)', prepare)
-        self.assertIn('versionName "11.2-next.0.108"', prepare)
-        self.assertIn('versionCode 139', prepare)
+        self.assertIn('versionName "11.2-next.0.109"', prepare)
+        self.assertIn('versionCode 140', prepare)
         for forbidden in ("ProcessBuilder", "Runtime.getRuntime", ".delete(", "rm -rf", "getFilesDir()", "WINEPREFIX="):
             self.assertNotIn(forbidden, stage)
         self.assertNotIn("CharoiteWine29Sealed012Stage", PRIOR.read_text())

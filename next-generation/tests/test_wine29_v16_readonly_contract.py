@@ -33,11 +33,11 @@ class V16ReadOnlyContract(unittest.TestCase):
                       "wine29V16ReadOnlyAction.addView(v16ReadOnlyHandoff);",
                       "nextCoreCard.addView(wine29V16ReadOnlyAction);",
                       '"CharoiteWine29V16ReadOnlyForensics.java"',
-                      "versionCode 139","11.2-next.0.108"):
+                      "versionCode 140","11.2-next.0.109"):
             self.assertIn(token,UI)
         for token in ("test_wine29_v16_readonly_contract.py",
                       "WINE29_V16_PRESERVED_EXEC_BOUNDARY_READONLY_POSTMORTEM=PASS",
                       "cp next-generation/CharoiteWine29V16ReadOnlyForensics.java legal-bundle/CharoiteWine29V16ReadOnlyForensics.java",
-                      "versionCode='139' versionName='11.2-next.0.108'"):
+                      "versionCode='140' versionName='11.2-next.0.109'"):
             self.assertIn(token,WF)
 if __name__=="__main__": unittest.main()

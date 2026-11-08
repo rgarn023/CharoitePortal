@@ -19,3 +19,12 @@ V14 uses **`charoite-next-wine29-entry-v14`** only, under experimental app `com.
 Next v0.101: `com.charoitx`, versionCode **132**, versionName **`11.2-next.0.101`**. Candidate only until exact GitHub Actions tests/build, AAPT and original signing fingerprint `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`, artifact and success are independently confirmed.
 
 **On-device (after signed verification):** Install in place without uninstall/clear data. In System select ONLY `Test Wine29 v14 sc.exe Windows C: path (one-shot)`, read the scope, then separately authorize one fresh test. Copy report ending `END OF SHORT V14 ENTRY REPORT`. Do NOT infer SCM or gaming readiness from Wineboot success or an exit code.
+
+## Verified signed v0.101 GitHub Actions release — November 8, 2026
+
+[Actions run 42464083393](https://github.com/rgarn023/CharoitePortal/actions/runs/42464083393) **SUCCESS** for exact build-source commit [745170466560eacccc0d7e807127b732d08fdf49](https://github.com/rgarn023/CharoitePortal/commit/745170466560eacccc0d7e807127b732d08fdf49). Prior candidate runs 42463770960 and 42463828678 failed, and are **NOT installable verified v0.101 releases**. Final run: 138 stable + 232 Next tests PASS, V14 isolated Windows-path gate PASS, Android Gradle BUILD SUCCESSFUL, AAPT `com.charoitx` / versionCode 132 / versionName `11.2-next.0.101`; original Next signing certificate SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175` MATCH.
+
+- [DIRECT signed APK artifact 13611336255](https://github.com/rgarn023/CharoitePortal/actions/runs/42464083393/artifacts/13611336255), ZIP **461,563,625 B**, `sha256:85dcabb597fef327bb5d0c1d8960fd813b746ba261e763aba6d1d8f7f4ab4f5a`, expiry 2027-02-06T08:42:46Z.
+- [Source/LGPL artifact 13611361160](https://github.com/rgarn023/CharoitePortal/actions/runs/42464083393/artifacts/13611361160), ZIP **518,314 B**, `sha256:1fd95232e9978627a3236e500d800d689d5030d634dc615872cd0a38173a0dcd`.
+
+Install in place on experimental `com.charoitx`. In System, only explicitly authorize one **NEW** V14 Windows-path probe; preserve V1–V13 and never uninstall/clear data. On completion copy report through `END OF SHORT V14 ENTRY REPORT`. No phone Wine execution was run in CI.

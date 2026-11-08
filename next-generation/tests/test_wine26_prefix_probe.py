@@ -59,7 +59,7 @@ class Wine26FirstPrefixTests(unittest.TestCase):
     def test_build_release_contains_only_experimental_code_and_version(self):
         self.assertIn('versionCode 124', PREP)
         self.assertIn('11.2-next.0.93', PREP)
-        self.assertIn('Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked', ENGINE)
+        self.assertIn('Experimental Wine29 v10 PE-entry diagnostic; SCM not verified', ENGINE)
         self.assertIn("CharoiteWine26PrefixProbe.java", WORKFLOW)
         self.assertIn("versionCode='124' versionName='11.2-next.0.93'", WORKFLOW)
         self.assertNotIn("com.charoite.FileProvider", PROBE)

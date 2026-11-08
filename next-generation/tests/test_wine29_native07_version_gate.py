@@ -100,7 +100,7 @@ class Wine29VersionGateContract(unittest.TestCase):
     def test_apk_build_and_read_only_button_retained(self):
         self.assertIn("versionCode 124",PREP)
         self.assertIn("11.2-next.0.93",PREP)
-        self.assertIn("Experimental Wine29 v1 kernel32 diagnostic; bootstrap blocked",RUNTIME)
+        self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",RUNTIME)
         self.assertIn("versionCode='124'",WORKFLOW)
         self.assertIn("versionName='11.2-next.0.93'",WORKFLOW)
         self.assertIn("CharoiteWine29Native07VersionGate.java",WORKFLOW)

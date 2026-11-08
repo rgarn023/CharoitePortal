@@ -1,5 +1,11 @@
 # Wine29 V11 completed report — preserved read-only audit and V12 gate
 
+## Verified signed Next v0.96 release (November 8, 2026)
+
+The isolated **read-only V11 evidence auditor** is now included in verified signed experimental APK `com.charoitx`, versionCode **127**, versionName **11.2-next.0.96**. [Actions run 42449933874](https://github.com/rgarn023/CharoitePortal/actions/runs/42449933874) **SUCCESS** from exact APK source commit `67ad5fda8c9bc4ca9c588d0ff107f6c77ac6ef1e`: 138 stable + 217 Next tests PASS, V11 preserved audit/source-isolation gate PASS, Gradle BUILD SUCCESSFUL, AAPT identity PASS, persisted Next signing certificate SHA-256 MATCH (`d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`). [**Signed APK Actions artifact 13605675442**](https://github.com/rgarn023/CharoitePortal/actions/runs/42449933874/artifacts/13605675442) ZIP digest `sha256:d846d7bda7cb9d28be68cc4c1c7dc0936c02440e1af3f9a6b0d97c5b51d15a1a`, ZIP 461,534,184 bytes, expires 2027-02-06T05:13:39Z. [License/source artifact 13605515958](https://github.com/rgarn023/CharoitePortal/actions/runs/42449933874/artifacts/13605515958) includes the new V11 auditor source.
+
+**Install IN PLACE only, without uninstalling or clearing experimental app data.** On System select **Inspect Wine29 v11 server exit (read-only)** and copy the bounded result ending `END OF SHORT V11 READ-ONLY REPORT`. Do not run archived V11 or prior execution again. No new Wine/sc.exe/SCM execution was performed by CI and no V12 execution is authorized.
+
 **Status: V11 executed once on the owner's experimental `com.charoitx` device installation. Never repeat, clean, or delete V11.** This note records only the user-supplied bounded V11 report and source review; it does not pretend to have read the retained raw logs.
 
 ## V11 observed sequence

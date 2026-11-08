@@ -53,7 +53,8 @@ public final class CharoiteWine29V15ReadOnlyForensics {
     }
 
     private static String result(StringBuilder b) {
-        String tail = "\nEND OF SHORT V15 READ-ONLY REPORT — raw traces remain on phone, unchanged.\n";
+        String tail = "\nHandoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n" +
+            "END OF SHORT V15 READ-ONLY REPORT — raw traces remain on phone, unchanged.\n";
         int limit = MAX_REPORT_CHARS - tail.length();
         if (b.length() > limit) {
             b.setLength(limit - 85);
@@ -429,7 +430,6 @@ public final class CharoiteWine29V15ReadOnlyForensics {
             out.append("Pre-shutdown registry booleans are time-specific; the three ")
                .append("post-shutdown sizes above are metadata only, NOT a prefix integrity check.\n");
             out.append("No Windows PE or games executed by this read-only audit.\n");
-            out.append("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         }catch(Exception e){
             out.append("RESULT: BLOCKED — ").append(e.getClass().getSimpleName())
                .append("; preserved V15 evidence unchanged\n");

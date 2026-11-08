@@ -36,9 +36,9 @@ class Wine28V8LayoutContract(unittest.TestCase):
                   'Run ONE new v8 DLL-layout test',
                   'Wine can AUTOMATICALLY run internal wineboot',
                   'CharoiteWine28V8LayoutProbe.run(this)',
-                  'versionCode 125', '11.2-next.0.94'):
+                  'versionCode 126', '11.2-next.0.95'):
             self.assertIn(x,UI)
         self.assertIn('CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java; do',WF)
-        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WF)
+        self.assertIn("versionCode='126' versionName='11.2-next.0.95'",WF)
 if __name__=="__main__":
     unittest.main()

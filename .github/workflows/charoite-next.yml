@@ -751,6 +751,16 @@ jobs:
           echo WINE29_V10_NEW_PREFIX_PE_ENTRY_CONSENT=PASS
           echo WINE29_V10_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify preserved V10 native-loader audit has no process or write paths
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v10_readonly_contract.py' -v
+          grep -Fq 'final boolean showArchivedWine29V10Execution = false;' next-generation/prepare_next.py
+          grep -Fq 'Inspect Wine29 v10 native loader failure (read-only)' next-generation/prepare_next.py
+          ! grep -Eq 'new ProcessBuilder\(|Runtime.getRuntime\(|FileOutputStream|\.delete\(|mkdirs\(' next-generation/CharoiteWine29V10ReadOnlyForensics.java
+          echo WINE29_V10_PRESERVED_READONLY_POSTMORTEM=PASS
+          echo WINE29_V10_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1248,7 +1258,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='124' versionName='11.2-next.0.93'"
+            grep -F "package: name='com.charoitx' versionCode='125' versionName='11.2-next.0.94'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |

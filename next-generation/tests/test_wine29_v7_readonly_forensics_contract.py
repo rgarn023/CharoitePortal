@@ -78,7 +78,7 @@ class V7PreservedServicesAudit(unittest.TestCase):
             'Inspect Wine29 v7 DLL failure (read-only)',
             'CharoiteWine29V7ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V7Audit);',
-            'versionCode 132', '11.2-next.0.101',
+            'versionCode 133', '11.2-next.0.102',
         ):
             with self.subTest(required=required):
                 self.assertIn(required, UI)
@@ -93,7 +93,7 @@ class V7PreservedServicesAudit(unittest.TestCase):
             'WINE29_V7_PRESERVED_READONLY_SERVICE_CORRELATION=PASS',
             'WINE29_V7_PRESERVED_DLL_FAILURE_TRIAGE=PASS',
             'cp next-generation/CharoiteWine29V7ReadOnlyForensics.java legal-bundle/CharoiteWine29V7ReadOnlyForensics.java',
-            "versionCode='132' versionName='11.2-next.0.101'",
+            "versionCode='133' versionName='11.2-next.0.102'",
         ):
             self.assertIn(required, WF)
 

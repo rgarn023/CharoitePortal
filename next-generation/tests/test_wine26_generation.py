@@ -96,12 +96,12 @@ class Wine26GenerationContract(unittest.TestCase):
             self.assertNotIn(forbidden,JAVA)
         self.assertIn("CharoiteWine26Stage.java",PREP)
         self.assertIn("Stage expanded Wine 26-module data",PREP)
-        self.assertIn("versionCode 136",PREP)
-        self.assertIn("11.2-next.0.105",PREP)
+        self.assertIn("versionCode 137",PREP)
+        self.assertIn("11.2-next.0.106",PREP)
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified",ENGINE)
         self.assertIn("stage_wine26.py",WORKFLOW)
         self.assertIn("CHAROITE_NEXT_WINE26_99_PE_NLS_APK_ASSETS_VERIFIED=PASS",WORKFLOW)
-        self.assertIn("versionCode='136' versionName='11.2-next.0.105'",WORKFLOW)
+        self.assertIn("versionCode='137' versionName='11.2-next.0.106'",WORKFLOW)
 
 if __name__=="__main__":
     unittest.main()

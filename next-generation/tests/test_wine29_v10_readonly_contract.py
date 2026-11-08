@@ -30,7 +30,7 @@ class Wine29V10ReadOnly(unittest.TestCase):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden,JAVA)
     def test_version_failure_not_scm_evidence(self):
-        self.assertIn('native version/PE entry',JAVA)
+        self.assertIn('native version and SCM',JAVA)
         self.assertIn('sc.exe NOT attempted',JAVA)
         self.assertIn('Exit 127 alone is not a root cause',JAVA)
         self.assertIn('No Windows PE or games executed by this audit',JAVA)

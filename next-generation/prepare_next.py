@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.103"')
-text = text.replace("versionCode 33", "versionCode 134")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.104"')
+text = text.replace("versionCode 33", "versionCode 135")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -202,7 +202,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V13ReadOnlyForensics.java",
                  "CharoiteWine29V14ScWindowsPathProbe.java",
                   "CharoiteWine29V14ReadOnlyForensics.java",
-                  "CharoiteWine29V15ScWindowsNoexecProbe.java"):
+                  "CharoiteWine29V15ScWindowsNoexecProbe.java",
+                  "CharoiteWine29V15ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2450,7 +2451,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V14Audit);
         } // Preserved V14 audit consumed; NO V14 replay, scan, or cleanup.
 
-        // Sole active Wine29 test: fresh V15 one-shot, explicit opt-in.
+        // The V15 one-shot has been consumed on the owner device. Permanently hide it.
+        final boolean showArchivedWine29V15Execution = false;
+        if (showArchivedWine29V15Execution) {
+        // Archived Wine29 test: fresh V15 one-shot, explicit opt-in.
         android.widget.Button wine29V15Entry = new android.widget.Button(this);
         wine29V15Entry.setText("Test Wine29 v15 Windows sc.exe + NOEXEC=1 (one-shot)");
         wine29V15Entry.setAllCaps(false);
@@ -2490,6 +2494,34 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V15ScWindowsNoexecProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V15Entry);
+        } // V15 consumed: no replay, cleanup or write actions.
+
+        // Sole ACTIVE Wine29 diagnostic: V15 preserved evidence, STRICT READ ONLY.
+        android.widget.Button wine29V15Audit = new android.widget.Button(this);
+        wine29V15Audit.setText("Inspect Wine29 v15 sc.exe + server (read-only)");
+        wine29V15Audit.setAllCaps(false);
+        wine29V15Audit.setOnClickListener(v -> {
+            wine29V15Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V15ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V15Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — V15 preserved exit 127 / server audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy short report", (dlg, btn) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                    getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                "Charoite Wine29 V15 read-only report", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V15ReadOnlyForensics").start();
+        });
+        nextCoreCard.addView(wine29V15Audit);
 
 
         android.widget.Button autoReporter = new android.widget.Button(this);

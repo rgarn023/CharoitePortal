@@ -52,12 +52,17 @@ class Wine29V11SourceOnlyContract(unittest.TestCase):
         self.assertNotIn('scBuiltin.getAbsolutePath(),"start"',JAVA)
         self.assertNotIn('scBuiltin.getAbsolutePath(),"stop"',JAVA)
 
-    def test_not_yet_in_apk_or_system_ui(self):
-        self.assertNotIn('"CharoiteWine29V11EntryProbe.java"',UI)
-        self.assertNotIn('CharoiteWine29V11EntryProbe.run(this)',UI)
+    def test_wired_only_behind_fresh_one_shot_consent(self):
+        self.assertIn('"CharoiteWine29V11EntryProbe.java"',UI)
+        self.assertIn('CharoiteWine29V11EntryProbe.run(this)',UI)
         self.assertIn('final boolean showArchivedWine29V10Execution = false;',UI)
-        self.assertIn('"11.2-next.0.94"',UI)
-        self.assertIn('versionCode 125',UI)
+        self.assertIn('final boolean showArchivedWine29V10ReadOnly = false;',UI)
+        self.assertIn('Authorize ONE fresh v11 test',UI)
+        self.assertIn('Cancel — do not execute',UI)
+        self.assertIn('nextCoreCard.addView(wine29V11Entry);',UI)
+        self.assertIn('"11.2-next.0.95"',UI)
+        self.assertIn('versionCode 126',UI)
+        self.assertNotIn('showArchivedWine29V10ReadOnly = true',UI)
 
 if __name__ == "__main__":
     unittest.main()

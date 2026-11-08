@@ -67,8 +67,8 @@ class Wine29V12SourceOnlyContract(unittest.TestCase):
         self.assertIn('Cancel — do not execute', UI)
         self.assertIn('nextCoreCard.addView(wine29V12Entry);', UI)
         self.assertIn('Inspect Wine29 v11 server exit (read-only)', UI)
-        self.assertIn('versionCode 136', UI)
-        self.assertIn('11.2-next.0.105', UI)
+        self.assertIn('versionCode 137', UI)
+        self.assertIn('11.2-next.0.106', UI)
 
 
 if __name__ == "__main__":

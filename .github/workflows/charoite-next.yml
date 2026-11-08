@@ -761,6 +761,17 @@ jobs:
           echo WINE29_V10_PRESERVED_READONLY_POSTMORTEM=PASS
           echo WINE29_V10_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify isolated V11 native flag comparison and one-shot consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v11_source_only_contract.py' -v
+          grep -Fq 'charoite-next-wine29-entry-v11' next-generation/CharoiteWine29V11EntryProbe.java
+          grep -Fq 'final boolean showArchivedWine29V10ReadOnly = false;' next-generation/prepare_next.py
+          grep -Fq 'Authorize ONE fresh v11 test' next-generation/prepare_next.py
+          ! grep -Eq 'scBuiltin.getAbsolutePath\(\),"query"|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V11EntryProbe.java
+          echo WINE29_V11_NEW_PREFIX_NATIVE_FLAG_COMPARISON_CONSENT=PASS
+          echo WINE29_V11_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1258,7 +1269,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='125' versionName='11.2-next.0.94'"
+            grep -F "package: name='com.charoitx' versionCode='126' versionName='11.2-next.0.95'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |

@@ -53,7 +53,7 @@ class Wine29V14WindowsPathContract(unittest.TestCase):
             'CharoiteWine29V14ScWindowsPathProbe.run(this)',
             'nextCoreCard.addView(wine29V14WindowsPath);',
             '"CharoiteWine29V14ScWindowsPathProbe.java"',
-            'versionCode 133','11.2-next.0.102',
+            'versionCode 134','11.2-next.0.103',
         ):
             with self.subTest(s=s): self.assertIn(s,UI)
 
@@ -63,7 +63,7 @@ class Wine29V14WindowsPathContract(unittest.TestCase):
             'WINE29_V14_FRESH_WINDOWS_SC_PATH_ONE_SHOT=PASS',
             'WINE29_V14_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
             'cp next-generation/CharoiteWine29V14ScWindowsPathProbe.java legal-bundle/CharoiteWine29V14ScWindowsPathProbe.java',
-            "versionCode='133' versionName='11.2-next.0.102'",
+            "versionCode='134' versionName='11.2-next.0.103'",
         ):
             with self.subTest(s=s): self.assertIn(s,WF)
 

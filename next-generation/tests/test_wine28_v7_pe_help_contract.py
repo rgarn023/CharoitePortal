@@ -36,6 +36,6 @@ class Wine28V7PeHelpContract(unittest.TestCase):
                   "versionCode 125", "11.2-next.0.94"):
             self.assertIn(x,PREP)
         self.assertIn("CharoiteWine28V7PeHelpProbe.java CharoiteWine28V8LayoutProbe.java CharoiteWine28V9BuiltinBootstrapProbe.java; do",WF)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WF)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WF)
 if __name__=="__main__":
     unittest.main()

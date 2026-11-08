@@ -57,7 +57,7 @@ class Wine28IsolatedV5(unittest.TestCase):
              "libcharoite_wine28_ntdll.so","wine-bootstrap-27.bundle",
              "wine-bootstrap-28.bundle"):
             self.assertIn(needle,WORKFLOW)
-        self.assertIn("versionCode='124' versionName='11.2-next.0.94'",WORKFLOW)
+        self.assertIn("versionCode='125' versionName='11.2-next.0.94'",WORKFLOW)
 
 if __name__=="__main__":
     unittest.main()

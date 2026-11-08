@@ -1568,6 +1568,7 @@ jobs:
           cp next-generation/stage_wine29_v8_userenv.py legal-bundle/stage_wine29_v8_userenv.py
           cp next-generation/CharoiteWine29V9ScmProbe.java legal-bundle/CharoiteWine29V9ScmProbe.java
           cp next-generation/CharoiteWine29V10EntryProbe.java legal-bundle/CharoiteWine29V10EntryProbe.java
+          cp next-generation/CharoiteWine29V11EntryProbe.java legal-bundle/CharoiteWine29V11EntryProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

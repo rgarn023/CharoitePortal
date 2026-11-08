@@ -740,6 +740,17 @@ jobs:
           ! grep -Eq 'Runtime.getRuntime\(|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V9ScmProbe.java
           echo WINE29_V9_NEW_PREFIX_SCM_OPT_IN_AND_PRESERVATION=PASS
 
+      - name: Verify V10 native-loader and PE-entry diagnostic is isolated and consent-gated
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v10_entry_contract.py' -v
+          grep -Fq 'final boolean showArchivedWine29V9Execution = false;' next-generation/prepare_next.py
+          grep -Fq 'final boolean showArchivedWine29V9ReadOnly = false;' next-generation/prepare_next.py
+          grep -Fq 'charoite-next-wine29-entry-v10' next-generation/CharoiteWine29V10EntryProbe.java
+          ! grep -Eq 'scBuiltin.getAbsolutePath\(\),"query"|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V10EntryProbe.java
+          echo WINE29_V10_NEW_PREFIX_PE_ENTRY_CONSENT=PASS
+          echo WINE29_V10_DEVICE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1237,7 +1248,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='123' versionName='11.2-next.0.92'"
+            grep -F "package: name='com.charoitx' versionCode='124' versionName='11.2-next.0.93'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1535,6 +1546,7 @@ jobs:
           cp next-generation/CharoiteWine29V9ReadOnlyForensics.java legal-bundle/CharoiteWine29V9ReadOnlyForensics.java
           cp next-generation/stage_wine29_v8_userenv.py legal-bundle/stage_wine29_v8_userenv.py
           cp next-generation/CharoiteWine29V9ScmProbe.java legal-bundle/CharoiteWine29V9ScmProbe.java
+          cp next-generation/CharoiteWine29V10EntryProbe.java legal-bundle/CharoiteWine29V10EntryProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

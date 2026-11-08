@@ -1,5 +1,10 @@
 # Wine29 V12 — first ARM64 sc.exe PE-entry gate
 
+## Verified signed APK — November 8, 2026
+
+[GitHub Actions 42451472112](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112) **SUCCESS** for exact APK source `f2851b8ab3e799d91dd2807074907edfd11263dd`. **138 stable / 220 Next tests PASS**, including V12 one-shot consent/isolation gate. Gradle **BUILD SUCCESSFUL**; package `com.charoitx`, versionCode **128**, versionName **`11.2-next.0.97`**. Original experimental signing certificate SHA-256 `d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175` **MATCH**. [Signed APK artifact 13605753049](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112/artifacts/13605753049), ZIP **461,559,968 B** / SHA-256 `0b64d0ddc8f676c614d2f7c07430b3948f3ba41f44f2f85bf043487ef3978cee`, expires **2027-02-06T05:36:57Z**. [Source/LGPL attribution](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112/artifacts/13606256058) includes V12 Java. Install **in place**, no uninstall/clear data. Owner may separately authorize exactly one V12 run through the System dialog; no Wine or Windows PE was executed by CI or by this handoff.
+
+
 **Release scope:** Experimental Next `com.charoitx` v0.97 (versionCode 128), separately signed from stable Portal. **Source candidate — no signed release or device execution claimed until independently verified.** V11 audit was completed and preserved (V11 scratch immutable, no replay).
 
 ## Why V12 is different

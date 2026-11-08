@@ -1,5 +1,10 @@
 # Wine29 V11 completed report — preserved read-only audit and V12 gate
 
+## V12 signed release gate satisfied — November 8, 2026
+
+Next **v0.97** signed APK is verified: [Actions run 42451472112 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112), exact source SHA `f2851b8ab3e799d91dd2807074907edfd11263dd`, **138 stable + 220 Next tests PASS**, Gradle build, V12 isolation/consent, AAPT `com.charoitx` versionCode 128 and versionName `11.2-next.0.97`, persisted experimental signing certificate SHA-256 MATCH. [Direct signed APK artifact 13605753049](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112/artifacts/13605753049) ZIP size **461,559,968 B**, SHA-256 `0b64d0ddc8f676c614d2f7c07430b3948f3ba41f44f2f85bf043487ef3978cee`, expires 2027-02-06T05:36:57Z. [LGPL/source artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/42451472112/artifacts/13606256058). **V12 phone execution NOT yet attempted or claimed.** User must install in place and separately consent to one V12 fresh private prefix test, then copy report including END marker; never retry or delete scratch.
+
+
 ## V12 explicit-consent APK source candidate — November 8, 2026
 
 New experimental Next **v0.97 source candidate** (`com.charoitx`, versionCode **128**, versionName `11.2-next.0.97`) wires the source-pinned V12 fresh-prefix entry probe in the System page behind **Authorize ONE fresh v12 test**. The prior V11 read-only button is archived. If any V12 scratch exists, the runner refuses to execute or reuse it. Preflight validates all sealed module and native/Windows source hashes **before** any new scratch; no prior prefix is inspected. New V12 scratch is preserved, never cleaned or retried. Success criterion is an independently trace-correlated no-argument ARM64 `sc.exe` **PE mapping**, not a subprocess exit status alone. The private server's liveness is recorded immediately before/after sc.exe. No native version checks or SCM query are in the execution sequence. This is an experimental boundary diagnostic, not a working SCM or Windows game runtime.

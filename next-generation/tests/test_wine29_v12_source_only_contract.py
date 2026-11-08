@@ -62,12 +62,13 @@ class Wine29V12SourceOnlyContract(unittest.TestCase):
         self.assertIn('CharoiteWine29V12ScEntryProbe.run(this)', UI)
         self.assertIn('final boolean showArchivedWine29V11Execution = false;', UI)
         self.assertIn('final boolean showArchivedWine29V11ReadOnly = false;', UI)
+        self.assertIn('final boolean showArchivedWine29V12Execution = false;', UI)
         self.assertIn('Authorize ONE fresh v12 test', UI)
         self.assertIn('Cancel — do not execute', UI)
         self.assertIn('nextCoreCard.addView(wine29V12Entry);', UI)
         self.assertIn('Inspect Wine29 v11 server exit (read-only)', UI)
-        self.assertIn('versionCode 128', UI)
-        self.assertIn('11.2-next.0.97', UI)
+        self.assertIn('versionCode 129', UI)
+        self.assertIn('11.2-next.0.98', UI)
 
 
 if __name__ == "__main__":

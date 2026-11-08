@@ -81,7 +81,7 @@ class NativeVersionProbeTest(unittest.TestCase):
         self.assertIn("Test source-built wineserver --version",PREP)
 
 
-        for value in ('versionCode 128','11.2-next.0.97',
+        for value in ('versionCode 129','11.2-next.0.98',
                       "CharoiteWineNativeProbe.java",
                       "Test source-built Wine --version","Run Core Next device diagnostics",
                       "new Thread(() ->"):

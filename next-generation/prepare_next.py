@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.97"')
-text = text.replace("versionCode 33", "versionCode 128")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.98"')
+text = text.replace("versionCode 33", "versionCode 129")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -196,7 +196,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V10ReadOnlyForensics.java",
                  "CharoiteWine29V11EntryProbe.java",
                  "CharoiteWine29V11ReadOnlyForensics.java",
-                 "CharoiteWine29V12ScEntryProbe.java"):
+                 "CharoiteWine29V12ScEntryProbe.java",
+                 "CharoiteWine29V12ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2209,6 +2210,9 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V11Audit);
         } // V11 read-only evidence consumed: do not clutter the current System tab.
 
+        // V12 one-shot execution is completed and permanently archived.
+        final boolean showArchivedWine29V12Execution = false;
+        if (showArchivedWine29V12Execution) {
         // Sole active Wine29 diagnostic. The user must authorize one NEW V12
         // scratch/prefix explicitly; repeated execution is blocked by the runner.
         android.widget.Button wine29V12Entry = new android.widget.Button(this);
@@ -2253,6 +2257,35 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V12ScEntryProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V12Entry);
+        } // V12 execution permanently retired. Never rerun or delete scratch.
+
+        // Sole live Wine29 diagnostic: preserved V12 evidence, strictly read-only.
+        android.widget.Button wine29V12Audit = new android.widget.Button(this);
+        wine29V12Audit.setText("Inspect Wine29 v12 sc.exe exit (read-only)");
+        wine29V12Audit.setAllCaps(false);
+        wine29V12Audit.setOnClickListener(v -> {
+            wine29V12Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V12ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V12Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — V12 preserved PE-entry audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy short report", (dlg,which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                    getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                "Charoite Wine29 v12 read-only report", report));
+                        })
+                        .setNegativeButton("Close",null).show();
+                });
+            }, "CharoiteWine29V12ReadOnlyForensics").start();
+        });
+        nextCoreCard.addView(wine29V12Audit);
+
 
 
         android.widget.Button autoReporter = new android.widget.Button(this);

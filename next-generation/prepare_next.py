@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.92"')
-text = text.replace("versionCode 33", "versionCode 123")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.93"')
+text = text.replace("versionCode 33", "versionCode 124")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -191,7 +191,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V8UserenvProbe.java",
                  "CharoiteWine29V8ReadOnlyForensics.java",
                  "CharoiteWine29V9ScmProbe.java",
-                 "CharoiteWine29V9ReadOnlyForensics.java"):
+                 "CharoiteWine29V9ReadOnlyForensics.java",
+                 "CharoiteWine29V10EntryProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2016,7 +2017,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V9Scm);
         } // Executing v9 a second time is forbidden.
 
-        // Current Wine29 action only analyzes the three fixed preserved v9 logs.
+        // The owner completed the V9 read-only audit. Keep source for provenance,
+        // but do not clutter the active System screen or expose archived actions.
+        final boolean showArchivedWine29V9ReadOnly = false;
+        if (showArchivedWine29V9ReadOnly) {
         android.widget.Button wine29V9Audit = new android.widget.Button(this);
         wine29V9Audit.setText("Inspect Wine29 v9 SCM failure (read-only)");
         wine29V9Audit.setAllCaps(false);
@@ -2041,6 +2045,52 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V9ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V9Audit);
+        } // V9 read-only inspection complete; V9 scratch must remain untouched.
+
+        // The SOLE current Wine29 experiment is a NEW, one-shot V10 boundary
+        // diagnostic, not a repeated V9 SCM query. It is never automatic.
+        android.widget.Button wine29V10Entry = new android.widget.Button(this);
+        wine29V10Entry.setText("Test Wine29 v10 sc.exe PE entry (one-shot)");
+        wine29V10Entry.setAllCaps(false);
+        wine29V10Entry.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh Wine29 v10 PE-entry diagnostic?")
+                .setMessage("NOT read-only. This test first SHA-256 verifies the existing "
+                    + "source-pinned Wine29 native/PE/NLS assets. It creates exactly "
+                    + "ONE NEW private v10 scratch and C: prefix, starts native "
+                    + "Wine29 wineserver and Wineboot -i (Wine may spawn services.exe "
+                    + "and other Windows bootstrap helpers), then if successful "
+                    + "checks native Wine loader --version and starts the verified "
+                    + "ARM64 sc.exe with NO arguments to test whether its PE entry "
+                    + "is reached. NO SCM query, games, Windows apps, or installations. "
+                    + "V9 and all earlier Wine29/Wine28 scratch, stable Charoite Portal, "
+                    + "rootfs, existing user prefixes, games and saves are NOT "
+                    + "accessed or changed. New V10 logs are retained after this "
+                    + "single attempt, with bounded time and output. No retry of "
+                    + "an already-used V10 scratch is allowed. This is independent "
+                    + "authorization for ONE V10 experiment.")
+                .setNegativeButton("Cancel — do not execute",null)
+                .setPositiveButton("Authorize ONE fresh v10 test", (dialog,which) -> {
+                    wine29V10Entry.setEnabled(false);
+                    new Thread(() -> {
+                        final String report = com.charoitegames.core.CharoiteWine29V10EntryProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V10Entry.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — v10 native / PE entry")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg,button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                        getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if(cb!=null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 v10 PE-entry report",report));
+                                })
+                                .setNegativeButton("Close",null).show();
+                        });
+                    }, "CharoiteWine29V10EntryProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V10Entry);
 
 
 

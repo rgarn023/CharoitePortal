@@ -153,8 +153,8 @@ class StartupExperienceTest(unittest.TestCase):
                         PREP.index('wine29PeHelpV1.setText('))
         self.assertLess(PREP.index("} // Archived test controls"),
                         PREP.index('wine29V1Forensics.setText('))
-        self.assertIn("CURRENT WINE29 DIAGNOSTIC", PREP)
-        self.assertIn("Wine29 v8 direct Wineboot -i exited 0", PREP)
+        self.assertIn("CURRENT WINE29 ACTION — V15 READ-ONLY", PREP)
+        self.assertIn("V15 execution and its preserved audit are COMPLETE", PREP)
         self.assertIn('setPositiveButton("Authorize ONE new v2 diagnostic"', PREP)
         self.assertIn("final boolean showArchivedStartupDiagnostics = false;", PREP)
         self.assertLess(PREP.index("if (showArchivedStartupDiagnostics) {"),

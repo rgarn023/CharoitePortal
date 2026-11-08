@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.95"')
-text = text.replace("versionCode 33", "versionCode 126")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.96"')
+text = text.replace("versionCode 33", "versionCode 127")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -194,7 +194,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V9ReadOnlyForensics.java",
                  "CharoiteWine29V10EntryProbe.java",
                  "CharoiteWine29V10ReadOnlyForensics.java",
-                 "CharoiteWine29V11EntryProbe.java"):
+                 "CharoiteWine29V11EntryProbe.java",
+                 "CharoiteWine29V11ReadOnlyForensics.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2128,8 +2129,11 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V10Audit);
         } // All V10 actions are archived after the preserved report was supplied.
 
-        // Sole current experimental Wine29 System action. This is a NEW
-        // V11 one-shot test, not a retry, with explicit informed confirmation.
+        // Archived: V11 already ran once on the owner's device. NEVER run it again.
+        final boolean showArchivedWine29V11Execution = false;
+        if (showArchivedWine29V11Execution) {
+        // Historical V11 one-shot action is retained only in unreachable source.
+        // V11 scratch must remain untouched except for the allowlisted read-only audit.
         android.widget.Button wine29V11Entry = new android.widget.Button(this);
         wine29V11Entry.setText("Test Wine29 v11 native version + sc.exe entry (one-shot)");
         wine29V11Entry.setAllCaps(false);
@@ -2171,6 +2175,35 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V11EntryProbe").start();
                 }).show());
         nextCoreCard.addView(wine29V11Entry);
+        } // V11 execution retired permanently after first use.
+
+        // Sole active Wine29 diagnostic: preserved V11 postmortem, STRICTLY read-only.
+        // The five fixed V11 logs and named metadata remain on the phone unchanged.
+        android.widget.Button wine29V11Audit = new android.widget.Button(this);
+        wine29V11Audit.setText("Inspect Wine29 v11 server exit (read-only)");
+        wine29V11Audit.setAllCaps(false);
+        wine29V11Audit.setOnClickListener(v -> {
+            wine29V11Audit.setEnabled(false);
+            new Thread(() -> {
+                final String report =
+                    com.charoitegames.core.CharoiteWine29V11ReadOnlyForensics.run(this);
+                runOnUiThread(() -> {
+                    wine29V11Audit.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Charoite Next — V11 preserved lifecycle audit")
+                        .setMessage(report)
+                        .setPositiveButton("Copy short report", (dlg,which) -> {
+                            android.content.ClipboardManager cb =
+                                (android.content.ClipboardManager)
+                                    getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb!=null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                "Charoite Wine29 v11 read-only report",report));
+                        })
+                        .setNegativeButton("Close",null).show();
+                });
+            }, "CharoiteWine29V11ReadOnlyForensics").start();
+        });
+        nextCoreCard.addView(wine29V11Audit);
 
 
 

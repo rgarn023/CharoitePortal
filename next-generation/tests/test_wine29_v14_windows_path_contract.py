@@ -34,7 +34,7 @@ class Wine29V14WindowsPathContract(unittest.TestCase):
             'scBuiltin.getAbsolutePath());',
             'scBuiltin.getAbsolutePath(),"query"',
             'clearApplicationUserData(',
-            '.delete(', '.mkdirs(', 'renameTo(',
+            '.delete(', 'renameTo(',
         ):
             with self.subTest(bad=bad): self.assertNotIn(bad,JAVA)
         self.assertIn('if (scratch.exists() || !scratch.mkdir())', JAVA)

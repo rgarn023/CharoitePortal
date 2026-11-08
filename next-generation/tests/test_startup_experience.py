@@ -35,8 +35,8 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("generate_fullbleed_boot(approved_art", PREP)
         self.assertIn("charoite_next_boot_unframed.png", PREP)
         self.assertIn("charoite_next_boot_backdrop.jpg", PREP)
-        self.assertIn("versionCode 141", PREP)
-        self.assertIn("11.2-next.0.110", PREP)
+        self.assertIn("versionCode 142", PREP)
+        self.assertIn("11.2-next.0.111", PREP)
 
     def test_boot_foreground_has_no_black_outside_and_backdrop_fills_screen(self):
         from PIL import Image
@@ -120,7 +120,7 @@ class StartupExperienceTest(unittest.TestCase):
                 core=picture.crop((0,410,960,410+natural_height))
                 # JPEG encoding is allowed to vary a few levels. Compare
                 # untouched, centered interior; no stretch or aspect warp.
-                area=(180,141,780,natural_height-141)
+                area=(180,142,780,natural_height-142)
                 error=ImageChops.difference(expected.crop(area), core.crop(area))
                 self.assertLess(max(ImageStat.Stat(error).mean), 5.0)
 
@@ -143,7 +143,7 @@ class StartupExperienceTest(unittest.TestCase):
         self.assertIn("Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL", BOOT)
         self.assertIn("boot.addView(version, versionLayout)", BOOT)
         self.assertIn("CharoiteNextBootActivity.installedVersionLabel(this)", PREP)
-        self.assertNotIn("11.2-next.0.110", BOOT, "Boot must read installed version, not hardcode it")
+        self.assertNotIn("11.2-next.0.111", BOOT, "Boot must read installed version, not hardcode it")
 
     def test_system_hides_archived_wine_experiments_and_keeps_current_readonly_probe(self):
         self.assertIn("final boolean showArchivedWineTests = false;", PREP)

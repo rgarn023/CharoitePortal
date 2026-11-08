@@ -851,7 +851,7 @@ public final class CharoiteWine29V17ControlCompareProbe {
                         throw new SecurityException("V17 positive-control environment mismatch");
                     long controlStart=System.nanoTime();
                     controlProc=control.start();
-                    out.append("V17 positive control: independently launched verified Wineboot.exe --help (one attempt)\\n");
+                    out.append("V17 positive control: independently launched verified Wineboot.exe --help (one attempt)\n");
                     boolean controlFinished=false, controlTimeout=false, controlOverflow=false;
                     int controlExit=-999;
                     while (!controlFinished && !controlTimeout && !controlOverflow) {
@@ -866,18 +866,18 @@ public final class CharoiteWine29V17ControlCompareProbe {
                     }
                     long controlBytes=controlLog.length();
                     String controlText=boundedLog(controlLog).toLowerCase(Locale.US);
-                    out.append("V17 control ProcessBuilder.start: RETURNED PROCESS (PE mapping not implied)\\n");
+                    out.append("V17 control ProcessBuilder.start: RETURNED PROCESS (PE mapping not implied)\n");
                     out.append("V17 control elapsed ms: ")
-                       .append(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-controlStart)).append('\\n');
-                    out.append("V17 control finished: ").append(controlFinished).append('\\n');
-                    out.append("V17 control native exit: ").append(controlFinished?controlExit:"BOUNDED STOP").append('\\n');
-                    out.append("V17 control output bytes: ").append(controlBytes).append('\\n');
+                       .append(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-controlStart)).append('\n');
+                    out.append("V17 control finished: ").append(controlFinished).append('\n');
+                    out.append("V17 control native exit: ").append(controlFinished?controlExit:"BOUNDED STOP").append('\n');
+                    out.append("V17 control output bytes: ").append(controlBytes).append('\n');
                     out.append("V17 control PE/usage text marker: ")
-                       .append(controlText.contains("usage") || controlText.contains("wineboot")).append('\\n');
+                       .append(controlText.contains("usage") || controlText.contains("wineboot")).append('\n');
                     out.append("V17 control timeout/cap: ").append(controlTimeout)
-                       .append("/").append(controlOverflow).append('\\n');
-                    out.append("V17 foreground server alive after control: ").append(serverProc.isAlive()).append('\\n');
-                    out.append("V17 independent control log retained; output is not PE mapping proof\\n");
+                       .append("/").append(controlOverflow).append('\n');
+                    out.append("V17 foreground server alive after control: ").append(serverProc.isAlive()).append('\n');
+                    out.append("V17 independent control log retained; output is not PE mapping proof\n");
                     if (!serverProc.isAlive())
                         throw new IllegalStateException("V17 server exited after control; sc.exe intentionally NOT attempted");
                     if (controlTimeout || controlOverflow || !controlFinished)

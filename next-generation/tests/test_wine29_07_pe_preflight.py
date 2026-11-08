@@ -105,9 +105,9 @@ class Wine29PePreflight(unittest.TestCase):
         self.assertIn("test_wine29_07_pe_preflight.py", WORKFLOW)
         self.assertIn("WINE29_07_PE_STATIC_PREFLIGHT_NO_EXECUTION=PASS", WORKFLOW)
         self.assertIn("Experimental Wine29 v10 PE-entry diagnostic; SCM not verified", RUNTIME)
-        self.assertIn("versionCode 136", PREP)
-        self.assertIn("11.2-next.0.105", PREP)
-        self.assertIn("versionCode='136' versionName='11.2-next.0.105'", WORKFLOW)
+        self.assertIn("versionCode 137", PREP)
+        self.assertIn("11.2-next.0.106", PREP)
+        self.assertIn("versionCode='137' versionName='11.2-next.0.106'", WORKFLOW)
 
 
 if __name__ == "__main__":

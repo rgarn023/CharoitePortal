@@ -39,7 +39,7 @@ class Wine29V9Scm(unittest.TestCase):
             with self.subTest(token=token):self.assertIn(token,UI)
         for token in ("stage_wine29_v9_sc.py", "test_wine29_v9_scm_contract.py",
             "WINE29_V9_SC_SOURCE_PINNED_APK_STAGE=PASS","WINE29_V9_SIGNED_APK_ARM64_SC_SOURCE_SHA256=PASS",
-            "versionCode='124' versionName='11.2-next.0.94'"):
+            "versionCode='125' versionName='11.2-next.0.94'"):
             with self.subTest(token=token):self.assertIn(token,WF)
 
 if __name__=="__main__":unittest.main()

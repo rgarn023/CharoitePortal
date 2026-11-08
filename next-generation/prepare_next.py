@@ -2559,7 +2559,7 @@ ui = ui.replace(anchor, anchor + """
                 "private wineserver, Wineboot and internal services, followed by " +
                 "ONE no-argument Windows C: sc.exe launch with NOEXEC=1. No SCM " +
                 "query, games, installers, or network. Logs separately capture " +
-                "Android ProcessBuilder.start acceptance/failure, launch timing, " +
+                "Android native process launch acceptance/failure, timing, " +
                 "process exit, and wineserver state. These do NOT prove PE mapping " +
                 "or cause of exit 127. Old V1–V15 and Wine28 scratch, stable Portal, " +
                 "user prefixes, saves and games are never accessed. If V16 exists, " +

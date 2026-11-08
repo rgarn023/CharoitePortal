@@ -85,7 +85,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'wine29V6Forensics.setText("Inspect Wine29 v6 helper causal trace (read-only)")',
             'CharoiteWine29V6ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V6Forensics);',
-            'versionCode 142', '11.2-next.0.111',
+            'versionCode 143', '11.2-next.0.112',
         ):
             with self.subTest(required=q):
                 self.assertIn(q, UI)
@@ -97,7 +97,7 @@ class V6PreservedReadOnly(unittest.TestCase):
             'test_wine29_v6_readonly_forensics_contract.py',
             'WINE29_V6_PRESERVED_READONLY_FORENSICS=PASS',
             'cp next-generation/CharoiteWine29V6ReadOnlyForensics.java legal-bundle/CharoiteWine29V6ReadOnlyForensics.java',
-            "versionCode='142' versionName='11.2-next.0.111'",
+            "versionCode='143' versionName='11.2-next.0.112'",
         ):
             self.assertIn(q, WF)
 

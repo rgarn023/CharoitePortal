@@ -59,13 +59,13 @@ class Wine29V13ScNoexecContract(unittest.TestCase):
             'Authorize ONE fresh v13 test',
             'Cancel — do not execute',
             'nextCoreCard.addView(wine29V13Entry);',
-            'versionCode 142', '11.2-next.0.111',
+            'versionCode 143', '11.2-next.0.112',
         ):
             self.assertIn(token,UI)
         for token in (
             "test_wine29_v13_sc_noexec_contract.py",
             "WINE29_V13_SC_NOEXEC_UNSET_ONLY=PASS",
-            "versionCode='142' versionName='11.2-next.0.111'",
+            "versionCode='143' versionName='11.2-next.0.112'",
             "cp next-generation/CharoiteWine29V13ScNoexecProbe.java legal-bundle/CharoiteWine29V13ScNoexecProbe.java",
         ):
             self.assertIn(token,WF)

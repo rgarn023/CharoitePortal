@@ -893,6 +893,17 @@ jobs:
           echo WINE29_V18_PRESERVED_IDLE_SERVER_READONLY=PASS
           echo WINE29_V18_PHONE_INSPECTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify V20 isolated persistent idle source and owner consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v20_persistent_idle_contract.py' -v
+          grep -Fq 'charoite-next-wine29-entry-v20' next-generation/CharoiteWine29V20PersistentIdleProbe.java
+          grep -Fq 'new ProcessBuilder(server.getAbsolutePath(),"-f","-d","-p")' next-generation/CharoiteWine29V20PersistentIdleProbe.java
+          grep -Fq 'final boolean showArchivedWine29V18ReadOnly = false;' next-generation/prepare_next.py
+          ! grep -Eq 'controlProc|scProc|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V20PersistentIdleProbe.java
+          echo WINE29_V20_PERSISTENT_IDLE_SOURCE_GATE=PASS
+          echo WINE29_V20_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Verify consumed V15 preserved server/PE-entry read-only forensic contract
         run: |
           set -euo pipefail
@@ -1433,7 +1444,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='142' versionName='11.2-next.0.111'"
+            grep -F "package: name='com.charoitx' versionCode='143' versionName='11.2-next.0.112'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1748,6 +1759,7 @@ jobs:
           cp next-generation/CharoiteWine29V17ReadOnlyForensics.java legal-bundle/CharoiteWine29V17ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V18ServerIdleProbe.java legal-bundle/CharoiteWine29V18ServerIdleProbe.java
           cp next-generation/CharoiteWine29V18ReadOnlyForensics.java legal-bundle/CharoiteWine29V18ReadOnlyForensics.java
+          cp next-generation/CharoiteWine29V20PersistentIdleProbe.java legal-bundle/CharoiteWine29V20PersistentIdleProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

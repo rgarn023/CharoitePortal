@@ -1,6 +1,6 @@
 # Charoite Next — preserved V10 native loader failure, read-only audit
 
-Date: November 7, 2026. Status: **v0.94 source candidate**, not verified signed APK until Actions completes.
+Date: November 7, 2026. Status: **verified signed experimental Next v0.94**, [Actions 42447129443 SUCCESS](https://github.com/rgarn023/CharoitePortal/actions/runs/42447129443), [signed APK artifact 13603583218](https://github.com/rgarn023/CharoitePortal/actions/runs/42447129443/artifacts/13603583218), exact source commit `b3f28af4c79822ff9914ebc7d0793bba7671872f`. CI 138 stable + 211 Next tests PASS, Android BUILD SUCCESSFUL, `com.charoitx` versionCode 125, signing key unchanged.
 
 ## V10 owner one-shot evidence (already performed; DO NOT repeat)
 
@@ -32,6 +32,6 @@ The only additional checks are explicitly named **V10** scratch metadata paths: 
 
 The preserved PE trace can establish whether Wineboot and internal service helpers reached module mapping or exit stages. The zero-byte native-version file cannot reveal why the separate Android native subprocess exited 127. A new V11 execution test, including any modified native environment or `sc.exe` launch, must be independently designed, built and expressly authorized in a **new untouched scratch**, not run by this read-only audit.
 
-Building, installing or opening v0.94 does not authorize Wine execution. If CI verifies the signed APK, **install in place over `com.charoitx`**; do not uninstall or clear storage. Copy only the short postmortem through the new System action. No complete Wine runtime, SCM, Steam/Battle.net or Windows game functionality is claimed.
+Building, installing or opening v0.94 does not authorize Wine execution. **Install the verified signed v0.94 APK in place over `com.charoitx`**; do not uninstall or clear storage. Copy only the short postmortem through the new System action. No complete Wine runtime, SCM, Steam/Battle.net or Windows game functionality is claimed.
 
 Source: [audit code](../next-generation/CharoiteWine29V10ReadOnlyForensics.java), [System UI/archive](../next-generation/prepare_next.py), [contract](../next-generation/tests/test_wine29_v10_readonly_contract.py).

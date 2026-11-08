@@ -55,7 +55,7 @@ class Wine29V3AutoInitReadOnlyContracts(unittest.TestCase):
             'wine29V3Forensics.setText("Inspect preserved Wine29 v3 auto-init failure (read-only)")',
             'CharoiteWine29V3AutoInitForensics.run(this)',
             'nextCoreCard.addView(wine29V3Forensics);',
-            'versionCode 129','11.2-next.0.98',
+            'versionCode 130','11.2-next.0.99',
             'Wine29 v8 direct Wineboot -i exited 0',
         ):
             with self.subTest(token=token):self.assertIn(token,UI)
@@ -66,7 +66,7 @@ class Wine29V3AutoInitReadOnlyContracts(unittest.TestCase):
         self.assertIn('test_wine29_v3_auto_init_forensics_contract.py',WF)
         self.assertIn('WINE29_V3_POSTMORTEM_NO_EXECUTION_OR_WRITES=PASS',WF)
         self.assertIn('cp next-generation/CharoiteWine29V3AutoInitForensics.java legal-bundle/CharoiteWine29V3AutoInitForensics.java',WF)
-        self.assertIn("versionCode='129' versionName='11.2-next.0.98'", WF)
+        self.assertIn("versionCode='130' versionName='11.2-next.0.99'", WF)
 
 if __name__=="__main__":
     unittest.main()

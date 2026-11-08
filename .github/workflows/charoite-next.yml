@@ -796,6 +796,16 @@ jobs:
           echo WINE29_V12_NEW_PRIVATE_FIRST_SC_ENTRY_CONSENT=PASS
           echo WINE29_V12_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Verify V13 scoped NOEXEC-unset sc.exe fresh-scratch consent
+        run: |
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v13_sc_noexec_contract.py' -v
+          grep -Fq 'scEnv.remove("WINELOADERNOEXEC")' next-generation/CharoiteWine29V13ScNoexecProbe.java
+          grep -Fq 'charoite-next-wine29-entry-v13' next-generation/CharoiteWine29V13ScNoexecProbe.java
+          grep -Fq 'Authorize ONE fresh v13 test' next-generation/prepare_next.py
+          ! grep -Eq 'scBuiltin.getAbsolutePath\(\),"(query|start|stop)"|clearApplicationUserData\(|\.delete\(|renameTo\(' next-generation/CharoiteWine29V13ScNoexecProbe.java
+          echo WINE29_V13_SC_NOEXEC_UNSET_ONLY=PASS
+          echo WINE29_V13_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
       - name: Verify preserved V12 sc.exe entry audit is strictly read only
         run: |
           set -euo pipefail
@@ -1304,7 +1314,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='129' versionName='11.2-next.0.98'"
+            grep -F "package: name='com.charoitx' versionCode='130' versionName='11.2-next.0.99'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1607,6 +1617,7 @@ jobs:
           cp next-generation/CharoiteWine29V11ReadOnlyForensics.java legal-bundle/CharoiteWine29V11ReadOnlyForensics.java
           cp next-generation/CharoiteWine29V12ScEntryProbe.java legal-bundle/CharoiteWine29V12ScEntryProbe.java
           cp next-generation/CharoiteWine29V12ReadOnlyForensics.java legal-bundle/CharoiteWine29V12ReadOnlyForensics.java
+           cp next-generation/CharoiteWine29V13ScNoexecProbe.java legal-bundle/CharoiteWine29V13ScNoexecProbe.java
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

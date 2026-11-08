@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.98"')
-text = text.replace("versionCode 33", "versionCode 129")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.99"')
+text = text.replace("versionCode 33", "versionCode 130")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -197,7 +197,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                  "CharoiteWine29V11EntryProbe.java",
                  "CharoiteWine29V11ReadOnlyForensics.java",
                  "CharoiteWine29V12ScEntryProbe.java",
-                 "CharoiteWine29V12ReadOnlyForensics.java"):
+                 "CharoiteWine29V12ReadOnlyForensics.java",
+                 "CharoiteWine29V13ScNoexecProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2259,7 +2260,9 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V12Entry);
         } // V12 execution permanently retired. Never rerun or delete scratch.
 
-        // Sole live Wine29 diagnostic: preserved V12 evidence, strictly read-only.
+        // Owner completed V12 preserved report; keep its inspector archived.
+        final boolean showArchivedWine29V12ReadOnly = false;
+        if (showArchivedWine29V12ReadOnly) {
         android.widget.Button wine29V12Audit = new android.widget.Button(this);
         wine29V12Audit.setText("Inspect Wine29 v12 sc.exe exit (read-only)");
         wine29V12Audit.setAllCaps(false);
@@ -2285,6 +2288,49 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V12ReadOnlyForensics").start();
         });
         nextCoreCard.addView(wine29V12Audit);
+
+        } // V12 read-only inspector archived, all V12 data untouched.
+
+        // Sole live Wine29 action; must be explicitly consented on this device.
+        android.widget.Button wine29V13Entry = new android.widget.Button(this);
+        wine29V13Entry.setText("Test Wine29 v13 sc.exe loader handoff (one-shot)");
+        wine29V13Entry.setAllCaps(false);
+        wine29V13Entry.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh Wine29 v13 sc.exe loader diagnostic?")
+                .setMessage("NOT read-only. This stages only a NEW private V13 scratch, "
+                    + "starts a bounded Wineboot -i with internal helpers, then one "
+                    + "NO-ARGUMENT ARM64 sc.exe. WINELOADERNOEXEC is UNSET ONLY for "
+                    + "sc.exe; Wineboot and the private server keep the V12 setting. "
+                    + "No native version probe, SCM query/service changes, game, "
+                    + "installer, Steam, Battle.net or graphics. Raw bounded logs "
+                    + "remain on the phone. Prior V1-V12 and Wine28 scratch, stable "
+                    + "Portal, rootfs, existing prefixes, games and saves are never "
+                    + "accessed. An existing V13 scratch blocks retries. Never "
+                    + "uninstall, clear data or delete any scratch.")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v13 test", (dialog, which) -> {
+                    wine29V13Entry.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V13ScNoexecProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V13Entry.setEnabled(true);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V13 sc.exe loader handoff")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, button) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "Charoite Wine29 v13 one-shot report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V13ScNoexecProbe").start();
+                }).show());
+        nextCoreCard.addView(wine29V13Entry);
 
 
 

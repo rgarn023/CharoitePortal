@@ -38,6 +38,6 @@ class V16ReadOnlyContract(unittest.TestCase):
         for token in ("test_wine29_v16_readonly_contract.py",
                       "WINE29_V16_PRESERVED_EXEC_BOUNDARY_READONLY_POSTMORTEM=PASS",
                       "cp next-generation/CharoiteWine29V16ReadOnlyForensics.java legal-bundle/CharoiteWine29V16ReadOnlyForensics.java",
-                      "versionCode='138' versionName='11.2-next.0.108'"):
+                      "versionCode='139' versionName='11.2-next.0.108'"):
             self.assertIn(token,WF)
 if __name__=="__main__": unittest.main()

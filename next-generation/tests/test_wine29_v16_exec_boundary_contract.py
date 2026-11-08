@@ -73,7 +73,7 @@ class V16ExecBoundaryContract(unittest.TestCase):
             "WINE29_V16_ISOLATED_EXEC_BOUNDARY_SOURCE_GATE=PASS",
             "WINE29_V16_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI",
             "cp next-generation/CharoiteWine29V16ExecBoundaryProbe.java legal-bundle/CharoiteWine29V16ExecBoundaryProbe.java",
-            "versionCode='138' versionName='11.2-next.0.108'",
+            "versionCode='139' versionName='11.2-next.0.108'",
         ):
             with self.subTest(good=good):
                 self.assertIn(good, WF)

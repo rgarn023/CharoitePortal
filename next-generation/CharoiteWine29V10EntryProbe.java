@@ -20,13 +20,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Explicit opt-in one-shot Wine29 v6 private C: mapping bootstrap probe. Without explicit user opt-in, no process is run.
- * Wine may automatically run its own first-use wineboot --init before processing
- * the requested --help argument. This is allowed ONLY inside brand-new v10 scratch.
- * NEVER accesses any pre-existing prefix, rootfs, game, save or legacy cohort.
- * Only a brand-new v6 noBackupFilesDir child is writable; it is never erased
- * automatically, even after failure. A failed attempt requires diagnosis before
- * another generation may be authorized.
+ * Explicit opt-in, one-shot V10 native-loader and Windows ARM64 sc.exe entry diagnostic.
+ * A brand-new V10 private prefix only; Wineboot and internal helpers may run.
+ * The sc.exe command has NO arguments, does not query the SCM, and never runs games.
+ * Previous V9 and older scratch, user prefixes, games, saves, rootfs and stable Portal
+ * are never accessed. The V10 scratch is retained and never retried or deleted.
  */
 public final class CharoiteWine29V10EntryProbe {
     private static final String PACKAGE = "com.charoitx";
@@ -490,7 +488,7 @@ public final class CharoiteWine29V10EntryProbe {
     }
 
     private static String shortReport(StringBuilder report) {
-        final String tail="\nEND OF SHORT V10 SCM REPORT — new v9 logs preserved; prior v8 untouched.\n";
+        final String tail="\nEND OF SHORT V10 ENTRY REPORT — new v10 logs preserved; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
         if(summary.length()>limit)
@@ -532,7 +530,7 @@ public final class CharoiteWine29V10EntryProbe {
             out.append("V8 child-loader selector: APK nativeLibraryDir; v6 NTDLL-only loader\n");
             out.append("V8 PE/NLS paths: source-isolated, matched v6 selectors\n");
         } catch (Exception e) {
-            return out.append("RESULT: BLOCKED — no v8 scratch: ")
+            return out.append("RESULT: BLOCKED — V10 source preflight: ")
                       .append(e.getClass().getSimpleName()).append('\n').toString();
         }
 
@@ -867,7 +865,7 @@ public final class CharoiteWine29V10EntryProbe {
                 }
                 if (finished&&exit==0&&cLinkRetained&&windows&&system32&&users
                         &&systemReg&&userReg&&!internalCreationFail&&!expired&&!overflow)
-                    out.append("RESULT: PARTIAL — Wineboot created folders; sc.exe PE entry classified separately; SCM NOT TESTED\n");
+                    out.append("RESULT: PARTIAL — Wineboot created folders; V10 PE-entry evidence reported separately; SCM NOT TESTED\n");
                 else if (finished&&exit==0&&cLinkRetained&&windows&&system32&&users
                         &&systemReg&&userReg&&!expired&&!overflow)
                     out.append("RESULT: PARTIAL — Wine-created Windows folders exist; internal child failure evidence observed; SCM NOT TESTED\n");
@@ -875,7 +873,7 @@ public final class CharoiteWine29V10EntryProbe {
                     out.append("RESULT: INCOMPLETE — Wineboot prefix metadata incomplete at pre-shutdown check; V10 entry evidence retained\n");
             } else {
                 out.append("Windows PE attempted: false — foreground server was not ready\n");
-                out.append("RESULT: FAIL — v6 server handshake unavailable; no -i attempted\n");
+                out.append("RESULT: FAIL — V10 private server handshake unavailable; no -i attempted\n");
             }
         } catch (Exception e) {
             out.append("RESULT: BLOCKED — ").append(e.getClass().getSimpleName())
@@ -894,7 +892,7 @@ public final class CharoiteWine29V10EntryProbe {
                 if (serverProc!=null&&serverProc.isAlive()) {
                     serverProc.destroyForcibly(); serverProc.waitFor(2,TimeUnit.SECONDS);
                 }
-                out.append("Foreground v9 server terminated if running; no other prefix/server targeted\n");
+                out.append("Foreground v10 server terminated if running; no other prefix/server targeted\n");
                 if (serverLog!=null) {
                     String serverText=boundedLog(serverLog);
                     out.append("V10 server trace internal auto-init marker observed: ")
@@ -902,7 +900,7 @@ public final class CharoiteWine29V10EntryProbe {
                     out.append("V10 server trace retained locally; raw lines/paths NOT copied\n");
                 }
             } catch (Exception e) {
-                out.append("V8 cleanup/reading diagnostics: ")
+                out.append("V10 finalization diagnostics: ")
                    .append(e.getClass().getSimpleName()).append('\n');
             }
         }
@@ -919,8 +917,8 @@ public final class CharoiteWine29V10EntryProbe {
                 out.append("V10 registry metadata could not be read; contents NOT accessed\n");
             }
         }
-        out.append("V10 scratch retained; NEVER retry or delete v9 after first use\n");
-        out.append("Wine28 v1–v9, stable Portal, old Wine29 staging, original Wine and game saves: UNCHANGED\n");
+        out.append("V10 scratch retained; NEVER retry or delete V10 after first use\n");
+        out.append("Wine28, Wine29 v1–v9, stable Portal, original Wine and game saves: UNCHANGED\n");
         return shortReport(out);
     }
 }

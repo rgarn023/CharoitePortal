@@ -41,7 +41,7 @@ class Wine29V4DirectInitContract(unittest.TestCase):
     'CharoiteWine29V4DirectInitProbe.run(this)',
     'nextCoreCard.addView(wine29V4DirectInit);',
     'final boolean showArchivedWine29V3Execution = false;',
-    '11.2-next.0.101','versionCode 132',
+    '11.2-next.0.102','versionCode 133',
   ):
    with self.subTest(tok=tok):self.assertIn(tok,UI)
   self.assertNotIn('CharoiteWine29V4DirectInitProbe.run(this)',UI.split('wine29V4DirectInit.setOnClickListener(v ->')[0])
@@ -50,6 +50,6 @@ class Wine29V4DirectInitContract(unittest.TestCase):
   self.assertIn("test_wine29_v4_direct_init_contract.py",WF)
   self.assertIn("WINE29_V4_ONE_SHOT_DIRECT_INIT_CONSENT=PASS",WF)
   self.assertIn("cp next-generation/CharoiteWine29V4DirectInitProbe.java legal-bundle/CharoiteWine29V4DirectInitProbe.java",WF)
-  self.assertIn("versionCode='132' versionName='11.2-next.0.101'",WF)
+  self.assertIn("versionCode='133' versionName='11.2-next.0.102'",WF)
 if __name__=="__main__":
  unittest.main()

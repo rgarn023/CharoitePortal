@@ -876,12 +876,16 @@ public final class CharoiteWine29V9ScmProbe {
             }
         }
         if (scratch!=null && scratch.isDirectory()) {
-            File prefix=child(scratch,"prefix");
-            for(String reg:new String[]{"system.reg","user.reg","userdef.reg"}) {
-                File f=child(prefix,reg);
-                out.append("V9 retained ").append(reg).append(" metadata: ")
-                   .append(f.isFile() ? f.length() + " bytes" : "absent")
-                   .append("; contents NOT read\n");
+            try {
+                File prefix=child(scratch,"prefix");
+                for(String reg:new String[]{"system.reg","user.reg","userdef.reg"}) {
+                    File f=child(prefix,reg);
+                    out.append("V9 retained ").append(reg).append(" metadata: ")
+                       .append(f.isFile() ? f.length() + " bytes" : "absent")
+                       .append("; contents NOT read\n");
+                }
+            } catch(Exception ignored) {
+                out.append("V9 registry metadata could not be read; contents NOT accessed\n");
             }
         }
         out.append("V9 scratch retained; NEVER retry or delete v9 after first use\n");

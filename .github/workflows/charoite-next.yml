@@ -981,6 +981,8 @@ jobs:
 
       # Historical V25 signed manifest AAPT marker for regression contracts:
       # versionCode='148' versionName='11.2-next.0.117'
+      # Historical V26 signed manifest AAPT marker for regression contracts:
+      # versionCode='149' versionName='11.2-next.0.118'
       - name: Verify V26 gated explicit DefaultInstall and private RpcSs query source contract
         run: |
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v26_defaultinstall_contract.py' -v
@@ -989,6 +991,16 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V25Execution = false;' next-generation/prepare_next.py
           echo WINE29_V26_EXPLICIT_DEFAULTINSTALL_SOURCE_GATE=PASS
           echo WINE29_V26_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
+      # V26 owner phone one-shot consumed: RpcSs SCM error 1060.
+      - name: Verify V27 isolated mapped Windows C: INF and RpcSs query
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v27_mapped_inf_contract.py' -v
+          grep -Fq 'charoite-next-wine29-entry-v27' next-generation/CharoiteWine29V27MappedInfProbe.java
+          grep -Fq 'final boolean showArchivedWine29V26Execution = false;' next-generation/prepare_next.py
+          echo WINE29_V27_MAPPED_C_INF_SOURCE_GATE=PASS
+          echo WINE29_V27_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
       - name: Verify consumed V15 preserved server/PE-entry read-only forensic contract
         run: |
@@ -1530,7 +1542,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='149' versionName='11.2-next.0.118'"
+            grep -F "package: name='com.charoitx' versionCode='150' versionName='11.2-next.0.119'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1888,6 +1900,7 @@ jobs:
           cp next-generation/CharoiteWine29V24RegistryProbe.java legal-bundle/CharoiteWine29V24RegistryProbe.java
           cp next-generation/CharoiteWine29V25InfTraceProbe.java legal-bundle/CharoiteWine29V25InfTraceProbe.java
           cp next-generation/CharoiteWine29V26DefaultInstallProbe.java legal-bundle/CharoiteWine29V26DefaultInstallProbe.java
+          cp next-generation/CharoiteWine29V27MappedInfProbe.java legal-bundle/CharoiteWine29V27MappedInfProbe.java
           cp next-generation/stage_wine29_v23_setup.py legal-bundle/stage_wine29_v23_setup.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json legal-bundle/wine29-v23-setup-index.json
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py

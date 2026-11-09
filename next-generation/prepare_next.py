@@ -36,6 +36,8 @@ assert text.count("versionCode 33") == 1
 # Historical V24 signed APK identity (archived regression provenance only):
 # versionCode 147; versionName 11.2-next.0.116 (NEVER use these for new builds).
 # Historical V25: versionCode 148; versionName 11.2-next.0.117 (NEVER rerun).
+# Historical V25 exact manifest literal used by old read-only regression tests:
+# versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.118).
 text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.118"')
 text = text.replace("versionCode 33", "versionCode 149")
 gradle.write_text(text, encoding="utf-8")

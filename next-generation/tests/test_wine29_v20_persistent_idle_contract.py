@@ -34,13 +34,13 @@ class V20PersistentIdleContract(unittest.TestCase):
                   'nextCoreCard.addView(wine29V20Action);',
                   'wine29V20Action.addView(v20HandoffButton);',
                   '"CharoiteWine29V20PersistentIdleProbe.java"',
-                  'versionCode 143','11.2-next.0.112'):
+                  'versionCode 144','11.2-next.0.113'):
             with self.subTest(x=x):self.assertIn(x,UI)
     def test_ci_and_license(self):
         for x in ('test_wine29_v20_persistent_idle_contract.py',
                   'WINE29_V20_PERSISTENT_IDLE_SOURCE_GATE=PASS',
                   'WINE29_V20_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
                   'cp next-generation/CharoiteWine29V20PersistentIdleProbe.java legal-bundle/CharoiteWine29V20PersistentIdleProbe.java',
-                  "versionCode='143' versionName='11.2-next.0.112'"):
+                  "versionCode='144' versionName='11.2-next.0.113'"):
             with self.subTest(x=x):self.assertIn(x,WF)
 if __name__=="__main__":unittest.main()

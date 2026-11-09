@@ -8,6 +8,11 @@ PREP = (ROOT / "prepare_next.py").read_text()
 WF = (ROOT.parent / ".github/workflows/charoite-next.yml").read_text()
 
 class V26DefaultInstallContract(unittest.TestCase):
+    def test_java_class_name_matches_public_file_and_ui(self):
+        self.assertIn("public final class CharoiteWine29V26DefaultInstallProbe {", JAVA)
+        self.assertIn("private CharoiteWine29V26DefaultInstallProbe() {}", JAVA)
+        self.assertNotIn("CharoiteWine29V26InfTraceProbe", JAVA)
+
     def test_strict_fresh_one_shot_and_no_older_scratch(self):
         for token in (
             "charoite-next-wine29-entry-v26",

@@ -2,7 +2,7 @@
 
 # Wine29 V22 — isolated persistent-server ARM64 sc.exe query RpcSs
 
-**SOURCE IMPLEMENTED — PHONE EXECUTION NOT ATTEMPTED.** Planned experimental `com.charoitx` versionCode **145**, versionName **11.2-next.0.114**. Signed APK and Actions artifact must be verified after CI; source changes are not evidence of a successful build or phone run.
+**SIGNED V22 APK VERIFIED — OWNER PHONE V22 EXECUTION NOT ATTEMPTED.** Experimental `com.charoitx`, versionCode **145**, versionName **11.2-next.0.114**. [**Successful GitHub Actions run 42546439374**](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374), exact signed-APK [**source commit 9cc720d**](https://github.com/rgarn023/CharoitePortal/commit/9cc720d4219b04d37d18df9dff8208c84cbd283f), [**direct signed APK artifact 13644080090**](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374/artifacts/13644080090) (461,557,742 ZIP bytes, SHA-256 `c27f5aa7f57a3ac0b50298cd7b2d27b20c6afa4d54cf56d3319c53b75f83e9af`, expires 2027-02-07T01:36:20Z); [**source and LGPL artifact 13643591787**](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374/artifacts/13643591787). Gradle build, **273 Next tests**, V22 one-shot/consent source gate, package metadata and original experimental APK signer continuity **PASS**. CI did not run Wine on phone.
 
 ## V21 evidence motivating V22
 
@@ -20,6 +20,6 @@ On November 8, 2026 the owner reported one source-verified direct Wineboot `-i` 
 
 ## System action — paired warnings and controls
 
-Only after the signed V22 APK has been verified, install **in place** over experimental `com.charoitx` (never uninstall or clear storage). Under **System → CURRENT WINE29 ACTION — V22 INDEPENDENT SC.EXE RPCSS QUERY**, warnings accompany **Test Wine29 v22 SCM query (one-shot)** and **Open current project handoff**. Tap Test and separately choose **Authorize ONE fresh v22 test** or **Cancel — do not execute**. Afterwards select **Copy short report**; paste COMPLETE text beginning **Handoff** and ending **END OF SHORT V22 SCM QUERY REPORT**.
+Download the [**verified v0.114 signed APK artifact 13644080090**](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374/artifacts/13644080090), extract APK from ZIP, and install **in place** over experimental `com.charoitx` (never uninstall or clear storage). Under **System → CURRENT WINE29 ACTION — V22 INDEPENDENT SC.EXE RPCSS QUERY**, warnings accompany **Test Wine29 v22 SCM query (one-shot)** and **Open current project handoff**. Tap Test and separately choose **Authorize ONE fresh v22 test** or **Cancel — do not execute**. Afterwards select **Copy short report**; paste COMPLETE text beginning **Handoff** and ending **END OF SHORT V22 SCM QUERY REPORT**.
 
 **Charoite 1.0 readiness: ~30% complete / ~70% remaining**, unchanged until phone SCM and later app/game milestones.

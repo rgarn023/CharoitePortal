@@ -55,7 +55,7 @@ class Wine29V5CDriveContracts(unittest.TestCase):
    'setNegativeButton("Cancel — do not execute", null)',
    'CharoiteWine29V5DriveCProbe.run(this)',
    'nextCoreCard.addView(wine29V5DriveC);',
-   'versionCode 145', '11.2-next.0.114'
+   'versionCode 146', '11.2-next.0.115'
   ):
    with self.subTest(marker=marker):self.assertIn(marker,UI)
   before=UI.split('wine29V5DriveC.setOnClickListener(v ->')[0]
@@ -67,7 +67,7 @@ class Wine29V5CDriveContracts(unittest.TestCase):
     'test_wine29_v5_c_drive_contract.py',
     'WINE29_V5_C_DRIVE_FRESH_MAPPING_CONSENT=PASS',
     'cp next-generation/CharoiteWine29V5DriveCProbe.java legal-bundle/CharoiteWine29V5DriveCProbe.java',
-    "versionCode='145' versionName='11.2-next.0.114'"
+    "versionCode='146' versionName='11.2-next.0.115'"
   ):
    with self.subTest(marker=marker):self.assertIn(marker,WF)
 

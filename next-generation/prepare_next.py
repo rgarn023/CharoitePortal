@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.114"')
-text = text.replace("versionCode 33", "versionCode 145")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.115"')
+text = text.replace("versionCode 33", "versionCode 146")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -212,7 +212,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V18ReadOnlyForensics.java",
                    "CharoiteWine29V20PersistentIdleProbe.java",
                    "CharoiteWine29V21IndependentHelpProbe.java",
-                   "CharoiteWine29V22ScmQueryProbe.java"):
+                   "CharoiteWine29V22ScmQueryProbe.java",
+                   "CharoiteWine29V23SetupProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3086,6 +3087,9 @@ ui = ui.replace(anchor, anchor + """
 
         } // V21 consumed; no replay permitted.
 
+        // V22 owner phone test completed. Archived forever, never rerun.
+        final boolean showArchivedWine29V22Execution = false;
+        if (showArchivedWine29V22Execution) {
         // ACTIVE V22: one fresh private prefix and one source-verified SCM status query.
         LinearLayout wine29V22Action = card();
         wine29V22Action.addView(label(
@@ -3153,6 +3157,80 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V22Action.addView(v22HandoffButton);
         nextCoreCard.addView(wine29V22Action);
+        } // V22 consumed; do not show old button.
+
+        // ACTIVE V23: source-pinned Wine INF setup and ONE independent RpcSs query.
+        LinearLayout wine29V23Action = card();
+        wine29V23Action.addView(label(
+                "CURRENT WINE29 ACTION — V23 PREFIX SETUP AND RPCSS QUERY",
+                16, FOREGROUND, true));
+        wine29V23Action.addView(label(
+                "NEW PRIVATE V23 SCRATCH ONLY; NOT READ ONLY. Source-built wine.inf, " +
+                "rundll32.exe and rpcss.exe are verified before new scratch creation. " +
+                "Wineboot may internally invoke SetupAPI and install services. With separate one-shot " +
+                "consent, verify source-pinned assets, start one private persistent -p " +
+                "wineserver and direct Wineboot -i. ONLY after successful init and " +
+                "server gates, launch one independent source-verified ARM64 sc.exe " +
+                "query RpcSs via the matched APK loader. The query requests status, " +
+                "NOT service modification; Wineboot/internal services can create files. " +
+                "Record bounded status/error markers and registry FILE METADATA ONLY, " +
+                "never raw paths or contents. NO additional SCM commands, independent " +
+                "Wineboot help, games, installers or network. All Wine29 V1–V21, Wine28, " +
+                "stable Portal, games, saves, user prefixes and rootfs NOT ACCESSED. " +
+                "V23 scratch/logs preserved forever, even on failure. Never retry, delete, " +
+                "uninstall or clear storage. Copy FULL short report from Handoff through " +
+                "END OF SHORT V23 PREFIX SETUP SCM REPORT.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V23Exec = new android.widget.Button(this);
+        wine29V23Exec.setText("Test Wine29 v23 prefix setup + RpcSs (one-shot)");
+        wine29V23Exec.setAllCaps(false);
+        wine29V23Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh V23 Wine INF setup and RpcSs query?")
+                .setMessage("THIS EXECUTES WINE in a NEW private V23 scratch ONLY. " +
+                    "One private persistent wineserver and direct Wineboot -i may " +
+                    "internally invoke rundll32/SetupAPI and register services " +
+                    "in the NEW V23 prefix only, then, " +
+                    "ONLY if init passes, ONE separate source-verified sc.exe query " +
+                    "RpcSs may execute. Wine may start internal services and write " +
+                    "the fresh prefix during INF installation. This is " +
+                    "NOT read-only initialization. No other manual service mutation, additional " +
+                    "SCM operations, Wineboot help, games, installers or network. " +
+                    "Never access V1–V21 scratch, Wine28, Portal, games, saves or " +
+                    "user prefixes. Preserve V23 logs/scratch permanently, no retry " +
+                    "or cleanup; stop only V23-owned processes at finalization. " +
+                    "Do you authorize this ONE new V23 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v23 test", (dialog, which) -> {
+                    wine29V23Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V23SetupProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V23Exec.setEnabled(false);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V23 prefix setup and SCM query")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 V23 setup + SCM report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V23SetupProbe").start();
+                }).show());
+        wine29V23Action.addView(wine29V23Exec);
+        android.widget.Button v23HandoffButton = new android.widget.Button(this);
+        v23HandoffButton.setText("Open current project handoff");
+        v23HandoffButton.setAllCaps(false);
+        v23HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V23Action.addView(v23HandoffButton);
+        nextCoreCard.addView(wine29V23Action);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

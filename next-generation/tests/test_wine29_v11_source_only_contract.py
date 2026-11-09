@@ -60,8 +60,8 @@ class Wine29V11SourceOnlyContract(unittest.TestCase):
         self.assertIn('Authorize ONE fresh v11 test',UI)
         self.assertIn('Cancel — do not execute',UI)
         self.assertIn('nextCoreCard.addView(wine29V11Entry);',UI)
-        self.assertIn('"11.2-next.0.114"',UI)
-        self.assertIn('versionCode 145',UI)
+        self.assertIn('"11.2-next.0.115"',UI)
+        self.assertIn('versionCode 146',UI)
         self.assertNotIn('showArchivedWine29V10ReadOnly = true',UI)
 
 if __name__ == "__main__":

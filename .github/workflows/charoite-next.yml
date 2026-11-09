@@ -497,6 +497,26 @@ jobs:
           test -s upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json
           echo WINE29_V9_SC_SOURCE_PINNED_APK_STAGE=PASS
 
+      - name: Stage pinned source-built V23 Wine INF, rundll32 and rpcss in isolated Next
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API="repos/$GITHUB_REPOSITORY/actions/artifacts/13645473200"
+          test "$(gh api "$API" --jq '.workflow_run.id')" = "42552476223"
+          test "$(gh api "$API" --jq '.workflow_run.head_sha')" = "b6d180240adf2e8c354e9a5a016c828ca04a9911"
+          test "$(gh api "$API" --jq '.digest')" = "sha256:6d86ac6848e81af2190074c0e93f2ecf4aa6fc41cb7a72d15a55dc79d55b8581"
+          test "$(gh api "$API" --jq '.expired')" = "false"
+          mkdir -p "$RUNNER_TEMP/wine29-v23-setup-source"
+          gh run download 42552476223 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-V23-Pinned-Prefix-Setup-Source-Only-NOT-APK \
+            --dir "$RUNNER_TEMP/wine29-v23-setup-source"
+          python3 next-generation/stage_wine29_v23_setup.py \
+            "$RUNNER_TEMP/wine29-v23-setup-source" "$GITHUB_WORKSPACE/upstream"
+          test -s upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json
+          test -s upstream/app/src/main/assets/charoite-next/wine29-v23-setup/wine.inf
+          echo WINE29_V23_PINNED_PREFIX_SETUP_APK_STAGE=PASS
+
       # Persist the one debug signing key used by Gradle for future APK
       # upgrades. actions/cache does not save nonexistent files, so create
       # the key BEFORE invoking Gradle (previous builds missed this step).
@@ -924,6 +944,17 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V21Execution = false;' next-generation/prepare_next.py
           echo WINE29_V22_SCM_QUERY_SOURCE_GATE=PASS
           echo WINE29_V22_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
+      - name: Verify V23 source-pinned INF setup, isolated consent and one-shot scope
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v23_prefix_setup_source_contract.py' -v
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v23_setup_contract.py' -v
+          grep -Fq 'charoite-next-wine29-entry-v23' next-generation/CharoiteWine29V23SetupProbe.java
+          grep -Fq 'env.put("WINEDATADIR",dataDir.getCanonicalPath());' next-generation/CharoiteWine29V23SetupProbe.java
+          grep -Fq 'final boolean showArchivedWine29V22Execution = false;' next-generation/prepare_next.py
+          echo WINE29_V23_PREFIX_SETUP_SOURCE_GATE=PASS
+          echo WINE29_V23_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
       - name: Verify consumed V15 preserved server/PE-entry read-only forensic contract
         run: |
@@ -1465,7 +1496,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='145' versionName='11.2-next.0.114'"
+            grep -F "package: name='com.charoitx' versionCode='146' versionName='11.2-next.0.115'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1588,6 +1619,42 @@ jobs:
               print("WINE29_V9_SIGNED_APK_ARM64_SC_SOURCE_SHA256=PASS")
               print("WINE29_V9_V8_V7_V6_AND_SEALED_111_PRESERVED=PASS")
               print("WINE29_V9_PHONE_SCM_QUERY_NOT_ATTEMPTED_IN_CI")
+          PY
+
+      - name: Verify signed Next APK stages source-pinned V23 prefix setup
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,struct,zipfile
+          with zipfile.ZipFile("upstream/app/build/outputs/apk/debug/app-debug.apk") as apk:
+              base="assets/charoite-next/wine29-v23-setup/"
+              index=json.loads(apk.read(base+"setup-index.json"))
+              assert index["schema_version"]==1 and index["package"]=="com.charoitx"
+              assert index["source_run"]==42552476223
+              assert index["source_build_commit"]=="b6d180240adf2e8c354e9a5a016c828ca04a9911"
+              assert index["source_artifact_id"]==13645473200
+              assert index["source_artifact_digest"]=="sha256:6d86ac6848e81af2190074c0e93f2ecf4aa6fc41cb7a72d15a55dc79d55b8581"
+              assert all(index[key] for key in ("prior_sealed_111_unchanged","prior_v6_native_unchanged","prior_v7_services_unchanged","prior_v8_userenv_unchanged","prior_v9_sc_unchanged","apk_stage_only"))
+              assert all(not index[key] for key in ("wine_executed","prefix_initialized","device_tested","scm_verified","launch_ready"))
+              expected={
+                "rundll32":"8dce8c98e0c6e443987ae810efbc3e15c23e9947583c5a00e713cf58124316ee",
+                "rpcss":"5af9d9557d6a12cb9a91c2fb3cb2cd33119e9c3c30bad66c7b1b122ef30694ff",
+                "wine_inf":"5c7a7041399370937bdaaec11bac8ab64b910d6a1877b6afb582ad1d6a2f894a"}
+              assert set(index["assets"])==set(expected)
+              for name,sha in expected.items():
+                  rec=index["assets"][name]
+                  raw=apk.read("assets/"+rec["asset"])
+                  assert len(raw)==rec["size"] and hashlib.sha256(raw).hexdigest()==sha==rec["sha256"]
+                  if name!="wine_inf":
+                      ofs=struct.unpack_from("<I",raw,0x3c)[0]
+                      assert raw[:2]==b"MZ" and raw[ofs:ofs+4]==bytes((80,69,0,0))
+                      assert struct.unpack_from("<H",raw,ofs+4)[0]==0xaa64
+                      assert rec["unbundled_imports"]==[] and rec["delay_imports"]==[]
+                  else:
+                      inf=raw.decode("utf-8")
+                      assert "[DefaultInstall.ntarm64.Services]" in inf and "AddService=RpcSs" in inf
+              print("WINE29_V23_SIGNED_APK_PINNED_SETUP_AND_INF_SHA256=PASS")
+              print("WINE29_V23_PHONE_WINE_AND_SCM_EXECUTION=NOT_ATTEMPTED_IN_CI")
           PY
 
       - name: Verify APK signing matches persisted Charoite key
@@ -1783,6 +1850,9 @@ jobs:
           cp next-generation/CharoiteWine29V20PersistentIdleProbe.java legal-bundle/CharoiteWine29V20PersistentIdleProbe.java
           cp next-generation/CharoiteWine29V21IndependentHelpProbe.java legal-bundle/CharoiteWine29V21IndependentHelpProbe.java
           cp next-generation/CharoiteWine29V22ScmQueryProbe.java legal-bundle/CharoiteWine29V22ScmQueryProbe.java
+          cp next-generation/CharoiteWine29V23SetupProbe.java legal-bundle/CharoiteWine29V23SetupProbe.java
+          cp next-generation/stage_wine29_v23_setup.py legal-bundle/stage_wine29_v23_setup.py
+          cp upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json legal-bundle/wine29-v23-setup-index.json
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v9-sc/sc-index.json legal-bundle/wine29-v9-sc-index.json
           cp upstream/app/src/main/assets/charoite-next/wine29-v8-userenv/userenv-index.json legal-bundle/wine29-v8-userenv-index.json

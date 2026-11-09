@@ -92,13 +92,13 @@ class AutomatedDiagnosticReportingContract(unittest.TestCase):
                      'CharoiteNextAutoReports.schedule(this)', 'JobService',
                      'android.permission.BIND_JOB_SERVICE',
                      'Automatic phone diagnostics (GitHub opt-in)',
-                     'versionCode 145', '11.2-next.0.114'):
+                     'versionCode 146', '11.2-next.0.115'):
             if item == 'JobService':
                 self.assertIn('CharoiteNextAutoReports$UploadJob', PREP)
             else:
                 self.assertIn(item, PREP)
         self.assertIn('Experimental Wine29 v10 PE-entry diagnostic; SCM not verified', RUNTIME)
-        self.assertIn("versionCode='145' versionName='11.2-next.0.114'", WF)
+        self.assertIn("versionCode='146' versionName='11.2-next.0.115'", WF)
         self.assertIn('cp next-generation/CharoiteNextAutoReports.java legal-bundle/CharoiteNextAutoReports.java', WF)
 
 if __name__=="__main__":

@@ -41,7 +41,7 @@ class Wine29V10ReadOnly(unittest.TestCase):
             'CharoiteWine29V10ReadOnlyForensics.run(this)',
             'nextCoreCard.addView(wine29V10Audit);',
             '"CharoiteWine29V10ReadOnlyForensics.java"',
-            'versionCode 145', '11.2-next.0.114',
+            'versionCode 146', '11.2-next.0.115',
         ):
             with self.subTest(token=token):
                 self.assertIn(token,UI)

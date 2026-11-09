@@ -41,7 +41,7 @@ class V18PreservedIdleReadOnlyContract(unittest.TestCase):
             "wine29V18ReadOnlyAction.addView(v18ReadOnlyHandoff);",
             "nextCoreCard.addView(wine29V18ReadOnlyAction);",
             '"CharoiteWine29V18ReadOnlyForensics.java"',
-            "versionCode 145", "11.2-next.0.114",
+            "versionCode 146", "11.2-next.0.115",
         ):
             with self.subTest(required=needle):
                 self.assertIn(needle, UI)
@@ -52,7 +52,7 @@ class V18PreservedIdleReadOnlyContract(unittest.TestCase):
             "WINE29_V18_PRESERVED_IDLE_SERVER_READONLY=PASS",
             "WINE29_V18_PHONE_INSPECTION=NOT_ATTEMPTED_IN_CI",
             "cp next-generation/CharoiteWine29V18ReadOnlyForensics.java legal-bundle/CharoiteWine29V18ReadOnlyForensics.java",
-            "versionCode='145' versionName='11.2-next.0.114'",
+            "versionCode='146' versionName='11.2-next.0.115'",
         ):
             with self.subTest(required=needle):
                 self.assertIn(needle, WF)

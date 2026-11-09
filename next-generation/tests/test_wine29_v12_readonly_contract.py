@@ -50,13 +50,13 @@ class V12ReadOnlyContract(unittest.TestCase):
             "CharoiteWine29V12ReadOnlyForensics.run(this)",
             "nextCoreCard.addView(wine29V12Audit);",
             '"CharoiteWine29V12ReadOnlyForensics.java"',
-            "versionCode 145", "11.2-next.0.114",
+            "versionCode 146", "11.2-next.0.115",
         ):
             self.assertIn(token,UI)
         self.assertIn("test_wine29_v12_readonly_contract.py",WF)
         self.assertIn("WINE29_V12_PRESERVED_SC_ENTRY_READONLY_POSTMORTEM=PASS",WF)
         self.assertIn("cp next-generation/CharoiteWine29V12ReadOnlyForensics.java legal-bundle/CharoiteWine29V12ReadOnlyForensics.java",WF)
-        self.assertIn("versionCode='145' versionName='11.2-next.0.114'",WF)
+        self.assertIn("versionCode='146' versionName='11.2-next.0.115'",WF)
 
 
 if __name__ == "__main__":

@@ -46,7 +46,7 @@ class Wine29V22ScmQueryContract(unittest.TestCase):
                          'CharoiteWine29V22ScmQueryProbe.run(this)',
                          'nextCoreCard.addView(wine29V22Action);',
                          '"CharoiteWine29V22ScmQueryProbe.java"',
-                         'versionCode 145','11.2-next.0.114'):
+                         'versionCode 146','11.2-next.0.115'):
             with self.subTest(required=required):
                 self.assertIn(required, UI)
 
@@ -55,7 +55,7 @@ class Wine29V22ScmQueryContract(unittest.TestCase):
                          'WINE29_V22_SCM_QUERY_SOURCE_GATE=PASS',
                          'WINE29_V22_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
                          'cp next-generation/CharoiteWine29V22ScmQueryProbe.java legal-bundle/CharoiteWine29V22ScmQueryProbe.java',
-                         "versionCode='145' versionName='11.2-next.0.114'"):
+                         "versionCode='146' versionName='11.2-next.0.115'"):
             with self.subTest(required=required):
                 self.assertIn(required, WF)
 

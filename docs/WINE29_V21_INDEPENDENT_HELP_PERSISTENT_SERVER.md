@@ -2,7 +2,7 @@
 
 # Wine29 V21 — independent Wineboot --help with persistent private wineserver
 
-**SOURCE CANDIDATE / ON-DEVICE EXECUTION NOT AUTHORIZED UNTIL OWNER CONFIRMS IN APP.** Target experimental `com.charoitx`, versionCode **144**, versionName **11.2-next.0.113**. Source packaging and GitHub Actions signature must be verified independently before installation. The signed v0.112 V20 artifact remains the previous verified APK.
+**SIGNED APK VERIFIED — OWNER PHONE V21 EXECUTION NOT YET PERFORMED.** Experimental `com.charoitx`, versionCode **144**, versionName **11.2-next.0.113**. [**Successful GitHub Actions run 42540331427**](https://github.com/rgarn023/CharoitePortal/actions/runs/42540331427), exact APK source commit [**849db3b7733ac96d2456863b9a26cc6e5e49c661**](https://github.com/rgarn023/CharoitePortal/commit/849db3b7733ac96d2456863b9a26cc6e5e49c661), [**direct signed APK artifact 13640633583**](https://github.com/rgarn023/CharoitePortal/actions/runs/42540331427/artifacts/13640633583). Android build, package, V21 source/consent, signer continuity and source-attribution artifact PASS. CI never ran the V21 phone probe. V20 scratch is permanently consumed.
 
 ## Evidence and reason for V21
 
@@ -21,6 +21,6 @@ V20's registry presence checks immediately after direct init reported `system.re
 
 ## System action / handoff
 
-In **System → CURRENT WINE29 ACTION — V21 INDEPENDENT WINEBOOT HELP**, instructions are grouped with **Test Wine29 v21 independent help (one-shot)** and **Open current project handoff**. After installing ONLY a verified signed APK **in place** over experimental `com.charoitx`, tap Test, read the separate consent dialog and choose **Authorize ONE fresh v21 test** or **Cancel — do not execute**. Afterwards tap **Copy short report**, paste the COMPLETE report from Handoff through **END OF SHORT V21 INDEPENDENT HELP REPORT**. Never uninstall or clear app data; never run old-generation probes.
+In **System → CURRENT WINE29 ACTION — V21 INDEPENDENT WINEBOOT HELP**, instructions are grouped with **Test Wine29 v21 independent help (one-shot)** and **Open current project handoff**. After extracting the linked verified signed v0.113 APK **in place** over experimental `com.charoitx`, tap Test, read the separate consent dialog and choose **Authorize ONE fresh v21 test** or **Cancel — do not execute**. Afterwards tap **Copy short report**, paste the COMPLETE report from Handoff through **END OF SHORT V21 INDEPENDENT HELP REPORT**. Never uninstall or clear app data; never run old-generation probes.
 
 **Readiness estimate: ~30% complete / ~70% remaining**, unchanged until independent PE control, SCM, real Windows apps and gaming functionality are validated on device.

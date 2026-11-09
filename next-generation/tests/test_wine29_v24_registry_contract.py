@@ -12,6 +12,8 @@ class V24Contract(unittest.TestCase):
                       'END OF SHORT V24 PREFIX SETUP SCM REPORT','V24 scratch retained; NEVER retry or delete V24'):
             self.assertIn(token,JAVA)
         self.assertEqual(3,JAVA.count('new ProcessBuilder('))
+        self.assertIn('prior Wine29 v1-v23 scratch',JAVA)
+        self.assertIn('Wine29 V1–V23',UI)
         for token in ('charoite-next-wine29-entry-v23','.delete(','.renameTo(',
                       'clearApplicationUserData(','"start","RpcSs"','"create","RpcSs"'):
             self.assertNotIn(token,JAVA)

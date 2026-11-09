@@ -49,7 +49,7 @@ class Wine29V21IndependentHelpContract(unittest.TestCase):
                          'nextCoreCard.addView(wine29V21Action);',
                          'wine29V21Action.addView(v21HandoffButton);',
                          '"CharoiteWine29V21IndependentHelpProbe.java"',
-                         'versionCode 144', '11.2-next.0.113'):
+                         'versionCode 145', '11.2-next.0.114'):
             with self.subTest(expected=expected):
                 self.assertIn(expected, UI)
 
@@ -58,7 +58,7 @@ class Wine29V21IndependentHelpContract(unittest.TestCase):
                          'WINE29_V21_INDEPENDENT_HELP_SOURCE_GATE=PASS',
                          'WINE29_V21_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
                          'cp next-generation/CharoiteWine29V21IndependentHelpProbe.java legal-bundle/CharoiteWine29V21IndependentHelpProbe.java',
-                         "versionCode='144' versionName='11.2-next.0.113'"):
+                         "versionCode='145' versionName='11.2-next.0.114'"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, WF)
 

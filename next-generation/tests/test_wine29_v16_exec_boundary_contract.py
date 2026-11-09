@@ -62,7 +62,7 @@ class V16ExecBoundaryContract(unittest.TestCase):
             "nextCoreCard.addView(wine29V16Action);",
             "The handoff URL ",
             '"CharoiteWine29V16ExecBoundaryProbe.java"',
-            "versionCode 144", "11.2-next.0.113",
+            "versionCode 145", "11.2-next.0.114",
         ):
             with self.subTest(good=good):
                 self.assertIn(good, UI)
@@ -73,7 +73,7 @@ class V16ExecBoundaryContract(unittest.TestCase):
             "WINE29_V16_ISOLATED_EXEC_BOUNDARY_SOURCE_GATE=PASS",
             "WINE29_V16_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI",
             "cp next-generation/CharoiteWine29V16ExecBoundaryProbe.java legal-bundle/CharoiteWine29V16ExecBoundaryProbe.java",
-            "versionCode='144' versionName='11.2-next.0.113'",
+            "versionCode='145' versionName='11.2-next.0.114'",
         ):
             with self.subTest(good=good):
                 self.assertIn(good, WF)

@@ -31,11 +31,11 @@ class V17PreservedReadOnlyContract(unittest.TestCase):
             "wine29V17ReadOnlyAction.addView(v17ReadOnlyHandoff);",
             "nextCoreCard.addView(wine29V17ReadOnlyAction);",
             '"CharoiteWine29V17ReadOnlyForensics.java"',
-            "versionCode 144","11.2-next.0.113"):
+            "versionCode 145","11.2-next.0.114"):
             self.assertIn(needle,UI)
         for needle in ("test_wine29_v17_readonly_contract.py",
             "WINE29_V17_PRESERVED_CONTROL_READONLY_POSTMORTEM=PASS",
             "cp next-generation/CharoiteWine29V17ReadOnlyForensics.java legal-bundle/CharoiteWine29V17ReadOnlyForensics.java",
-            "versionCode='144' versionName='11.2-next.0.113'"):
+            "versionCode='145' versionName='11.2-next.0.114'"):
             self.assertIn(needle,WF)
 if __name__=="__main__":unittest.main()

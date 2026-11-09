@@ -15,8 +15,8 @@ class Wine29Sealed012Preflight(unittest.TestCase):
         self.assertIn('wine29SealedPe.setText("Preflight Wine29 0.12 PE imports (read-only)")', ui)
         self.assertIn('CharoiteWine29Sealed012PePreflight.run(this)', ui)
         self.assertIn('nextCoreCard.addView(wine29SealedPe);', ui)
-        self.assertIn('versionCode 144', ui)
-        self.assertIn('11.2-next.0.113', ui)
+        self.assertIn('versionCode 145', ui)
+        self.assertIn('11.2-next.0.114', ui)
         self.assertNotIn('CharoiteWine29Sealed012PePreflight.run(this)', ui.split('        nextCoreCard.addView(wine29SealedVerify);')[0])
 
     def test_no_execution_no_mutation_strict_sealed_source_gate(self):
@@ -42,7 +42,7 @@ class Wine29Sealed012Preflight(unittest.TestCase):
         wf=WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('test_wine29_012_pe_preflight.py', wf)
         self.assertIn('WINE29_012_PE_IMPORT_PREFLIGHT_NO_EXECUTION=PASS', wf)
-        self.assertIn('versionCode=\'144\' versionName=\'11.2-next.0.113\'', wf)
+        self.assertIn('versionCode=\'144\' versionName=\'11.2-next.0.114\'', wf)
 
 if __name__=="__main__":
     unittest.main()

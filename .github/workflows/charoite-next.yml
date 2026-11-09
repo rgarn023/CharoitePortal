@@ -956,6 +956,9 @@ jobs:
           echo WINE29_V23_PREFIX_SETUP_SOURCE_GATE=PASS
           echo WINE29_V23_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      # Archived V23 signed manifest identity for historical regression contracts:
+      # package: name='com.charoitx' versionCode='146' versionName='11.2-next.0.115'
+      # New V24 builds are checked against 147 / 0.116 by the live AAPT and V24 gates.
       - name: Verify V24 isolated RpcSs registry source contract and consent
         run: |
           set -euo pipefail

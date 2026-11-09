@@ -49,14 +49,14 @@ class V17ControlCompareContract(unittest.TestCase):
                          "wine29V17Action.addView(v17HandoffButton);",
                          "nextCoreCard.addView(wine29V17Action);",
                          '"CharoiteWine29V17ControlCompareProbe.java"',
-                         "versionCode 143","11.2-next.0.112"):
+                         "versionCode 144","11.2-next.0.113"):
             with self.subTest(required=required):self.assertIn(required,UI)
     def test_ci_contract_no_device_execution(self):
         for required in ("test_wine29_v17_control_compare_contract.py",
                          "WINE29_V17_ISOLATED_CONTROL_COMPARISON_SOURCE_GATE=PASS",
                          "WINE29_V17_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI",
                          "cp next-generation/CharoiteWine29V17ControlCompareProbe.java legal-bundle/CharoiteWine29V17ControlCompareProbe.java",
-                         "versionCode='143' versionName='11.2-next.0.112'"):
+                         "versionCode='144' versionName='11.2-next.0.113'"):
             with self.subTest(required=required):self.assertIn(required,WF)
 
 if __name__=="__main__":unittest.main()

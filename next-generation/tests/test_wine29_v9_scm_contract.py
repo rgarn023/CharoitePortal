@@ -35,11 +35,11 @@ class Wine29V9Scm(unittest.TestCase):
             "Test Wine29 v9 Service Manager query (one-shot)",
             "Authorize ONE v9 query","Cancel — do not execute",
             "CharoiteWine29V9ScmProbe.run(this)","nextCoreCard.addView(wine29V9Scm);",
-            "versionCode 143","11.2-next.0.112"):
+            "versionCode 144","11.2-next.0.113"):
             with self.subTest(token=token):self.assertIn(token,UI)
         for token in ("stage_wine29_v9_sc.py", "test_wine29_v9_scm_contract.py",
             "WINE29_V9_SC_SOURCE_PINNED_APK_STAGE=PASS","WINE29_V9_SIGNED_APK_ARM64_SC_SOURCE_SHA256=PASS",
-            "versionCode='143' versionName='11.2-next.0.112'"):
+            "versionCode='144' versionName='11.2-next.0.113'"):
             with self.subTest(token=token):self.assertIn(token,WF)
 
 if __name__=="__main__":unittest.main()

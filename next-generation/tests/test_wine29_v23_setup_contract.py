@@ -70,7 +70,7 @@ class Wine29V23SetupContract(unittest.TestCase):
                          'nextCoreCard.addView(wine29V23Action);',
                          'wine29V23Action.addView(v23HandoffButton)',
                          '"CharoiteWine29V23SetupProbe.java"',
-                         'versionCode 146','11.2-next.0.115'):
+                         'versionCode 147','11.2-next.0.116'):
             with self.subTest(required=required): self.assertIn(required,UI)
         for required in ('stage_wine29_v23_setup.py',
                          'Wine29-V23-Pinned-Prefix-Setup-Source-Only-NOT-APK',
@@ -78,7 +78,7 @@ class Wine29V23SetupContract(unittest.TestCase):
                          'WINE29_V23_PREFIX_SETUP_SOURCE_GATE=PASS',
                          'WINE29_V23_SIGNED_APK_PINNED_SETUP_AND_INF_SHA256=PASS',
                          'WINE29_V23_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
-                         "versionCode='146' versionName='11.2-next.0.115'",
+                         "versionCode='147' versionName='11.2-next.0.116'",
                          'cp next-generation/CharoiteWine29V23SetupProbe.java legal-bundle/CharoiteWine29V23SetupProbe.java'):
             with self.subTest(required=required): self.assertIn(required,WF)
 

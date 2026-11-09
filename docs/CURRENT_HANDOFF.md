@@ -2,11 +2,19 @@
 
 # CHAROITE NEXT — CURRENT HANDOFF | November 8, 2026
 
-## Latest VERIFIED signed experimental APK — V23 v0.115 (NEW install/test action)
+## V23 OWNER RESULT + V24 SOURCE CHANGE — CI SIGNED APK NOT YET VERIFIED
+
+**V23 completed on owner's device, November 8, 2026:** source-verified Wineboot `-i` native exit 0, private persistent wineserver alive during one independent ARM64 `sc.exe query RpcSs`; native query exit **36** with **Windows service error 1060**, no RpcSs service status. Post-intentional-finalization file METADATA only: `system.reg` **29,733 bytes** vs V22 1,981; `user.reg` 1,858; `userdef.reg` 123. Full INF/service registration is UNVERIFIED. **V23 is permanently consumed: never retry, inspect, reset, delete, clean, or repurpose.**
+
+**V24 new isolated ONE-SHOT candidate (requires signed CI verification and owner's in-app consent):** `com.charoitx` versionCode **147**, versionName **11.2-next.0.116**. Reuse source-pinned V23 setup assets unchanged. Fresh private `charoite-next-wine29-entry-v24` scratch ONLY; foreground persistent server; one pinned Wineboot `-i` (may internally invoke INF/SetupAPI), ONE independent gated `sc.exe query RpcSs`; then intentionally finalize V24 server. Only **after finalization**, inspect the NEW V24 `system.reg` bounded (regular file, no symlink, max 1 MiB) for boolean RpcSs service-key and ImagePath/Start/Type-field presence. NO raw registry values, paths, keys or process logs in short report; no extra SCM commands, game execution, historical scratch access, user data mutation or network. Archived V23 execution button hidden. **V24 has not yet run on phone.** Do not install an unverified source candidate.
+
+**Charoite 1.0:** approximately **30% complete / 70% remaining**. No RpcSs readiness or game capabilities inferred.
+
+## Last verified signed experimental APK — V23 v0.115 (CONSUMED; DO NOT REUSE)
 
 **LATEST VERIFIED SIGNED CHAROITE NEXT v0.115 — NOVEMBER 8, 2026 — WINE29 V23 PINNED INF SETUP + RPCSS QUERY:** [**GitHub Actions run 42554074981 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/42554074981), exact signed APK code commit [**8c43dd36892d6a32700bd5428b9e2a75022741dc**](https://github.com/rgarn023/CharoitePortal/commit/8c43dd36892d6a32700bd5428b9e2a75022741dc), [**DOWNLOAD SIGNED NEXT v0.115 APK — ACTIONS ARTIFACT 13646598124**](https://github.com/rgarn023/CharoitePortal/actions/runs/42554074981/artifacts/13646598124) (one ZIP containing signed APK; **461,614,886 ZIP bytes**, GitHub archive SHA-256 **`bd49b64cd092dc09c56d21e4640dc24445c13ce3ece75e6d7c34cd82adba8122`**, expires **2027-02-07T03:01:32Z**). [**Sources and LGPL attribution artifact 13646941458**](https://github.com/rgarn023/CharoitePortal/actions/runs/42554074981/artifacts/13646941458) (670,060 ZIP bytes; SHA-256 `90742d0011b0e9553d997d28798cafc4563061a4f7c2d0be05227184a5082fca`).
 
-**All signed APK CI gates PASS:** 279 Next source/regression tests, original native/PE/NLS provenance, exact V23 ARM64 `rundll32.exe` + `rpcss.exe` + generated `wine.inf` hash/PE/INF validation, V23 explicit one-shot consent, Android Gradle build, AAPT package `com.charoitx`, **versionCode 146**, **versionName `11.2-next.0.115`**, persisted signer certificate SHA-256 **`d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`**. Source-only V23 CI [42552476223](https://github.com/rgarn023/CharoitePortal/actions/runs/42552476223) also SUCCESS; no Wine/Android test on user's phone is implied. **V23 PHONE TEST NOT YET ATTEMPTED**. Real RpcSs registration remains UNVERIFIED.
+**All signed APK CI gates PASS:** 279 Next source/regression tests, original native/PE/NLS provenance, exact V23 ARM64 `rundll32.exe` + `rpcss.exe` + generated `wine.inf` hash/PE/INF validation, V23 explicit one-shot consent, Android Gradle build, AAPT package `com.charoitx`, **versionCode 146**, **versionName `11.2-next.0.115`**, persisted signer certificate SHA-256 **`d6790e512d182a4642d9a558db2508a3e20e82b5f5aa54847fd6206e7d42a175`**. Source-only V23 CI [42552476223](https://github.com/rgarn023/CharoitePortal/actions/runs/42552476223) also SUCCESS; no Wine/Android test on user's phone is implied. **V23 PHONE TEST COMPLETED: 1060**. Real RpcSs registration remains UNVERIFIED.
 
 **Previous verified signed v0.114 V22 artifact:** [Actions run 42546439374](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374), [APK artifact 13644080090](https://github.com/rgarn023/CharoitePortal/actions/runs/42546439374/artifacts/13644080090). V22 phone query returned Windows service error 1060 and native exit 36; V22 is consumed and cannot be rerun or deleted.
 
@@ -40,7 +48,7 @@ V23 source-only [**Actions run 42552476223 — SUCCESS**](https://github.com/rga
 
 **Verified V23 Next APK v0.115 / versionCode 146** stages only three additional source-verifiable setup assets into experimental `com.charoitx`, retains original 111 PE/NLS and all original native hashes, sets isolated `WINEDATADIR` with verified INF, and allows internal Wineboot SetupAPI before one independent gated `sc.exe query RpcSs`. **All previous Wine29 V1–V22 scratch permanently untouched**. Source-only CI candidate is never installable and must not be installed. Signed V23 [**APK artifact 13646598124**](https://github.com/rgarn023/CharoitePortal/actions/runs/42554074981/artifacts/13646598124) **VERIFIED by GitHub Actions**, but the real V23 one-shot phone test remains unattempted. Do not treat any CI success as proof of registered RpcSs or game support.
 
-### System → CURRENT WINE29 ACTION — VERIFIED V23 PHONE TEST (OWNER OPT-IN)
+### ARCHIVED V23 — DO NOT EXECUTE
 
 **Install and test only if ready now:** Use [**signed Next v0.115 APK artifact 13646598124**](https://github.com/rgarn023/CharoitePortal/actions/runs/42554074981/artifacts/13646598124), extract the single `Charoite-Next-Android.apk`, then **INSTALL IN PLACE** over experimental `com.charoitx`. NEVER uninstall, clear storage, reset existing data, or install over stable Portal `com.charoite`.
 

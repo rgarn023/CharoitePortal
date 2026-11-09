@@ -1,0 +1,149 @@
+name: Wine29 V23 Source-Built Prefix Setup Candidates (No APK)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-v23-prefix-setup-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-only-prefix-setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify source-only V23 contract
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v23_prefix_setup_source_contract.py' -v
+          grep -Fq c74acb09d51b447f5d5ac56c87608d3ec565a767 next-generation/charoite-wine/prepare-source.sh
+          echo WINE29_V23_SOURCE_ONLY_NO_PHONE_PREFIX=PASS
+
+      - name: Retrieve original pinned 34-DLL provider archive (READ ONLY)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-v23-sealed"
+          gh run download 41947164001 --repo "$GITHUB_REPOSITORY" --name Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK --dir "$RUNNER_TEMP/wine29-v23-sealed"
+          echo "ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e  $RUNNER_TEMP/wine29-v23-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" | sha256sum --check
+
+      - uses: android-actions/setup-android@v4
+      - name: Install pinned Android NDK
+        run: |
+          set -euo pipefail
+          sdkmanager --install 'ndk;27.3.13750724'
+          test -x "$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Retrieve checksummed LLVM-MinGW for HOST inspection
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/llvm-mingw-20261020.tar.xz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --connect-timeout 25 --max-time 300 "https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz" -o "$ARCHIVE"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $ARCHIVE" | sha256sum --check
+          mkdir "$RUNNER_TEMP/charoite-llvm-mingw"
+          tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP/charoite-llvm-mingw" --strip-components=1
+          test -x "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+
+      - name: Prepare pinned, patched Wine source in NEW CI-only scratch
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v23-setup-source"
+          test ! -e "$ROOT"
+          bash next-generation/charoite-wine/prepare-source.sh "$ROOT"
+          python3 analysis/wine29_bootstrap/patch_v6_child_loader.py "$ROOT"
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*rundll32\.exe$' "$ROOT/programs/rundll32/Makefile.in"
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*rpcss\.exe$' "$ROOT/programs/rpcss/Makefile.in"
+          grep -Fq 'AddService=RpcSs' "$ROOT/loader/wine.inf.in"
+          git -C "$ROOT" diff --check
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh "$ROOT" "$ANDROID_HOME/ndk/27.3.13750724" "$RUNNER_TEMP/charoite-llvm-mingw"
+          echo WINE29_V23_PINNED_PREFIX_SETUP_SOURCE=PASS
+
+      - name: Cross-build ARM64 rundll32/rpcss and generate Wine INF (NEVER execute)
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-wine29-v23-setup-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-v23-setup-candidate"
+          test ! -e "$OUT"
+          cd "$BUILD"
+          make -j2 programs/rundll32/aarch64-windows/rundll32.exe programs/rpcss/aarch64-windows/rpcss.exe loader/wine.inf
+          mkdir "$OUT"
+          cp programs/rundll32/aarch64-windows/rundll32.exe "$OUT/rundll32-arm64.exe"
+          cp programs/rpcss/aarch64-windows/rpcss.exe "$OUT/rpcss-arm64.exe"
+          cp loader/wine.inf "$OUT/wine.inf"
+          for name in rundll32 rpcss; do
+            BIN="$OUT/${name}-arm64.exe"
+            test -s "$BIN" && test ! -L "$BIN"
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/${name}-pe-header.txt"
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$BIN" > "$OUT/${name}-coff-imports.txt"
+          done
+          cd "$GITHUB_WORKSPACE"
+          python3 - "$OUT" "$RUNNER_TEMP" "$GITHUB_SHA" <<'PY'
+          import hashlib,importlib.util,json,pathlib,struct,sys
+          folder=pathlib.Path(sys.argv[1]); runner=pathlib.Path(sys.argv[2])
+          def load(path,name):
+              spec=importlib.util.spec_from_file_location(name,path)
+              obj=importlib.util.module_from_spec(spec);spec.loader.exec_module(obj)
+              return obj
+          repo=pathlib.Path.cwd()
+          sealed=load(repo/"next-generation/stage_wine29_sealed012.py","wine29_v23_sealed")
+          pe=load(repo/"next-generation/wine29-imports/classify.py","wine29_v23_imports")
+          manifest,payload=sealed.validate_archive(runner/"wine29-v23-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz")
+          providers={name.rsplit("/",1)[-1] for name in payload if name.startswith("data/pe/arm64ec/")}
+          assert len(providers)==34 and manifest["pe_dll_count"]==34
+          rows={}
+          for item,mandatory in (("rundll32","kernelbase.dll"),("rpcss","rpcrt4.dll")):
+              filename=item+"-arm64.exe"
+              raw=(folder/filename).read_bytes()
+              assert 1024<len(raw)<32*1024*1024 and raw[:2]==b"MZ"
+              off=struct.unpack_from("<I",raw,0x3c)[0]
+              assert 64<=off<len(raw)-24 and raw[off:off+4]==b"PE\0\0"
+              machine=struct.unpack_from("<H",raw,off+4)[0]
+              assert machine==0xAA64,f"{item} COFF machine {machine:#x} is not Windows ARM64"
+              assert "ARM64" in (folder/(item+"-pe-header.txt")).read_text()
+              ordinary,delayed=pe.pe_imports(raw)
+              assert mandatory in ordinary, (item,ordinary)
+              gaps=sorted((set(ordinary)|set(delayed))-providers)
+              rows[item]={"file":filename,"image_name":item+".exe","pe_machine":"0xAA64",
+                           "size":len(raw),"sha256":hashlib.sha256(raw).hexdigest(),
+                           "ordinary_imports":ordinary,"delay_imports":delayed,
+                           "unbundled_imports":gaps}
+              print("WINE29_V23_"+item.upper()+"_UNBUNDLED_IMPORTS",gaps)
+              assert not gaps,f"Cannot stage {item}: missing pinned DLL provider(s) {gaps}"
+          inf=(folder/"wine.inf").read_bytes()
+          assert 4096<len(inf)<1024*1024
+          decoded=inf.decode("utf-8-sig",errors="replace")
+          assert "[DefaultInstall.ntarm64.Services]" in decoded
+          assert "AddService=RpcSs" in decoded
+          assert "[RpcSsService]" in decoded
+          assert "ServiceBinary=" in decoded
+          record={"schema_version":1,"generation":"wine29-v23-prefix-setup-source-only",
+                  "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+                  "source_build_commit":sys.argv[3],"package_intended":"com.charoitx",
+                  "sealed_34_provider_count":34,"pe":rows,
+                  "inf":{"file":"wine.inf","size":len(inf),
+                         "sha256":hashlib.sha256(inf).hexdigest(),
+                         "arm64_default_service_section":True,"rpcss_install_declared":True},
+                  "source_candidate_only":True,"android_apk_built":False,
+                  "wine_executed":False,"windows_pe_executed":False,
+                  "device_tested":False,"prefix_created":False,
+                  "scm_verified":False,"launch_ready":False}
+          (folder/"prefix-setup-manifest.json").write_text(json.dumps(record,indent=2,sort_keys=True)+"\n")
+          print("WINE29_V23_INF_AND_ARM64_COMPONENTS_SOURCE_GATE=PASS")
+          print("WINE29_V23_PHONE_EXECUTION=NOT_ATTEMPTED")
+          PY
+
+      - name: Publish pinned source candidates and provenance only (NOT APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-V23-Pinned-Prefix-Setup-Source-Only-NOT-APK
+          path: wine29-v23-setup-candidate/
+          retention-days: 60
+          if-no-files-found: error

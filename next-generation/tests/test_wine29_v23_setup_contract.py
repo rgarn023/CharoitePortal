@@ -78,7 +78,7 @@ class Wine29V23SetupContract(unittest.TestCase):
                          'WINE29_V23_PREFIX_SETUP_SOURCE_GATE=PASS',
                          'WINE29_V23_SIGNED_APK_PINNED_SETUP_AND_INF_SHA256=PASS',
                          'WINE29_V23_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI',
-                         "versionCode='147' versionName='11.2-next.0.116'",
+                         "versionCode='148' versionName='11.2-next.0.117'",
                          'cp next-generation/CharoiteWine29V23SetupProbe.java legal-bundle/CharoiteWine29V23SetupProbe.java'):
             with self.subTest(required=required): self.assertIn(required,WF)
 

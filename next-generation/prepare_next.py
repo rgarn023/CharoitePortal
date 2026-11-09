@@ -37,10 +37,12 @@ assert text.count("versionCode 33") == 1
 # versionCode 147; versionName 11.2-next.0.116 (NEVER use these for new builds).
 # Historical V25: versionCode 148; versionName 11.2-next.0.117 (NEVER rerun).
 # Historical V26: versionCode 149; versionName 11.2-next.0.118 (NEVER rerun).
+# Historical V27: versionCode 150; versionName 11.2-next.0.119 (NEVER rerun).
+# V28 active: versionCode 151; versionName 11.2-next.0.120.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.119"')
-text = text.replace("versionCode 33", "versionCode 150")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.120"')
+text = text.replace("versionCode 33", "versionCode 151")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -225,7 +227,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V24RegistryProbe.java",
                    "CharoiteWine29V25InfTraceProbe.java",
                    "CharoiteWine29V26DefaultInstallProbe.java",
-                   "CharoiteWine29V27MappedInfProbe.java"):
+                   "CharoiteWine29V27MappedInfProbe.java",
+                   "CharoiteWine29V28FocusedInfProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3487,6 +3490,10 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V26Action);
         } // Archived V26; scratch preserved, no cleanup.
 
+        // V27 owner test consumed: helper hit log cap, RpcSs absent, no SCM query.
+        // V27 scratch is permanently preserved; its action is source-archived only.
+        final boolean showArchivedWine29V27Execution = false;
+        if (showArchivedWine29V27Execution) {
         // V27 alone visible: new private C: mapped INF action and consent.
         // ACTIVE V27: source-pinned Wine INF setup and ONE independent RpcSs query.
         LinearLayout wine29V27Action = card();
@@ -3566,6 +3573,87 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V27Action.addView(v27HandoffButton);
         nextCoreCard.addView(wine29V27Action);
+        } // Archived V27; no retry or cleanup permitted.
+
+        // ACTIVE V28: only one new fresh-prefix SetupAPI trace / RpcSs query action.
+        LinearLayout wine29V28Action = card();
+        wine29V28Action.addView(label(
+                "CURRENT WINE29 ACTION — V28 FOCUSED SETUPAPI TRACE + RPCSS QUERY",
+                16, FOREGROUND, true));
+        wine29V28Action.addView(label(
+                "NEW PRIVATE V28 SCRATCH ONLY; NOT READ ONLY. Bounded Wineboot INF trace enabled. " +
+                "Independent helper debug is LIMITED to SetupAPI and errors, 4 MiB / 35 seconds, to avoid V27 log flood. Source-built wine.inf, " +
+                "rundll32.exe and rpcss.exe are verified before new scratch creation. " +
+                "Wineboot may internally invoke SetupAPI. With separate one-shot " +
+                "consent, verify source-pinned assets, start one private persistent -p " +
+                "wineserver and direct Wineboot -i. If no internal DefaultInstall marker is observed, " +
+                "ONLY after successful -i launch ONE source-verified rundll32.exe SetupAPI " +
+                "DefaultInstall using a SHA-256-matched INF placed in the NEW V28 C: Windows INF directory, " +
+                "not a Unix host path. After helper/server gates, " +
+                "launch one independent source-verified ARM64 sc.exe " +
+                "query RpcSs via the matched APK loader. The query requests status, " +
+                "NOT service modification; Wineboot/internal services can create files. " +
+                "Record bounded INF and explicit DefaultInstall helper, SCM and post-finalization V28 system.reg service-key " +
+                "presence flags only; NEVER report registry values, raw keys or paths. NO SCM mutations, extra setup commands, independent " +
+                "Wineboot help, games, installers or network. All Wine29 V1–V27, Wine28, " +
+                "stable Portal, games, saves, user prefixes and rootfs NOT ACCESSED. " +
+                "V28 scratch/logs preserved forever, even on failure. Never retry, delete, " +
+                "uninstall or clear storage. Copy FULL short report from Handoff through " +
+                "END OF SHORT V28 PREFIX SETUP SCM REPORT.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V28Exec = new android.widget.Button(this);
+        wine29V28Exec.setText("Test Wine29 v28 C: INF + RpcSs (one-shot)");
+        wine29V28Exec.setAllCaps(false);
+        wine29V28Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh V28 DefaultInstall + RpcSs query?")
+                .setMessage("THIS EXECUTES WINE in a NEW private V28 scratch ONLY. " +
+                    "One private persistent wineserver and direct Wineboot -i may " +
+                    "internally invoke rundll32/SetupAPI. If -i succeeds and no " +
+                    "DefaultInstall marker occurs, ONE additional independent " +
+                    "source-pinned rundll32.exe setupapi DefaultInstall using a SHA-256-matched " +
+                    "INF inside the NEW V28 C: mapping may CREATE " +
+                    "services in NEW V28 prefix ONLY; then ONE sc.exe query " +
+                    "RpcSs may execute. Wine may start internal services and write " +
+                    "the fresh prefix during INF installation. This is " +
+                    "NOT read-only initialization. After finalization, read ONLY V28 system.reg for fixed service-key " +
+                    "presence flags, not raw registry values or paths. No extra SCM " +
+                    "operations, Wineboot help, games, installers or network. " +
+                    "Never access V1–V27 scratch, Wine28, Portal, games, saves or " +
+                    "user prefixes. Preserve V28 logs/scratch permanently, no retry " +
+                    "or cleanup; stop only V28-owned processes at finalization. " +
+                    "Do you authorize this ONE new V28 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v28 test", (dialog, which) -> {
+                    wine29V28Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V28Exec.setEnabled(false);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V28 DefaultInstall and SCM query")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 V28 DefaultInstall + SCM report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V28FocusedInfProbe").start();
+                }).show());
+        wine29V28Action.addView(wine29V28Exec);
+        android.widget.Button v28HandoffButton = new android.widget.Button(this);
+        v28HandoffButton.setText("Open current project handoff");
+        v28HandoffButton.setAllCaps(false);
+        v28HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V28Action.addView(v28HandoffButton);
+        nextCoreCard.addView(wine29V28Action);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

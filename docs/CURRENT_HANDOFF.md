@@ -2,6 +2,22 @@
 
 # CHAROITE NEXT — CURRENT HANDOFF | November 9, 2026
 
+## V27 OWNER PHONE RESULT — COMPLETE / PERMANENTLY CONSUMED
+
+The owner executed the sole V27 source-pinned mapped-C: INF test on November 9, 2026. Verified Wine29 native/PE/NLS/SetupAPI assets and new-private C: INF staging all PASS. A persistent private wineserver established socket+lock, and source-verified Wineboot `-i` finished native exit 0. An independent source-built `rundll32.exe setupapi,InstallHinfSection DefaultInstall 128 C:\\windows\\inf\\charoite-v27.inf` was attempted in V27 scratch only, but exceeded its **2 MiB debug log limit** before exiting. The bounded helper was forcibly stopped; it did **not** time out; no SetupAPI success or failure marker can be inferred from the over-limit log. Therefore independent `sc.exe query RpcSs` was **NOT ATTEMPTED**. Finalized V27 registry metadata: `system.reg` 56,176 B, `user.reg` 7,895 B, `userdef.reg` 123 B; bounded scan recognized Wine format and exactly one Services service-root section, but exact **RpcSs root and its ImagePath/Start/Type all ABSENT**. An unrelated Services root is not proof RpcSs is registered. No games or wider SCM tested. **V27 scratch/logs are permanently consumed: do not retry, delete, clean, repurpose, or inspect without a new explicitly bounded read-only authorization.** Wine28, earlier Wine29 generations, stable Portal, games, saves, and rootfs remain untouched.
+
+## V28 NEW SOURCE — FOCUSED, BOUNDED SETUPAPI DIAGNOSTIC (PHONE NOT TESTED)
+
+V28 uses **NEW private `charoite-next-wine29-entry-v28` scratch ONLY**, independently guarded one-shot. Existing hashes, pinned Wine binaries, ARM64-INF, native selector and verified isolated C: mapping stay intact. Only the single independent helper after successful Wineboot `-i` and absent internal DefaultInstall marker gets **restricted `WINEDEBUG=-all,err+all,+setupapi`** (no broad process/module/file/server traces) and a still-bounded **35-second / 4 MiB** output gate. This targets V27's trace flood and adds fixed, privacy-preserving INF-open failure marker reporting; actual INF execution is **not guaranteed**. If helper finishes cleanly and all safety gates pass, at most ONE source-pinned **`sc.exe query RpcSs`** may execute; no SCM writes, extra control commands, or games. Finalized registry scans remain confined to the NEW V28 scratch, with booleans only. V28 does not read or change V27 or older scratch; it must never be retried after its first phone execution.
+
+Active Next APK target: **`com.charoitx`**, versionCode **151**, versionName **`11.2-next.0.120`**; original upgrade signing key preserved. Source-only gates, signed APK build and Android AAPT identity must PASS before presenting an install link. CI does not execute Android Wine/SetupAPI/SCM. **Do not install or run V28 until the signed APK artifact is verified.**
+
+### System → V28 PHONE ACTION (ONLY AFTER VERIFIED SIGNED APK)
+
+Once an exact verified Actions artifact is linked here: download the `Charoite-Core-Next-Android-APK` ZIP, extract the signed `Charoite-Next-Android.apk`, install **in place** over `com.charoitx`; never uninstall, wipe data, or alter `com.charoite`. In **Charoite Next → System**, the only visible Wine29 one-shot action is `Test Wine29 v28 C: INF + RpcSs (one-shot)`, with explicit consent, warning, copy report and Open Handoff together. The test **may create services only inside the new V28 private prefix**; it is **not read-only**. Run once if explicitly approved, copy the complete short report and send it for review. All existing prefixes, user data and games remain out of scope.
+
+**Estimated Charoite 1.0: ~30% COMPLETE / ~70% REMAINING.** A successful APK build will not establish RpcSs or game compatibility; device evidence is required.
+
 ## V26 OWNER PHONE RESULT — COMPLETE AND PERMANENTLY CONSUMED
 
 Owner V26 one-shot: source-verified Wineboot `-i` native exit **0**; internal PreInstall seen, internal DefaultInstall **absent**. ONE independent source-built ARM64 `rundll32.exe setupapi,InstallHinfSection DefaultInstall` helper completed (exit **0**) with output and no observed native child/module failure, receiving a new-private **Unix pathname** for `wine.inf`. ONE source-built ARM64 `sc.exe query RpcSs` finished (native exit **36**) with SCM error **1060: service does not exist**, no service state. Private persistent wineserver socket/lock survived through SCM query. No wider SCM or game execution.

@@ -993,7 +993,7 @@ jobs:
           echo WINE29_V26_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
       # V26 owner phone one-shot consumed: RpcSs SCM error 1060.
-      - name: Verify V27 isolated mapped Windows C: INF and RpcSs query
+      - name: Verify V27 isolated mapped Windows C-drive INF and RpcSs query
         run: |
           set -euo pipefail
           python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v27_mapped_inf_contract.py' -v

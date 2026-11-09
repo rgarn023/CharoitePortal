@@ -3255,7 +3255,7 @@ ui = ui.replace(anchor, anchor + """
                 "NOT service modification; Wineboot/internal services can create files. " +
                 "Record SCM markers plus post-finalization V24 system.reg service-key " +
                 "presence flags only; NEVER report registry values, raw keys or paths. NO additional SCM commands, independent " +
-                "Wineboot help, games, installers or network. All Wine29 V1–V21, Wine28, " +
+                "Wineboot help, games, installers or network. All Wine29 V1–V23, Wine28, " +
                 "stable Portal, games, saves, user prefixes and rootfs NOT ACCESSED. " +
                 "V24 scratch/logs preserved forever, even on failure. Never retry, delete, " +
                 "uninstall or clear storage. Copy FULL short report from Handoff through " +
@@ -3277,7 +3277,7 @@ ui = ui.replace(anchor, anchor + """
                     "NOT read-only initialization. After finalization, read ONLY V24 system.reg for fixed service-key " +
                     "presence flags, not raw registry values or paths. No extra SCM " +
                     "operations, Wineboot help, games, installers or network. " +
-                    "Never access V1–V21 scratch, Wine28, Portal, games, saves or " +
+                    "Never access V1–V23 scratch, Wine28, Portal, games, saves or " +
                     "user prefixes. Preserve V24 logs/scratch permanently, no retry " +
                     "or cleanup; stop only V24-owned processes at finalization. " +
                     "Do you authorize this ONE new V24 execution?")

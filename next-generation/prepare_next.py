@@ -31,8 +31,8 @@ assert text.count("/.android/debug.keystore") == 1, "Original signing identity p
 text = text.replace("/.android/debug.keystore", "/.android/charoite-next.keystore")
 assert text.count('versionName "11.2"') == 1
 assert text.count("versionCode 33") == 1
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.112"')
-text = text.replace("versionCode 33", "versionCode 143")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.113"')
+text = text.replace("versionCode 33", "versionCode 144")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -210,7 +210,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                   "CharoiteWine29V17ReadOnlyForensics.java",
                   "CharoiteWine29V18ServerIdleProbe.java",
                    "CharoiteWine29V18ReadOnlyForensics.java",
-                   "CharoiteWine29V20PersistentIdleProbe.java"):
+                   "CharoiteWine29V20PersistentIdleProbe.java",
+                   "CharoiteWine29V21IndependentHelpProbe.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -2940,7 +2941,10 @@ ui = ui.replace(anchor, anchor + """
         } // V18 read-only report complete; historical evidence permanently preserved.
 
 
-        // ACTIVE V20: new isolated persistence comparison only; all prior actions archived.
+        // V20 is permanently consumed on the owner device; keep its UI compiled but unreachable.
+        final boolean showArchivedWine29V20Execution = false;
+        if (showArchivedWine29V20Execution) {
+        // ARCHIVED V20: source preserved, never expose a second launch.
         LinearLayout wine29V20Action = card();
         wine29V20Action.addView(label(
                 "CURRENT WINE29 ACTION — V20 PERSISTENT SERVER IDLE",
@@ -3007,6 +3011,74 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V20Action.addView(v20HandoffButton);
         nextCoreCard.addView(wine29V20Action);
+        } // V20 consumed; no replay, cleanup or access.
+
+        // ACTIVE V21: NEW private scratch only, direct Wineboot then one independent help.
+        LinearLayout wine29V21Action = card();
+        wine29V21Action.addView(label(
+                "CURRENT WINE29 ACTION — V21 INDEPENDENT WINEBOOT HELP",
+                16, FOREGROUND, true));
+        wine29V21Action.addView(label(
+                "NEW PRIVATE V21 SCRATCH ONLY. NOT READ ONLY. After separate one-shot " +
+                "authorization this test verifies pinned modules, starts one -p private " +
+                "wineserver, performs one direct Wineboot -i, then ONLY if initialization " +
+                "and server gates pass, invokes one independent Wineboot --help using " +
+                "the same verified native loader and ARM64 PE. It records bounded exits, " +
+                "DLL/child-exec markers, live server status and pre/post-finalization " +
+                "registry FILE METADATA ONLY, never contents. No independent sc.exe, " +
+                "SCM query, installers, games, network or repeated control launches. " +
+                "V1–V20, Wine28, stable Portal, original user prefixes, saves and rootfs " +
+                "are NOT ACCESSED. V21 scratch/logs remain forever, even if it fails. " +
+                "Tap Test → Authorize ONE fresh v21 test or Cancel. Copy the COMPLETE " +
+                "short report from Handoff through END OF SHORT V21 INDEPENDENT HELP REPORT. " +
+                "Never retry V21, uninstall or clear storage.",
+                12, SECONDARY, false));
+        android.widget.Button wine29V21Exec = new android.widget.Button(this);
+        wine29V21Exec.setText("Test Wine29 v21 independent help (one-shot)");
+        wine29V21Exec.setAllCaps(false);
+        wine29V21Exec.setOnClickListener(v ->
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Authorize ONE fresh V21 independent Wineboot --help test?")
+                .setMessage("THIS EXECUTES WINE in a NEW private V21 scratch only. " +
+                    "One persistent -p wineserver and one direct Wineboot -i may run; " +
+                    "ONLY after successful init, one additional native loader launches " +
+                    "the pinned Wineboot --help. Wine may start internal services. " +
+                    "No sc.exe, SCM query, games, installer or network. All process " +
+                    "logs and scratch remain preserved; no retries, deletion, cleanup, " +
+                    "or access to V20/prior scratch, stable Portal, games or saves. " +
+                    "Owned V21 processes alone may be stopped at finalization. " +
+                    "Do you authorize this ONE new V21 execution?")
+                .setNegativeButton("Cancel — do not execute", null)
+                .setPositiveButton("Authorize ONE fresh v21 test", (dialog, which) -> {
+                    wine29V21Exec.setEnabled(false);
+                    new Thread(() -> {
+                        final String report =
+                            com.charoitegames.core.CharoiteWine29V21IndependentHelpProbe.run(this);
+                        runOnUiThread(() -> {
+                            wine29V21Exec.setEnabled(false);
+                            new android.app.AlertDialog.Builder(this)
+                                .setTitle("Charoite Next — V21 independent help")
+                                .setMessage(report)
+                                .setPositiveButton("Copy short report", (dlg, btn) -> {
+                                    android.content.ClipboardManager cb =
+                                        (android.content.ClipboardManager)
+                                            getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
+                                            "Charoite Wine29 V21 independent help report", report));
+                                })
+                                .setNegativeButton("Close", null).show();
+                        });
+                    }, "CharoiteWine29V21IndependentHelpProbe").start();
+                }).show());
+        wine29V21Action.addView(wine29V21Exec);
+        android.widget.Button v21HandoffButton = new android.widget.Button(this);
+        v21HandoffButton.setText("Open current project handoff");
+        v21HandoffButton.setAllCaps(false);
+        v21HandoffButton.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        wine29V21Action.addView(v21HandoffButton);
+        nextCoreCard.addView(wine29V21Action);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;

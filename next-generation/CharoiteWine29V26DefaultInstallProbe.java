@@ -27,7 +27,7 @@ import org.json.JSONObject;
  * Previous V1–V25 scratch, user prefixes, games, saves, rootfs and stable Portal
  * are never accessed. The V26 scratch is retained and never retried or deleted.
  */
-public final class CharoiteWine29V26InfTraceProbe {
+public final class CharoiteWine29V26DefaultInstallProbe {
     private static final String PACKAGE = "com.charoitx";
     private static final String STAGE_ROOT = "charoite-next-wine29-012-sealed-pe-nls/wine10-arm64ec-dependencies-0.12-sealed-pe-nls";
     private static final String SCRATCH = "charoite-next-wine29-entry-v26";
@@ -51,7 +51,7 @@ public final class CharoiteWine29V26InfTraceProbe {
     private static final long LIMIT = 128L * 1024L * 1024L;
     private static final long TIMEOUT = 25L;
     private static final long MAX_LOG = 8L * 1024L * 1024L;
-    private CharoiteWine29V26InfTraceProbe() {}
+    private CharoiteWine29V26DefaultInstallProbe() {}
 
     private static File child(File parent, String name) throws Exception {
         File base = parent.getCanonicalFile();

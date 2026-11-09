@@ -24,7 +24,7 @@ import org.json.JSONObject;
  * Uses the matched V6 NOEXEC=1 environment for direct Wineboot -i, then ONE independent sc.exe query RpcSs only after successful initialization.
  * A brand-new V24 private prefix only; Wineboot and internal helpers may run.
  * Only sc.exe query RpcSs may execute after gated init; no other SCM operations or games.
- * Previous V1–V22 scratch, user prefixes, games, saves, rootfs and stable Portal
+ * Previous V1–V23 scratch, user prefixes, games, saves, rootfs and stable Portal
  * are never accessed. The V24 scratch is retained and never retried or deleted.
  */
 public final class CharoiteWine29V24RegistryProbe {
@@ -677,7 +677,7 @@ public final class CharoiteWine29V24RegistryProbe {
         out.append("CHAROITE NEXT — ISOLATED WINE29 V24 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
         out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v24 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
         out.append("Source-verified v9 sc.exe, v8 userenv.dll, v7 services.exe and original native/sealed modules, NEW v24 scratch ONLY\n");
-        out.append("Wine28, prior Wine29 v1-v22 scratch, stable Portal, games/saves/user prefixes/rootfs: NOT ACCESSED\n");
+        out.append("Wine28, prior Wine29 v1-v23 scratch, stable Portal, games/saves/user prefixes/rootfs: NOT ACCESSED\n");
         if (!PACKAGE.equals(context.getPackageName()) || Build.VERSION.SDK_INT < 26)
             return shortReport(out.append("RESULT: BLOCKED — unsupported package/device\n"));
         String preflight = CharoiteWine29Sealed012PePreflight.run(context);
@@ -875,7 +875,7 @@ public final class CharoiteWine29V24RegistryProbe {
             out.append("V8 PE machine lookup: ARM64, search suffix /aarch64-windows\n");
             out.append("V24 WINEDLLPATH: isolated scratch-local verified PE root (path redacted)\n");
             out.append("V8 kernel32 PE: verified aarch64-windows/kernel32.dll present\n");
-            out.append("V24 prior Wine29 v1-v22 scratch directories: NOT ACCESSED; independent new scratch\n");
+            out.append("V24 prior Wine29 v1-v23 scratch directories: NOT ACCESSED; independent new scratch\n");
             File prefix=child(scratch,"prefix");
             mkdir(prefix);
             for (String p:new String[]{"home","tmp","cache","config","xdg-runtime"})

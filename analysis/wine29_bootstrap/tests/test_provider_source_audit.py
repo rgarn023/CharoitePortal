@@ -59,6 +59,38 @@ class ProviderAudit(unittest.TestCase):
         self.assertFalse(result["provider_native_companions_verified"])
         self.assertFalse(result["provider_import_closure_verified"])
 
+    def test_dependency_first_order_is_stable_and_not_a_build_claim(self):
+        inputs = fixtures()
+        inputs["winehid.sys"] = (
+            "MODULE = winehid.sys\nIMPORTS = winebus ntoskrnl\n")
+        inputs["mouhid.sys"] = (
+            "MODULE = mouhid.sys\nIMPORTS = winehid ntoskrnl\n")
+        names = {"x%02d.dll" % i for i in range(34)}
+        report = A.analyze(inputs, names, set(A.SOURCE_BLOBS))
+        order = report["provider_source_build_order"]
+        self.assertEqual(len(order), 8)
+        self.assertEqual(set(order), set(A.SOURCE_BLOBS))
+        self.assertLess(order.index("winebus.sys"), order.index("winehid.sys"))
+        self.assertLess(order.index("winehid.sys"), order.index("mouhid.sys"))
+        self.assertTrue(report["provider_source_build_order_only"])
+        self.assertFalse(report["provider_pe_binaries_verified"])
+        self.assertFalse(report["provider_import_closure_verified"])
+        self.assertEqual(order, A.analyze(
+            inputs, names, set(A.SOURCE_BLOBS))["provider_source_build_order"])
+
+    def test_planned_provider_cycles_fail_closed_including_self_edge(self):
+        names = {"x%02d.dll" % i for i in range(34)}
+        inputs = fixtures()
+        inputs["winehid.sys"] = "MODULE = winehid.sys\nIMPORTS = winebus\n"
+        inputs["winebus.sys"] = (
+            "MODULE = winebus.sys\nIMPORTS = winehid\nUNIXLIB = winebus.so\n")
+        with self.assertRaisesRegex(ValueError, "Circular planned provider"):
+            A.analyze(inputs, names, set(A.SOURCE_BLOBS))
+        inputs = fixtures()
+        inputs["winehid.sys"] = "MODULE = winehid.sys\nIMPORTS = winehid\n"
+        with self.assertRaisesRegex(ValueError, "Invalid pinned provider"):
+            A.analyze(inputs, names, set(A.SOURCE_BLOBS))
+
     def test_sealed_dll_takes_precedence_over_planned_stem(self):
         inputs = fixtures()
         inputs["winehid.sys"] = (

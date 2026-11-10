@@ -140,6 +140,32 @@ def validate_copyqueue_provider_list(copyqueue: object) -> set[str]:
     return set(raw)
 
 
+def planned_provider_build_order(dependencies: dict[str, set[str]]) -> list[str]:
+    """Stable dependency-first source build plan; cycles are a hard blocker.
+
+    Edges point from a provider to another provider it imports. This is
+    *planning only*, never evidence that a PE/native binary exists.
+    """
+    nodes = set(SOURCE_BLOBS)
+    if set(dependencies) != nodes or any(
+            not isinstance(edges, set) or not edges <= nodes or node in edges
+            for node, edges in dependencies.items()):
+        raise ValueError("Invalid pinned provider dependency graph")
+    pending = {name: set(edges) for name, edges in dependencies.items()}
+    ordered = []
+    while pending:
+        ready = sorted(name for name, edges in pending.items() if not edges)
+        if not ready:
+            raise ValueError("Circular planned provider dependency: " +
+                             ",".join(sorted(pending)))
+        ordered.extend(ready)
+        for name in ready:
+            del pending[name]
+        for edges in pending.values():
+            edges.difference_update(ready)
+    return ordered
+
+
 def analyze(inputs: dict[str, str], pe_names: set[str],
             missing_providers: set[str]) -> dict:
     if missing_providers != set(SOURCE_BLOBS):
@@ -157,6 +183,7 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
     # binary and any Unix companion has been cross-built and checked.
     provider_by_stem = {name.rsplit(".", 1)[0]: name for name in SOURCE_BLOBS}
     output = []
+    provider_dependencies = {}
     for provider in sorted(SOURCE_BLOBS):
         row = parse_makefile(provider, inputs[provider])
         sealed = []
@@ -169,6 +196,7 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
                 planned.append({"import": name, "provider": provider_by_stem[name]})
             else:
                 unresolved.append(name)
+        provider_dependencies[provider] = {edge["provider"] for edge in planned}
         row["imports_in_sealed_dlls"] = sorted(sealed)
         row["imports_in_missing_provider_plan"] = sorted(
             planned, key=lambda edge: (edge["import"], edge["provider"]))
@@ -180,6 +208,7 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
             edge["import"] for edge in planned) + sorted(unresolved)
         row["imports_not_in_sealed_dlls"].sort()
         output.append(row)
+    build_order = planned_provider_build_order(provider_dependencies)
     return {
         "source_revision": SOURCE_REV,
         "source_only": True,
@@ -189,6 +218,8 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
         "external_build_macro_modules": [x["module"] for x in output if x["build_macros"]],
         "providers": output,
         "provider_import_plan_only": True,
+        "provider_source_build_order": build_order,
+        "provider_source_build_order_only": True,
         "provider_pe_binaries_verified": False,
         "provider_native_companions_verified": False,
         "provider_import_closure_verified": False,

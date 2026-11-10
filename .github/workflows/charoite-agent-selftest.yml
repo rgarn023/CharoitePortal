@@ -6,6 +6,8 @@ on:
       - '.github/automation/**'
       - '.github/workflows/charoite-controlled-codex.yml'
       - '.github/workflows/charoite-agent-selftest.yml'
+      - '.github/workflows/charoite-free-known-fix.yml'
+      - '.github/workflows/charoite-free-status.yml'
   workflow_dispatch:
 
 permissions:

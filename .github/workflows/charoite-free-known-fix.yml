@@ -1,0 +1,111 @@
+name: Charoite Free Known Test Fix — Draft PR Only
+
+on:
+  workflow_run:
+    workflows: ["Charoite Core Next Android"]
+    types: [completed]
+
+# This ONLY handles a known previous-version TEST-literal mismatch.
+# All other build failures need an engineer. No AI, Wine, device, or auto-merge.
+permissions: {}
+concurrency:
+  group: charoite-free-known-fix
+  cancel-in-progress: false
+
+jobs:
+  propose-verified-test-only-fix:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'failure'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main'
+          && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Ensure failed main-branch commit is still current
+        id: current
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)" ]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale CI result; not rebasing or changing anyone else's source."
+          fi
+
+      - name: Produce bounded deterministic test-only candidate
+        id: candidate
+        if: steps.current.outputs.latest == 'true'
+        run: |
+          set -euo pipefail
+          python3 .github/automation/known_test_drift.py --apply
+          python3 -m unittest discover -s .github/automation/tests -p 'test_*.py' -v
+          git diff --check
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, ".github/automation")
+          from known_test_drift import TARGETS
+          changed = subprocess.check_output(
+              ["git", "diff", "--name-only", "-z"]).decode().split("\0")
+          changed = [p for p in changed if p]
+          if any(p not in TARGETS for p in changed) or len(changed) > 5:
+              raise SystemExit("Unexpected file in proposed correction")
+          for p in changed:
+              if Path(p).is_symlink():
+                  raise SystemExit("Symlink in candidate")
+          with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("has_patch=" + str(bool(changed)).lower() + "\n")
+          print("Proposed static test files:", len(changed))
+          PY
+
+      - name: Verify static tests after proposed correction
+        if: steps.candidate.outputs.has_patch == 'true'
+        run: |
+          set -euo pipefail
+          for pattern in test_wine29_v28_free_issue_intake.py test_wine29_v28_preserved_readonly_contract.py test_wine29_v28_scoped_triage_contract.py test_next_system_reporting_update_contract.py test_next_inapp_install_contract.py; do
+            python3 -m unittest discover -s next-generation/tests -p "$pattern" -v
+          done
+
+      - name: Open review-required DRAFT PR, never modify main
+        if: steps.candidate.outputs.has_patch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          BRANCH="automation/free-test-drift-${SOURCE_SHA:0:12}"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "Candidate branch already exists; no retries or duplicate PRs."
+            exit 0
+          fi
+          git switch -c "$BRANCH"
+          git add -- next-generation/tests/test_wine29_v28_free_issue_intake.py \
+            next-generation/tests/test_wine29_v28_preserved_readonly_contract.py \
+            next-generation/tests/test_wine29_v28_scoped_triage_contract.py \
+            next-generation/tests/test_next_system_reporting_update_contract.py \
+            next-generation/tests/test_next_inapp_install_contract.py
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "test(next): draft exact previous-version expectation sync"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$BRANCH"
+          gh pr create --draft --base main --head "$BRANCH" \
+            --title "Draft (free): sync verified Next test version expectations" \
+            --body "Deterministic TEST-ONLY candidate from failed GitHub Actions on trusted main commit $SOURCE_SHA. The current versionCode/name/release tag were required to agree; only exact prior-version literals in five reviewed tests may be updated. No AI/API cost, no Wine, no APK/device testing, no merge. Review the complete diff and separate CI before merging. A failed CI run may have another cause."
+          # GitHub-token-created PR events often do not trigger CI; explicitly
+          # dispatch the existing read-only static PR verification on the branch.
+          gh workflow run charoite-agent-pr-check.yml --ref "$BRANCH" || \
+            echo "::warning::Draft PR exists, but static-check dispatch needs manual review."

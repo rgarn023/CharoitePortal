@@ -1,4 +1,22 @@
-# Charoite Next — cost-free, chat-led development (CURRENT)
+# Charoite Next — free-first guarded automation (CURRENT)
+
+## Active $0-separately-billed-API pipeline
+
+- Owner submits a PUBLIC GitHub phone report only after explicitly reviewing and approving its fixed, sanitized fields. Existing `charoite-phone-report-intake.yml` validates the exact schema, comments with deterministic triage and labels valid reports `charoite-validated-report` and `charoite-engineering-review`. Submission still needs the owner's browser confirmation; no phone token or remote auto-upload is installed.
+- `charoite-next.yml` continues automatic Python/JVM/Android regression gates, artifact signing and immutable Next versioned release publication for trusted main changes. Existing stable Portal identity `com.charoite` and its release channel remain separate from experimental `com.charoitx`.
+- `charoite-free-known-fix.yml` reacts to FAILED trusted main-branch Next builds. `known_test_drift.py` derives consistent code/name/tag from the source and offers changes ONLY for an exact one-build-outdated version assertion within five reviewed static test files. It runs offline gates and opens an isolated DRAFT PR plus requests a static CI check; nothing is auto-merged. Any compiler error, new Wine symptom or other issue is outside this repair rule. If PR creation is disallowed by repo Actions settings, a draft branch may be created but requires owner review and GitHub permissions adjustment.
+- `charoite-free-status.yml` runs weekly each Monday and on manual dispatch, updates ONE public GitHub status issue and a workflow job summary with only GitHub release/CI metadata. It does not scrape phone logs or post individual private data.
+- `charoite-agent-selftest.yml` runs all offline guards on automation changes and explicit dispatch, with NO OpenAI API use and NO Wine execution.
+
+**Cost:** $0 in separately billed AI API requests. Public-repository standard GitHub Actions runners are generally free, subject to GitHub policies, storage limits and repo eligibility. Standard mobile network/energy costs are not included; self-hosted AI hardware is not provided. This is NOT an autonomous general-purpose AI developer.
+
+**Hard safety limits:** no Wine/wineserver or device process creation by Actions, no V28 rerun, no old scratch accesses, no cleanup or prefix/game/save modification, no unattended APK install, no automated PR merges, no token in an APK, no edits to stable Portal. The owner explicitly approves new isolated runtime experiments and Android PackageInstaller confirmation. Historical V28 reviews still require separate bounded read-only authorization.
+
+**Paid API agent remains DORMANT:** `charoite-controlled-codex.yml` is still manual-only with separate explicit API key, repo flag and per-run billing consent; we do not enable, dispatch or schedule it.
+
+---
+
+## Prior manual workflow (retained for historical context)
 
 **Decision (October 30, 2026):** The owner chose to avoid separately billed OpenAI API usage. The normal development route is **semi-automated and uses NO OpenAI API key**.
 

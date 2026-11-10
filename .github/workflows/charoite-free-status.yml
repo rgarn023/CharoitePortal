@@ -1,0 +1,64 @@
+name: Charoite Free Weekly Status
+
+on:
+  schedule:
+    - cron: '17 14 * * 1'
+  workflow_dispatch:
+
+# One lightweight weekly GitHub-only status update. Public issue has no
+# phone logs, credentials, raw file data or personal information.
+permissions: {}
+concurrency:
+  group: charoite-free-weekly-status
+  cancel-in-progress: false
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Summarize public release and Next CI safely
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TITLE="Charoite Next automated weekly status (free)"
+          RELEASE="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" \
+            --jq '[.[] | select(.tag_name | test("^charoite-next-vc[0-9]+$"))][0] | .tag_name // "none"')"
+          LAST_RUN="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/charoite-next.yml/runs?per_page=1" \
+            --jq '.workflow_runs[0].html_url // ""')"
+          LAST_STATE="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/charoite-next.yml/runs?per_page=1" \
+            --jq '.workflow_runs[0].conclusion // .workflow_runs[0].status // "unknown"')"
+          {
+            echo "# $TITLE"
+            echo
+            echo "This status is generated solely from GitHub metadata; it is not a phone or Wine health check."
+            echo
+            echo "- Latest published experimental release: \`$RELEASE\`"
+            echo "- Latest Charoite Next CI outcome: **$LAST_STATE**"
+            if [ -n "$LAST_RUN" ]; then
+              echo "- [Inspect latest Next CI run]($LAST_RUN)"
+            fi
+            echo "- [Project handoff](https://github.com/$GITHUB_REPOSITORY/blob/main/docs/CURRENT_HANDOFF.md)"
+            echo
+            echo "### Guardrails"
+            echo "No paid AI/API calls, no phone reporting without user consent, no Wine or service commands, no APK auto-install, no source auto-merge. Known version-literal failures can only open a DRAFT PR. All other failures require engineering review."
+            echo
+            echo "This single public issue is updated weekly, not recreated on every build."
+          } > /tmp/charoite-free-status.md
+          cat /tmp/charoite-free-status.md >> "$GITHUB_STEP_SUMMARY"
+          ISSUE_NO="$(gh issue list --repo "$GITHUB_REPOSITORY" --state all \
+            --limit 200 --json number,title \
+            --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1)"
+          if [ -n "$ISSUE_NO" ]; then
+            gh issue edit "$ISSUE_NO" --repo "$GITHUB_REPOSITORY" \
+              --body-file /tmp/charoite-free-status.md
+            echo "Updated existing weekly status issue #$ISSUE_NO"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --body-file /tmp/charoite-free-status.md
+          fi

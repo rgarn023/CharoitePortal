@@ -5,6 +5,7 @@ on:
       - 'next-generation/CharoiteWine*.java'
       - 'next-generation/charoite-wine/patches/**'
       - 'next-generation/tests/test_wine*.py'
+      - 'next-generation/tests/test_next*.py'
   workflow_dispatch:
 
 # Deliberately no signing key, token, uploads, Wine/device execution or merge.

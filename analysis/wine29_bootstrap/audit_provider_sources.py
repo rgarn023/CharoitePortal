@@ -114,6 +114,29 @@ def validate_copyqueue_provider_list(copyqueue: object) -> set[str]:
             any(not isinstance(item, str) for item in raw) or
             len(set(raw)) != len(raw) or set(raw) != set(SOURCE_BLOBS)):
         raise ValueError("Malformed or changed pinned CopyFiles provider list")
+    # Validate the *rest* of the producer's coverage evidence, not just its
+    # provider list. Otherwise a failed/partial INF audit could supply the
+    # expected eight names and be misrepresented as a complete source gate.
+    if (copyqueue.get("phone_accessed") is not False or
+            copyqueue.get("rpcss_registration_declared") is not True or
+            copyqueue.get("arm64_copy_sections") !=
+            ["colorfiles", "etcfiles", "inffiles", "nlsfiles", "sortfiles"] or
+            copyqueue.get("requested_nls_not_in_sealed") != [] or
+            type(copyqueue.get("requested_nls_count")) is not int or
+            type(copyqueue.get("sealed_nls_count")) is not int or
+            copyqueue["requested_nls_count"] != copyqueue["sealed_nls_count"] or
+            copyqueue["sealed_nls_count"] != 76 or
+            type(copyqueue.get("copyfile_rows")) is not int or
+            copyqueue["copyfile_rows"] <= 0 or
+            type(copyqueue.get("resource_provider_count")) is not int):
+        raise ValueError("Incomplete or contradictory CopyFiles source coverage")
+    included = copyqueue.get("resource_providers_in_sealed_pe")
+    if (not isinstance(included, list) or
+            any(not isinstance(item, str) for item in included) or
+            len(set(included)) != len(included) or
+            set(included) & set(raw) or
+            copyqueue["resource_provider_count"] != len(included) + len(raw)):
+        raise ValueError("Contradictory sealed resource provider coverage")
     return set(raw)
 
 

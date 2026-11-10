@@ -96,6 +96,16 @@ class ProviderAudit(unittest.TestCase):
         valid = {
             "source_only": True, "wine_executed": False, "v28_reused": False,
             "resource_providers_not_in_sealed_pe": sorted(A.SOURCE_BLOBS),
+            "phone_accessed": False,
+            "rpcss_registration_declared": True,
+            "arm64_copy_sections": [
+                "colorfiles", "etcfiles", "inffiles", "nlsfiles", "sortfiles"],
+            "requested_nls_not_in_sealed": [],
+            "requested_nls_count": 76,
+            "sealed_nls_count": 76,
+            "copyfile_rows": 88,
+            "resource_provider_count": 8,
+            "resource_providers_in_sealed_pe": [],
         }
         self.assertEqual(A.validate_copyqueue_provider_list(valid),
                          set(A.SOURCE_BLOBS))
@@ -120,6 +130,49 @@ class ProviderAudit(unittest.TestCase):
             with self.subTest(bad=repr(bad)[:100]), self.assertRaises(ValueError):
                 A.validate_copyqueue_provider_list(bad)
 
+    def test_copyqueue_rejects_partial_or_contradictory_coverage(self):
+        import copy
+        valid = {
+            "source_only": True, "wine_executed": False, "v28_reused": False,
+            "phone_accessed": False, "rpcss_registration_declared": True,
+            "arm64_copy_sections": [
+                "colorfiles", "etcfiles", "inffiles", "nlsfiles", "sortfiles"],
+            "requested_nls_not_in_sealed": [], "requested_nls_count": 76,
+            "sealed_nls_count": 76, "copyfile_rows": 88,
+            "resource_provider_count": 8,
+            "resource_providers_in_sealed_pe": [],
+            "resource_providers_not_in_sealed_pe": sorted(A.SOURCE_BLOBS),
+        }
+        self.assertEqual(A.validate_copyqueue_provider_list(valid),
+                         set(A.SOURCE_BLOBS))
+        invalid = (
+            ("phone_accessed", True),
+            ("rpcss_registration_declared", False),
+            ("arm64_copy_sections", ["nlsfiles"]),
+            ("requested_nls_not_in_sealed", ["missing.nls"]),
+            ("requested_nls_count", True),
+            ("requested_nls_count", 75),
+            ("sealed_nls_count", 75),
+            ("copyfile_rows", 0),
+            ("resource_provider_count", 7),
+            ("resource_providers_in_sealed_pe", ["mscms.dll"]),
+            ("resource_providers_in_sealed_pe", ["foo.dll", "foo.dll"]),
+            ("resource_providers_in_sealed_pe", "foo.dll"),
+        )
+        for field, value in invalid:
+            bad = copy.deepcopy(valid)
+            bad[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                A.validate_copyqueue_provider_list(bad)
+        for field in ("phone_accessed", "rpcss_registration_declared",
+                      "copyfile_rows", "resource_provider_count",
+                      "requested_nls_count", "sealed_nls_count",
+                      "resource_providers_in_sealed_pe"):
+            bad = copy.deepcopy(valid)
+            del bad[field]
+            with self.subTest(missing=field), self.assertRaises(ValueError):
+                A.validate_copyqueue_provider_list(bad)
+
     def test_copyqueue_json_rejects_duplicate_keys_even_if_last_value_is_safe(self):
         # The ordinary json.loads parser would silently retain the last
         # occurrence and report an apparently safe provenance flag.
@@ -127,6 +180,16 @@ class ProviderAudit(unittest.TestCase):
         valid = {
             "source_only": True, "wine_executed": False, "v28_reused": False,
             "resource_providers_not_in_sealed_pe": sorted(A.SOURCE_BLOBS),
+            "phone_accessed": False,
+            "rpcss_registration_declared": True,
+            "arm64_copy_sections": [
+                "colorfiles", "etcfiles", "inffiles", "nlsfiles", "sortfiles"],
+            "requested_nls_not_in_sealed": [],
+            "requested_nls_count": 76,
+            "sealed_nls_count": 76,
+            "copyfile_rows": 88,
+            "resource_provider_count": 8,
+            "resource_providers_in_sealed_pe": [],
         }
         raw = json.dumps(valid)
         self.assertEqual(A.validate_copyqueue_provider_list(

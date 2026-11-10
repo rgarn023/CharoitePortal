@@ -7,11 +7,13 @@ permissions:
   issues: write
 jobs:
   classify-device-report:
-    if: startsWith(github.event.issue.title, '[device-report] Wine28 v9 ') && github.event.issue.user.login == 'rgarn023'
+    if: github.event.issue.user.login == 'rgarn023' && (startsWith(github.event.issue.title, '[device-report] Wine28 v9 ') || startsWith(github.event.issue.title, '[device-report] Wine29 V28 '))
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Validate bounded report and classify failure
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}

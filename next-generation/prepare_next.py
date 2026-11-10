@@ -38,11 +38,12 @@ assert text.count("versionCode 33") == 1
 # Historical V25: versionCode 148; versionName 11.2-next.0.117 (NEVER rerun).
 # Historical V26: versionCode 149; versionName 11.2-next.0.118 (NEVER rerun).
 # Historical V27: versionCode 150; versionName 11.2-next.0.119 (NEVER rerun).
-# V28 active: versionCode 151; versionName 11.2-next.0.120.
+# V28 original signed test APK: versionCode 151; versionName 11.2-next.0.120.
+# V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.120"')
-text = text.replace("versionCode 33", "versionCode 151")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.121"')
+text = text.replace("versionCode 33", "versionCode 152")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -228,7 +229,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V25InfTraceProbe.java",
                    "CharoiteWine29V26DefaultInstallProbe.java",
                    "CharoiteWine29V27MappedInfProbe.java",
-                   "CharoiteWine29V28FocusedInfProbe.java"):
+                   "CharoiteWine29V28FocusedInfProbe.java",
+                   "CharoiteWine29V28ReportShare.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3575,6 +3577,8 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V27Action);
         } // Archived V27; no retry or cleanup permitted.
 
+        // ACTIVE V28: one explicit Wine test; post-test report sharing is read-only.
+        // GitHub issue drafts include only fixed markers and require manual submit.
         // ACTIVE V28: only one new fresh-prefix SetupAPI trace / RpcSs query action.
         LinearLayout wine29V28Action = card();
         wine29V28Action.addView(label(
@@ -3598,7 +3602,10 @@ ui = ui.replace(anchor, anchor + """
                 "Wineboot help, games, installers or network. All Wine29 V1–V27, Wine28, " +
                 "stable Portal, games, saves, user prefixes and rootfs NOT ACCESSED. " +
                 "V28 scratch/logs preserved forever, even on failure. Never retry, delete, " +
-                "uninstall or clear storage. Copy FULL short report from Handoff through " +
+                "uninstall or clear storage. After this ONE test, Copy short report " +
+                "or select Review GitHub report to review fixed markers in a PUBLIC issue " +
+                "draft (manual Submit required). No GitHub token or paid API. " +
+                "Copy FULL short report from Handoff through " +
                 "END OF SHORT V28 PREFIX SETUP SCM REPORT.",
                 12, SECONDARY, false));
         android.widget.Button wine29V28Exec = new android.widget.Button(this);
@@ -3641,6 +3648,8 @@ ui = ui.replace(anchor, anchor + """
                                     if (cb != null) cb.setPrimaryClip(android.content.ClipData.newPlainText(
                                             "Charoite Wine29 V28 DefaultInstall + SCM report", report));
                                 })
+                                .setNeutralButton("Review GitHub report", (dlg, btn) ->
+                                    com.charoitegames.core.CharoiteWine29V28ReportShare.reviewAndOpen(this, report))
                                 .setNegativeButton("Close", null).show();
                         });
                     }, "CharoiteWine29V28FocusedInfProbe").start();

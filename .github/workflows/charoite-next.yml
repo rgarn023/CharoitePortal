@@ -1003,6 +1003,7 @@ jobs:
           echo WINE29_V27_MAPPED_C_INF_SOURCE_GATE=PASS
           echo WINE29_V27_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      # Historical V28 signed APK: versionCode='151' versionName='11.2-next.0.120'
       - name: Verify V28 focused bounded SetupAPI and fresh-prefix RpcSs source contract
         run: |
           set -euo pipefail
@@ -1011,6 +1012,13 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V27Execution = false;' next-generation/prepare_next.py
           echo WINE29_V28_FOCUSED_SETUPAPI_SOURCE_GATE=PASS
           echo WINE29_V28_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
+      - name: Verify free tokenless V28 phone issue draft and owner-only intake
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v28_free_issue_intake.py' -v
+          echo WINE29_V28_FREE_ISSUE_INTAKE=PASS
+          echo WINE29_V28_REPORT_REQUIRES_PUBLIC_OWNER_SUBMISSION=PASS
 
       - name: Verify consumed V15 preserved server/PE-entry read-only forensic contract
         run: |
@@ -1552,7 +1560,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='151' versionName='11.2-next.0.120'"
+            grep -F "package: name='com.charoitx' versionCode='152' versionName='11.2-next.0.121'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1912,6 +1920,8 @@ jobs:
           cp next-generation/CharoiteWine29V26DefaultInstallProbe.java legal-bundle/CharoiteWine29V26DefaultInstallProbe.java
           cp next-generation/CharoiteWine29V27MappedInfProbe.java legal-bundle/CharoiteWine29V27MappedInfProbe.java
           cp next-generation/CharoiteWine29V28FocusedInfProbe.java legal-bundle/CharoiteWine29V28FocusedInfProbe.java
+          cp next-generation/CharoiteWine29V28ReportShare.java legal-bundle/CharoiteWine29V28ReportShare.java
+          cp next-generation/triage_phone_report.py legal-bundle/triage_phone_report.py
           cp next-generation/stage_wine29_v23_setup.py legal-bundle/stage_wine29_v23_setup.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json legal-bundle/wine29-v23-setup-index.json
           cp next-generation/stage_wine29_v9_sc.py legal-bundle/stage_wine29_v9_sc.py
@@ -1974,6 +1984,7 @@ jobs:
           name: Charoite-Core-Next-Android-APK
           path: upstream/app/build/outputs/apk/debug/Charoite-Next-Android.apk
           if-no-files-found: error
+          retention-days: 14
 
       - name: Publish Charoite Next source attribution
         uses: actions/upload-artifact@v4

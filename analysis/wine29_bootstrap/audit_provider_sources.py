@@ -71,12 +71,37 @@ def parse_makefile(provider: str, text: str) -> dict:
         "has_native_companion": bool(native),
     }
 
+def validate_copyqueue_provider_list(copyqueue: object) -> set[str]:
+    """Require an unambiguous, exact source-only handoff from the INF audit.
+
+    Converting arbitrary JSON values directly to a set can accept a string,
+    silently collapse duplicates, or mask a malformed prior audit result.
+    """
+    if not isinstance(copyqueue, dict):
+        raise ValueError("Expected CopyFiles audit JSON object")
+    if (copyqueue.get("source_only") is not True or
+            copyqueue.get("wine_executed") is not False or
+            copyqueue.get("v28_reused") is not False):
+        raise ValueError("Expected strictly source-only preserved-generation audit")
+    raw = copyqueue.get("resource_providers_not_in_sealed_pe")
+    if (not isinstance(raw, list) or len(raw) != len(SOURCE_BLOBS) or
+            any(not isinstance(item, str) for item in raw) or
+            len(set(raw)) != len(raw) or set(raw) != set(SOURCE_BLOBS)):
+        raise ValueError("Malformed or changed pinned CopyFiles provider list")
+    return set(raw)
+
+
 def analyze(inputs: dict[str, str], pe_names: set[str],
             missing_providers: set[str]) -> dict:
     if missing_providers != set(SOURCE_BLOBS):
         raise ValueError("Pinned missing-provider list changed")
-    if len(pe_names) != 34:
-        raise ValueError("Expected exact sealed PE DLL cohort")
+    if set(inputs) != set(SOURCE_BLOBS):
+        raise ValueError("Pinned provider source input list changed")
+    if (not isinstance(pe_names, set) or len(pe_names) != 34 or
+            any(not isinstance(name, str) or
+                re.fullmatch(r"[a-z0-9][a-z0-9_-]*\.dll", name) is None
+                for name in pe_names)):
+        raise ValueError("Expected 34 normalized sealed PE DLL names")
     output = []
     for provider in sorted(SOURCE_BLOBS):
         row = parse_makefile(provider, inputs[provider])
@@ -134,9 +159,7 @@ def main() -> None:
     if a.copyqueue.is_symlink() or a.copyqueue.stat().st_size > 32768:
         raise ValueError("Unsafe source audit input")
     copyqueue = json.loads(a.copyqueue.read_text(encoding="utf-8"))
-    if copyqueue.get("source_only") is not True or copyqueue.get("wine_executed") is not False:
-        raise ValueError("Expected prior no-exec CopyFiles source coverage")
-    missing = set(copyqueue.get("resource_providers_not_in_sealed_pe", []))
+    missing = validate_copyqueue_provider_list(copyqueue)
     root = Path(__file__).resolve().parents[2]
     stage = root / "next-generation/stage_wine29_sealed012.py"
     spec = importlib.util.spec_from_file_location("charoite_sealed012_provider_audit", stage)

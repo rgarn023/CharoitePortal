@@ -92,6 +92,50 @@ class ProviderAudit(unittest.TestCase):
         self.assertLess(source.index("directory.is_symlink()"),
                         source.index("data = path.read_bytes()"))
 
+    def test_copyqueue_handoff_requires_exact_distinct_list_and_safety_flags(self):
+        valid = {
+            "source_only": True, "wine_executed": False, "v28_reused": False,
+            "resource_providers_not_in_sealed_pe": sorted(A.SOURCE_BLOBS),
+        }
+        self.assertEqual(A.validate_copyqueue_provider_list(valid),
+                         set(A.SOURCE_BLOBS))
+        import copy
+        cases = []
+        for replacement in (
+            "mscms.dll", None, {}, [None] * 8,
+            ["mscms.dll"] * 8,
+            sorted(A.SOURCE_BLOBS)[:-1],
+            sorted(A.SOURCE_BLOBS) + ["extra.dll"],
+        ):
+            bad = copy.deepcopy(valid)
+            bad["resource_providers_not_in_sealed_pe"] = replacement
+            cases.append(bad)
+        for key, value in (("source_only", "true"),
+                           ("wine_executed", True),
+                           ("v28_reused", True)):
+            bad = copy.deepcopy(valid)
+            bad[key] = value
+            cases.append(bad)
+        for bad in cases + [[], None]:
+            with self.subTest(bad=repr(bad)[:100]), self.assertRaises(ValueError):
+                A.validate_copyqueue_provider_list(bad)
+
+    def test_analyze_rejects_missing_extra_sources_and_malformed_pe_names(self):
+        inputs = fixtures()
+        names = {"x%02d.dll" % i for i in range(34)}
+        for malformed in (
+            dict(list(inputs.items())[:-1]),
+            dict(inputs, **{"extra.dll": "MODULE = extra.dll"}),
+        ):
+            with self.assertRaises(ValueError):
+                A.analyze(malformed, names, set(A.SOURCE_BLOBS))
+        for invalid in ("../escape.dll", "KERNEL32.DLL", "bad.sys", "x.dll/path"):
+            changed = set(names)
+            changed.remove("x00.dll")
+            changed.add(invalid)
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                A.analyze(inputs, changed, set(A.SOURCE_BLOBS))
+
     def test_git_blob_identity_is_git_format(self):
         import hashlib
         self.assertEqual(A.git_blob_sha(b"hello\n"),

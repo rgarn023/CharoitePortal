@@ -1,5 +1,17 @@
 **Handoff:** [**CURRENT PROJECT HANDOFF — OPEN FIRST**](https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md)
 
+# CHAROITE NEXT — CURRENT HANDOFF | November 10, 2026
+
+## FIRST UNATTENDED HOURLY RUN — SAFE SOURCE-ONLY IMPORT AUDIT PATCH
+
+**Autonomous GitHub write verified:** the scheduled run read the trusted handoff, latest `main`, source-only automation design, open issue [#7](https://github.com/rgarn023/CharoitePortal/issues/7), and current CI. It committed [`9405e7d`](https://github.com/rgarn023/CharoitePortal/commit/9405e7db70b22055aa691051fd80168e4e4a6361) directly to `main`, proving connected GitHub write authorization in this scheduled execution. This was **source-only**, with no APK, phone test, Wine execution, new scratch, or historical V28 access.
+
+**Engineering correction:** `analysis/wine29_bootstrap/audit_provider_sources.py` previously silently dropped import tokens that were neither bare DLL identifiers nor Makefile macros. This could under-report build dependencies for issue #7's eight pinned resource providers. It now **fails closed** on any unclassified import expression and recognizes only whole-token `$(UPPERCASE_MACRO)` entries. Two new synthetic tests cover malformed expressions and valid LCMS2 macro classification. No provider is claimed built or import-closed; no inference about historical V28 failures is made.
+
+**CI for this exact source commit:** [Pinned Wine29 source audit run 42762836024](https://github.com/rgarn023/CharoitePortal/actions/runs/42762836024) and [historical CopyFiles/provider audit run 42762836394](https://github.com/rgarn023/CharoitePortal/actions/runs/42762836394) were triggered automatically. At initial observation the first was **in progress** and the second **queued**; check final conclusions before treating the fix as verified. Both are source-only workflows, **not APK builds**. Prior successful source baseline: [run 42755022159](https://github.com/rgarn023/CharoitePortal/actions/runs/42755022159).
+
+**Next:** if source-only CI passes, continue exact pinned provider import/native companion/LCMS2 closure without executing Wine; if CI fails, correct only the static regression. Preserve `com.charoitx`/`com.charoite` isolation and all old Wine29 generations, Wine28, games, saves and rootfs. Owner action: **NONE**. Charoite 1.0 estimate remains **~30% complete / ~70% remaining**; source-audit reliability is not runtime compatibility.
+
 # CHAROITE NEXT — CURRENT HANDOFF | November 9, 2026
 
 ## $0 EXTRA CONTINUOUS-DEVELOPMENT — PHASE 1 CI SPLIT VERIFIED, NO NEW APK

@@ -41,11 +41,12 @@ assert text.count("versionCode 33") == 1
 # V28 original signed test APK: versionCode 151; versionName 11.2-next.0.120.
 # Historical V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
 # Historical Next report/update release: versionCode 153; versionName 11.2-next.0.122.
-# Active V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
+# Historical V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
+# Active IN-APP signed updater through PackageInstaller: versionCode 155; 11.2-next.0.124.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.123"')
-text = text.replace("versionCode 33", "versionCode 154")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.124"')
+text = text.replace("versionCode 33", "versionCode 155")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -83,6 +84,18 @@ boot = ET.Element("activity", {
 })
 boot.append(filters)
 application.insert(0, boot)
+# Only owner's opt-in Next updates can request Android's installed APK session.
+# Android Settings and PackageInstaller still require the user's approval.
+if not any(p.get(ns + "name") == "android.permission.REQUEST_INSTALL_PACKAGES"
+           for p in tree.getroot().findall("uses-permission")):
+    tree.getroot().insert(0, ET.Element("uses-permission",
+                        {ns + "name": "android.permission.REQUEST_INSTALL_PACKAGES"}))
+assert not any(r.get(ns + "name") == "com.charoitegames.core.CharoiteNextInstallStatusReceiver"
+               for r in application.findall("receiver"))
+ET.SubElement(application, "receiver", {
+    ns + "name": "com.charoitegames.core.CharoiteNextInstallStatusReceiver",
+    ns + "exported": "false",
+})
 # Opt-in GitHub issue uploader: no automatic execution without consent.
 # The Android JobService only reads bounded preserved v9 logs; never runs Wine.
 if not any(p.get(ns + "name") == "android.permission.INTERNET"
@@ -234,7 +247,9 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V28FocusedInfProbe.java",
                    "CharoiteWine29V28ReportShare.java",
                    "CharoiteNextUpdateChecker.java",
-                   "CharoiteWine29V28PreservedReadOnly.java"):
+                   "CharoiteWine29V28PreservedReadOnly.java",
+                   "CharoiteNextInAppInstaller.java",
+                   "CharoiteNextInstallStatusReceiver.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3684,10 +3699,13 @@ ui = ui.replace(anchor, anchor + """
                 "CHAROITE NEXT — OFFICIAL GITHUB UPDATES",
                 16, FOREGROUND, true));
         nextUpdatesAction.addView(label(
-                "Next checks PUBLIC GitHub releases on opening. If a newer "
-                + "signed com.charoitx APK is published, it asks before opening "
-                + "the download. Android asks again before installing in place. "
-                + "Never uninstall or clear storage. No older Wine scratch is accessed.",
+                "When opening, Next checks official GitHub Next releases. Tap Update in app "
+                + "for a newer build: Charoite streams the APK into an Android "
+                + "PackageInstaller session, verifies the SHA-256 digest and size, then "
+                + "Android asks to install OVER com.charoitx. No browser or manual APK "
+                + "download. First use may require Allow from this source in Settings. "
+                + "Then return and tap Check for updates → Update in app again. "
+                + "Never uninstall, clear storage, run Wine or touch stable Portal.",
                 12, SECONDARY, false));
         android.widget.Button nextCheckUpdates = new android.widget.Button(this);
         nextCheckUpdates.setText("Check for updates");

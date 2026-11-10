@@ -19,9 +19,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Experimental Next-only read-only startup update check.
- * Reads PUBLIC GitHub Releases metadata; never reads Wine scratch or downloads,
- * executes, installs or deletes an APK automatically. Android user approves upgrade.
+ * Experimental Next-only startup release check. Downloads only after explicit
+ * Update-in-app approval and delegates staged installation to Android.
+ * No Wine or prefix access. Never silently install or delete user data.
  */
 public final class CharoiteNextUpdateChecker {
     private static final String PACKAGE = "com.charoitx";
@@ -35,10 +35,11 @@ public final class CharoiteNextUpdateChecker {
     private CharoiteNextUpdateChecker() {}
 
     private static final class Available {
-        final long versionCode;
+        final long versionCode, expectedSize;
         final String versionLabel, downloadUrl, sha256;
-        Available(long code, String label, String url, String digest) {
+        Available(long code, String label, String url, String digest, long size) {
             versionCode=code;versionLabel=label;downloadUrl=url;sha256=digest;
+            expectedSize=size;
         }
     }
 
@@ -107,7 +108,7 @@ public final class CharoiteNextUpdateChecker {
                     String label=r.optString("name","");
                     if(label.length()>90 || !label.matches("[A-Za-z0-9 ._\\-]+"))
                         label="Charoite Next build "+code;
-                    newest=new Available(code,label,expected,digest);
+                    newest=new Available(code,label,expected,digest,asset.optLong("size",0));
                 }
             }
         }
@@ -134,19 +135,18 @@ public final class CharoiteNextUpdateChecker {
                         .setTitle("Charoite Next update available")
                         .setMessage(result.versionLabel+" (build "+result.versionCode+")\n"
                             +"Installed build: "+installed+"\n\n"
-                            +"Open the official GitHub APK download? "
-                            +"Android will request approval before installation. "
+                            +"Download the APK inside Charoite Next and ask Android to install "
+                            +"the verified update? No browser or file manager is needed. "
+                            +"Android will ask for installation approval. "
                             +"Install OVER the existing com.charoitx app; never uninstall, "
                             +"clear storage or touch stable Portal or Wine prefixes.\n\n"
                             +"Release checksum: "+result.sha256)
                         .setNegativeButton("Later",null)
-                        .setPositiveButton("Open GitHub download",(d,w) -> {
-                            try {activity.startActivity(new Intent(
-                                Intent.ACTION_VIEW,Uri.parse(result.downloadUrl)));}
-                            catch(Exception ignored) {new AlertDialog.Builder(activity)
-                                .setMessage("Browser unavailable. Open the official GitHub releases page.")
-                                .setPositiveButton("Close",null).show();}
-                        }).show();
+                        .setPositiveButton("Update in app",(d,w) ->
+                            CharoiteNextInAppInstaller.updateWithConsent(
+                                activity,result.downloadUrl,result.expectedSize,
+                                result.sha256,result.versionCode))
+                        .show();
                 } else if(manual) {
                     String message=error ? "Could not check GitHub releases. Try again later."
                         : result==null ? "No signed Charoite Next APK releases available yet."

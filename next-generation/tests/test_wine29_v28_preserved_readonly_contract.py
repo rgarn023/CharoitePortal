@@ -37,13 +37,13 @@ class V28ReadOnly(unittest.TestCase):
                   "CharoiteWine29V28PreservedReadOnly.askConsent(this)",
                   "wine29V28Action.addView(readOnlyV28)",
                   'sendV28GitHub.setText("Send report to GitHub")',
-                  "versionCode 154","11.2-next.0.123",
+                  "versionCode 155","11.2-next.0.124",
                   '"CharoiteWine29V28PreservedReadOnly.java"'):
             self.assertIn(s,P)
         for s in ("CONSUMED_V28_STRICT_READ_ONLY_POSTMORTEM_SOURCE_GATE=PASS",
                   "CharoiteWine29V28PreservedReadOnly.java legal-bundle/",
-                  "versionCode='154' versionName='11.2-next.0.123'",
-                  "charoite-next-vc154",
+                  "versionCode='154' versionName='11.2-next.0.124'",
+                  "charoite-next-vc155",
                   "NEXT_STABLE_PORTAL_RELEASE_UNCHANGED=PASS"):
             self.assertIn(s,W)
 if __name__=="__main__":unittest.main()

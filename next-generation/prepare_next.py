@@ -40,11 +40,12 @@ assert text.count("versionCode 33") == 1
 # Historical V27: versionCode 150; versionName 11.2-next.0.119 (NEVER rerun).
 # V28 original signed test APK: versionCode 151; versionName 11.2-next.0.120.
 # Historical V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
-# Active Next System report + GitHub release updates: versionCode 153; versionName 11.2-next.0.122.
+# Historical Next report/update release: versionCode 153; versionName 11.2-next.0.122.
+# Active V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.122"')
-text = text.replace("versionCode 33", "versionCode 153")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.123"')
+text = text.replace("versionCode 33", "versionCode 154")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -232,7 +233,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V27MappedInfProbe.java",
                    "CharoiteWine29V28FocusedInfProbe.java",
                    "CharoiteWine29V28ReportShare.java",
-                   "CharoiteNextUpdateChecker.java"):
+                   "CharoiteNextUpdateChecker.java",
+                   "CharoiteWine29V28PreservedReadOnly.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3581,35 +3583,23 @@ ui = ui.replace(anchor, anchor + """
 
         // ACTIVE V28: one explicit Wine test; post-test report sharing is read-only.
         // GitHub issue drafts include only fixed markers and require manual submit.
-        // ACTIVE V28: only one new fresh-prefix SetupAPI trace / RpcSs query action.
+        // V28 is PERMANENTLY CONSUMED. Never show its executable button.
         LinearLayout wine29V28Action = card();
         wine29V28Action.addView(label(
-                "CURRENT WINE29 ACTION — V28 FOCUSED SETUPAPI TRACE + RPCSS QUERY",
+                "V28 CONSUMED — READ-ONLY EVIDENCE REVIEW + GITHUB REPORT",
                 16, FOREGROUND, true));
         wine29V28Action.addView(label(
-                "NEW PRIVATE V28 SCRATCH ONLY; NOT READ ONLY. Bounded Wineboot INF trace enabled. " +
-                "Independent helper debug is LIMITED to SetupAPI and errors, 4 MiB / 35 seconds, to avoid V27 log flood. Source-built wine.inf, " +
-                "rundll32.exe and rpcss.exe are verified before new scratch creation. " +
-                "Wineboot may internally invoke SetupAPI. With separate one-shot " +
-                "consent, verify source-pinned assets, start one private persistent -p " +
-                "wineserver and direct Wineboot -i. If no internal DefaultInstall marker is observed, " +
-                "ONLY after successful -i launch ONE source-verified rundll32.exe SetupAPI " +
-                "DefaultInstall using a SHA-256-matched INF placed in the NEW V28 C: Windows INF directory, " +
-                "not a Unix host path. After helper/server gates, " +
-                "launch one independent source-verified ARM64 sc.exe " +
-                "query RpcSs via the matched APK loader. The query requests status, " +
-                "NOT service modification; Wineboot/internal services can create files. " +
-                "Record bounded INF and explicit DefaultInstall helper, SCM and post-finalization V28 system.reg service-key " +
-                "presence flags only; NEVER report registry values, raw keys or paths. NO SCM mutations, extra setup commands, independent " +
-                "Wineboot help, games, installers or network. All Wine29 V1–V27, Wine28, " +
-                "stable Portal, games, saves, user prefixes and rootfs NOT ACCESSED. " +
-                "V28 scratch/logs preserved forever, even on failure. Never retry, delete, " +
-                "uninstall or clear storage. After this ONE test, Copy short report " +
-                "or select Review GitHub report to review fixed markers in a PUBLIC issue " +
-                "draft (manual Submit required). No GitHub token or paid API. " +
-                "Copy FULL short report from Handoff through " +
-                "END OF SHORT V28 PREFIX SETUP SCM REPORT.",
+                "V28 already ran. Do NOT run it again. The duplicate one-shot gate can "
+                + "report previously stored registry metadata after rejecting a retry. "
+                + "RpcSs registry fields were present but successful SCM operation is UNPROVEN. "
+                + "With SEPARATE consent, the read-only review accesses only four named "
+                + "V28 logs and prefix/system.reg, with no-follow bounded file checks. "
+                + "No raw private paths or log contents are shared; no games, older "
+                + "scratch or stable Portal are accessed. The existing Send report "
+                + "to GitHub option remains available for an already copied V28 report.",
                 12, SECONDARY, false));
+        final boolean showArchivedWine29V28Execution = false;
+        if (showArchivedWine29V28Execution) {
         android.widget.Button wine29V28Exec = new android.widget.Button(this);
         wine29V28Exec.setText("Test Wine29 v28 C: INF + RpcSs (one-shot)");
         wine29V28Exec.setAllCaps(false);
@@ -3658,6 +3648,13 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V28FocusedInfProbe").start();
                 }).show());
         wine29V28Action.addView(wine29V28Exec);
+        } // ARCHIVED V28; never expose an execution button again.
+        android.widget.Button readOnlyV28 = new android.widget.Button(this);
+        readOnlyV28.setText("Review V28 preserved diagnostics (READ ONLY)");
+        readOnlyV28.setAllCaps(false);
+        readOnlyV28.setOnClickListener(v ->
+                com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.askConsent(this));
+        wine29V28Action.addView(readOnlyV28);
         // Permanent System action: existing copied V28 report can be pasted.
         // This never reads old scratch or reruns Wine; no GitHub credential.
         wine29V28Action.addView(label(

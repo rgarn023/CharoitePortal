@@ -1003,6 +1003,7 @@ jobs:
           echo WINE29_V27_MAPPED_C_INF_SOURCE_GATE=PASS
           echo WINE29_V27_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      # Historical v0.122 APK: versionCode='153' versionName='11.2-next.0.122'
       # Historical free-reporting V28 APK: versionCode='152' versionName='11.2-next.0.121'
       # Historical V28 signed APK: versionCode='151' versionName='11.2-next.0.120'
       - name: Verify V28 focused bounded SetupAPI and fresh-prefix RpcSs source contract
@@ -1013,6 +1014,12 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V27Execution = false;' next-generation/prepare_next.py
           echo WINE29_V28_FOCUSED_SETUPAPI_SOURCE_GATE=PASS
           echo WINE29_V28_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
+      - name: Verify consumed V28 preserved postmortem strict read-only consent
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_wine29_v28_preserved_readonly_contract.py' -v
+          echo CONSUMED_V28_STRICT_READ_ONLY_POSTMORTEM_SOURCE_GATE=PASS
 
       - name: Verify System report submission and public GitHub update prompt
         run: |
@@ -1567,7 +1574,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='153' versionName='11.2-next.0.122'"
+            grep -F "package: name='com.charoitx' versionCode='154' versionName='11.2-next.0.123'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1929,6 +1936,7 @@ jobs:
           cp next-generation/CharoiteWine29V28FocusedInfProbe.java legal-bundle/CharoiteWine29V28FocusedInfProbe.java
           cp next-generation/CharoiteWine29V28ReportShare.java legal-bundle/CharoiteWine29V28ReportShare.java
           cp next-generation/CharoiteNextUpdateChecker.java legal-bundle/CharoiteNextUpdateChecker.java
+          cp next-generation/CharoiteWine29V28PreservedReadOnly.java legal-bundle/CharoiteWine29V28PreservedReadOnly.java
           cp next-generation/triage_phone_report.py legal-bundle/triage_phone_report.py
           cp next-generation/stage_wine29_v23_setup.py legal-bundle/stage_wine29_v23_setup.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json legal-bundle/wine29-v23-setup-index.json
@@ -2054,7 +2062,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=charoite-next-vc153
+          TAG=charoite-next-vc154
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2066,8 +2074,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.122 (build 153)" \
-              --notes "Signed experimental com.charoitx APK. Adds persistent System GitHub report submission and an opt-in update prompt on startup. Android install approval required. Wine29 V28 one-shot not run by CI. Never uninstall, wipe data, or rerun consumed Wine scratch." \
+              --title "Charoite Next 11.2-next.0.123 (build 154)" \
+              --notes "Signed experimental com.charoitx APK. Permanently retires consumed V28 one-shot execution button; adds separately authorized read-only V28 postmortem of four bounded logs and system.reg. No Wine execution, no other prefix data access or writes. Keeps GitHub report action and in-app update prompt. Android approval required for in-place installation." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

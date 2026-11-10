@@ -22,7 +22,7 @@ Engineer Charoite Next `com.charoitx` as close to continuously as the existing n
 
 ## Current capabilities confirmed in repo
 
-- Existing `.github/workflows/charoite-next.yml` builds the experimental `com.charoitx` Android APK on `next-generation/**` changes and workflow changes; it is a heavyweight build, not suitable for hourly or five-minute unconditional triggering. As of this design, most recent verified release is `charoite-next-vc157`, 11.2-next.0.126 / versionCode 157, at https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc157. **No new APK** is created by documenting the design.
+- **Phase 1 DEPLOYED (commit [`be60f6a`](https://github.com/rgarn023/CharoitePortal/commit/be60f6a7c972e813c5b2f3d8cf45695cced22f05)):** `.github/workflows/charoite-next.yml` now ignores `next-generation/tests/**` and workflow-only changes on push, avoiding heavyweight APK builds for those changes. Existing non-test Next app-source pushes still trigger the full Android build; this is not yet complete release-only gating. `.github/workflows/charoite-agent-pr-check.yml` now handles test-only and workflow-only pushes and related PRs through read-only static regressions. The lightweight verification [run 42758913686](https://github.com/rgarn023/CharoitePortal/actions/runs/42758913686) and offline automation safety tests [run 42758913382](https://github.com/rgarn023/CharoitePortal/actions/runs/42758913382) both **PASS**. No Android build, APK, phone or Wine execution. The latest verified experimental signed release remains `charoite-next-vc157`, 11.2-next.0.126 / versionCode 157, https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc157.
 - `charoite-free-ci-watch.yml` watches failed trusted main Next CI (job *metadata only*) and updates issue #6. A real failure-triggered production run is not yet verified; synthetic tests passed.
 - `charoite-free-known-fix.yml` permits only narrowly allowlisted, previous-version-stale static test literal repair as a **DRAFT PR**, never auto-merge. PR creation on a real failing run has not been confirmed.
 - `charoite-agent-selftest.yml` runs offline guard tests when automation source changes.
@@ -35,13 +35,13 @@ Engineer Charoite Next `com.charoitx` as close to continuously as the existing n
 
 The latest versioned experimental APK release asset is **464,856,949 bytes**, while the corresponding prior Actions APK ZIP was approximately **462 MB**. The main Next CI currently uploads its APK Actions artifact with `retention-days: 14`. GitHub's public standard runners are free, **but artifact/package storage allowances are finite**, with 500 MB included on GitHub Free; multiple long-lived APK artifacts can consume it quickly. GitHub Release assets are an independent download route, but don't assume any specific repository/account billing eligibility or quota beyond published policies.
 
-**Recommended staged optimization (not yet deployed):**
-1. Separate *small, event-driven source-only CI* from the heavyweight Android release pipeline. On tests/docs/analysis-only changes, do not build or publish another APK. Preserve a full signed build for explicitly ready versioned milestones.
+**Phased optimization — Phase 1 implemented, further stages pending:**
+1. **Implemented:** test-only and workflow-only pushes now use lightweight read-only static checks instead of generating another 465-MB APK. **Not yet implemented:** reduce APK builds for other non-milestone Next source edits; preserve a verified full signed build for explicit versioned milestones, with the owner's Actions download workflow maintained.
 2. Keep the immutable signed **versioned release APK** and LGPL source bundle for owners; shorten redundant ~462 MB Actions APK artifact retention only after verifying release usability and the user's preferred Actions-artifact workflow. Avoid automatically deleting historical release assets or evidence. Check aggregate Actions/Packages storage before choosing a retention value.
 3. Keep automated small JSON audit artifacts to 7–30 days as appropriate; never upload raw device logs, prefix contents, or Wine scratch.
-4. In GitHub Billing & licensing / Budgets and alerts, set any applicable **$0 overage limit and stop-usage-on-limit** protection before relying on a strict money cap. Recheck public repository eligibility and avoid premium/larger/GPU runners.
+4. **Owner reported “Budget configured”** in chat after being instructed to set a GitHub Actions $0 overage cap with stop-usage protection. Connected GitHub repository tools cannot read account billing controls, so **exact budget/scope/hard-stop settings are not independently verified**. Recheck public repository eligibility and avoid premium/larger/GPU runners.
 
-**No automatic changes to existing APK build/sign/release rules are authorized by this design document.** A proposed workflow split should first undergo static tests and reviewed CI to prevent breaking updater/version compatibility.
+**Source-only test/workflow push filters changed and passed CI, but APK signing/release procedures remain unchanged.** Any further change to milestone publication, artifact retention or release tags must first pass static tests and preserve updater/version compatibility; historical release assets are retained.
 
 ## Owner testing policy — zero repeated work
 
@@ -62,15 +62,15 @@ Phone testing is an *exception*, not the hourly loop. Prioritize pinned source i
 
 **Already operational at source level:** Github repo is public, Actions source audit run 42755022159 succeeded, the current hourly ChatGPT task exists, the fixed-scope draft-fix/CI-failure/weekly-status workflows are checked in. These facts **do not** establish that every background AI run can create a GitHub commit.
 
-**Still needs validation:** At least one real hourly ChatGPT task reads GitHub, independently makes a justified safe commit or explicitly concludes no change, and writes a coherent handoff; a real trusted Next CI failure is classified and reported to issue #6; an actual known-literal failure creates a draft PR (only if it occurs, do not deliberately break CI); heavy APK builds cease to run on small docs/test-only commits after a safely tested future workflow separation; GitHub budget/spending cap is checked by account owner.
+**Still needs validation:** At least one real hourly ChatGPT task reads GitHub, independently makes a justified safe commit or explicitly concludes no change, and writes a coherent handoff; a real trusted Next CI failure is classified and reported to issue #6; an actual known-literal failure creates a draft PR (only if it occurs, do not deliberately break CI); a later milestone-only signed release gate for other non-test source changes; independent verification of the account-level budget settings is unavailable through the connected tools. The test/workflow-only CI split is already deployed and passed.
 
 **Normal operator experience:** No need to say `continue`. Check ChatGPT scheduled-task notifications and GitHub issue #5 for status; issue #6 for CI failures; issue #7 for source closure. Owner is contacted only for necessary GitHub reauthorization, unexpected $0 budget protections, a materially useful phone install/test, or a high-risk implementation decision. Avoid noisy hourly "no change" notifications where task settings allow.
 
 ## Immediate work queue (source-only)
 
 1. Continue [issue #7](https://github.com/rgarn023/CharoitePortal/issues/7): verify pinned eight PE provider build/import closure and three companion native library dependencies **without executing Wine**.
-2. Stage and statically test the release-vs-CI workflow separation so small source-only fixes don't trigger 55-minute Android builds or another giant APK artifact.
+2. **Phase 1 complete:** test/workflow-only changes use lightweight CI. If safe and technically justified, prototype a gated milestone-only APK release for other Next source edits; never break the owner's direct Actions APK access or modify release/signing semantics without strong verified tests.
 3. Validate a real scheduled ChatGPT run's GitHub connection/authorization; record success/failure, not a claimed unattended engineer before observed.
-4. Verify GitHub storage/budget configuration through account settings, if a strict $0 additional-spend cap is required.
+4. Budget safeguard was reported configured by owner; account-level spending settings cannot be read using the available GitHub repository connection. Avoid actions that might bill even if cap enforcement is unknown.
 
 **Target outcome:** routine source-level progress with an hourly AI decision loop and near-immediate event-driven CI, no incremental OpenAI API bill, and near-zero owner phone work. Continuous human-level AI code writing at minute cadence is **not** a provided feature at this budget. The rough Charoite 1.0 estimate remains **~30% complete / ~70% remaining**; these automation changes do not independently increase runtime compatibility.

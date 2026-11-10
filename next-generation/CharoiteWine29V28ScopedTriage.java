@@ -183,7 +183,7 @@ public final class CharoiteWine29V28ScopedTriage {
         int roots=0,rows=0,code=-1;
         boolean inside=false;
         for (String line: registry.split("\n",-1)) {
-            String trimmed=line.trim();
+            String trimmed=line.trim().toLowerCase(Locale.US);
             if(trimmed.startsWith("[") && trimmed.contains("]")) {
                 String key=trimmed.substring(1,trimmed.indexOf(']'))
                     .replace("\\\\","\\").toLowerCase(Locale.US);

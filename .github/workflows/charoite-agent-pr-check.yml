@@ -2,7 +2,9 @@ name: Charoite Next Lightweight Static Verification
 on:
   push:
     paths:
-      - 'next-generation/tests/**'
+      # Routine Next source pushes must receive a lightweight check even when
+      # the milestone-only heavyweight APK job is skipped.
+      - 'next-generation/**'
       - '.github/workflows/charoite-agent-pr-check.yml'
       - '.github/workflows/charoite-next.yml'
   pull_request:

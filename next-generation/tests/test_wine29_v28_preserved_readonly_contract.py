@@ -33,17 +33,17 @@ class V28ReadOnly(unittest.TestCase):
     def test_ui_archive_update_source_and_app_identity(self):
         for s in ("final boolean showArchivedWine29V28Execution = false;",
                   "ARCHIVED V28; never expose an execution button again",
-                  "Review V28 preserved diagnostics (READ ONLY)",
+                  "Review V28 SCM state + SetupAPI (READ ONLY)",
                   "CharoiteWine29V28PreservedReadOnly.askConsent(this)",
                   "wine29V28Action.addView(readOnlyV28)",
                   'sendV28GitHub.setText("Send report to GitHub")',
-                  "versionCode 155","11.2-next.0.124",
+                  "versionCode 156","11.2-next.0.125",
                   '"CharoiteWine29V28PreservedReadOnly.java"'):
             self.assertIn(s,P)
         for s in ("CONSUMED_V28_STRICT_READ_ONLY_POSTMORTEM_SOURCE_GATE=PASS",
                   "CharoiteWine29V28PreservedReadOnly.java legal-bundle/",
-                  "versionCode='155' versionName='11.2-next.0.124'",
-                  "charoite-next-vc155",
+                  "versionCode='156' versionName='11.2-next.0.125'",
+                  "charoite-next-vc156",
                   "NEXT_STABLE_PORTAL_RELEASE_UNCHANGED=PASS"):
             self.assertIn(s,W)
 if __name__=="__main__":unittest.main()

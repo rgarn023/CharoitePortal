@@ -59,6 +59,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Verify V28 historical SCM STATE and SetupAPI fixed classes with synthetic Java fixtures
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/charoite-v28-historical-triage-test
+          javac -encoding UTF-8 -d /tmp/charoite-v28-historical-triage-test \
+            next-generation/CharoiteWine29V28ScopedTriage.java \
+            next-generation/tests/CharoiteWine29V28ScopedTriageHarness.java
+          java -cp /tmp/charoite-v28-historical-triage-test \
+            com.charoitegames.core.CharoiteWine29V28ScopedTriageHarness
+          echo V28_SCOPED_HISTORICAL_SERVICE_STATE_AND_SETUPAPI_SOURCE_GATE=PASS
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.5'
@@ -1003,6 +1014,7 @@ jobs:
           echo WINE29_V27_MAPPED_C_INF_SOURCE_GATE=PASS
           echo WINE29_V27_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      # Historical v0.124 APK: versionCode='155' versionName='11.2-next.0.124'
       # Historical v0.123 APK: versionCode='154' versionName='11.2-next.0.123'
       # Historical v0.122 APK: versionCode='153' versionName='11.2-next.0.122'
       # Historical free-reporting V28 APK: versionCode='152' versionName='11.2-next.0.121'
@@ -1581,7 +1593,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='155' versionName='11.2-next.0.124'"
+            grep -F "package: name='com.charoitx' versionCode='156' versionName='11.2-next.0.125'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1944,6 +1956,8 @@ jobs:
           cp next-generation/CharoiteWine29V28ReportShare.java legal-bundle/CharoiteWine29V28ReportShare.java
           cp next-generation/CharoiteNextUpdateChecker.java legal-bundle/CharoiteNextUpdateChecker.java
           cp next-generation/CharoiteWine29V28PreservedReadOnly.java legal-bundle/CharoiteWine29V28PreservedReadOnly.java
+          cp next-generation/CharoiteWine29V28ScopedTriage.java legal-bundle/CharoiteWine29V28ScopedTriage.java
+          cp next-generation/tests/CharoiteWine29V28ScopedTriageHarness.java legal-bundle/CharoiteWine29V28ScopedTriageHarness.java
           cp next-generation/CharoiteNextInAppInstaller.java legal-bundle/CharoiteNextInAppInstaller.java
           cp next-generation/CharoiteNextInstallStatusReceiver.java legal-bundle/CharoiteNextInstallStatusReceiver.java
           cp next-generation/triage_phone_report.py legal-bundle/triage_phone_report.py
@@ -2071,7 +2085,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=charoite-next-vc155
+          TAG=charoite-next-vc156
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2083,8 +2097,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.124 (build 155)" \
-              --notes "Signed experimental com.charoitx APK. User-controlled Update in app streams the official GitHub APK into Android PackageInstaller and validates SHA-256/size. No browser or manual APK handling on future versions; system install approval and first-time unknown-source setting still required. v0.123 or older needs one manual install to acquire this updater. Consumed V28 stays archived, postmortem remains separately consented." \
+              --title "Charoite Next 11.2-next.0.125 (build 156)" \
+              --notes "Signed com.charoitx v0.125: adds separately authorized READ-ONLY V28 historical RpcSs SCM STATE classifier and bounded SetupAPI error categories. Synthetic Java fixtures verify parsing; no V28 Wine execution or writes. Existing official signed in-app updater remains available to install this release via Android approval; never uninstall or clear data, and never rerun V28." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

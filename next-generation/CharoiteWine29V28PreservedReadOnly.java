@@ -152,6 +152,9 @@ public final class CharoiteWine29V28PreservedReadOnly {
             flag(b,"V28 SCM query error 1060",scm,"1060");
             flag(b,"V28 SCM query error 1722",scm,"1722");
             flag(b,"V28 SCM query module error",scm,"c0000135");
+            // Only fixed categories, never raw SCM or SetupAPI lines/paths.
+            // A generic "state" token does NOT prove a valid service-state row.
+            CharoiteWine29V28ScopedTriage.appendMarkers(b,scm,helper);
             File prefix=exactChild(scratch,"prefix");
             safeDirectory(prefix);
             String registry=readIfSafe(prefix,"system.reg",1048576,b);
@@ -174,8 +177,10 @@ public final class CharoiteWine29V28PreservedReadOnly {
              +"authorization, inspect ONLY V28's FOUR named diagnostic logs "
              +"(limits: 256 KiB, 2 MiB, 4 MiB, 2 MiB) and "
              +"V28 prefix/system.reg (1 MiB), using no-follow path/regular-file "
-             +"gates. Show fixed markers/byte counts ONLY; never expose raw logs, "
-             +"values, paths or identifiers. No Wine, no other generation, "
+             +"gates. Report fixed markers/byte counts, anchored historical "
+             +"RpcSs service STATE (if unambiguous) and allowlisted SetupAPI "
+             +"error categories ONLY. Never expose raw logs, registry "
+             +"values, paths or identifiers. No Wine, no other generation, 
              +"no new scratch, writes, cleanup, deletion or network. "
              +"If you do not authorize, tap Cancel.")
           .setNegativeButton("Cancel — no file access",null)

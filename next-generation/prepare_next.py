@@ -42,11 +42,12 @@ assert text.count("versionCode 33") == 1
 # Historical V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
 # Historical Next report/update release: versionCode 153; versionName 11.2-next.0.122.
 # Historical V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
-# Active IN-APP signed updater through PackageInstaller: versionCode 155; 11.2-next.0.124.
+# Historical in-app PackageInstaller: versionCode 155; 11.2-next.0.124.
+# Active V28 strictly read-only scoped SCM+SetupAPI triage: build 156, 11.2-next.0.125.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.124"')
-text = text.replace("versionCode 33", "versionCode 155")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.125"')
+text = text.replace("versionCode 33", "versionCode 156")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -248,6 +249,7 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V28ReportShare.java",
                    "CharoiteNextUpdateChecker.java",
                    "CharoiteWine29V28PreservedReadOnly.java",
+                   "CharoiteWine29V28ScopedTriage.java",
                    "CharoiteNextInAppInstaller.java",
                    "CharoiteNextInstallStatusReceiver.java"):
     target = app / "java/com/charoitegames/core" / filename
@@ -3609,7 +3611,9 @@ ui = ui.replace(anchor, anchor + """
                 + "RpcSs registry fields were present but successful SCM operation is UNPROVEN. "
                 + "With SEPARATE consent, the read-only review accesses only four named "
                 + "V28 logs and prefix/system.reg, with no-follow bounded file checks. "
-                + "No raw private paths or log contents are shared; no games, older "
+                + "It classifies an exact historical RpcSs state row and fixed SetupAPI "
+                + "error categories (not raw messages). No raw private paths or log "
+                + "contents are shared; no games, older 
                 + "scratch or stable Portal are accessed. The existing Send report "
                 + "to GitHub option remains available for an already copied V28 report.",
                 12, SECONDARY, false));
@@ -3665,7 +3669,7 @@ ui = ui.replace(anchor, anchor + """
         wine29V28Action.addView(wine29V28Exec);
         } // ARCHIVED V28; never expose an execution button again.
         android.widget.Button readOnlyV28 = new android.widget.Button(this);
-        readOnlyV28.setText("Review V28 preserved diagnostics (READ ONLY)");
+        readOnlyV28.setText("Review V28 SCM state + SetupAPI (READ ONLY)");
         readOnlyV28.setAllCaps(false);
         readOnlyV28.setOnClickListener(v ->
                 com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.askConsent(this));

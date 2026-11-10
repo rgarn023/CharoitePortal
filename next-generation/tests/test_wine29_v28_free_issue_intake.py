@@ -90,8 +90,8 @@ class FreeV28IssueIntake(unittest.TestCase):
         self.assertIn('CharoiteWine29V28ReportShare.reviewAndOpen(this, report)', PREP)
         self.assertIn('setNeutralButton("Review GitHub report"', PREP)
         self.assertIn('"CharoiteWine29V28ReportShare.java"', PREP)
-        self.assertIn('versionCode 156', PREP)
-        self.assertIn("11.2-next.0.125", PREP)
+        self.assertIn('versionCode 157', PREP)
+        self.assertIn("11.2-next.0.126", PREP)
 
     def test_owner_only_workflow_and_storage_guard(self):
         for marker in ("issues:", "types: [opened]",
@@ -102,7 +102,7 @@ class FreeV28IssueIntake(unittest.TestCase):
                        "secrets.OPENAI_API_KEY", "workflow_dispatch"):
             self.assertNotIn(unsafe, WF)
         self.assertIn("retention-days: 14", APK)
-        self.assertIn("versionCode='156' versionName='11.2-next.0.125'", APK)
+        self.assertIn("versionCode='157' versionName='11.2-next.0.126'", APK)
         self.assertIn("CharoiteWine29V28ReportShare.java legal-bundle/", APK)
         self.assertIn("WINE29_V28_FREE_ISSUE_INTAKE=PASS", APK)
 

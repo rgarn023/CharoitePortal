@@ -2097,7 +2097,7 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.126 (build 156)" \
+              --title "Charoite Next 11.2-next.0.126 (build 157)" \
               --notes "Signed com.charoitx v0.126: owner-authorized READ-ONLY V28 RpcSs SCM exit class, fixed registry Start mode and source-identified SetupAPI error groups; no new Wine execution. Synthetic Java fixtures verify parsing; no V28 Wine execution or writes. Existing official signed in-app updater remains available to install this release via Android approval; never uninstall or clear data, and never rerun V28." \
               --latest=false
           fi

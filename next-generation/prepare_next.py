@@ -43,7 +43,7 @@ assert text.count("versionCode 33") == 1
 # Historical Next report/update release: versionCode 153; versionName 11.2-next.0.122.
 # Historical V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
 # Historical in-app PackageInstaller: versionCode 155; 11.2-next.0.124.
-# Active V28 strictly read-only scoped SCM+SetupAPI triage: build 156, 11.2-next.0.126.
+# Active V28 read-only diagnostic expansion: build 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
 text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.126"')

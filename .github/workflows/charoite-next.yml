@@ -2,9 +2,11 @@ name: Charoite Core Next Android
 on:
   push:
     paths:
-      - '.github/workflows/charoite-next.yml'
+      # Full Android builds are for source milestones, not static test edits.
+      # Workflow-only changes require explicit dispatch after lightweight checks.
       - 'next-generation/**'
       - '!next-generation/charoite-wine/**'
+      - '!next-generation/tests/**'
   workflow_dispatch:
 
 permissions:

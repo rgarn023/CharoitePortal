@@ -1,12 +1,20 @@
-name: Charoite Agent Draft PR Static Verification
+name: Charoite Next Lightweight Static Verification
 on:
+  push:
+    paths:
+      - 'next-generation/tests/**'
+      - '.github/workflows/charoite-agent-pr-check.yml'
+      - '.github/workflows/charoite-next.yml'
   pull_request:
     paths:
       - 'next-generation/CharoiteWine*.java'
       - 'next-generation/charoite-wine/patches/**'
-      - 'next-generation/tests/test_wine*.py'
-      - 'next-generation/tests/test_next*.py'
+      - 'next-generation/tests/**'
   workflow_dispatch:
+
+concurrency:
+  group: charoite-next-static-${{ github.ref }}
+  cancel-in-progress: true
 
 # Deliberately no signing key, token, uploads, Wine/device execution or merge.
 permissions:

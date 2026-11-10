@@ -2,6 +2,12 @@
 
 # CHAROITE NEXT — CURRENT HANDOFF | November 10, 2026
 
+## SEVENTH UNATTENDED SOURCE-ONLY RUN — DEPENDENCY-FIRST PROVIDER BUILD PLAN
+
+**Source commit:** [`01b4b4b`](https://github.com/rgarn023/CharoitePortal/commit/01b4b4b387ca327da7e21841573807285e6c910a) advances [Wine29 provider issue #7](https://github.com/rgarn023/CharoitePortal/issues/7) with a deterministic, dependency-first *source build plan* for the eight pinned missing PE resource providers. A provider importing another planned provider is ordered after its dependency; circular/self dependencies fail closed rather than yielding a misleading build plan. Two synthetic tests cover transitive ordering, determinism, cycles and self-dependency. New JSON fields: `provider_source_build_order`, `provider_source_build_order_only=true`. Existing PE/native/import-closure verification flags remain **FALSE**. This is a source plan, not a cross-build or runtime result.
+
+**Triggered source-only CI:** [Wine29 Bootstrap Source Audit #42808363571](https://github.com/rgarn023/CharoitePortal/actions/runs/42808363571) and [Wine29 CopyFiles/Provider Audit #42808363542](https://github.com/rgarn023/CharoitePortal/actions/runs/42808363542). **Outcome pending verification at this handoff update**; do not claim green until GitHub reports success. No APK, phone testing, Wine, SCM, old scratch, stable `com.charoite`, user data or paid AI API accessed. Next: verify CI, then proceed to actual pinned ARM64 PE/native companion cross-build closure. **Owner action: NONE. Charoite 1.0 approximately 30% complete / 70% remaining.**
+
 ## SIXTH UNATTENDED SOURCE-ONLY RUN — PINNED PROVIDER IMPORT-PLAN CLASSIFICATION
 
 **Source commit:** [`968acde`](https://github.com/rgarn023/CharoitePortal/commit/968acde9940da48aa2fd119b9fdd07cce353673d) advances [issue #7](https://github.com/rgarn023/CharoitePortal/issues/7) beyond provenance-only hardening: the pinned eight-provider Makefile import audit now separates dependencies into **already sealed DLL names**, **edges to the eight missing planned providers**, and **imports outside both groups**. It retains the previous `imports_not_in_sealed_dlls` field for downstream compatibility and explicitly marks planned provider PE/native binaries and import closure **UNVERIFIED**. This is a source-level dependency plan, not a PE cross-build, native import closure, Android runtime result or proof of service activation. Two synthetic regression tests check planned `.sys` edges and sealed-DLL precedence. The planned edge is not counted as a built provider.

@@ -46,7 +46,7 @@ def current_version(root: Path) -> tuple[int, str]:
     if re.fullmatch(r"11\.2-next\.0\.[1-9][0-9]*", name) is None:
         raise UnsafeVersionDrift("Unsupported Next version identity")
     aapt = exactly_one(
-        r"package: name='com\.charoitx' versionCode='([0-9]+)' versionName='([^']+)'",
+        r"""(?m)^[ \t]+grep -F "package: name='com\.charoitx' versionCode='([0-9]+)' versionName='([^']+)'["]""",
         workflow, "APK identity gate")
     # exactly_one returns a tuple for the two capture groups.
     if tuple(aapt) != (str(code), name):

@@ -25,7 +25,8 @@ def fixture(root: Path, code=157, name="11.2-next.0.126", gate_code=None):
         name + '"\')\ntext = text.replace("versionCode 33", "versionCode ' +
         str(code) + '")\n', encoding="utf-8")
     flow.write_text(
-        """grep -F "package: name='com.charoitx' versionCode='""" +
+        "# archived: package: name='com.charoitx' versionCode='146' versionName='11.2-next.0.115'\n"
+        + """  grep -F "package: name='com.charoitx' versionCode='""" +
         str(gate_code) + "' versionName='" + name + """'"\n""" +
         "TAG=charoite-next-vc" + str(code) + "\n", encoding="utf-8")
     for path in known.TARGETS:
@@ -86,6 +87,15 @@ class KnownFix(unittest.TestCase):
             f.symlink_to(root / known.TARGETS[1])
             with self.assertRaises(known.UnsafeVersionDrift):
                 known.plan(root)
+
+
+class LiveRepositoryContract(unittest.TestCase):
+    def test_actual_next_release_gate_and_tests_are_consistent(self):
+        """Archived workflow comments must not be mistaken for active gates."""
+        code, version = known.current_version(ROOT)
+        self.assertGreaterEqual(code, 157)
+        self.assertTrue(version.startswith("11.2-next.0."))
+        self.assertEqual(known.plan(ROOT), {})
 
 
 class WorkflowPolicy(unittest.TestCase):

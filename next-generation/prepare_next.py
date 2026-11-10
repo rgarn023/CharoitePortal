@@ -39,11 +39,12 @@ assert text.count("versionCode 33") == 1
 # Historical V26: versionCode 149; versionName 11.2-next.0.118 (NEVER rerun).
 # Historical V27: versionCode 150; versionName 11.2-next.0.119 (NEVER rerun).
 # V28 original signed test APK: versionCode 151; versionName 11.2-next.0.120.
-# V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
+# Historical V28 free-reporting update: versionCode 152; versionName 11.2-next.0.121.
+# Active Next System report + GitHub release updates: versionCode 153; versionName 11.2-next.0.122.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.121"')
-text = text.replace("versionCode 33", "versionCode 152")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.122"')
+text = text.replace("versionCode 33", "versionCode 153")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -230,7 +231,8 @@ for filename in ("CharoiteWine27Stage.java", "CharoiteWine27NativeGate.java",
                    "CharoiteWine29V26DefaultInstallProbe.java",
                    "CharoiteWine29V27MappedInfProbe.java",
                    "CharoiteWine29V28FocusedInfProbe.java",
-                   "CharoiteWine29V28ReportShare.java"):
+                   "CharoiteWine29V28ReportShare.java",
+                   "CharoiteNextUpdateChecker.java"):
     target = app / "java/com/charoitegames/core" / filename
     assert not target.exists(), "Separate v3 source file already exists"
     shutil.copy2(source_dir / filename, target)
@@ -3637,6 +3639,7 @@ ui = ui.replace(anchor, anchor + """
                         final String report =
                             com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.run(this);
                         runOnUiThread(() -> {
+                            com.charoitegames.core.CharoiteWine29V28ReportShare.rememberReport(this, report);
                             wine29V28Exec.setEnabled(false);
                             new android.app.AlertDialog.Builder(this)
                                 .setTitle("Charoite Next — V28 DefaultInstall and SCM query")
@@ -3655,6 +3658,20 @@ ui = ui.replace(anchor, anchor + """
                     }, "CharoiteWine29V28FocusedInfProbe").start();
                 }).show());
         wine29V28Action.addView(wine29V28Exec);
+        // Permanent System action: existing copied V28 report can be pasted.
+        // This never reads old scratch or reruns Wine; no GitHub credential.
+        wine29V28Action.addView(label(
+                "Already ran V28? Do NOT repeat it. Tap Send report to GitHub; "
+                + "if you upgraded after copying your result, paste the complete "
+                + "V28 short report. Review the PUBLIC fields, then press Submit "
+                + "in the GitHub browser to create the issue.",
+                12, SECONDARY, false));
+        android.widget.Button sendV28GitHub = new android.widget.Button(this);
+        sendV28GitHub.setText("Send report to GitHub");
+        sendV28GitHub.setAllCaps(false);
+        sendV28GitHub.setOnClickListener(v ->
+                com.charoitegames.core.CharoiteWine29V28ReportShare.sendFromSystem(this));
+        wine29V28Action.addView(sendV28GitHub);
         android.widget.Button v28HandoffButton = new android.widget.Button(this);
         v28HandoffButton.setText("Open current project handoff");
         v28HandoffButton.setAllCaps(false);
@@ -3663,6 +3680,25 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V28Action.addView(v28HandoffButton);
         nextCoreCard.addView(wine29V28Action);
+
+        // Dedicated app-update control; no silent install or data reset.
+        LinearLayout nextUpdatesAction = card();
+        nextUpdatesAction.addView(label(
+                "CHAROITE NEXT — OFFICIAL GITHUB UPDATES",
+                16, FOREGROUND, true));
+        nextUpdatesAction.addView(label(
+                "Next checks PUBLIC GitHub releases on opening. If a newer "
+                + "signed com.charoitx APK is published, it asks before opening "
+                + "the download. Android asks again before installing in place. "
+                + "Never uninstall or clear storage. No older Wine scratch is accessed.",
+                12, SECONDARY, false));
+        android.widget.Button nextCheckUpdates = new android.widget.Button(this);
+        nextCheckUpdates.setText("Check for updates");
+        nextCheckUpdates.setAllCaps(false);
+        nextCheckUpdates.setOnClickListener(v ->
+                com.charoitegames.core.CharoiteNextUpdateChecker.checkNow(this));
+        nextUpdatesAction.addView(nextCheckUpdates);
+        nextCoreCard.addView(nextUpdatesAction);
 
         // Optional auto-upload is not part of the V16 manual test; retire it.
         final boolean showHistoricalAutomaticReporter = false;
@@ -3712,7 +3748,8 @@ ui = ui.replace(create_anchor, (
     ".onPortalCreated(this, savedInstanceState);\n"
     "        CharoiteEnvironments.initialize(this);\n"
     "        com.charoitegames.core.CharoiteNextAutoReports.schedule(this);\n"
-    "        com.charoitegames.core.CharoiteNextAutoReports.sendOnLaunch(this);"), 1)
+    "        com.charoitegames.core.CharoiteNextAutoReports.sendOnLaunch(this);\n"
+    "        com.charoitegames.core.CharoiteNextUpdateChecker.checkOnLaunch(this);"), 1)
 
 # The fallback is prepared in onCreate and mounted synchronously in
 # onPostCreate, after the full Portal view is assembled but BEFORE first draw.

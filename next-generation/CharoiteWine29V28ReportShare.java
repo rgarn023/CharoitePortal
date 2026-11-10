@@ -1,6 +1,10 @@
 package com.charoitegames.core;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.InputType;
+import android.widget.EditText;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
@@ -21,6 +25,8 @@ public final class CharoiteWine29V28ReportShare {
             "Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n"
             + "CHAROITE NEXT — ISOLATED WINE29 V28 ";
     private static final String END = "END OF SHORT V28 PREFIX SETUP SCM REPORT";
+    private static final String PREFS = "charoite-next-v28-safe-report-v1";
+    private static final String LAST_JSON = "last_fixed_marker_json";
     private static final String ISSUE_URL =
             "https://github.com/rgarn023/CharoitePortal/issues/new";
     private static final String[][] MARKERS = {
@@ -100,12 +106,68 @@ public final class CharoiteWine29V28ReportShare {
         return id.toString();
     }
 
+    /** Preserve ONLY sanitized in-memory markers, not the original report/log. */
+    public static void rememberReport(Context context, String report) {
+        if (!"com.charoitx".equals(context.getPackageName())) return;
+        try {
+            String safe=safeJson(report);
+            context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit()
+                    .putString(LAST_JSON,safe).apply();
+        } catch(Exception ignored) { /* Nothing to retain if report is incomplete. */ }
+    }
+
+    /** Persistent System action. Pasting supports V28 reports copied before an upgrade. */
+    public static void sendFromSystem(Activity activity) {
+        if (!"com.charoitx".equals(activity.getPackageName())) return;
+        SharedPreferences p=activity.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
+        String prior=p.getString(LAST_JSON,"");
+        if(prior!=null && prior.length()>0 && prior.length()<=2400){
+            try { reviewSanitized(activity,prior); return; }
+            catch(Exception ignored) { /* Allow user to paste older short report. */ }
+        }
+        EditText pasted=new EditText(activity);
+        pasted.setHint("Paste the complete V28 short report you already copied");
+        pasted.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        pasted.setMinLines(5);
+        pasted.setMaxLines(12);
+        pasted.setSingleLine(false);
+        new AlertDialog.Builder(activity)
+            .setTitle("Send Wine29 V28 report to GitHub")
+            .setMessage("Paste your EXISTING V28 short report. This does not rerun Wine. "
+                +"Only fixed markers will be shown for review; the GitHub issue is "
+                +"PUBLIC and you must tap Submit on GitHub.")
+            .setView(pasted)
+            .setNegativeButton("Cancel",null)
+            .setPositiveButton("Review and send",(d,w) ->
+                reviewAndOpen(activity,pasted.getText().toString()))
+            .show();
+    }
+
     public static void reviewAndOpen(Activity activity, String shortReport) {
         try {
             if (!"com.charoitx".equals(activity.getPackageName()))
                 throw new SecurityException("Not experimental Charoite Next");
-            String json = safeJson(shortReport);
-            String reportId = id(json);
+            String json=safeJson(shortReport);
+            rememberReport(activity,shortReport);
+            reviewSanitized(activity,json);
+        } catch(Exception ignored) {
+            new AlertDialog.Builder(activity)
+                .setTitle("Report draft unavailable")
+                .setMessage("No data uploaded. Paste the complete V28 short report "
+                    +"including its Handoff and END lines, or use Copy short report.")
+                .setPositiveButton("Close",null).show();
+        }
+    }
+
+    private static void reviewSanitized(Activity activity, String json) throws Exception {
+        if(json==null || json.length()>2400)
+            throw new SecurityException("Report size");
+        JSONObject verify=new JSONObject(json);
+        if(!"charoite-next.phone-wine29-v28.v1".equals(verify.optString("schema"))
+                || !"wine29-v28".equals(verify.optString("generation"))
+                || verify.length()!=6+MARKERS.length)
+            throw new SecurityException("Unknown report schema");
+        String reportId=id(json);
             String body = "Charoite Next V28 report. Sanitized fixed markers only.\n\n"
                     + json + "\n\nReport ID " + reportId
                     + ". This issue does not authorize another Wine test.";
@@ -134,11 +196,5 @@ public final class CharoiteWine29V28ReportShare {
                                     .setPositiveButton("Close", null).show();
                         }
                     }).show();
-        } catch (Exception ignored) {
-            new AlertDialog.Builder(activity)
-                    .setTitle("Report draft unavailable")
-                    .setMessage("No data uploaded. Copy the complete short report instead.")
-                    .setPositiveButton("Close", null).show();
-        }
     }
 }

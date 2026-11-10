@@ -1003,6 +1003,7 @@ jobs:
           echo WINE29_V27_MAPPED_C_INF_SOURCE_GATE=PASS
           echo WINE29_V27_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      # Historical free-reporting V28 APK: versionCode='152' versionName='11.2-next.0.121'
       # Historical V28 signed APK: versionCode='151' versionName='11.2-next.0.120'
       - name: Verify V28 focused bounded SetupAPI and fresh-prefix RpcSs source contract
         run: |
@@ -1012,6 +1013,12 @@ jobs:
           grep -Fq 'final boolean showArchivedWine29V27Execution = false;' next-generation/prepare_next.py
           echo WINE29_V28_FOCUSED_SETUPAPI_SOURCE_GATE=PASS
           echo WINE29_V28_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
+
+      - name: Verify System report submission and public GitHub update prompt
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s next-generation/tests -p 'test_next_system_reporting_update_contract.py' -v
+          echo NEXT_SYSTEM_GITHUB_REPORT_AND_UPDATE_SOURCE_GATE=PASS
 
       - name: Verify free tokenless V28 phone issue draft and owner-only intake
         run: |
@@ -1560,7 +1567,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='152' versionName='11.2-next.0.121'"
+            grep -F "package: name='com.charoitx' versionCode='153' versionName='11.2-next.0.122'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -1921,6 +1928,7 @@ jobs:
           cp next-generation/CharoiteWine29V27MappedInfProbe.java legal-bundle/CharoiteWine29V27MappedInfProbe.java
           cp next-generation/CharoiteWine29V28FocusedInfProbe.java legal-bundle/CharoiteWine29V28FocusedInfProbe.java
           cp next-generation/CharoiteWine29V28ReportShare.java legal-bundle/CharoiteWine29V28ReportShare.java
+          cp next-generation/CharoiteNextUpdateChecker.java legal-bundle/CharoiteNextUpdateChecker.java
           cp next-generation/triage_phone_report.py legal-bundle/triage_phone_report.py
           cp next-generation/stage_wine29_v23_setup.py legal-bundle/stage_wine29_v23_setup.py
           cp upstream/app/src/main/assets/charoite-next/wine29-v23-setup/setup-index.json legal-bundle/wine29-v23-setup-index.json
@@ -2013,3 +2021,54 @@ jobs:
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             || echo "::warning::Unable to publish result; inspect workflow directly."
 
+
+  publish-next-github-release:
+    name: Publish official public Next update (separate from stable Portal)
+    needs: [build-runtime-preview]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download signed APK and source attribution from this successful run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p signed-next license-source
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Core-Next-Android-APK --dir signed-next
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name Charoite-Core-Next-Licenses --dir license-source
+          test -s signed-next/Charoite-Next-Android.apk
+          test "$(stat -c %s signed-next/Charoite-Next-Android.apk)" -gt 100000000
+          sha256sum signed-next/Charoite-Next-Android.apk
+          test -n "$(find license-source -type f -name 'CharoiteNextUpdateChecker.java' -print -quit)"
+          (cd license-source && zip -q -r ../Charoite-Next-LGPL-Sources.zip .)
+          test -s Charoite-Next-LGPL-Sources.zip
+
+      - name: Create immutable versioned Next public GitHub Release for in-app updates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=charoite-next-vc153
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::notice::Versioned release already exists; not clobbering any asset."
+            test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[].name' | grep -Fxq 'Charoite-Next-Android.apk'
+          else
+            gh release create "$TAG" \
+              signed-next/Charoite-Next-Android.apk \
+              Charoite-Next-LGPL-Sources.zip \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Charoite Next 11.2-next.0.122 (build 153)" \
+              --notes "Signed experimental com.charoitx APK. Adds persistent System GitHub report submission and an opt-in update prompt on startup. Android install approval required. Wine29 V28 one-shot not run by CI. Never uninstall, wipe data, or rerun consumed Wine scratch." \
+              --latest=false
+          fi
+          echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"
+          echo "NEXT_STABLE_PORTAL_RELEASE_UNCHANGED=PASS"

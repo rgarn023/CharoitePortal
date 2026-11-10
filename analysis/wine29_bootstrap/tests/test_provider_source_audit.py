@@ -81,7 +81,7 @@ class ProviderAudit(unittest.TestCase):
     def test_crossbuild_work_queue_exposes_unverified_external_native_and_macro_gates(self):
         inputs = fixtures()
         inputs["winehid.sys"] = (
-            "MODULE = winehid.sys\\nIMPORTS = winebus ntoskrnl\\n")
+            "MODULE = winehid.sys\nIMPORTS = winebus ntoskrnl\n")
         sealed = {"x%02d.dll" % i for i in range(34)}
         report = A.analyze(inputs, sealed, set(A.SOURCE_BLOBS))
         queue = report["provider_crossbuild_work_queue"]

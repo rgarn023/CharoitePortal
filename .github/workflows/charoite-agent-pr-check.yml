@@ -9,9 +9,10 @@ on:
       - '.github/workflows/charoite-next.yml'
   pull_request:
     paths:
-      - 'next-generation/CharoiteWine*.java'
-      - 'next-generation/charoite-wine/patches/**'
-      - 'next-generation/tests/**'
+      # Match push coverage: proposed Next source changes also need static CI.
+      - 'next-generation/**'
+      - '.github/workflows/charoite-agent-pr-check.yml'
+      - '.github/workflows/charoite-next.yml'
   workflow_dispatch:
 
 concurrency:

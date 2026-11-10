@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/wine29-v28-copyqueue-source-audit.yml'
-      - 'analysis/wine29_bootstrap/audit_inf_copyqueue.py'
+      - 'analysis/wine29_bootstrap/**'
       - 'analysis/wine29_bootstrap/tests/test_copyqueue_source_audit.py'
   workflow_dispatch:
 
@@ -27,6 +27,11 @@ jobs:
         run: |
           python3 -m unittest discover -s analysis/wine29_bootstrap/tests \
             -p 'test_copyqueue_source_audit.py' -v
+
+      - name: Run synthetic pinned provider source dependency tests
+        run: |
+          python3 -m unittest discover -s analysis/wine29_bootstrap/tests \
+            -p 'test_provider_source_audit.py' -v
 
       - name: Download immutable verified 111-file data artifact to CI scratch ONLY
         env:
@@ -72,11 +77,49 @@ jobs:
           print("SCM_SUCCESS_VERIFIED",False)
           PY
 
+      - name: Retrieve exact eight pinned Wine Makefiles (SOURCE ONLY)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SOURCE_REV=c74acb09d51b447f5d5ac56c87608d3ec565a767
+          BASE="$RUNNER_TEMP/wine29-pinned-provider-sources"
+          test ! -e "$BASE"
+          mkdir -p "$BASE"
+          for name in mscms hidclass.sys mouhid.sys winebth.sys winebus.sys winehid.sys wineusb.sys winexinput.sys; do
+            mkdir -p "$BASE/$name"
+            test ! -e "$BASE/$name/Makefile.in"
+            gh api "repos/The412Banner/proton-wine/contents/dlls/$name/Makefile.in?ref=$SOURCE_REV" \
+              --jq '.content' | base64 --decode > "$BASE/$name/Makefile.in"
+          done
+          echo "PINNED_WINE_SOURCE_PROVIDER_MAKEFILES_DOWNLOADED=8"
+
+      - name: Audit exactly pinned provider build and import requirements
+        run: |
+          set -euo pipefail
+          test ! -e "$GITHUB_WORKSPACE/wine29-arm64-provider-source-audit.json"
+          python3 analysis/wine29_bootstrap/audit_provider_sources.py \
+            --source-dir "$RUNNER_TEMP/wine29-pinned-provider-sources" \
+            --sealed "$RUNNER_TEMP/wine29-copyqueue-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" \
+            --copyqueue "$GITHUB_WORKSPACE/wine29-arm64-copyqueue-source-audit.json" \
+            --out "$GITHUB_WORKSPACE/wine29-arm64-provider-source-audit.json"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("wine29-arm64-provider-source-audit.json").read_text())
+          print("VERIFIED_PINNED_PROVIDER_MAKEFILES",r["provider_source_files_verified"])
+          print("REQUIRE_UNIX_COMPANION",r["unix_companion_required_by"])
+          print("REQUIRE_EXTERNAL_BUILD_MACRO",r["external_build_macro_modules"])
+          print("RUNTIME_CORRECTION_VERIFIED",r["runtime_correction_verified"])
+          PY
+
       - name: Publish SOURCE-ONLY coverage report (NOT APK or phone diagnostic)
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Wine29-ARM64-CopyQueue-SOURCE-ONLY-NOT-APK
-          path: wine29-arm64-copyqueue-source-audit.json
+          path: |
+            wine29-arm64-copyqueue-source-audit.json
+            wine29-arm64-provider-source-audit.json
           if-no-files-found: error
           retention-days: 30

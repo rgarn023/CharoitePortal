@@ -12,6 +12,12 @@
 
 **Immediate owner action: NONE for this source-only step.** No new APK, app install or Wine test is requested. New isolated V29 runtime work must be separately authorized and MUST NOT reuse V28. Stable `com.charoite`, games, saves, rootfs, all old Wine generations remain untouched. **Charoite 1.0 estimate ~30% complete / 70% remaining.**
 
+## SOURCE-ONLY COPY QUEUE COVERAGE — PINNED ARTIFACT AUDIT VERIFIED
+
+[**Wine29 V28 historical ARM64 CopyFiles audit run #42754413305 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/42754413305), [**source-only JSON artifact #13734951529, NOT APK**](https://github.com/rgarn023/CharoitePortal/actions/runs/42754413305/artifacts/13734951529). Exact generated INF SHA-256 and sealed 111-file archive SHA-256 PASS; 5 offline tests PASS; no Wine/V28/phone execution. It found **88 ARM64 CopyFiles entries**, **0 requested NLS entries missing** from 76 sealed NLS files and **8 resource-provider PE modules outside the 34-DLL sealed cohort**: `hidclass.sys`, `mouhid.sys`, `mscms.dll`, `winebth.sys`, `winebus.sys`, `winehid.sys`, `wineusb.sys`, `winexinput.sys`. This is a source-cohort coverage gap, **not proof of the V28 copy errors or a failed RpcSs startup**. The number eight matching the eight unclassified SetupAPI errors is coincidental without per-error evidence.
+
+**Current fix direction:** All eight provider source `Makefile.in` files exist in the exact pinned Wine commit; `winebth.sys`, `winebus.sys`, `wineusb.sys` each require a Unix companion; `mscms.dll` has LCMS2 build macros. A second pinned Makefile/PE-import source-only audit is now included in the dedicated workflow and must pass before any decision to stage/cross-build missing modules. No speculative new runtime package, auto-executed V29, new APK or owner action. [Full source findings](https://github.com/rgarn023/CharoitePortal/blob/main/docs/WINE29_V28_POSTMORTEM_COPYQUEUE_AUDIT.md). **Provider-audit CI verification pending.**
+
 ## FREE-FIRST DEVELOPMENT AUTOMATION — OFFLINE SAFETY CI PASS, NO NEW APK
 
 **Owner decision:** Enable lowest-cost practical automation WITHOUT adding an OpenAI API key, cloud-agent subscription, unsafe Wine execution, repeated generation tests or unattended Android installs.

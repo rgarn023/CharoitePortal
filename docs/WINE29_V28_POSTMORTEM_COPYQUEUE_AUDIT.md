@@ -31,6 +31,25 @@ The audit inventories the five ARM64 `CopyFiles` sections, required NLS entries,
 
 The dedicated [source-audit workflow](https://github.com/rgarn023/CharoitePortal/blob/main/.github/workflows/wine29-v28-copyqueue-source-audit.yml) downloads only existing GitHub artifacts into a disposable CI workspace, verifies exact hashes, runs synthetic unit tests, produces a **source-only JSON report**, and uploads that as a GitHub artifact. It NEVER runs Wine, sc.exe, Windows PE, Gradle APK builds, or phone experiments; nor does it touch consumed V28 evidence.
 
+## Verified full source-artifact coverage outcome
+
+[**Source-only GitHub Actions run #42754413305 — SUCCESS**](https://github.com/rgarn023/CharoitePortal/actions/runs/42754413305). The first run verified the sealed archive and exact generated INF hashes; all five synthetic tests passed; no Wine or phone was executed. [**Source-only JSON artifact #13734951529**](https://github.com/rgarn023/CharoitePortal/actions/runs/42754413305/artifacts/13734951529) is NOT an APK.
+
+- **88** entries across exactly five ARM64 `CopyFiles` sections.
+- **Zero** requested NLS entries are missing from the pinned 76 NLS files.
+- **Eight** resource-provider PEs are outside the narrow sealed 34-DLL cohort: `hidclass.sys`, `mouhid.sys`, `mscms.dll`, `winebth.sys`, `winebus.sys`, `winehid.sys`, `wineusb.sys`, `winexinput.sys`. The source archive does include `ws2_32.dll` and all requested NLS.
+- These eight resource providers are **not** the same as V28's eight unclassified SetupAPI error lines. Coincident counts do not establish a causal relationship. The file-copy/rename error category has no raw code or path in the owner's sanitized evidence.
+
+## Pinned source provider dependency findings and follow-on audit
+
+All eight modules have a [pinned Wine `dlls/<module>/Makefile.in`](https://github.com/The412Banner/proton-wine/tree/c74acb09d51b447f5d5ac56c87608d3ec565a767/dlls), but **source availability alone does not mean that a complete Android PE + native runtime can be staged**.
+
+- `winebth.sys`, `winebus.sys`, and `wineusb.sys` declare companion `UNIXLIB` builds, and the relevant platform libraries must be checked separately.
+- `mscms.dll` declares `LCMS2_PE_LIBS` and `LCMS2_PE_CFLAGS`, so its build is subject to external LCMS2 dependency configuration.
+- `hidclass.sys`, `mouhid.sys`, `winehid.sys` and `winexinput.sys` declare driver-related imports such as `ntoskrnl`/`hidparse` or `hidclass`. A DLL-only 34-provider cohort does not prove the closure of those imports.
+
+The additional [`audit_provider_sources.py`](https://github.com/rgarn023/CharoitePortal/blob/main/analysis/wine29_bootstrap/audit_provider_sources.py) source-only step retrieves eight Makefiles by exact pinned commit, validates their individual Git blob hashes, reads the **same verified sealed archive and copy-queue JSON**, classifies direct PE imports, source build macros and declared companion Unix modules, and emits a second read-only JSON artifact. It NEVER cross-builds, runs Wine, accesses V28, packages an APK or changes device data. **CI outcome pending after next source-only workflow run.**
+
 ## Next engineering decision
 
 First inspect the verified static copy-queue coverage and any missing provider classes. If the sealed data omission makes a narrowly justified source-packaging correction possible, cross-build/verify source candidates without running Wine. Only after that should a separate **new V29 private-prefix test** be designed, and it must require explicit owner consent, distinct generation scratch, bounded logging and no prior generation accesses. Do not convert V28's preserved review button into a new execution button or conflate static source coverage with service-start proof.

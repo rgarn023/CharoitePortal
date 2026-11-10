@@ -102,7 +102,7 @@ class FreeV28IssueIntake(unittest.TestCase):
                        "secrets.OPENAI_API_KEY", "workflow_dispatch"):
             self.assertNotIn(unsafe, WF)
         self.assertIn("retention-days: 14", APK)
-        self.assertIn("versionCode='154' versionName='11.2-next.0.124'", APK)
+        self.assertIn("versionCode='155' versionName='11.2-next.0.124'", APK)
         self.assertIn("CharoiteWine29V28ReportShare.java legal-bundle/", APK)
         self.assertIn("WINE29_V28_FREE_ISSUE_INTAKE=PASS", APK)
 

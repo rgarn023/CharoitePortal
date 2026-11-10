@@ -67,7 +67,7 @@ class NextSystemWorkflow(unittest.TestCase):
             "Charoite-Next-Android.apk",
             "Charoite-Next-LGPL-Sources.zip",
             "NEXT_STABLE_PORTAL_RELEASE_UNCHANGED=PASS",
-            "versionCode='154' versionName='11.2-next.0.124'",
+            "versionCode='155' versionName='11.2-next.0.124'",
             "CharoiteNextUpdateChecker.java legal-bundle/",
             "NEXT_SYSTEM_GITHUB_REPORT_AND_UPDATE_SOURCE_GATE=PASS"
         ): self.assertIn(marker,W)

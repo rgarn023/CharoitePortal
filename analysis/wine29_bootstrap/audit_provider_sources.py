@@ -71,6 +71,32 @@ def parse_makefile(provider: str, text: str) -> dict:
         "has_native_companion": bool(native),
     }
 
+def strict_json_object(pairs: list[tuple[str, object]]) -> dict:
+    """Reject duplicate JSON keys before source-only provenance validation.
+
+    json.loads normally accepts repeated keys and retains only the final
+    value, making a contradictory source_only/wine_executed/v28_reused
+    assertion invisible to the next audit stage.
+    """
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate key in CopyFiles audit JSON")
+        result[key] = value
+    return result
+
+
+def parse_copyqueue_json(raw: str) -> dict:
+    """Reject ambiguous or non-standard JSON values, including NaN."""
+    def reject_constant(value: str) -> None:
+        raise ValueError("Non-standard CopyFiles audit JSON constant")
+    parsed = json.loads(raw, object_pairs_hook=strict_json_object,
+                        parse_constant=reject_constant)
+    if not isinstance(parsed, dict):
+        raise ValueError("CopyFiles audit must be a JSON object")
+    return parsed
+
+
 def validate_copyqueue_provider_list(copyqueue: object) -> set[str]:
     """Require an unambiguous, exact source-only handoff from the INF audit.
 
@@ -158,7 +184,7 @@ def main() -> None:
         source[provider] = data.decode("utf-8")
     if a.copyqueue.is_symlink() or a.copyqueue.stat().st_size > 32768:
         raise ValueError("Unsafe source audit input")
-    copyqueue = json.loads(a.copyqueue.read_text(encoding="utf-8"))
+    copyqueue = parse_copyqueue_json(a.copyqueue.read_text(encoding="utf-8"))
     missing = validate_copyqueue_provider_list(copyqueue)
     root = Path(__file__).resolve().parents[2]
     stage = root / "next-generation/stage_wine29_sealed012.py"

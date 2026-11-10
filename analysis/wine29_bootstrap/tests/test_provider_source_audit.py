@@ -120,6 +120,30 @@ class ProviderAudit(unittest.TestCase):
             with self.subTest(bad=repr(bad)[:100]), self.assertRaises(ValueError):
                 A.validate_copyqueue_provider_list(bad)
 
+    def test_copyqueue_json_rejects_duplicate_keys_even_if_last_value_is_safe(self):
+        # The ordinary json.loads parser would silently retain the last
+        # occurrence and report an apparently safe provenance flag.
+        import json
+        valid = {
+            "source_only": True, "wine_executed": False, "v28_reused": False,
+            "resource_providers_not_in_sealed_pe": sorted(A.SOURCE_BLOBS),
+        }
+        raw = json.dumps(valid)
+        self.assertEqual(A.validate_copyqueue_provider_list(
+            A.parse_copyqueue_json(raw)), set(A.SOURCE_BLOBS))
+        for duplicate in (
+            '"source_only": false,',
+            '"wine_executed": true,',
+            '"v28_reused": true,',
+            '"resource_providers_not_in_sealed_pe": [],',
+        ):
+            with self.subTest(duplicate=duplicate), self.assertRaises(ValueError):
+                A.parse_copyqueue_json("{" + duplicate + raw[1:])
+        for invalid in ('{"source_only":NaN}', '{"source_only":Infinity}',
+                        '[1,2,3]', 'null', '{"nested":{"a":1,"a":2}}'):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                A.parse_copyqueue_json(invalid)
+
     def test_analyze_rejects_missing_extra_sources_and_malformed_pe_names(self):
         inputs = fixtures()
         names = {"x%02d.dll" % i for i in range(34)}

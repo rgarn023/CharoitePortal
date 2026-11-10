@@ -180,7 +180,7 @@ public final class CharoiteWine29V28PreservedReadOnly {
              +"gates. Report fixed markers/byte counts, anchored historical "
              +"RpcSs service STATE (if unambiguous) and allowlisted SetupAPI "
              +"error categories ONLY. Never expose raw logs, registry "
-             +"values, paths or identifiers. No Wine, no other generation, 
+             +"values, paths or identifiers. No Wine, no other generation, "
              +"no new scratch, writes, cleanup, deletion or network. "
              +"If you do not authorize, tap Cancel.")
           .setNegativeButton("Cancel — no file access",null)

@@ -3613,7 +3613,7 @@ ui = ui.replace(anchor, anchor + """
                 + "V28 logs and prefix/system.reg, with no-follow bounded file checks. "
                 + "It classifies an exact historical RpcSs state row and fixed SetupAPI "
                 + "error categories (not raw messages). No raw private paths or log "
-                + "contents are shared; no games, older 
+                + "contents are shared; no games, older "
                 + "scratch or stable Portal are accessed. The existing Send report "
                 + "to GitHub option remains available for an already copied V28 report.",
                 12, SECONDARY, false));

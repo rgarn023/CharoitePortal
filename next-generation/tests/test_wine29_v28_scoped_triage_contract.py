@@ -56,6 +56,10 @@ class ScopedTriageOnly(unittest.TestCase):
         self.assertIn('lacks(running,"secret.txt")',J)
         self.assertIn("V28_SCOPED_SCM_STATE_AND_SETUPAPI_SYNTHETIC_JAVA_GATE=PASS",J)
 
+    def test_generated_ui_consent_string_literals_are_closed(self):
+        self.assertIn('+ "contents are shared; no games, older "',P)
+        self.assertIn('+"values, paths or identifiers. No Wine, no other generation, "',R)
+
     def test_ci_and_app_identity_stay_isolated(self):
         for value in (
             "versionCode 156", "11.2-next.0.125",

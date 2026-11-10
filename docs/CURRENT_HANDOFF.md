@@ -2,6 +2,12 @@
 
 # CHAROITE NEXT — CURRENT HANDOFF | November 10, 2026
 
+## EIGHTH UNATTENDED SOURCE-ONLY RUN — ACTIONABLE CROSS-BUILD BLOCKER QUEUE
+
+**Source commit:** [`3ec091a`](https://github.com/rgarn023/CharoitePortal/commit/3ec091a2a542a61340169d02c8598ccf26638494) advances [Wine29 provider issue #7](https://github.com/rgarn023/CharoitePortal/issues/7). The pinned eight-provider audit now emits a dependency-ordered `provider_crossbuild_work_queue` with per-provider blockers for external imports, planned PE provider prerequisites, Android/Bionic native companions, external build macro linkage, and mandatory actual pinned ARM64 PE/import-table verification. Each provider explicitly retains `crossbuild_verified=false`; the queue is **not** binary, native, or runtime closure. Synthetic tests verify deterministic ordering, blocker classification, and fail-closed no-success flags. No old scratch, Wine, Android, phone, stable Portal, game, save, rootfs or paid AI API accessed.
+
+**Triggered source-only CI:** [Bootstrap source audit #42816759828](https://github.com/rgarn023/CharoitePortal/actions/runs/42816759828) and [CopyFiles/provider source audit #42816759833](https://github.com/rgarn023/CharoitePortal/actions/runs/42816759833); verify final results before treating these as passing. **No APK requested; owner action NONE. Charoite 1.0 approximately 30% complete / 70% remaining.** Next: use blocker queue to plan actual pinned ARM64 cross-build and companion native import closure, without touching any consumed generation.
+
 ## SEVENTH UNATTENDED SOURCE-ONLY RUN — DEPENDENCY-FIRST PROVIDER BUILD PLAN
 
 **Source commit:** [`01b4b4b`](https://github.com/rgarn023/CharoitePortal/commit/01b4b4b387ca327da7e21841573807285e6c910a) advances [Wine29 provider issue #7](https://github.com/rgarn023/CharoitePortal/issues/7) with a deterministic, dependency-first *source build plan* for the eight pinned missing PE resource providers. A provider importing another planned provider is ordered after its dependency; circular/self dependencies fail closed rather than yielding a misleading build plan. Two synthetic tests cover transitive ordering, determinism, cycles and self-dependency. New JSON fields: `provider_source_build_order`, `provider_source_build_order_only=true`. Existing PE/native/import-closure verification flags remain **FALSE**. This is a source plan, not a cross-build or runtime result.

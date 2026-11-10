@@ -47,6 +47,19 @@ class ProviderAudit(unittest.TestCase):
         with self.assertRaises(ValueError):
             A.analyze(fixtures(),{"x%d.dll"%i for i in range(34)},{"mscms.dll"})
 
+    def test_rejects_unclassified_import_tokens_instead_of_omitting_them(self):
+        for invalid in ("foo.dll", "$(UNKNOWN)/path", "$(BROKEN", "foo;bar",
+                        "$(lowercase)", "-lfoo", "foo\\bar", "foo#comment"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                A.parse_makefile("winehid.sys",
+                    "MODULE = winehid.sys\nIMPORTS = ntoskrnl " + invalid + "\n")
+
+    def test_accepts_macro_as_whole_token_and_reports_it(self):
+        parsed = A.parse_makefile("mscms.dll",
+            "MODULE = mscms.dll\nIMPORTS = $(LCMS2_PE_LIBS) shlwapi advapi32\n")
+        self.assertEqual(parsed["build_macros"], ["$(LCMS2_PE_LIBS)"])
+        self.assertEqual(parsed["imports"], ["advapi32", "shlwapi"])
+
     def test_git_blob_identity_is_git_format(self):
         import hashlib
         self.assertEqual(A.git_blob_sha(b"hello\n"),

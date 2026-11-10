@@ -42,13 +42,22 @@ def parse_makefile(provider: str, text: str) -> dict:
     imports = value("IMPORTS").split()
     if not imports:
         raise ValueError("Provider has no declared imports")
-    macros = sorted(set(re.findall(r"\$\([A-Z_0-9]+\)", " ".join(imports))))
+    # Every token must be an ordinary Wine import or a recognized Make macro.
+    # Never silently discard an unknown token: that understates the build
+    # dependency closure and can incorrectly label a provider as buildable.
+    macro_pattern = r"\$\([A-Z][A-Z_0-9]*\)"
+    ordinary_pattern = r"[a-z0-9_-]+"
+    if any(not (re.fullmatch(ordinary_pattern, token) or
+                re.fullmatch(macro_pattern, token)) for token in imports):
+        raise ValueError("Unrecognized provider import or build expression")
+    macros = sorted(set(token for token in imports
+                        if re.fullmatch(macro_pattern, token)))
     native = value("UNIXLIB")
     if native and not re.fullmatch(r"[a-z0-9_-]+\.so", native):
         raise ValueError("Unapproved Unix companion library identity")
     return {
         "module": provider,
-        "imports": sorted(t for t in imports if re.fullmatch(r"[a-z0-9_-]+", t)),
+        "imports": sorted(t for t in imports if re.fullmatch(ordinary_pattern, t)),
         "build_macros": macros,
         "unix_companion": native or None,
         "has_native_companion": bool(native),

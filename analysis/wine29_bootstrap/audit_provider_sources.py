@@ -151,17 +151,34 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
                 re.fullmatch(r"[a-z0-9][a-z0-9_-]*\.dll", name) is None
                 for name in pe_names)):
         raise ValueError("Expected 34 normalized sealed PE DLL names")
+    # Build a *planning* graph from pinned Makefile IMPORTS, not a verified
+    # PE import table. .sys modules are outside the sealed DLL-only cohort.
+    # Internal edges must not be mistaken for closed imports until each PE
+    # binary and any Unix companion has been cross-built and checked.
+    provider_by_stem = {name.rsplit(".", 1)[0]: name for name in SOURCE_BLOBS}
     output = []
     for provider in sorted(SOURCE_BLOBS):
         row = parse_makefile(provider, inputs[provider])
-        needs = []
+        sealed = []
+        planned = []
+        unresolved = []
         for name in row["imports"]:
-            # PE imports can be .dll, .sys or .exe. The sealing cohort
-            # explicitly includes DLLs only; an unsealed import may still
-            # be provided elsewhere in the package.
-            if name + ".dll" not in pe_names:
-                needs.append(name)
-        row["imports_not_in_sealed_dlls"] = sorted(needs)
+            if name + ".dll" in pe_names:
+                sealed.append(name)
+            elif name in provider_by_stem:
+                planned.append({"import": name, "provider": provider_by_stem[name]})
+            else:
+                unresolved.append(name)
+        row["imports_in_sealed_dlls"] = sorted(sealed)
+        row["imports_in_missing_provider_plan"] = sorted(
+            planned, key=lambda edge: (edge["import"], edge["provider"]))
+        row["imports_outside_sealed_and_provider_plan"] = sorted(unresolved)
+        # Retain existing report field for downstream consumers: this is
+        # still *all* imports not present as a sealed DLL, including edges
+        # to other planned providers, not just external dependencies.
+        row["imports_not_in_sealed_dlls"] = sorted(
+            edge["import"] for edge in planned) + sorted(unresolved)
+        row["imports_not_in_sealed_dlls"].sort()
         output.append(row)
     return {
         "source_revision": SOURCE_REV,
@@ -171,6 +188,10 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
         "unix_companion_required_by": [x["module"] for x in output if x["has_native_companion"]],
         "external_build_macro_modules": [x["module"] for x in output if x["build_macros"]],
         "providers": output,
+        "provider_import_plan_only": True,
+        "provider_pe_binaries_verified": False,
+        "provider_native_companions_verified": False,
+        "provider_import_closure_verified": False,
         "wine_executed": False,
         "phone_accessed": False,
         "v28_reused": False,

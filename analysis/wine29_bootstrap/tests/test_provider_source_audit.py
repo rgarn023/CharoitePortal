@@ -36,6 +36,40 @@ class ProviderAudit(unittest.TestCase):
         self.assertFalse(r["phone_accessed"])
         self.assertTrue(r["source_only"])
 
+    def test_import_plan_distinguishes_sealed_planned_and_external(self):
+        # A planned .sys is not a verified built PE and must never be
+        # counted as sealed just because its source Makefile is pinned.
+        inputs = fixtures()
+        inputs["winehid.sys"] = (
+            "MODULE = winehid.sys\n"
+            "IMPORTS = ntoskrnl winebus advapi32\n")
+        sealed = {"x%02d.dll" % i for i in range(33)} | {"advapi32.dll"}
+        result = A.analyze(inputs, sealed, set(A.SOURCE_BLOBS))
+        row = next(p for p in result["providers"]
+                   if p["module"] == "winehid.sys")
+        self.assertEqual(row["imports_in_sealed_dlls"], ["advapi32"])
+        self.assertEqual(row["imports_in_missing_provider_plan"],
+                         [{"import": "winebus", "provider": "winebus.sys"}])
+        self.assertEqual(row["imports_outside_sealed_and_provider_plan"],
+                         ["ntoskrnl"])
+        self.assertEqual(row["imports_not_in_sealed_dlls"],
+                         ["ntoskrnl", "winebus"])
+        self.assertTrue(result["provider_import_plan_only"])
+        self.assertFalse(result["provider_pe_binaries_verified"])
+        self.assertFalse(result["provider_native_companions_verified"])
+        self.assertFalse(result["provider_import_closure_verified"])
+
+    def test_sealed_dll_takes_precedence_over_planned_stem(self):
+        inputs = fixtures()
+        inputs["winehid.sys"] = (
+            "MODULE = winehid.sys\nIMPORTS = winebus\n")
+        sealed = {"x%02d.dll" % i for i in range(33)} | {"winebus.dll"}
+        row = next(p for p in A.analyze(inputs, sealed, set(A.SOURCE_BLOBS))["providers"]
+                   if p["module"] == "winehid.sys")
+        self.assertEqual(row["imports_in_sealed_dlls"], ["winebus"])
+        self.assertEqual(row["imports_in_missing_provider_plan"], [])
+        self.assertEqual(row["imports_outside_sealed_and_provider_plan"], [])
+
     def test_fails_closed_on_wrong_module_name_and_new_providers(self):
         with self.assertRaises(ValueError):
             A.parse_makefile("winehid.sys","MODULE = rpcss.exe\nIMPORTS = ntdll\n")

@@ -181,7 +181,7 @@ public final class CharoiteWine29V28PreservedReadOnly {
              +"gates. Report fixed markers/byte counts, anchored historical "
              +"RpcSs service STATE (if unambiguous) and allowlisted SetupAPI "
              +"error categories, fixed RpcSs registry Start mode and historical "
-             +"SCM WIN32_EXIT_CODE class ONLY. Never expose raw logs, registry 
+             +"SCM WIN32_EXIT_CODE class ONLY. Never expose raw logs, registry "
              +"values, paths or identifiers. No Wine, no other generation, "
              +"no new scratch, writes, cleanup, deletion or network. "
              +"If you do not authorize, tap Cancel.")

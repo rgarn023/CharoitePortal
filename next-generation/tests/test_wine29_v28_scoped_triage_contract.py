@@ -52,6 +52,7 @@ class ScopedTriageOnly(unittest.TestCase):
         self.assertIn("could not create key",C)
         self.assertIn("CharoiteWine29V28ScopedTriage.appendRegistryStart(b,registry)",R)
         self.assertIn("RpcSs registry Start mode: DEMAND_START",J)
+        self.assertIn('+"SCM WIN32_EXIT_CODE class ONLY. Never expose raw logs, registry "',R)
         self.assertIn("WIN32_EXIT_CODE class: SERVICE_NEVER_STARTED",J)
         self.assertNotIn("out.append(line)",C)
         self.assertNotIn("out.append(helper)",C)

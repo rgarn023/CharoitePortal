@@ -1,0 +1,82 @@
+name: Wine29 V28 Historical CopyFiles Coverage — Source Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wine29-v28-copyqueue-source-audit.yml'
+      - 'analysis/wine29_bootstrap/audit_inf_copyqueue.py'
+      - 'analysis/wine29_bootstrap/tests/test_copyqueue_source_audit.py'
+  workflow_dispatch:
+
+# GitHub source artifacts ONLY: never run Wine or Android code. No paid API.
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pinned-inf-copyqueue-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run synthetic source coverage / safety regressions
+        run: |
+          python3 -m unittest discover -s analysis/wine29_bootstrap/tests \
+            -p 'test_copyqueue_source_audit.py' -v
+
+      - name: Download immutable verified 111-file data artifact to CI scratch ONLY
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-copyqueue-sealed"
+          gh run download 41947164001 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-07-34-DLL-76-NLS-Sealed-Data-Only-NOT-APK \
+            --dir "$RUNNER_TEMP/wine29-copyqueue-sealed"
+          echo "ada8bd980722deba16e89231652a25a27a7e197a7638abc9d38a61e0614e412e  $RUNNER_TEMP/wine29-copyqueue-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" | sha256sum --check
+
+      - name: Download pinned V23 generated Wine INF source candidate — NEVER execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/wine29-copyqueue-setup"
+          gh run download 42552476223 --repo "$GITHUB_REPOSITORY" \
+            --name Wine29-V23-Pinned-Prefix-Setup-Source-Only-NOT-APK \
+            --dir "$RUNNER_TEMP/wine29-copyqueue-setup"
+          test -f "$RUNNER_TEMP/wine29-copyqueue-setup/wine.inf"
+          test ! -L "$RUNNER_TEMP/wine29-copyqueue-setup/wine.inf"
+          echo "5c7a7041399370937bdaaec11bac8ab64b910d6a1877b6afb582ad1d6a2f894a  $RUNNER_TEMP/wine29-copyqueue-setup/wine.inf" | sha256sum --check
+
+      - name: Audit ARM64 INF CopyFiles sections against sealed provider/nls inventory
+        run: |
+          set -euo pipefail
+          test ! -e "$GITHUB_WORKSPACE/wine29-arm64-copyqueue-source-audit.json"
+          python3 analysis/wine29_bootstrap/audit_inf_copyqueue.py \
+            --inf "$RUNNER_TEMP/wine29-copyqueue-setup/wine.inf" \
+            --sealed "$RUNNER_TEMP/wine29-copyqueue-sealed/wine29-07-34-dll-76-nls-data-only.tar.gz" \
+            --out "$GITHUB_WORKSPACE/wine29-arm64-copyqueue-source-audit.json"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("wine29-arm64-copyqueue-source-audit.json").read_text())
+          print("COPY_QUEUE_SECTIONS",r["arm64_copy_sections"])
+          print("COPY_QUEUE_ROWS",r["copyfile_rows"])
+          print("NLS_NOT_STAGED",r["requested_nls_not_in_sealed"])
+          print("RESOURCE_PROVIDERS_OUTSIDE_SEALED_COHORT",r["resource_providers_not_in_sealed_pe"])
+          print("V28_RUNTIME_REEXECUTED",r["v28_reused"])
+          print("SCM_SUCCESS_VERIFIED",False)
+          PY
+
+      - name: Publish SOURCE-ONLY coverage report (NOT APK or phone diagnostic)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-ARM64-CopyQueue-SOURCE-ONLY-NOT-APK
+          path: wine29-arm64-copyqueue-source-audit.json
+          if-no-files-found: error
+          retention-days: 30

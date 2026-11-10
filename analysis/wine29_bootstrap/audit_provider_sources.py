@@ -209,7 +209,30 @@ def analyze(inputs: dict[str, str], pe_names: set[str],
         row["imports_not_in_sealed_dlls"].sort()
         output.append(row)
     build_order = planned_provider_build_order(provider_dependencies)
+    # Turn source-only inventory into a concrete cross-build work queue.
+    # These are *unverified* requirements, never a claim that a PE or
+    # Android/Bionic companion was compiled or that imports are resolved.
+    for row in output:
+        blockers = []
+        if row["imports_outside_sealed_and_provider_plan"]:
+            blockers.append("EXTERNAL_IMPORT_RESOLUTION")
+        if row["imports_in_missing_provider_plan"]:
+            blockers.append("PLANNED_PROVIDER_PE_BUILD")
+        if row["has_native_companion"]:
+            blockers.append("ANDROID_BIONIC_UNIX_COMPANION")
+        if row["build_macros"]:
+            blockers.append("EXTERNAL_BUILD_MACRO_LINKAGE")
+        blockers.append("PINNED_ARM64_PE_BUILD_AND_IMPORT_TABLE")
+        row["crossbuild_verification_blockers"] = blockers
+        row["crossbuild_verified"] = False
     return {
+        "provider_crossbuild_work_queue": [
+            {"provider": name, "blockers": next(
+                row["crossbuild_verification_blockers"] for row in output
+                if row["module"] == name)}
+            for name in build_order
+        ],
+        "provider_crossbuild_work_queue_only": True,
         "source_revision": SOURCE_REV,
         "source_only": True,
         "provider_source_files_verified": len(output),

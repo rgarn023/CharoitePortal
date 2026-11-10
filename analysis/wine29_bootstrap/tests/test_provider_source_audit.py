@@ -78,6 +78,38 @@ class ProviderAudit(unittest.TestCase):
         self.assertEqual(order, A.analyze(
             inputs, names, set(A.SOURCE_BLOBS))["provider_source_build_order"])
 
+    def test_crossbuild_work_queue_exposes_unverified_external_native_and_macro_gates(self):
+        inputs = fixtures()
+        inputs["winehid.sys"] = (
+            "MODULE = winehid.sys\\nIMPORTS = winebus ntoskrnl\\n")
+        sealed = {"x%02d.dll" % i for i in range(34)}
+        report = A.analyze(inputs, sealed, set(A.SOURCE_BLOBS))
+        queue = report["provider_crossbuild_work_queue"]
+        self.assertEqual([item["provider"] for item in queue],
+                         report["provider_source_build_order"])
+        self.assertTrue(report["provider_crossbuild_work_queue_only"])
+        self.assertFalse(report["provider_pe_binaries_verified"])
+        rows = {row["module"]: row for row in report["providers"]}
+        for row in rows.values():
+            self.assertFalse(row["crossbuild_verified"])
+            self.assertIn("PINNED_ARM64_PE_BUILD_AND_IMPORT_TABLE",
+                          row["crossbuild_verification_blockers"])
+        self.assertIn("EXTERNAL_IMPORT_RESOLUTION",
+                      rows["winehid.sys"]["crossbuild_verification_blockers"])
+        self.assertIn("PLANNED_PROVIDER_PE_BUILD",
+                      rows["winehid.sys"]["crossbuild_verification_blockers"])
+        self.assertIn("ANDROID_BIONIC_UNIX_COMPANION",
+                      rows["winebus.sys"]["crossbuild_verification_blockers"])
+        self.assertIn("EXTERNAL_BUILD_MACRO_LINKAGE",
+                      rows["mscms.dll"]["crossbuild_verification_blockers"])
+        self.assertNotIn("ANDROID_BIONIC_UNIX_COMPANION",
+                         rows["winehid.sys"]["crossbuild_verification_blockers"])
+        self.assertLess(
+            report["provider_source_build_order"].index("winebus.sys"),
+            report["provider_source_build_order"].index("winehid.sys"))
+        self.assertEqual(queue, A.analyze(
+            inputs, sealed, set(A.SOURCE_BLOBS))["provider_crossbuild_work_queue"])
+
     def test_planned_provider_cycles_fail_closed_including_self_edge(self):
         names = {"x%02d.dll" % i for i in range(34)}
         inputs = fixtures()

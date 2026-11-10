@@ -46,7 +46,7 @@ def parse_makefile(provider: str, text: str) -> dict:
     # Never silently discard an unknown token: that understates the build
     # dependency closure and can incorrectly label a provider as buildable.
     macro_pattern = r"\$\([A-Z][A-Z_0-9]*\)"
-    ordinary_pattern = r"[a-z0-9_-]+"
+    ordinary_pattern = r"[a-z0-9][a-z0-9_-]*"
     if any(not (re.fullmatch(ordinary_pattern, token) or
                 re.fullmatch(macro_pattern, token)) for token in imports):
         raise ValueError("Unrecognized provider import or build expression")

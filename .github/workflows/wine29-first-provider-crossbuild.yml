@@ -76,7 +76,7 @@ jobs:
           assert 1000 < len(raw) < 32*1024*1024
           assert raw[:2] == b"MZ"
           offset=struct.unpack_from("<I",raw,0x3c)[0]
-          assert 64 <= offset < len(raw)-24 and raw[offset:offset+4] == b"PE\\0\\0"
+          assert 64 <= offset < len(raw)-24 and raw[offset:offset+4] == b"PE\0\0"
           machine=struct.unpack_from("<H",raw,offset+4)[0]
           assert machine == 0xAA64, f"Expected ARM64 PE 0xAA64, got {machine:04x}"
           path=pathlib.Path(__import__("os").environ["GITHUB_WORKSPACE"])/"next-generation/wine29-imports/classify.py"
@@ -97,7 +97,7 @@ jobs:
             "wine_executed":False, "phone_tested":False,
             "historical_scratch_accessed":False
           }
-          (out/"manifest.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          (out/"manifest.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
           print("FIRST_PROVIDER_ARM64_PE_BUILD_AND_IMPORT_INSPECTION=PASS")
           print("IMPORT_CLOSURE_AND_RUNTIME=UNVERIFIED")
           PY

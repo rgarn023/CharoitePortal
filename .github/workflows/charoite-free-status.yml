@@ -44,6 +44,7 @@ jobs:
               echo "- [Inspect latest Next CI run]($LAST_RUN)"
             fi
             echo "- [Project handoff](https://github.com/$GITHUB_REPOSITORY/blob/main/docs/CURRENT_HANDOFF.md)"
+            echo "- [CI failure watch](https://github.com/$GITHUB_REPOSITORY/issues/6)"
             echo
             echo "### Guardrails"
             echo "No paid AI/API calls, no phone reporting without user consent, no Wine or service commands, no APK auto-install, no source auto-merge. Known version-literal failures can only open a DRAFT PR. All other failures require engineering review."

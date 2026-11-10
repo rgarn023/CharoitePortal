@@ -1,0 +1,63 @@
+name: Charoite Free Next CI Failure Watch
+
+on:
+  workflow_run:
+    workflows: ["Charoite Core Next Android"]
+    types: [completed]
+
+# Trusted main CI metadata only; no checkout of untrusted contributions.
+permissions: {}
+concurrency:
+  group: charoite-free-ci-watch
+  cancel-in-progress: false
+
+jobs:
+  record-failure:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'failure'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main'
+          && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Download run job STATUS metadata only (no logs)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" \
+            > /tmp/charoite-next-failed-jobs.json
+          test "$(wc -c < /tmp/charoite-next-failed-jobs.json)" -le 262144
+
+      - name: Classify failed stage without disclosing job details
+        env:
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          python3 .github/automation/classify_next_ci.py \
+            --jobs /tmp/charoite-next-failed-jobs.json \
+            --run-id "$SOURCE_RUN_ID" --commit "$SOURCE_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --out /tmp/charoite-next-free-ci-watch.md
+          cat /tmp/charoite-next-free-ci-watch.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update the one public CI failure dashboard issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue edit 6 --repo "$GITHUB_REPOSITORY" \
+            --body-file /tmp/charoite-next-free-ci-watch.md

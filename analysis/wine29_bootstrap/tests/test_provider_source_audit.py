@@ -60,6 +60,38 @@ class ProviderAudit(unittest.TestCase):
         self.assertEqual(parsed["build_macros"], ["$(LCMS2_PE_LIBS)"])
         self.assertEqual(parsed["imports"], ["advapi32", "shlwapi"])
 
+    def test_pinned_unix_companions_cannot_be_added_renamed_or_dropped(self):
+        for provider, native in (
+            ("winebth.sys", "winebth.so"),
+            ("winebus.sys", "winebus.so"),
+            ("wineusb.sys", "wineusb.so"),
+        ):
+            with self.subTest(provider=provider):
+                parsed = A.parse_makefile(provider,
+                    "MODULE = " + provider + "\nIMPORTS = ntoskrnl\n"
+                    "UNIXLIB = " + native + "\n")
+                self.assertEqual(parsed["unix_companion"], native)
+                for invalid in ("", "other.so", native.upper(),
+                                "../" + native, "lib" + native):
+                    with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                        A.parse_makefile(provider,
+                            "MODULE = " + provider + "\nIMPORTS = ntoskrnl\n"
+                            "UNIXLIB = " + invalid + "\n")
+        for provider in set(A.SOURCE_BLOBS) - {
+            "winebth.sys", "winebus.sys", "wineusb.sys"
+        }:
+            with self.subTest(unexpected=provider), self.assertRaises(ValueError):
+                A.parse_makefile(provider,
+                    "MODULE = " + provider + "\nIMPORTS = ntoskrnl\n"
+                    "UNIXLIB = unexpected.so\n")
+
+    def test_parent_symlink_is_explicitly_rejected_before_makefile_read(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("directory.is_symlink()", source)
+        self.assertIn("path.is_symlink()", source)
+        self.assertLess(source.index("directory.is_symlink()"),
+                        source.index("data = path.read_bytes()"))
+
     def test_git_blob_identity_is_git_format(self):
         import hashlib
         self.assertEqual(A.git_blob_sha(b"hello\n"),

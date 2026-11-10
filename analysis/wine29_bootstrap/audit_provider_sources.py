@@ -53,8 +53,16 @@ def parse_makefile(provider: str, text: str) -> dict:
     macros = sorted(set(token for token in imports
                         if re.fullmatch(macro_pattern, token)))
     native = value("UNIXLIB")
-    if native and not re.fullmatch(r"[a-z0-9_-]+\.so", native):
-        raise ValueError("Unapproved Unix companion library identity")
+    # Source recipes for the pinned eight must not silently gain or lose
+    # native companions. An arbitrary valid-looking .so name is not enough
+    # evidence for the Android/Bionic dependency closure.
+    expected_native = {
+        "winebth.sys": "winebth.so",
+        "winebus.sys": "winebus.so",
+        "wineusb.sys": "wineusb.so",
+    }.get(provider, "")
+    if native != expected_native:
+        raise ValueError("Pinned Unix companion identity changed")
     return {
         "module": provider,
         "imports": sorted(t for t in imports if re.fullmatch(ordinary_pattern, t)),
@@ -111,8 +119,13 @@ def main() -> None:
         raise ValueError("Unsafe provider source directory")
     source = {}
     for provider, (dirname, expected) in SOURCE_BLOBS.items():
-        path = a.source_dir / dirname / "Makefile.in"
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 16384:
+        directory = a.source_dir / dirname
+        path = directory / "Makefile.in"
+        # A symlinked parent bypasses path.is_symlink() on the leaf.
+        # Reject both levels before reading any provider source bytes.
+        if (directory.is_symlink() or not directory.is_dir() or
+                path.is_symlink() or not path.is_file() or
+                path.stat().st_size > 16384):
             raise ValueError("Missing or linked pinned Makefile")
         data = path.read_bytes()
         if git_blob_sha(data) != expected:

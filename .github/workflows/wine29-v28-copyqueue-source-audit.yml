@@ -111,6 +111,46 @@ jobs:
           print("REQUIRE_UNIX_COMPANION",r["unix_companion_required_by"])
           print("REQUIRE_EXTERNAL_BUILD_MACRO",r["external_build_macro_modules"])
           print("RUNTIME_CORRECTION_VERIFIED",r["runtime_correction_verified"])
+          # This artifact is a dependency PLAN, never evidence of a
+          # cross-built ARM64 PE, native companion, or working Wine runtime.
+          expected = {
+              "source_only": True,
+              "wine_executed": False,
+              "phone_accessed": False,
+              "v28_reused": False,
+              "runtime_correction_verified": False,
+              "provider_pe_binaries_verified": False,
+              "provider_native_companions_verified": False,
+              "provider_import_closure_verified": False,
+              "provider_source_build_order_only": True,
+              "provider_crossbuild_work_queue_only": True,
+          }
+          for key, value in expected.items():
+              if r.get(key) is not value:
+                  raise SystemExit(f"Unsafe or missing source-only evidence: {key}")
+          names = {"mscms.dll", "hidclass.sys", "mouhid.sys",
+                   "winebth.sys", "winebus.sys", "winehid.sys",
+                   "wineusb.sys", "winexinput.sys"}
+          order = r.get("provider_source_build_order")
+          queue = r.get("provider_crossbuild_work_queue")
+          rows = r.get("providers")
+          if (not isinstance(order, list) or len(order) != 8 or
+                  set(order) != names or not isinstance(queue, list) or
+                  not isinstance(rows, list) or len(rows) != 8 or
+                  {row.get("module") for row in rows} != names or
+                  [entry.get("provider") for entry in queue] != order):
+              raise SystemExit("Incomplete or inconsistent provider build queue")
+          by_name = {row["module"]: row for row in rows}
+          for entry in queue:
+              name = entry["provider"]
+              row = by_name[name]
+              blockers = row.get("crossbuild_verification_blockers")
+              if (row.get("crossbuild_verified") is not False or
+                      not isinstance(blockers, list) or
+                      "PINNED_ARM64_PE_BUILD_AND_IMPORT_TABLE" not in blockers or
+                      entry.get("blockers") != blockers):
+                  raise SystemExit(f"Unsafe cross-build status for {name}")
+          print("UNVERIFIED_PROVIDER_BUILD_QUEUE_CONTRACT=PASS")
           PY
 
       - name: Publish SOURCE-ONLY coverage report (NOT APK or phone diagnostic)

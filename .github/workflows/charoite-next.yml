@@ -1593,7 +1593,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='156' versionName='11.2-next.0.125'"
+            grep -F "package: name='com.charoitx' versionCode='157' versionName='11.2-next.0.126'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2085,7 +2085,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=charoite-next-vc156
+          TAG=charoite-next-vc157
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2097,8 +2097,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.125 (build 156)" \
-              --notes "Signed com.charoitx v0.125: adds separately authorized READ-ONLY V28 historical RpcSs SCM STATE classifier and bounded SetupAPI error categories. Synthetic Java fixtures verify parsing; no V28 Wine execution or writes. Existing official signed in-app updater remains available to install this release via Android approval; never uninstall or clear data, and never rerun V28." \
+              --title "Charoite Next 11.2-next.0.126 (build 156)" \
+              --notes "Signed com.charoitx v0.126: owner-authorized READ-ONLY V28 RpcSs SCM exit class, fixed registry Start mode and source-identified SetupAPI error groups; no new Wine execution. Synthetic Java fixtures verify parsing; no V28 Wine execution or writes. Existing official signed in-app updater remains available to install this release via Android approval; never uninstall or clear data, and never rerun V28." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

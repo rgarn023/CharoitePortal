@@ -33,7 +33,7 @@ class NextSystemWorkflow(unittest.TestCase):
             "CharoiteNextUpdateChecker.checkNow(this)",
             "CharoiteNextUpdateChecker.checkOnLaunch(this)",
             '"CharoiteNextUpdateChecker.java"',
-            "versionCode 156","11.2-next.0.125"
+            "versionCode 157","11.2-next.0.126"
         ): self.assertIn(marker,P)
         for marker in (
             'private static final String PACKAGE = "com.charoitx"',
@@ -60,14 +60,14 @@ class NextSystemWorkflow(unittest.TestCase):
             "publish-next-github-release:",
             "needs: [build-runtime-preview]",
             "contents: write",
-            "charoite-next-vc156",
+            "charoite-next-vc157",
             '--latest=false',
             "gh release create",
             "gh run download",
             "Charoite-Next-Android.apk",
             "Charoite-Next-LGPL-Sources.zip",
             "NEXT_STABLE_PORTAL_RELEASE_UNCHANGED=PASS",
-            "versionCode='156' versionName='11.2-next.0.125'",
+            "versionCode='157' versionName='11.2-next.0.126'",
             "CharoiteNextUpdateChecker.java legal-bundle/",
             "NEXT_SYSTEM_GITHUB_REPORT_AND_UPDATE_SOURCE_GATE=PASS"
         ): self.assertIn(marker,W)

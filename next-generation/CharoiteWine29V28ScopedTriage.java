@@ -17,6 +17,12 @@ public final class CharoiteWine29V28ScopedTriage {
     private static final Pattern STATE = Pattern.compile(
         "^\\s*state\\s*:\\s*([0-9]+)(?:\\s+([a-z_]+))?(?:\\s+.*)?$",
         Pattern.CASE_INSENSITIVE);
+    private static final Pattern WIN32_EXIT = Pattern.compile(
+        "^\\s*win32_exit_code\\s*:\\s*([0-9]+)(?:\\s+.*)?$",
+        Pattern.CASE_INSENSITIVE);
+    private static final Pattern REG_START = Pattern.compile(
+        "^\"start\"\\s*=\\s*dword:([0-9a-f]{1,8})\\s*$",
+        Pattern.CASE_INSENSITIVE);
     private static final String[] STATES = {
         "UNKNOWN", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING",
         "CONTINUE_PENDING", "PAUSE_PENDING", "PAUSED"
@@ -27,14 +33,25 @@ public final class CharoiteWine29V28ScopedTriage {
         return code>=1 && code<=7 ? STATES[code] : "UNKNOWN";
     }
 
+    private static String exitCategory(int code) {
+        switch (code) {
+            case 0: return "NO_REPORTED_ERROR";
+            case 1077: return "SERVICE_NEVER_STARTED";
+            case 1053: return "SERVICE_START_TIMEOUT";
+            case 1067: return "SERVICE_PROCESS_TERMINATED";
+            default: return code > 0 ? "OTHER_NONZERO" : "UNKNOWN";
+        }
+    }
+
     private static void classifyScm(StringBuilder out, String scm) {
         if(scm==null || scm.length()>2097152){
             out.append("V28 preserved RpcSs SCM scoped STATE: UNKNOWN (no eligible log)\n");
             out.append("V28 preserved RpcSs SCM single anchored state row: false\n");
+            out.append("V28 preserved RpcSs SCM WIN32_EXIT_CODE class: UNKNOWN (no eligible log)\n");
             out.append("V28 preserved RpcSs SCM status is HISTORICAL, never a live-service check\n");
             return;
         }
-        int headers=0, rows=0, stateCode=-1;
+        int headers=0, rows=0, stateCode=-1, exitRows=0, exitCode=-1;
         boolean inside=false,validLabel=true,otherService=false;
         for(String line:scm.split("\n",-1)){
             Matcher header=SERVICE.matcher(line);
@@ -45,6 +62,12 @@ public final class CharoiteWine29V28ScopedTriage {
                 continue;
             }
             if(!inside)continue;
+            Matcher win32=WIN32_EXIT.matcher(line);
+            if (win32.matches()) {
+                exitRows++;
+                try { exitCode=Integer.parseInt(win32.group(1)); }
+                catch(NumberFormatException ignored) { exitCode=-1; }
+            }
             Matcher state=STATE.matcher(line);
             if(!state.matches())continue;
             rows++;
@@ -72,6 +95,9 @@ public final class CharoiteWine29V28ScopedTriage {
            .append(single?stateLabel(stateCode):"UNKNOWN / AMBIGUOUS").append('\n');
         out.append("V28 preserved RpcSs SCM scoped STATE code: ")
            .append(single?Integer.toString(stateCode):"UNKNOWN").append('\n');
+        out.append("V28 preserved RpcSs SCM WIN32_EXIT_CODE class: ")
+           .append(single && exitRows==1 && exitCode>=0
+                   ? exitCategory(exitCode) : "UNKNOWN / AMBIGUOUS").append('\n');
         out.append("V28 preserved RpcSs SCM status is HISTORICAL, never a live-service check\n");
     }
 
@@ -82,7 +108,9 @@ public final class CharoiteWine29V28ScopedTriage {
         }
         int count=0,uncategorized=0;
         boolean missingInf=false,missingSection=false,serviceFailure=false,
-                notImplemented=false,accessDenied=false,invalidParameter=false;
+                notImplemented=false,accessDenied=false,invalidParameter=false,
+                registryQuery=false,registrySet=false,registryKey=false,
+                copyRename=false,unsupportedStyle=false;
         for(String text:helper.split("\n",-1)){
             String line=text.toLowerCase(Locale.US);
             if(!line.contains("err:setupapi:"))continue;
@@ -106,6 +134,15 @@ public final class CharoiteWine29V28ScopedTriage {
             }
             if(line.contains("access denied")){accessDenied=true;classified=true;}
             if(line.contains("invalid parameter")){invalidParameter=true;classified=true;}
+            // Classify fixed Wine setupapi install/queue source messages without
+            // exposing the raw value name, registry key or file path.
+            if(line.contains("failed to query value")){registryQuery=true;classified=true;}
+            if(line.contains("failed to set value")){registrySet=true;classified=true;}
+            if(line.contains("could not create key")){registryKey=true;classified=true;}
+            if(line.contains("copy error") || line.contains("rename error")){
+                copyRename=true;classified=true;
+            }
+            if(line.contains("unsupported style")){unsupportedStyle=true;classified=true;}
             if(!classified)uncategorized++;
         }
         out.append("V28 preserved SetupAPI error lines (capped 999+): ")
@@ -122,9 +159,59 @@ public final class CharoiteWine29V28ScopedTriage {
            .append(accessDenied).append('\n');
         out.append("V28 preserved SetupAPI error category: invalid parameter: ")
            .append(invalidParameter).append('\n');
+        out.append("V28 preserved SetupAPI category: registry value query error: ")
+           .append(registryQuery).append('\n');
+        out.append("V28 preserved SetupAPI category: registry value set error: ")
+           .append(registrySet).append('\n');
+        out.append("V28 preserved SetupAPI category: registry key create error: ")
+           .append(registryKey).append('\n');
+        out.append("V28 preserved SetupAPI category: file copy/rename error: ")
+           .append(copyRename).append('\n');
+        out.append("V28 preserved SetupAPI category: unsupported file style: ")
+           .append(unsupportedStyle).append('\n');
         out.append("V28 preserved SetupAPI unclassified error line count (capped 999+): ")
            .append(uncategorized>999?"999+":Integer.toString(uncategorized)).append('\n');
         out.append("SetupAPI error markers alone are NOT proof of installation failure\n");
+    }
+
+    /** Only categorizes the exact RpcSs Start DWORD from the capped system.reg. */
+    public static void appendRegistryStart(StringBuilder out, String registry) {
+        if (registry==null || registry.length()>1048576) {
+            out.append("V28 RpcSs registry Start mode: UNKNOWN (no eligible registry)\n");
+            return;
+        }
+        int roots=0,rows=0,code=-1;
+        boolean inside=false;
+        for (String line: registry.split("\n",-1)) {
+            String trimmed=line.trim();
+            if(trimmed.startsWith("[") && trimmed.contains("]")) {
+                String key=trimmed.substring(1,trimmed.indexOf(']'))
+                    .replace("\\\\","\\").toLowerCase(Locale.US);
+                inside=key.endsWith("\\services\\rpcss");
+                if(inside) roots++;
+                continue;
+            }
+            if(!inside || !trimmed.startsWith("\"start\"")) continue;
+            rows++;
+            Matcher value=REG_START.matcher(trimmed);
+            if(value.matches()) {
+                try { code=(int)Long.parseLong(value.group(1),16); }
+                catch(NumberFormatException ignored) { code=-1; }
+            }
+        }
+        String mode="UNKNOWN / AMBIGUOUS";
+        if(roots==1 && rows==1){
+            switch(code) {
+                case 0: mode="BOOT_START"; break;
+                case 1: mode="SYSTEM_START"; break;
+                case 2: mode="AUTO_START"; break;
+                case 3: mode="DEMAND_START"; break;
+                case 4: mode="DISABLED"; break;
+                default: break;
+            }
+        }
+        out.append("V28 RpcSs registry Start mode: ").append(mode).append('\n');
+        out.append("V28 RpcSs service state remains HISTORICAL; a query does not start services\n");
     }
 
     public static void appendMarkers(StringBuilder out, String scm, String helper) {

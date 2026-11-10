@@ -45,6 +45,14 @@ class ScopedTriageOnly(unittest.TestCase):
             if required=="historical":continue
             self.assertIn(required,C)
         self.assertIn("HISTORICAL, never a live-service check",C)
+        self.assertIn("appendRegistryStart(StringBuilder out, String registry)",C)
+        self.assertIn("WIN32_EXIT_CODE class",C)
+        self.assertIn("failed to query value",C)
+        self.assertIn("failed to set value",C)
+        self.assertIn("could not create key",C)
+        self.assertIn("CharoiteWine29V28ScopedTriage.appendRegistryStart(b,registry)",R)
+        self.assertIn("RpcSs registry Start mode: DEMAND_START",J)
+        self.assertIn("WIN32_EXIT_CODE class: SERVICE_NEVER_STARTED",J)
         self.assertNotIn("out.append(line)",C)
         self.assertNotIn("out.append(helper)",C)
         self.assertNotIn("out.append(scm)",C)
@@ -62,14 +70,14 @@ class ScopedTriageOnly(unittest.TestCase):
 
     def test_ci_and_app_identity_stay_isolated(self):
         for value in (
-            "versionCode 156", "11.2-next.0.125",
+            "versionCode 157", "11.2-next.0.126",
             '"CharoiteWine29V28ScopedTriage.java"',
             "Review V28 SCM state + SetupAPI (READ ONLY)",
             "showArchivedWine29V28Execution = false"
         ):self.assertIn(value,P)
         for value in (
-            "charoite-next-vc156",
-            "versionCode='156' versionName='11.2-next.0.125'",
+            "charoite-next-vc157",
+            "versionCode='157' versionName='11.2-next.0.126'",
             "CharoiteWine29V28ScopedTriage.java legal-bundle/",
             "CharoiteWine29V28ScopedTriageHarness.java",
             "V28_SCOPED_HISTORICAL_SERVICE_STATE_AND_SETUPAPI_SOURCE_GATE=PASS",

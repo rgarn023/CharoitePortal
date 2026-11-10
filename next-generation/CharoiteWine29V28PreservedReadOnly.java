@@ -159,6 +159,7 @@ public final class CharoiteWine29V28PreservedReadOnly {
             safeDirectory(prefix);
             String registry=readIfSafe(prefix,"system.reg",1048576,b);
             registryMarkers(registry,b);
+            CharoiteWine29V28ScopedTriage.appendRegistryStart(b,registry);
             b.append("RESULT: READ-ONLY REVIEW COMPLETE; markers do not imply successful SCM operation\n");
         } catch(Exception ex) {
             b.append("RESULT: READ-ONLY REVIEW BLOCKED — ")
@@ -179,7 +180,8 @@ public final class CharoiteWine29V28PreservedReadOnly {
              +"V28 prefix/system.reg (1 MiB), using no-follow path/regular-file "
              +"gates. Report fixed markers/byte counts, anchored historical "
              +"RpcSs service STATE (if unambiguous) and allowlisted SetupAPI "
-             +"error categories ONLY. Never expose raw logs, registry "
+             +"error categories, fixed RpcSs registry Start mode and historical "
+             +"SCM WIN32_EXIT_CODE class ONLY. Never expose raw logs, registry 
              +"values, paths or identifiers. No Wine, no other generation, "
              +"no new scratch, writes, cleanup, deletion or network. "
              +"If you do not authorize, tap Cancel.")

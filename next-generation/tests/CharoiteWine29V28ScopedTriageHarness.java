@@ -62,6 +62,38 @@ public final class CharoiteWine29V28ScopedTriageHarness {
         has(section,"access denied: true");
         has(section,"unimplemented/stub: true");
         has(section,"invalid parameter: true");
+        String stoppedNeverStarted=summarize(
+            "SERVICE_NAME: RpcSs\n STATE : 1 STOPPED\n"
+            + " WIN32_EXIT_CODE : 1077 (0x435)\n",
+            "err:setupapi:failed to query value secretName, error 2\n"
+            + "err:setupapi:failed to set value secretName, error 5\n"
+            + "err:setupapi:could not create key 0xabcd secretName\n"
+            + "err:setupapi:copy error 123 /private/path -> /other\n"
+            + "err:setupapi:Unsupported style(s) 0x123\n");
+        has(stoppedNeverStarted,"WIN32_EXIT_CODE class: SERVICE_NEVER_STARTED");
+        has(stoppedNeverStarted,"registry value query error: true");
+        has(stoppedNeverStarted,"registry value set error: true");
+        has(stoppedNeverStarted,"registry key create error: true");
+        has(stoppedNeverStarted,"file copy/rename error: true");
+        has(stoppedNeverStarted,"unsupported file style: true");
+        has(stoppedNeverStarted,"unclassified error line count (capped 999+): 0");
+        lacks(stoppedNeverStarted,"secretName");
+        lacks(stoppedNeverStarted,"/private/path");
+        StringBuilder reg=new StringBuilder();
+        CharoiteWine29V28ScopedTriage.appendRegistryStart(reg,
+            "WINE REGISTRY VERSION 2\n"
+            + "[System\\\\CurrentControlSet\\\\Services\\\\RpcSs]\n"
+            + "\"Start\"=dword:00000003\n");
+        has(reg.toString(),"RpcSs registry Start mode: DEMAND_START");
+        reg.setLength(0);
+        CharoiteWine29V28ScopedTriage.appendRegistryStart(reg,
+            "[System\\\\CurrentControlSet\\\\Services\\\\RpcSs]\n"
+            + "\"Start\"=dword:00000003\n"
+            + "\"Start\"=dword:00000002\n");
+        has(reg.toString(),"RpcSs registry Start mode: UNKNOWN / AMBIGUOUS");
+        reg.setLength(0);
+        CharoiteWine29V28ScopedTriage.appendRegistryStart(reg,null);
+        has(reg.toString(),"RpcSs registry Start mode: UNKNOWN (no eligible registry)");
         System.out.println("V28_SCOPED_SCM_STATE_AND_SETUPAPI_SYNTHETIC_JAVA_GATE=PASS");
     }
 }

@@ -65,15 +65,15 @@ class InAppUpdater(unittest.TestCase):
             'ns + "exported": "false"',
             '"CharoiteNextInAppInstaller.java"',
             '"CharoiteNextInstallStatusReceiver.java"',
-            "versionCode 156","11.2-next.0.125",
+            "versionCode 157","11.2-next.0.126",
             "No browser or manual APK"
         ):self.assertIn(s,P)
         for s in (
             "CharoiteNextInAppInstaller.java legal-bundle/",
             "CharoiteNextInstallStatusReceiver.java legal-bundle/",
             "NEXT_IN_APP_ANDROID_PACKAGE_INSTALLER_GATES=PASS",
-            "charoite-next-vc156",
-            "versionCode='156' versionName='11.2-next.0.125'",
+            "charoite-next-vc157",
+            "versionCode='157' versionName='11.2-next.0.126'",
             "--latest=false"
         ):self.assertIn(s,W)
         self.assertNotIn("gh release delete",W)

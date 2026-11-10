@@ -20,6 +20,10 @@ concurrency:
 
 jobs:
   build-runtime-preview:
+    # Milestone-only: routine Next source pushes must not generate ~465 MB APKs.
+    # A reviewed main push with [next-apk] in its head commit, or an explicit
+    # workflow_dispatch, is required. Source-only CI remains independent.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[next-apk]')
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:

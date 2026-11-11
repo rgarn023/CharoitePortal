@@ -26,6 +26,24 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("retention-days: 7", source)
         self.assertRegex(source, r"(?m)^concurrency:\s*\n\s+group: wine29-first-provider-crossbuild\s*\n\s+cancel-in-progress: false\s*$")
 
+    def test_lightweight_ci_covers_provider_workflow_edits(self):
+        # Editing a manual expensive workflow must still run the cheap offline
+        # regression on both pushes and pull requests.
+        static = (WORKFLOW.parent / "charoite-agent-pr-check.yml").read_text(encoding="utf-8")
+        for event in ("push", "pull_request"):
+            match = re.search(
+                rf"(?ms)^  {event}:\\n(?P<body>.*?)(?=^  (?:push|pull_request|workflow_dispatch):|^concurrency:)",
+                static,
+            )
+            self.assertIsNotNone(match, f"Missing {event} static CI trigger")
+            self.assertIn(
+                "' .github/workflows/wine29-first-provider-crossbuild.yml'".replace("' ", "'"),
+                match.group("body"),
+                f"{event} must check provider workflow edits",
+            )
+        self.assertIn("python3 -m unittest discover -s next-generation/tests", static)
+        self.assertNotIn("gradlew", static)
+
     def test_genuine_pinned_provider_build_not_stub(self):
         source = self.source
         self.assertIn("c74acb09d51b447f5d5ac56c87608d3ec565a767", source)

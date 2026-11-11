@@ -5,6 +5,12 @@ on:
 permissions:
   contents: read
 
+# Serialize manual cross-builds to avoid overlapping expensive standard-runner jobs.
+# A pending duplicate is not a reason to cancel an active evidence-producing build.
+concurrency:
+  group: wine29-first-provider-crossbuild
+  cancel-in-progress: false
+
 # Deliberately manual: source compilation can take significant standard-runner minutes.
 # No Wine process, Android app, device, prefix, historical scratch, or APK.
 jobs:

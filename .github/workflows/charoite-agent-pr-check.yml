@@ -7,12 +7,14 @@ on:
       - 'next-generation/**'
       - '.github/workflows/charoite-agent-pr-check.yml'
       - '.github/workflows/charoite-next.yml'
+      - '.github/workflows/wine29-first-provider-crossbuild.yml'
   pull_request:
     paths:
       # Match push coverage: proposed Next source changes also need static CI.
       - 'next-generation/**'
       - '.github/workflows/charoite-agent-pr-check.yml'
       - '.github/workflows/charoite-next.yml'
+      - '.github/workflows/wine29-first-provider-crossbuild.yml'
   workflow_dispatch:
 
 concurrency:

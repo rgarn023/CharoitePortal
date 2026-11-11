@@ -114,6 +114,8 @@ def pe_imports(data: bytes) -> tuple[list[str], list[str]]:
     ordinary, deferred = [], []
     for index, size, result in ((1, 20, ordinary), (13, 32, deferred)):
         rva, total = directory(index)
+        if bool(rva) != bool(total):
+            raise ValueError("Inconsistent PE import directory RVA/size")
         if not rva:
             continue
         at = resolve(rva)

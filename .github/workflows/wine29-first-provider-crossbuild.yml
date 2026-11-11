@@ -8,7 +8,8 @@ permissions:
 # Serialize manual cross-builds to avoid overlapping expensive standard-runner jobs.
 # A pending duplicate is not a reason to cancel an active evidence-producing build.
 concurrency:
-  group: wine29-first-provider-crossbuild
+  # New generation isolates dispatches from a stale, uncancellable old queue.
+  group: wine29-first-provider-crossbuild-v2
   cancel-in-progress: false
 
 # Deliberately manual: source compilation can take significant standard-runner minutes.

@@ -45,7 +45,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
             "runtime_compatibility_verified", "wine_executed", "phone_tested",
             "historical_scratch_accessed",
         ):
-            self.assertRegex(source, rf'\\"{key}\\"\s*:\s*False')
+            self.assertRegex(source, rf'"{key}"\s*:\s*False')
         self.assertIn('"package":"com.charoitx"', source)
         self.assertNotIn('"package":"com.charoite"', source)
 

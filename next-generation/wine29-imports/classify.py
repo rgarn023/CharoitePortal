@@ -29,8 +29,8 @@ TWO_HASHES = {
     "windowscodecs": "baa2a1bb5472f2f3a3af7a83f6198e68aa7d46df5c653334d3beb3bdb67f1f15",
 }
 PHONE_FIVE = {"coml2.dll", "imm32.dll", "oleacc.dll", "oleaut32.dll", "shcore.dll"}
-# Kernel-mode drivers may import ntoskrnl.exe; do not reject valid PE import names.
-IDENTIFIER = re.compile(r"[a-z0-9_.+-]+\.(dll|drv|exe)\Z")
+# Kernel-mode drivers import .sys peers (e.g. hidparse.sys), as well as\n# ntoskrnl.exe. Accept only basename import targets, never paths.
+IDENTIFIER = re.compile(r"[a-z0-9_.+-]+\.(dll|drv|exe|sys)\Z")
 FORBIDDEN = ("/data/data/", "/data/user/", "/storage/emulated/", "/sdcard/")
 
 

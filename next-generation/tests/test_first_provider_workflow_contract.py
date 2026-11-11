@@ -32,12 +32,12 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         static = (WORKFLOW.parent / "charoite-agent-pr-check.yml").read_text(encoding="utf-8")
         for event in ("push", "pull_request"):
             match = re.search(
-                rf"(?ms)^  {event}:\\n(?P<body>.*?)(?=^  (?:push|pull_request|workflow_dispatch):|^concurrency:)",
+                rf"(?ms)^  {event}:\n(?P<body>.*?)(?=^  (?:push|pull_request|workflow_dispatch):|^concurrency:)",
                 static,
             )
             self.assertIsNotNone(match, f"Missing {event} static CI trigger")
             self.assertIn(
-                "' .github/workflows/wine29-first-provider-crossbuild.yml'".replace("' ", "'"),
+                "'.github/workflows/wine29-first-provider-crossbuild.yml'",
                 match.group("body"),
                 f"{event} must check provider workflow edits",
             )

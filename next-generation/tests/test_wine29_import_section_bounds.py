@@ -14,7 +14,7 @@ def fixture(directory_size=40, name_rva=0x1080):
     raw = bytearray(1024)
     raw[:2] = b"MZ"
     struct.pack_into("<I", raw, 0x3c, 0x80)
-    raw[0x80:0x84] = b"PE\\x00\\x00"
+    raw[0x80:0x84] = b"PE\x00\x00"
     struct.pack_into("<H", raw, 0x84, 0xAA64)
     struct.pack_into("<H", raw, 0x86, 1)
     struct.pack_into("<H", raw, 0x94, 240)
@@ -25,7 +25,7 @@ def fixture(directory_size=40, name_rva=0x1080):
     section = opt + 240
     struct.pack_into("<IIII", raw, section + 8, 0x100, 0x1000, 0x100, 0x200)
     struct.pack_into("<I", raw, 0x200 + 12, name_rva)
-    raw[0x280:0x28d] = b"ntoskrnl.exe\\x00"
+    raw[0x280:0x28d] = b"ntoskrnl.exe\x00"
     return raw
 
 

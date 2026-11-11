@@ -84,15 +84,24 @@ def pe_imports(data: bytes) -> tuple[list[str], list[str]]:
             raise ValueError("Truncated section bytes")
         segments.append((virt_addr, raw_size, raw_off))
 
-    def resolve(rva: int) -> int:
+    def resolve(rva: int, length: int = 1) -> int:
+        # The entire requested range must belong to one file-backed section.
+        # A directory starting in a section but spilling into unrelated bytes
+        # must not be accepted merely because the overall file is large enough.
         for virtual, size, off in segments:
-            if size and virtual <= rva < virtual + size:
+            if size and virtual <= rva and length > 0 and rva + length <= virtual + size:
                 return off + rva - virtual
-        raise ValueError("PE import RVA not backed by file section")
+        raise ValueError("PE import RVA range not backed by file section")
 
     def dll_name(rva: int) -> str:
         at = resolve(rva)
-        end = data.find(b"\x00", at, min(at + 129, len(data)))
+        # Require the terminator to remain in the same section as the name.
+        max_name = 129
+        for virtual, size, off in segments:
+            if size and virtual <= rva < virtual + size:
+                max_name = min(max_name, virtual + size - rva)
+                break
+        end = data.find(b"\x00", at, min(at + max_name, len(data)))
         if end < 0:
             raise ValueError("Unterminated PE DLL import name")
         try:
@@ -118,8 +127,10 @@ def pe_imports(data: bytes) -> tuple[list[str], list[str]]:
             raise ValueError("Inconsistent PE import directory RVA/size")
         if not rva:
             continue
-        at = resolve(rva)
-        if total < size or total > 1_000_000 or at + total > len(data):
+        if total < size or total > 1_000_000:
+            raise ValueError("Invalid PE import directory size")
+        at = resolve(rva, total)
+        if at + total > len(data):
             raise ValueError("Invalid PE import directory size")
         terminated = False
         for n in range(min(512, total // size)):

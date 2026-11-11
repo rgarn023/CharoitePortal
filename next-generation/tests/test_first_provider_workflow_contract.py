@@ -24,6 +24,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertNotIn("gradlew", source)
         self.assertIn("timeout-minutes: 58", source)
         self.assertIn("retention-days: 7", source)
+        self.assertRegex(source, r"(?m)^concurrency:\s*\n\s+group: wine29-first-provider-crossbuild\s*\n\s+cancel-in-progress: false\s*$")
 
     def test_genuine_pinned_provider_build_not_stub(self):
         source = self.source

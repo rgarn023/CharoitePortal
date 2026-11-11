@@ -45,6 +45,14 @@ class PEImportClassificationContracts(unittest.TestCase):
         self.assertEqual(mod.pe_imports(fixture(None,"example.dll")),( [],["example.dll"]))
         self.assertEqual(mod.pe_imports(fixture("KERNEL32.DLL",None)),(["kernel32.dll"],[]))
 
+    def test_kernel_driver_sys_imports_and_path_rejection(self):
+        # Real pinned mouhid.sys imports hidparse.sys; it is not a DLL.
+        self.assertEqual(mod.pe_imports(fixture("HIDPARSE.SYS", None)), (["hidparse.sys"], []))
+        self.assertEqual(mod.pe_imports(fixture("ntoskrnl.exe", None)), (["ntoskrnl.exe"], []))
+        for name in ("../hidparse.sys", "folder\\\\hidparse.sys", "hidparse.sys/other", "hidparse.so"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                mod.pe_imports(fixture(name, None))
+
     def test_fail_closed_on_missing_or_corrupt_pe_headers(self):
         bad=bytearray(fixture())
         bad[:2]=b"NO"

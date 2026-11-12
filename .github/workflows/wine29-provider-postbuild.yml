@@ -1,0 +1,13 @@
+name: Wine29 Provider Postbuild
+on:
+  workflow_run:
+    workflows: ['Wine29 Missing Provider ARM64 PE Cross-Build (No APK)']
+    types: [completed]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Postbuild trigger configured'

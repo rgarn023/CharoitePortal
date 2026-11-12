@@ -37,7 +37,10 @@ jobs:
           with open(sys.argv[1]+".id","w") as f: f.write(str(hits[0]["id"]))
           PY
           ARTIFACT_ID="$(cat "$RUNNER_TEMP/artifacts.json.id")"
-          gh api "repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/evidence.zip"
+          # gh api defaults to JSON-oriented output; use explicit octet-stream Accept for ZIP bytes.
+          gh api -H "Accept: application/octet-stream" "repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/evidence.zip"
+          test -s "$RUNNER_TEMP/evidence.zip"
+          test "$(wc -c < "$RUNNER_TEMP/evidence.zip")" -lt 20971520
           python3 - "$RUNNER_TEMP/evidence.zip" <<'PY'
           import hashlib,json,os,struct,sys,zipfile
           names=("mouhid","hidclass","hidparse","winehid","winexinput")

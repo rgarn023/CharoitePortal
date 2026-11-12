@@ -200,7 +200,7 @@ jobs:
               assert 1024<len(raw)<32*1024*1024
               offset=struct.unpack_from("<I",raw,0x3c)[0]
               assert raw[:2]==b"MZ" and 64<=offset<len(raw)-24
-              assert raw[offset:offset+4]==b"PE\\x00\\x00"
+              assert raw[offset:offset+4]==b"PE\x00\x00"
               assert struct.unpack_from("<H",raw,offset+4)[0]==0xaa64
               assert hashlib.sha256(raw).hexdigest()==info["sha256"]
               assert info["module"]==name+".sys"

@@ -8,6 +8,62 @@ permissions:
   contents: read
 jobs:
   verify:
+    if: ${{ github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - run: echo 'Postbuild trigger configured'
+      - name: Inspect completed build artifact without executing it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          echo "## Wine29 source-only postbuild verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "Upstream: https://github.com/$REPO/actions/runs/$RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "Conclusion: $CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CONCLUSION" != success ]; then
+            echo "Upstream not successful; inspect upstream job logs." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
+          python3 - "$RUNNER_TEMP/artifacts.json" <<'PY'
+          import json,sys
+          a=json.load(open(sys.argv[1]))["artifacts"]
+          hits=[x for x in a if x["name"]=="Wine29-HID-XInput-Five-ARM64-PE-NOT-APK" and not x["expired"]]
+          assert len(hits)==1, "Expected exactly one unexpired five-module artifact"
+          assert 0<hits[0]["size_in_bytes"]<20*1024*1024, "Artifact size cap exceeded"
+          with open(sys.argv[1]+".id","w") as f: f.write(str(hits[0]["id"]))
+          PY
+          ARTIFACT_ID="$(cat "$RUNNER_TEMP/artifacts.json.id")"
+          gh api "repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/evidence.zip"
+          python3 - "$RUNNER_TEMP/evidence.zip" <<'PY'
+          import hashlib,json,os,struct,sys,zipfile
+          names=("mouhid","hidclass","hidparse","winehid","winexinput")
+          with zipfile.ZipFile(sys.argv[1]) as z:
+            entries=z.infolist()
+            assert len(entries)<70 and sum(e.file_size for e in entries)<40*1024*1024
+            members=set(z.namelist())
+            with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as out:
+              out.write("| Module | ARM64 PE and manifest integrity |\n| --- | --- |\n")
+              for name in names:
+                binary=name+"-arm64.sys"
+                manifest=name+"-manifest.json"
+                assert binary in members and manifest in members
+                data=z.read(binary); m=json.loads(z.read(manifest))
+                assert 1024<len(data)<32*1024*1024 and data[:2]==b"MZ"
+                off=struct.unpack_from("<I",data,0x3c)[0]
+                assert 64<=off<len(data)-24 and data[off:off+4]==b"PE\x00\x00"
+                assert struct.unpack_from("<H",data,off+4)[0]==0xaa64
+                assert hashlib.sha256(data).hexdigest()==m["sha256"]
+                assert m["module"]==name+".sys"
+                assert m["runtime_compatibility_verified"] is False
+                assert m["provider_import_closure_verified"] is False
+                out.write(f"| {name}.sys | PASS |\n")
+              assert "batch-import-closure.json" in members
+              report=json.loads(z.read("batch-import-closure.json"))
+              assert report["full_provider_closure_verified"] is False
+              assert set(report["module_imports"])=={n+".sys" for n in names}
+              out.write("\nFull dependency closure and runtime compatibility NOT verified.\n")
+          PY

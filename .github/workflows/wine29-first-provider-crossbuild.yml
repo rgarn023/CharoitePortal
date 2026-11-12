@@ -168,7 +168,7 @@ jobs:
                           "module_imports":closure,"full_provider_closure_verified":False,
                           "native_companion_closure_verified":False,
                           "runtime_compatibility_verified":False},
-                         indent=2,sort_keys=True)+"\\n")
+                         indent=2,sort_keys=True)+"\n")
           print("IMPORT_CLOSURE_AND_RUNTIME=UNVERIFIED")
           PY
       - name: Publish bounded source-built PE evidence (NOT APK)

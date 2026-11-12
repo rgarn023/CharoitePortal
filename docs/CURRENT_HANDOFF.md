@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## REMAINING PROVIDER ARM64 PE MANIFEST GATE — 2026-11-12 UTC
+
+[Commit 47f4893](https://github.com/rgarn023/CharoitePortal/commit/47f48935fcf7c605ffa7b73c89790890734a7254) strengthens source-only build probes for `mscms.dll`, `winebth.sys`, `winebus.sys`, and `wineusb.sys`: only a validated ARM64 PE candidate is copied; each passing candidate gets SHA-256, byte count, pinned source provenance and explicit unverified import/native/runtime flags. Per-module statuses and bounded diagnostics are retained. **This is committed CI code, not proof of a completed build.** Next inspect actual workflow logs/artifacts, fix any compilation failures, and close imports/native companions. **Owner action needed: NO.** No device/APK, Wine processes, preserved scratch, games/saves or user prefixes touched.
+
+
 ## FOUR REMAINING PROVIDER BUILD PROBES — 2026-11-12 UTC
 
 [Build probe commit 7065f8c](https://github.com/rgarn023/CharoitePortal/commit/7065f8c183596244f17b8e71bee82a52c8f2abf5) adds source-only bounded cross-build attempts for `mscms.dll`, `winebth.sys`, `winebus.sys`, and `wineusb.sys`, after the five existing PE targets. It captures bounded build diagnostics and publishes separate seven-day probe evidence. [PE-header follow-up 91bbcc8](https://github.com/rgarn023/CharoitePortal/commit/91bbcc82b20851cae36a26f230d83ad4c33a7700) checks candidate readability before copying. These are **attempts, not verified builds or native companion closure**; latest CI result not inspected. Failures do not suppress existing five-module artifact publication. Next: inspect actual probe logs/artifacts and fix missing build dependencies. **Owner action needed: NO.** No Wine execution, APK/device tests, historical scratch, stable app, games or saves touched.

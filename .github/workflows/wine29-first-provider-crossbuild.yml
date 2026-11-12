@@ -170,6 +170,17 @@ jobs:
                           "runtime_compatibility_verified":False},
                          indent=2,sort_keys=True)+"\n")
           print("IMPORT_CLOSURE_AND_RUNTIME=UNVERIFIED")
+          summary=pathlib.Path(__import__("os").environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a") as stream:
+            stream.write("## Wine29 source-only candidate coverage\\n\\n")
+            stream.write("| Module | Candidate-batch imports | External imports (unverified) |\\n")
+            stream.write("| --- | --- | --- |\\n")
+            for name, details in sorted(closure.items()):
+              local=", ".join(details["batch_resolved"]) or "None"
+              external=", ".join(details["external_unverified"]) or "None"
+              stream.write(f"| {name} | {local} | {external} |\\n")
+            stream.write("\\n**Full dependency closure, native companions and Android runtime: NOT VERIFIED.**\\n")
+          print("GITHUB_STEP_SUMMARY=WRITTEN")
           PY
       - name: Publish bounded source-built PE evidence (NOT APK)
         if: success()

@@ -107,7 +107,7 @@ jobs:
           ROOT="$RUNNER_TEMP/charoite-first-provider-source"
           BUILD="$ROOT/charoite-arm64ec-android"
           cd "$BUILD"
-          # Three pinned-source Windows ARM64 PE modules, including HID parser dependency; no Wine execution.
+          # Five pinned-source Windows ARM64 PE modules, including HID parser dependency; no Wine execution.
           make -j2 dlls/mouhid.sys/aarch64-windows/mouhid.sys dlls/hidclass.sys/aarch64-windows/hidclass.sys dlls/hidparse.sys/aarch64-windows/hidparse.sys dlls/winehid.sys/aarch64-windows/winehid.sys dlls/winexinput.sys/aarch64-windows/winexinput.sys
           OUT="$GITHUB_WORKSPACE/wine29-first-provider-candidate"
           mkdir "$OUT"
@@ -151,6 +151,24 @@ jobs:
             }
             (out/(name+"-manifest.json")).write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
             print(f"{name.upper()}_ARM64_PE_BUILD_AND_IMPORT_INSPECTION=PASS")
+          # Distinguish imports resolved within this candidate batch from imports
+          # requiring independently verified PE/native providers.
+          batch={name+".sys" for name in ("mouhid", "hidclass", "hidparse", "winehid", "winexinput")}
+          closure={}
+          for name in ("mouhid", "hidclass", "hidparse", "winehid", "winexinput"):
+            manifest=json.loads((out/(name+"-manifest.json")).read_text())
+            imports=sorted(set(manifest["ordinary_imports"]+manifest["delay_imports"]))
+            local=sorted(x for x in imports if x.lower() in batch)
+            external=sorted(x for x in imports if x.lower() not in batch)
+            closure[name+".sys"]={"batch_resolved":local,"external_unverified":external}
+            print(f"{name.upper()}_BATCH_RESOLVED={','.join(local) or 'none'}")
+            print(f"{name.upper()}_EXTERNAL_UNVERIFIED={','.join(external) or 'none'}")
+          (out/"batch-import-closure.json").write_text(
+              json.dumps({"schema_version":1,"scope":"five-module candidate batch only",
+                          "module_imports":closure,"full_provider_closure_verified":False,
+                          "native_companion_closure_verified":False,
+                          "runtime_compatibility_verified":False},
+                         indent=2,sort_keys=True)+"\\n")
           print("IMPORT_CLOSURE_AND_RUNTIME=UNVERIFIED")
           PY
       - name: Publish bounded source-built PE evidence (NOT APK)

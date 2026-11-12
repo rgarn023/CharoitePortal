@@ -219,6 +219,40 @@ jobs:
             stream.write("\n**Full dependency closure, native companions and Android runtime: NOT VERIFIED.**\n")
           print("GITHUB_STEP_SUMMARY=WRITTEN")
           PY
+      - name: Probe remaining four provider PE build targets without blocking proven batch
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-first-provider-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-provider-build-probes"
+          mkdir "$OUT"
+          cd "$BUILD"
+          for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
+            echo "Probing source-built PE target: $module"
+            LOG="$OUT/$module-build.log"
+            if timeout 180 make -j2 "dlls/$module/aarch64-windows/$module" > "$LOG" 2>&1; then
+              BIN="$BUILD/dlls/$module/aarch64-windows/$module"
+              if test -s "$BIN" && test ! -L "$BIN"; then
+                cp "$BIN" "$OUT/$module-arm64-pe-candidate"
+                echo "$module PE build candidate produced; imports/native companion/runtime NOT verified" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "$module target returned success without expected PE file" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            else
+              echo "$module build probe failed or timed out; see bounded log artifact" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            tail -c 65536 "$LOG" > "$LOG.bounded" || :
+            mv "$LOG.bounded" "$LOG"
+          done
+      - name: Publish remaining-provider build probe logs (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Remaining-Provider-Build-Probes-NOT-APK
+          path: wine29-provider-build-probes/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify five-module evidence set before publishing
         run: |
           set -euo pipefail

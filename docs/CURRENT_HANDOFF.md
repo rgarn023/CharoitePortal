@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## REMAINING PROVIDER SOURCE INVENTORY — 2026-11-12 UTC
+
+[Commit 97f2504](https://github.com/rgarn023/CharoitePortal/commit/97f25042c015b7d8017add554a34a5b72823822c) adds automatic pinned-source Makefile inventory of `mscms.dll`, `winebth.sys`, `winebus.sys`, `wineusb.sys` to the existing Wine29 cross-build, exposing declared imports/Unix libraries in the job summary for the next build. [Postbuild ZIP handling commit 45a4e29](https://github.com/rgarn023/CharoitePortal/commit/45a4e2928b220b1ae78f3847fd567557c9374703) explicitly requests octet-stream bytes and caps download size. **CI results not yet verified; no additional module compilation or runtime progress claimed.** Next inspect CI outcome and use source inventory to plan LCMS2/native companion closure. **Owner action needed: NO.** Source-only; no Wine execution, device/APK, stable Portal, games/saves, prefixes, or historical scratch touched.
+
+
 ## SOURCE-ONLY POSTBUILD HARDENING — 2026-11-12 UTC
 
 [Commit a6b04d0](https://github.com/rgarn023/CharoitePortal/commit/a6b04d0bd0f3e7470e3886ee02dafdda0f73c746) strengthens the event-driven `workflow_run` artifact verifier with ZIP path/size checks, pinned source provenance, ARM64 PE machine and SHA-256/size checks, false runtime/native closure assertions, and reconciliation of each module's ordinary/delay imports with the candidate-batch versus external-import report. [Queue updated c67b2bc](https://github.com/rgarn023/CharoitePortal/commit/c67b2bc3c8f06a23d83a54a690382cbe73afa0a8). The GitHub connector's commit-to-workflow lookup for an earlier push returned no runs; **this does not establish whether recent workflow runs succeeded or failed**. No postbuild run ID or job log has been independently verified. Next: verify a completed upstream/postbuild pair and resolve failures, then continue import closure. **Owner action needed: NO.** Source-only GitHub edits; no Wine execution, Android device, APK, stable app, historical scratch, games, saves or user prefixes touched.

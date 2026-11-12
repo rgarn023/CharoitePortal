@@ -60,7 +60,78 @@ jobs:
           test -f "$ROOT/dlls/mouhid.sys/Makefile.in"
           test -f "$ROOT/dlls/hidclass.sys/Makefile.in"
           test -f "$ROOT/dlls/hidparse.sys/Makefile.in"
-          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*hidparse.sys
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*hidparse.sys          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*hidclass.sys$' "$ROOT/dlls/hidclass.sys/Makefile.in"
+          grep -Eq '^MODULE[[:space:]]*=[[:space:]]*mouhid.sys$' "$ROOT/dlls/mouhid.sys/Makefile.in"
+          grep -Eq '^IMPORTS[[:space:]]*=[[:space:]]*ntoskrnl hidparse win32u$' "$ROOT/dlls/mouhid.sys/Makefile.in"
+          git -C "$ROOT" diff --check
+      - name: Build pinned Wine ARM64 host and Android native toolchain (no execution)
+        run: |
+          set -euo pipefail
+          bash next-generation/charoite-wine/build-arm64ec-ntdll.sh \
+            "$RUNNER_TEMP/charoite-first-provider-source" \
+            "$ANDROID_HOME/ndk/27.3.13750724" \
+            "$RUNNER_TEMP/charoite-llvm-mingw"
+      - name: Cross-compile mouhid.sys, hidclass.sys and hidparse.sys dependency; inspect PE imports
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-first-provider-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          cd "$BUILD"
+          # Three pinned-source Windows ARM64 PE modules, including HID parser dependency; no Wine execution.
+          make -j2 dlls/mouhid.sys/aarch64-windows/mouhid.sys dlls/hidclass.sys/aarch64-windows/hidclass.sys dlls/hidparse.sys/aarch64-windows/hidparse.sys
+          OUT="$GITHUB_WORKSPACE/wine29-first-provider-candidate"
+          mkdir "$OUT"
+          for module in mouhid hidclass hidparse; do
+            BIN="$BUILD/dlls/$module.sys/aarch64-windows/$module.sys"
+            test -s "$BIN"
+            test ! -L "$BIN"
+            cp "$BIN" "$OUT/$module-arm64.sys"
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt"
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$BIN" > "$OUT/$module-pe-imports.txt"
+          done
+          python3 - "$OUT" <<'PY'
+          import hashlib, importlib.util, json, pathlib, struct, sys
+          out=pathlib.Path(sys.argv[1])
+          path=pathlib.Path(__import__("os").environ["GITHUB_WORKSPACE"])/"next-generation/wine29-imports/classify.py"
+          spec=importlib.util.spec_from_file_location("charoite_imports",path)
+          module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          for name in ("mouhid", "hidclass", "hidparse"):
+            binary=out/(name+"-arm64.sys")
+            raw=binary.read_bytes()
+            assert 1000 < len(raw) < 32*1024*1024
+            assert raw[:2] == b"MZ"
+            offset=struct.unpack_from("<I",raw,0x3c)[0]
+            assert 64 <= offset < len(raw)-24 and raw[offset:offset+4] == b"PE\0\0"
+            machine=struct.unpack_from("<H",raw,offset+4)[0]
+            assert machine == 0xAA64, f"{name}: expected ARM64 PE 0xAA64, got {machine:04x}"
+            ordinary, delayed=module.pe_imports(raw)
+            assert ordinary, f"{name}: provider PE has no ordinary imports; investigate"
+            report={
+              "schema_version":1, "module":name+".sys",
+              "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+              "package":"com.charoitx", "machine":"0xAA64",
+              "sha256":hashlib.sha256(raw).hexdigest(), "bytes":len(raw),
+              "ordinary_imports":ordinary, "delay_imports":delayed,
+              "pe_compilation_verified":True,
+              "provider_import_closure_verified":False,
+              "native_companion_closure_verified":False,
+              "runtime_compatibility_verified":False,
+              "wine_executed":False, "phone_tested":False,
+              "historical_scratch_accessed":False
+            }
+            (out/(name+"-manifest.json")).write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+            print(f"{name.upper()}_ARM64_PE_BUILD_AND_IMPORT_INSPECTION=PASS")
+          print("IMPORT_CLOSURE_AND_RUNTIME=UNVERIFIED")
+          PY
+      - name: Publish bounded source-built PE evidence (NOT APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Mouhid-Hidclass-Hidparse-ARM64-PE-NOT-APK
+          path: wine29-first-provider-candidate/
+          if-no-files-found: error
+          retention-days: 7
+ "$ROOT/dlls/hidparse.sys/Makefile.in"
           grep -Eq '^MODULE[[:space:]]*=[[:space:]]*hidclass.sys$' "$ROOT/dlls/hidclass.sys/Makefile.in"
           grep -Eq '^MODULE[[:space:]]*=[[:space:]]*mouhid.sys$' "$ROOT/dlls/mouhid.sys/Makefile.in"
           grep -Eq '^IMPORTS[[:space:]]*=[[:space:]]*ntoskrnl hidparse win32u$' "$ROOT/dlls/mouhid.sys/Makefile.in"

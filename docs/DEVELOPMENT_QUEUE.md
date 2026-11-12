@@ -8,10 +8,14 @@
 | P0 | Resolve candidate PE import dependencies | **IN PROGRESS** | Track `mouhid.sys`, `hidclass.sys`, `hidparse.sys`, `winehid.sys`, `winexinput.sys`; compare external imports to verified sealed module set; distinguish unresolved imports |
 | P1 | Build `mscms.dll` with pinned LCMS2 dependencies | **NOT STARTED** | Pin dependency, verify license/build, ARM64 PE header and imports in source-only CI |
 | P1 | Build `winebth.sys`, `winebus.sys`, `wineusb.sys` | **NOT STARTED** | Confirm Android/Bionic Unix companion availability and build closure; PE-only output is insufficient |
-| P1 | Build bounded, automated provider-closure report | **IN PROGRESS** | Report per-module source hashes, PE machine, ordinary/delay imports, missing providers, native companions, provenance and explicit unverified runtime |
+| P1 | Build bounded, automated provider-closure report | **IN PROGRESS — postbuild static validation committed** | Report per-module source hashes, PE machine, ordinary/delay imports, missing providers, native companions, provenance and explicit unverified runtime |
 | P2 | Integrate fully verified modules into isolated NEW Wine29 scratch | **BLOCKED** | Requires full dependency closure and owner approval for new runtime/phone test |
 | P2 | Validate Wine29 prefix bootstrap, RpcSs, and installer functionality | **BLOCKED** | Requires opt-in, fresh scratch only, controlled logs and non-destructive tests |
 | P3 | Portal/Next integration, UX and gameplay regression | **BLOCKED** | Requires working runtime and owner-authorized device test |
+
+## Automated verification update (2026-11-12)
+- [Postbuild workflow hardening a6b04d0](https://github.com/rgarn023/CharoitePortal/commit/a6b04d0bd0f3e7470e3886ee02dafdda0f73c746) adds read-only artifact provenance, ZIP limits, PE header/hash and candidate import-partition consistency checks. It runs on matching cross-build completion events. **Committed only; postbuild job success has not been independently verified.**
+- Next: verify an actual postbuild run and its upstream artifact; investigate any failure before extending providers. No owner action required.
 
 ## Known evidence (do not overstate)
 - [Three-module CI run #43247190822](https://github.com/rgarn023/CharoitePortal/actions/runs/43247190822) **SUCCESS**; `mouhid.sys`, `hidclass.sys` and supporting `hidparse.sys` built/inspected as ARM64 PE. Two of eight original missing provider modules source-built; **0/8 full closure verified**.

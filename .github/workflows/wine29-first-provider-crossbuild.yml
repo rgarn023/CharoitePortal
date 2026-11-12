@@ -182,6 +182,36 @@ jobs:
             stream.write("\n**Full dependency closure, native companions and Android runtime: NOT VERIFIED.**\n")
           print("GITHUB_STEP_SUMMARY=WRITTEN")
           PY
+      - name: Verify five-module evidence set before publishing
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,struct
+          root=pathlib.Path("wine29-first-provider-candidate")
+          names=("mouhid","hidclass","hidparse","winehid","winexinput")
+          assert root.is_dir() and not root.is_symlink()
+          for name in names:
+              binary=root/(name+"-arm64.sys")
+              manifest=root/(name+"-manifest.json")
+              assert binary.is_file() and not binary.is_symlink()
+              assert manifest.is_file() and not manifest.is_symlink()
+              raw=binary.read_bytes()
+              info=json.loads(manifest.read_text())
+              assert 1024<len(raw)<32*1024*1024
+              offset=struct.unpack_from("<I",raw,0x3c)[0]
+              assert raw[:2]==b"MZ" and 64<=offset<len(raw)-24
+              assert raw[offset:offset+4]==b"PE\\x00\\x00"
+              assert struct.unpack_from("<H",raw,offset+4)[0]==0xaa64
+              assert hashlib.sha256(raw).hexdigest()==info["sha256"]
+              assert info["module"]==name+".sys"
+              assert info["provider_import_closure_verified"] is False
+              assert info["runtime_compatibility_verified"] is False
+              print(f"{name.upper()}_EVIDENCE_INTEGRITY=PASS")
+          closure=json.loads((root/"batch-import-closure.json").read_text())
+          assert closure["full_provider_closure_verified"] is False
+          assert set(closure["module_imports"])=={name+".sys" for name in names}
+          print("FIVE_MODULE_EVIDENCE_SET=PASS; FULL_CLOSURE=UNVERIFIED")
+          PY
       - name: Publish bounded source-built PE evidence (NOT APK)
         if: success()
         uses: actions/upload-artifact@v4

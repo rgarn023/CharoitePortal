@@ -52,7 +52,7 @@ jobs:
           assert len(blocks) >= 5, "Unexpected workflow run-block count"
           for index, block in enumerate(blocks, 1):
               with tempfile.NamedTemporaryFile(mode="w", suffix=".sh") as script:
-                  script.write("\\n".join(block) + "\\n")
+                  script.write("\n".join(block) + "\n")
                   script.flush()
                   subprocess.run(["bash", "-n", script.name], check=True)
               print(f"SHELL_BLOCK_{index}_SYNTAX=PASS")

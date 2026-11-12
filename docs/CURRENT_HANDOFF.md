@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## SOURCE-ONLY POSTBUILD HARDENING — 2026-11-12 UTC
+
+[Commit a6b04d0](https://github.com/rgarn023/CharoitePortal/commit/a6b04d0bd0f3e7470e3886ee02dafdda0f73c746) strengthens the event-driven `workflow_run` artifact verifier with ZIP path/size checks, pinned source provenance, ARM64 PE machine and SHA-256/size checks, false runtime/native closure assertions, and reconciliation of each module's ordinary/delay imports with the candidate-batch versus external-import report. [Queue updated c67b2bc](https://github.com/rgarn023/CharoitePortal/commit/c67b2bc3c8f06a23d83a54a690382cbe73afa0a8). The GitHub connector's commit-to-workflow lookup for an earlier push returned no runs; **this does not establish whether recent workflow runs succeeded or failed**. No postbuild run ID or job log has been independently verified. Next: verify a completed upstream/postbuild pair and resolve failures, then continue import closure. **Owner action needed: NO.** Source-only GitHub edits; no Wine execution, Android device, APK, stable app, historical scratch, games, saves or user prefixes touched.
+
+
 ## POSTBUILD WORKFLOW FILE CREATION ERROR RESOLVED — 2026-11-12
 
 The earlier GitHub connector internal error on creating `.github/workflows/wine29-provider-postbuild.yml` was bypassed by committing a small workflow scaffold first ([35f4149](https://github.com/rgarn023/CharoitePortal/commit/35f4149fb9886154440aaa72717c641a8fcd1f29)), then updating it with event-driven source-only verification ([bfa66fd](https://github.com/rgarn023/CharoitePortal/commit/bfa66fd7c31d13cb3ef58c362813bdd0b8002720)). The workflow listens for completion of the named Wine29 cross-build, checks upstream success, fetches the five-module evidence ZIP through GitHub API, checks bounded entries, ARM64 PE headers, manifest SHA-256, and explicit unverified closure flags, and writes a job summary. It does not dispatch, rebuild, run Wine, install APKs or touch device data. **The workflow file is committed, but actual postbuild execution remains unverified; it will run for future matching completions only.** Owner action needed: NO.

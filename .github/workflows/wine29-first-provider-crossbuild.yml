@@ -60,6 +60,8 @@ jobs:
           test -f "$ROOT/dlls/mouhid.sys/Makefile.in"
           test -f "$ROOT/dlls/hidclass.sys/Makefile.in"
           test -f "$ROOT/dlls/hidparse.sys/Makefile.in"
+          test -f "$ROOT/dlls/winehid.sys/Makefile.in"
+          test -f "$ROOT/dlls/winexinput.sys/Makefile.in"
           grep -Eq '^MODULE[[:space:]]*=[[:space:]]*hidparse.sys$' "$ROOT/dlls/hidparse.sys/Makefile.in"
           grep -Eq '^MODULE[[:space:]]*=[[:space:]]*mouhid.sys$' "$ROOT/dlls/mouhid.sys/Makefile.in"
           grep -Eq '^IMPORTS[[:space:]]*=[[:space:]]*ntoskrnl hidparse win32u$' "$ROOT/dlls/mouhid.sys/Makefile.in"
@@ -71,17 +73,17 @@ jobs:
             "$RUNNER_TEMP/charoite-first-provider-source" \
             "$ANDROID_HOME/ndk/27.3.13750724" \
             "$RUNNER_TEMP/charoite-llvm-mingw"
-      - name: Cross-compile mouhid.sys, hidclass.sys and hidparse.sys dependency; inspect PE imports
+      - name: Cross-compile five pinned ARM64 HID/XInput PE modules; inspect imports
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/charoite-first-provider-source"
           BUILD="$ROOT/charoite-arm64ec-android"
           cd "$BUILD"
           # Three pinned-source Windows ARM64 PE modules, including HID parser dependency; no Wine execution.
-          make -j2 dlls/mouhid.sys/aarch64-windows/mouhid.sys dlls/hidclass.sys/aarch64-windows/hidclass.sys dlls/hidparse.sys/aarch64-windows/hidparse.sys
+          make -j2 dlls/mouhid.sys/aarch64-windows/mouhid.sys dlls/hidclass.sys/aarch64-windows/hidclass.sys dlls/hidparse.sys/aarch64-windows/hidparse.sys dlls/winehid.sys/aarch64-windows/winehid.sys dlls/winexinput.sys/aarch64-windows/winexinput.sys
           OUT="$GITHUB_WORKSPACE/wine29-first-provider-candidate"
           mkdir "$OUT"
-          for module in mouhid hidclass hidparse; do
+          for module in mouhid hidclass hidparse winehid winexinput; do
             BIN="$BUILD/dlls/$module.sys/aarch64-windows/$module.sys"
             test -s "$BIN"
             test ! -L "$BIN"
@@ -95,7 +97,7 @@ jobs:
           path=pathlib.Path(__import__("os").environ["GITHUB_WORKSPACE"])/"next-generation/wine29-imports/classify.py"
           spec=importlib.util.spec_from_file_location("charoite_imports",path)
           module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-          for name in ("mouhid", "hidclass", "hidparse"):
+          for name in ("mouhid", "hidclass", "hidparse", "winehid", "winexinput"):
             binary=out/(name+"-arm64.sys")
             raw=binary.read_bytes()
             assert 1000 < len(raw) < 32*1024*1024
@@ -127,7 +129,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Wine29-Mouhid-Hidclass-Hidparse-ARM64-PE-NOT-APK
+          name: Wine29-HID-XInput-Five-ARM64-PE-NOT-APK
           path: wine29-first-provider-candidate/
           if-no-files-found: error
           retention-days: 7

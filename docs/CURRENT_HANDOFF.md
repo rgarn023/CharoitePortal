@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## FOUR REMAINING PROVIDER BUILD PROBES — 2026-11-12 UTC
+
+[Build probe commit 7065f8c](https://github.com/rgarn023/CharoitePortal/commit/7065f8c183596244f17b8e71bee82a52c8f2abf5) adds source-only bounded cross-build attempts for `mscms.dll`, `winebth.sys`, `winebus.sys`, and `wineusb.sys`, after the five existing PE targets. It captures bounded build diagnostics and publishes separate seven-day probe evidence. [PE-header follow-up 91bbcc8](https://github.com/rgarn023/CharoitePortal/commit/91bbcc82b20851cae36a26f230d83ad4c33a7700) checks candidate readability before copying. These are **attempts, not verified builds or native companion closure**; latest CI result not inspected. Failures do not suppress existing five-module artifact publication. Next: inspect actual probe logs/artifacts and fix missing build dependencies. **Owner action needed: NO.** No Wine execution, APK/device tests, historical scratch, stable app, games or saves touched.
+
+
 ## REMAINING PROVIDER SOURCE INVENTORY — 2026-11-12 UTC
 
 [Commit 97f2504](https://github.com/rgarn023/CharoitePortal/commit/97f25042c015b7d8017add554a34a5b72823822c) adds automatic pinned-source Makefile inventory of `mscms.dll`, `winebth.sys`, `winebus.sys`, `wineusb.sys` to the existing Wine29 cross-build, exposing declared imports/Unix libraries in the job summary for the next build. [Postbuild ZIP handling commit 45a4e29](https://github.com/rgarn023/CharoitePortal/commit/45a4e2928b220b1ae78f3847fd567557c9374703) explicitly requests octet-stream bytes and caps download size. **CI results not yet verified; no additional module compilation or runtime progress claimed.** Next inspect CI outcome and use source inventory to plan LCMS2/native companion closure. **Owner action needed: NO.** Source-only; no Wine execution, device/APK, stable Portal, games/saves, prefixes, or historical scratch touched.

@@ -1,3 +1,13 @@
+# Charoite Portal — Current Handoff
+
+**Start every new chat at [SESSION_START.md](SESSION_START.md); current priority list: [DEVELOPMENT_QUEUE.md](DEVELOPMENT_QUEUE.md).**
+
+## CROSS-CHAT CONTINUITY INSTALLED — 2026-11-12
+
+Commits: [session startup 898ab12](https://github.com/rgarn023/CharoitePortal/commit/898ab1278a55c9396691b9f63402a508585da726) and [development queue 09e9856](https://github.com/rgarn023/CharoitePortal/commit/09e98562f24f8038292808628b5e0c8d24fc6d6b). Added a durable new-chat startup checklist, safety boundaries, evidence discipline, task queue, and end-of-session update contract. **This is documentation workflow, not automated coding or a ChatGPT Project creation.** Verified source-only CI evidence remains three-module run #43247190822; recent five-module runs and import summary are unverified. Next: inspect latest five-module run evidence, then resolve missing dependencies. **Owner action needed: NO.** No Wine/Android execution, APK, historical scratch, games or saves accessed.
+
+---
+
 ## ACTIONS IMPORT-COVERAGE SUMMARY — NOVEMBER 12, 2026
 
 [Commit c1eeb51](https://github.com/rgarn023/CharoitePortal/commit/c1eeb51049d56db81f3c76adb579de0a91b42f58) adds an Actions job-summary table of candidate-batch imports versus external unresolved imports for all five source-built ARM64 PE modules. [Commit 7e131c2](https://github.com/rgarn023/CharoitePortal/commit/7e131c2001e2454d531792e3557a825698bc6096) corrects Markdown newline escaping. The job-summary table is only emitted after successful cross-build and import inspection; its content has NOT yet been verified in a completed run. No APK, device, Wine execution, or historical scratch accessed. Owner requests no routine updates; only notify when action is needed. Continue development in substantial batches during active conversations.

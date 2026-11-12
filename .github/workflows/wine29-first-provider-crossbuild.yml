@@ -94,6 +94,42 @@ jobs:
           grep -Eq '^MODULE[[:space:]]*=[[:space:]]*mouhid.sys$' "$ROOT/dlls/mouhid.sys/Makefile.in"
           grep -Eq '^IMPORTS[[:space:]]*=[[:space:]]*ntoskrnl hidparse win32u$' "$ROOT/dlls/mouhid.sys/Makefile.in"
           git -C "$ROOT" diff --check
+      - name: Inventory remaining Wine29 provider source requirements
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,re
+          root=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source"
+          targets=("mscms.dll","winebth.sys","winebus.sys","wineusb.sys")
+          inventory={}
+          for name in targets:
+              makefile=root/"dlls"/name/"Makefile.in"
+              assert makefile.is_file() and not makefile.is_symlink(), f"Missing pinned source: {name}"
+              source=makefile.read_text()
+              def fields(key):
+                  values=[]
+                  for match in re.finditer(r"^"+re.escape(key)+r"\\s*=\\s*(.*(?:\\\\\\n[ \\t]+.*)*)",source,re.M):
+                      values.extend(match.group(1).replace("\\\n"," ").split())
+                  return sorted(set(values))
+              inventory[name]={"makefile":str(makefile.relative_to(root)),
+                               "imports_declared":fields("IMPORTS"),
+                               "unix_libs_declared":fields("UNIX_LIBS"),
+                               "sources_declared":fields("SOURCES"),
+                               "native_companion_verified":False,
+                               "pe_build_verified":False,
+                               "runtime_verified":False}
+          out=pathlib.Path(os.environ["GITHUB_WORKSPACE"])/"wine29-provider-source-inventory.json"
+          out.write_text(json.dumps({"source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+                                    "scope":"pinned source Makefile declarations only",
+                                    "providers":inventory},indent=2,sort_keys=True)+"\\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as summary:
+              summary.write("## Remaining provider source inventory (not built)\\n\\n")
+              summary.write("| Provider | Declared imports | Unix libraries |\\n| --- | --- | --- |\\n")
+              for name,info in inventory.items():
+                  summary.write(f"| {name} | {', '.join(info['imports_declared']) or 'None declared'} | {', '.join(info['unix_libs_declared']) or 'None declared'} |\\n")
+              summary.write("\\nSource inventory only; native companion closure and runtime NOT VERIFIED.\\n")
+          print("REMAINING_PROVIDER_SOURCE_INVENTORY=PASS")
+          PY
       - name: Build pinned Wine ARM64 host and Android native toolchain (no execution)
         run: |
           set -euo pipefail

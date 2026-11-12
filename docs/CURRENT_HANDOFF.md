@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## POSTBUILD WORKFLOW FILE CREATION ERROR RESOLVED — 2026-11-12
+
+The earlier GitHub connector internal error on creating `.github/workflows/wine29-provider-postbuild.yml` was bypassed by committing a small workflow scaffold first ([35f4149](https://github.com/rgarn023/CharoitePortal/commit/35f4149fb9886154440aaa72717c641a8fcd1f29)), then updating it with event-driven source-only verification ([bfa66fd](https://github.com/rgarn023/CharoitePortal/commit/bfa66fd7c31d13cb3ef58c362813bdd0b8002720)). The workflow listens for completion of the named Wine29 cross-build, checks upstream success, fetches the five-module evidence ZIP through GitHub API, checks bounded entries, ARM64 PE headers, manifest SHA-256, and explicit unverified closure flags, and writes a job summary. It does not dispatch, rebuild, run Wine, install APKs or touch device data. **The workflow file is committed, but actual postbuild execution remains unverified; it will run for future matching completions only.** Owner action needed: NO.
+
+
 ## AUTOMATIC BUILD-TIME VERIFICATION GATE — 2026-11-12
 
 **[Commit e12bc2d](https://github.com/rgarn023/CharoitePortal/commit/e12bc2dc513d73933f1c46aa34ee0af4973e30ac)** adds an immediate source-only verification step inside the existing Wine29 five-module GitHub Actions workflow. Before uploading its artifact, the workflow now verifies each candidate ARM64 PE signature/machine, matching SHA-256 manifest, explicit unverified runtime/closure flags, and the batch import report's module inventory. The workflow remains push-triggered for scoped changes, manually dispatchable, and **does not poll** or execute Wine/Android/APK. **Verification code committed; its latest run result is not yet inspected.** A separate workflow_run postbuild workflow was attempted but the GitHub write tool returned an internal error, so **do not claim that an independent postbuild workflow was installed**. No additional paid service or one-minute polling was configured. **Owner action needed: NO.**

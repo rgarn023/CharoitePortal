@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## AUTOMATIC BUILD-TIME VERIFICATION GATE — 2026-11-12
+
+**[Commit e12bc2d](https://github.com/rgarn023/CharoitePortal/commit/e12bc2dc513d73933f1c46aa34ee0af4973e30ac)** adds an immediate source-only verification step inside the existing Wine29 five-module GitHub Actions workflow. Before uploading its artifact, the workflow now verifies each candidate ARM64 PE signature/machine, matching SHA-256 manifest, explicit unverified runtime/closure flags, and the batch import report's module inventory. The workflow remains push-triggered for scoped changes, manually dispatchable, and **does not poll** or execute Wine/Android/APK. **Verification code committed; its latest run result is not yet inspected.** A separate workflow_run postbuild workflow was attempted but the GitHub write tool returned an internal error, so **do not claim that an independent postbuild workflow was installed**. No additional paid service or one-minute polling was configured. **Owner action needed: NO.**
+
+
 **Start every new chat at [SESSION_START.md](SESSION_START.md); current priority list: [DEVELOPMENT_QUEUE.md](DEVELOPMENT_QUEUE.md).**
 
 ## CROSS-CHAT CONTINUITY INSTALLED — 2026-11-12

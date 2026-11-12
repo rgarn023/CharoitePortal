@@ -44,6 +44,8 @@ jobs:
           with zipfile.ZipFile(sys.argv[1]) as z:
             entries=z.infolist()
             assert len(entries)<70 and sum(e.file_size for e in entries)<40*1024*1024
+            assert all(not e.is_dir() and not e.filename.startswith("/") and ".." not in e.filename.split("/") for e in entries)
+            assert all(e.file_size<32*1024*1024 for e in entries)
             members=set(z.namelist())
             with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as out:
               out.write("| Module | ARM64 PE and manifest integrity |\n| --- | --- |\n")
@@ -58,6 +60,10 @@ jobs:
                 assert struct.unpack_from("<H",data,off+4)[0]==0xaa64
                 assert hashlib.sha256(data).hexdigest()==m["sha256"]
                 assert m["module"]==name+".sys"
+                assert m["machine"]=="0xAA64" and m["source_commit"]=="c74acb09d51b447f5d5ac56c87608d3ec565a767"
+                assert m["bytes"]==len(data) and m["pe_compilation_verified"] is True
+                assert m["wine_executed"] is False and m["phone_tested"] is False
+                assert m["native_companion_closure_verified"] is False
                 assert m["runtime_compatibility_verified"] is False
                 assert m["provider_import_closure_verified"] is False
                 out.write(f"| {name}.sys | PASS |\n")
@@ -65,5 +71,13 @@ jobs:
               report=json.loads(z.read("batch-import-closure.json"))
               assert report["full_provider_closure_verified"] is False
               assert set(report["module_imports"])=={n+".sys" for n in names}
+              assert report["native_companion_closure_verified"] is False
+              assert report["runtime_compatibility_verified"] is False
+              for name in names:
+                manifest=json.loads(z.read(name+"-manifest.json"))
+                imports=set(manifest["ordinary_imports"]+manifest["delay_imports"])
+                details=report["module_imports"][name+".sys"]
+                assert set(details["batch_resolved"]).isdisjoint(details["external_unverified"])
+                assert set(details["batch_resolved"]+details["external_unverified"])==imports
               out.write("\nFull dependency closure and runtime compatibility NOT verified.\n")
           PY

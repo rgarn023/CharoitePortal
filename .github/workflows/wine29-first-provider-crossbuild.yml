@@ -233,7 +233,7 @@ jobs:
             LOG="$OUT/$module-build.log"
             if timeout 180 make -j2 "dlls/$module/aarch64-windows/$module" > "$LOG" 2>&1; then
               BIN="$BUILD/dlls/$module/aarch64-windows/$module"
-              if test -s "$BIN" && test ! -L "$BIN"; then
+              if test -s "$BIN" && test ! -L "$BIN" && "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt" 2>&1; then
                 cp "$BIN" "$OUT/$module-arm64-pe-candidate"
                 echo "$module PE build candidate produced; imports/native companion/runtime NOT verified" >> "$GITHUB_STEP_SUMMARY"
               else

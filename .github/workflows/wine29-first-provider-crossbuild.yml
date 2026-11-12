@@ -231,19 +231,43 @@ jobs:
           for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
             echo "Probing source-built PE target: $module"
             LOG="$OUT/$module-build.log"
+            STATUS="build_failed_or_timed_out"
             if timeout 180 make -j2 "dlls/$module/aarch64-windows/$module" > "$LOG" 2>&1; then
               BIN="$BUILD/dlls/$module/aarch64-windows/$module"
-              if test -s "$BIN" && test ! -L "$BIN" && "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt" 2>&1; then
-                cp "$BIN" "$OUT/$module-arm64-pe-candidate"
-                echo "$module PE build candidate produced; imports/native companion/runtime NOT verified" >> "$GITHUB_STEP_SUMMARY"
-              else
-                echo "$module target returned success without expected PE file" >> "$GITHUB_STEP_SUMMARY"
+              STATUS="missing_binary_or_invalid_header"
+              if test -s "$BIN" && test ! -L "$BIN"; then
+                if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt" 2>&1; then
+                  if python3 - "$BIN" "$OUT/$module-manifest.json" "$module" <<'PY'
+          import hashlib,json,pathlib,struct,sys
+          binary=pathlib.Path(sys.argv[1]); manifest=pathlib.Path(sys.argv[2]); module=sys.argv[3]
+          raw=binary.read_bytes()
+          assert 1024<len(raw)<32*1024*1024 and raw[:2]==b"MZ"
+          offset=struct.unpack_from("<I",raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b"PE"+bytes(2)
+          assert struct.unpack_from("<H",raw,offset+4)[0]==0xAA64
+          manifest.write_text(json.dumps({
+              "schema_version":1,"module":module,"machine":"0xAA64",
+              "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+              "sha256":hashlib.sha256(raw).hexdigest(),"bytes":len(raw),
+              "pe_compilation_verified":True,
+              "provider_import_closure_verified":False,
+              "native_companion_closure_verified":False,
+              "runtime_compatibility_verified":False,
+              "wine_executed":False,"phone_tested":False},indent=2,sort_keys=True)+chr(10))
+          PY
+                  then
+                    cp "$BIN" "$OUT/$module-arm64-pe-candidate"
+                    STATUS="arm64_pe_candidate_verified"
+                  fi
+                fi
               fi
-            else
-              echo "$module build probe failed or timed out; see bounded log artifact" >> "$GITHUB_STEP_SUMMARY"
             fi
-            tail -c 65536 "$LOG" > "$LOG.bounded" || :
-            mv "$LOG.bounded" "$LOG"
+            printf '%s\n' "$STATUS" > "$OUT/$module-status.txt"
+            echo "$module: $STATUS; dependency/native companion/runtime closure NOT verified" >> "$GITHUB_STEP_SUMMARY"
+            if test -f "$LOG"; then
+              tail -c 65536 "$LOG" > "$LOG.bounded" || :
+              mv "$LOG.bounded" "$LOG"
+            fi
           done
       - name: Publish remaining-provider build probe logs (NOT APK)
         if: always()

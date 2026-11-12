@@ -20,6 +20,9 @@
 
 - [Source inventory commit 97f2504](https://github.com/rgarn023/CharoitePortal/commit/97f25042c015b7d8017add554a34a5b72823822c) adds a source-only Makefile inventory for `mscms.dll`, `winebth.sys`, `winebus.sys`, `wineusb.sys` to the existing cross-build job. **No modules compiled by this change; CI result unverified.**
 
+
+- [Build probe 7065f8c](https://github.com/rgarn023/CharoitePortal/commit/7065f8c183596244f17b8e71bee82a52c8f2abf5) and [PE-header gate 91bbcc8](https://github.com/rgarn023/CharoitePortal/commit/91bbcc82b20851cae36a26f230d83ad4c33a7700) now attempt bounded source-only PE cross-builds of the four remaining providers (`mscms.dll`, `winebth.sys`, `winebus.sys`, `wineusb.sys`) in CI after the existing five-module build. Each attempt records bounded logs and only copies a candidate with a readable PE header; failures are nonblocking to preserve established evidence. **No probe run results verified yet; no added module counted as built.**
+
 ## Known evidence (do not overstate)
 - [Three-module CI run #43247190822](https://github.com/rgarn023/CharoitePortal/actions/runs/43247190822) **SUCCESS**; `mouhid.sys`, `hidclass.sys` and supporting `hidparse.sys` built/inspected as ARM64 PE. Two of eight original missing provider modules source-built; **0/8 full closure verified**.
 - Five-module expansion [commit 1c33328](https://github.com/rgarn023/CharoitePortal/commit/1c333282a0b32acb0f1fc3cc937b7057ef590a44). Owner screenshot suggested workflow #13 success, but run/job/artifact evidence was not independently inspected.

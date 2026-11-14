@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-14 — VERIFIED CI RECOVERY AND PINNED-SOURCE EVIDENCE
+
+[Cross-build #43630990894](https://github.com/rgarn023/CharoitePortal/actions/runs/43630990894) **SUCCEEDED**: all five ARM64 HID/XInput PE modules compiled, and both the five-module evidence and four-provider probe artifacts were published. The source inventory specifically reports **mscms.dll Makefile.in absent** in pinned Wine source, so mscms was **not built**. The other three provider outcomes require examination of bounded probe logs; do not infer they succeeded. [Static verification #43631326641](https://github.com/rgarn023/CharoitePortal/actions/runs/43631326641) **SUCCEEDED** after correcting stale test contracts. [Postbuild #43631200667](https://github.com/rgarn023/CharoitePortal/actions/runs/43631200667) **FAILED** on HTTP 415 from an unsupported GitHub CLI artifact Accept header; [fix 38c647b](https://github.com/rgarn023/CharoitePortal/commit/38c647b760e4cc7e5948ec773d26c0147887f488) and [indentation correction 33f2d8a](https://github.com/rgarn023/CharoitePortal/commit/33f2d8ac14787b45042a5550ab0b9fca0306b23d) committed, but a successful new postbuild verification has not yet been observed. [Commit b2cab79](https://github.com/rgarn023/CharoitePortal/commit/b2cab79fbf3db846963b9d26a6a086448934a0c7) publishes a separate pinned-source inventory artifact on the next cross-build. **Next:** inspect the three available provider probe logs, identify proper mscms source/provider mapping, and verify the postbuild fix against a new successful run. **Owner action: NO.** Source-only CI; no Wine execution, APK/device, historical scratch, games, saves or prefixes touched.
+
+
 ## 2026-11-14 — ACTIVE WINE29 BUILD RECOVERY (SOURCE-ONLY)
 
 - [Commit 74004f9](https://github.com/rgarn023/CharoitePortal/commit/74004f95cd10bb0d5a3a9f112fb8afe339fea5ae): missing pinned Makefile for one of four remaining provider targets is recorded as source-absent rather than aborting the proven five-module batch; missing targets are not compiled or misrepresented as built.

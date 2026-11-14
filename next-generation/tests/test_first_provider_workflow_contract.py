@@ -27,7 +27,9 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertNotIn("gradlew", source)
         self.assertIn("timeout-minutes: 58", source)
         self.assertIn("retention-days: 7", source)
-        self.assertRegex(source, r"(?m)^concurrency:\s*\n\s+group: wine29-first-provider-crossbuild-v2\s*\n\s+cancel-in-progress: false\s*$")
+        self.assertRegex(source, r"(?m)^concurrency:\\s*$")
+        self.assertRegex(source, r"(?m)^  group: wine29-first-provider-crossbuild-v2\\s*$")
+        self.assertRegex(source, r"(?m)^  cancel-in-progress: false\\s*$")
 
     def test_lightweight_ci_covers_provider_workflow_edits(self):
         # Editing an expensive workflow must still run the cheap offline

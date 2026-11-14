@@ -1,5 +1,15 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-14 — ACTIVE WINE29 BUILD RECOVERY (SOURCE-ONLY)
+
+- [Commit 74004f9](https://github.com/rgarn023/CharoitePortal/commit/74004f95cd10bb0d5a3a9f112fb8afe339fea5ae): missing pinned Makefile for one of four remaining provider targets is recorded as source-absent rather than aborting the proven five-module batch; missing targets are not compiled or misrepresented as built.
+- [Commit 705dfdb](https://github.com/rgarn023/CharoitePortal/commit/705dfdb6b84214e1253d37330bf7b6e8f88abba5) and [follow-up 333411c](https://github.com/rgarn023/CharoitePortal/commit/333411c636711becd04352bcbe2fd8b02f0d165d): align outdated static workflow tests with scoped push triggering, five-module artifact naming and v2 concurrency group. The first static run failed on the missed group assertion; follow-up static run is queued at time of writing.
+- [Cross-build run 43630990894](https://github.com/rgarn023/CharoitePortal/actions/runs/43630990894) was **in progress** at last check, after initial toolchain checks passed. No successful completion, new artifact or runtime compatibility is claimed.
+- [Static verification run 43631069228](https://github.com/rgarn023/CharoitePortal/actions/runs/43631069228) **failed** on the concurrency group test; addressed by 333411c, outcome of next run unverified.
+
+**Next:** verify latest static and cross-build conclusions and artifact manifests; inspect actual missing pinned-source paths, then address real missing module sources/dependencies rather than assuming compilation succeeded. Existing five-module evidence remains distinct from full import/native/runtime closure. **Owner action needed: NO.** No APK, Wine execution, device testing, historical scratch, saved games, user prefixes or stable Portal accessed.
+
+
 ## REMAINING PROVIDER ARM64 PE MANIFEST GATE — 2026-11-12 UTC
 
 [Commit 47f4893](https://github.com/rgarn023/CharoitePortal/commit/47f48935fcf7c605ffa7b73c89790890734a7254) strengthens source-only build probes for `mscms.dll`, `winebth.sys`, `winebus.sys`, and `wineusb.sys`: only a validated ARM64 PE candidate is copied; each passing candidate gets SHA-256, byte count, pinned source provenance and explicit unverified import/native/runtime flags. Per-module statuses and bounded diagnostics are retained. **This is committed CI code, not proof of a completed build.** Next inspect actual workflow logs/artifacts, fix any compilation failures, and close imports/native companions. **Owner action needed: NO.** No device/APK, Wine processes, preserved scratch, games/saves or user prefixes touched.

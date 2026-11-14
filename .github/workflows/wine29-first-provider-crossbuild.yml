@@ -105,15 +105,15 @@ jobs:
           # Compare final patched source with pinned upstream tree without modifying it.
           import subprocess
           for name in targets:
-              relative=f"dlls/{name}/Makefile.in"
+              relative=f"dlls/{name.removesuffix('.dll')}/Makefile.in"
               upstream=subprocess.run(["git","-C",str(root),"cat-file","-e",
                                        "c74acb09d51b447f5d5ac56c87608d3ec565a767:"+relative],
                                       stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
               print(f"{name.upper()}_UPSTREAM_PINNED_MAKEFILE={'PRESENT' if upstream.returncode==0 else 'ABSENT'}")
           for name in targets:
-              makefile=root/"dlls"/name/"Makefile.in"
+              makefile=root/"dlls"/name.removesuffix(".dll")/"Makefile.in"
               upstream_present=subprocess.run(["git","-C",str(root),"cat-file","-e",
-                   "c74acb09d51b447f5d5ac56c87608d3ec565a767:dlls/"+name+"/Makefile.in"],
+                   "c74acb09d51b447f5d5ac56c87608d3ec565a767:dlls/"+name.removesuffix(".dll")+"/Makefile.in"],
                    stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0
               if not makefile.is_file() or makefile.is_symlink():
                   inventory[name]={"makefile":str(makefile.relative_to(root)),
@@ -257,15 +257,16 @@ jobs:
           for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
             echo "Probing source-built PE target: $module"
             LOG="$OUT/$module-build.log"
-            if test ! -f "$ROOT/dlls/$module/Makefile.in"; then
+            SOURCE_DIR="${module%.dll}"
+            if test ! -f "$ROOT/dlls/$SOURCE_DIR/Makefile.in"; then
               printf '%s\n' "pinned source Makefile.in absent; no build attempted" > "$LOG"
               printf '%s\n' "pinned_source_absent" > "$OUT/$module-status.txt"
               echo "$module: pinned source absent; no build attempted" >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
             STATUS="build_failed_or_timed_out"
-            if timeout 180 make -j2 "dlls/$module/aarch64-windows/$module" > "$LOG" 2>&1; then
-              BIN="$BUILD/dlls/$module/aarch64-windows/$module"
+            if timeout 180 make -j2 "dlls/$SOURCE_DIR/aarch64-windows/$module" > "$LOG" 2>&1; then
+              BIN="$BUILD/dlls/$SOURCE_DIR/aarch64-windows/$module"
               STATUS="missing_binary_or_invalid_header"
               if test -s "$BIN" && test ! -L "$BIN"; then
                 if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt" 2>&1; then

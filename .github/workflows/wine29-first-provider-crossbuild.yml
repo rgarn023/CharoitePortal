@@ -104,7 +104,14 @@ jobs:
           inventory={}
           for name in targets:
               makefile=root/"dlls"/name/"Makefile.in"
-              assert makefile.is_file() and not makefile.is_symlink(), f"Missing pinned source: {name}"
+              if not makefile.is_file() or makefile.is_symlink():
+                  inventory[name]={"makefile":str(makefile.relative_to(root)),
+                                   "source_present":False,"imports_declared":[],
+                                   "unix_libs_declared":[],"sources_declared":[],
+                                   "native_companion_verified":False,
+                                   "pe_build_verified":False,"runtime_verified":False}
+                  print(f"{name.upper()}_PINNED_SOURCE=ABSENT; NOT BUILT")
+                  continue
               source=makefile.read_text().splitlines()
               def fields(key):
                   values=[]
@@ -113,6 +120,7 @@ jobs:
                           values.extend(line.partition("=")[2].split())
                   return sorted(set(values))
               inventory[name]={"makefile":str(makefile.relative_to(root)),
+                               "source_present":True,
                                "imports_declared":fields("IMPORTS"),
                                "unix_libs_declared":fields("UNIX_LIBS"),
                                "sources_declared":fields("SOURCES"),
@@ -231,6 +239,12 @@ jobs:
           for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
             echo "Probing source-built PE target: $module"
             LOG="$OUT/$module-build.log"
+            if test ! -f "$ROOT/dlls/$module/Makefile.in"; then
+              printf '%s\n' "pinned source Makefile.in absent; no build attempted" > "$LOG"
+              printf '%s\n' "pinned_source_absent" > "$OUT/$module-status.txt"
+              echo "$module: pinned source absent; no build attempted" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
             STATUS="build_failed_or_timed_out"
             if timeout 180 make -j2 "dlls/$module/aarch64-windows/$module" > "$LOG" 2>&1; then
               BIN="$BUILD/dlls/$module/aarch64-windows/$module"

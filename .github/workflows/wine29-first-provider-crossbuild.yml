@@ -297,6 +297,12 @@ jobs:
             fi
             printf '%s\n' "$STATUS" > "$OUT/$module-status.txt"
             echo "$module: $STATUS; dependency/native companion/runtime closure NOT verified" >> "$GITHUB_STEP_SUMMARY"
+            echo "PROVIDER_PROBE_RESULT module=$module status=$STATUS"
+            if test "$STATUS" != arm64_pe_candidate_verified && test -f "$LOG"; then
+              echo "PROVIDER_PROBE_DIAGNOSTIC_BEGIN $module"
+              tail -n 16 "$LOG" | cut -c 1-240
+              echo "PROVIDER_PROBE_DIAGNOSTIC_END $module"
+            fi
             if test -f "$LOG"; then
               tail -c 65536 "$LOG" > "$LOG.bounded" || :
               mv "$LOG.bounded" "$LOG"

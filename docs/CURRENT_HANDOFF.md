@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-14 — FOUR-PROVIDER FAILURE VISIBILITY
+
+[Commit a127218](https://github.com/rgarn023/CharoitePortal/commit/a127218e297e2bbbd4404619d6477a171d0587e0) adds per-provider status and bounded compiler-error tails to the GitHub job log for `mscms.dll`, `winebth.sys`, `winebus.sys`, `wineusb.sys`. This permits targeted repairs without unpacking artifact ZIPs. [Cross-build 43651303909](https://github.com/rgarn023/CharoitePortal/actions/runs/43651303909) and [static 43651303957](https://github.com/rgarn023/CharoitePortal/actions/runs/43651303957) were **in progress** at last check; no new module compilation success claimed. Pinned upstream Makefiles declare `mscms.dll` imports via LCMS2/shlwapi/advapi32; `winebth.sys` needs `ntoskrnl`/uuid and a DBus-backed Unix companion; `winebus.sys` imports `ntoskrnl`/hidparse with platform-dependent Unix companion; `wineusb.sys` imports `ntoskrnl` and needs USB-backed Unix companion. PE build success does not imply Unix companion or Android runtime closure. **Owner action: NO.** No device, APK, Wine execution, stable Portal, historical scratch, games, saves or prefixes touched.
+
+
 ## 2026-11-14 — PINNED SOURCE PROVENANCE INVESTIGATION
 
 Direct inspection of upstream pinned commit c74acb09d51b447f5d5ac56c87608d3ec565a767 confirms `dlls/mscms/Makefile.in`, `dlls/winebth.sys/Makefile.in`, `dlls/winebus.sys/Makefile.in`, and `dlls/wineusb.sys/Makefile.in` exist **in the original upstream tree**. Prior successful [cross-build 43630990894](https://github.com/rgarn023/CharoitePortal/actions/runs/43630990894) reported `mscms.dll` absent in the **prepared** tree. This discrepancy requires diagnosis of path naming (mscms versus mscms.dll) before attributing it to patches. [Commit 702a1be](https://github.com/rgarn023/CharoitePortal/commit/702a1bed7855e82eae44bd2a6139a16431839a69) adds original-vs-prepared Makefile checks for four requested target names. **Next:** correct any module directory/target naming mismatch and inspect source-only probe statuses. Runtime closure remains unverified; owner action NO.

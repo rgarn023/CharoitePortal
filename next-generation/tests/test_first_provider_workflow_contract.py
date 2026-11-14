@@ -1,4 +1,4 @@
-"""Offline safety regression for the expensive, manually dispatched first-provider build.
+"""Offline safety regression for the isolated, auto-triggered first-provider build.
 
 This test does not execute Wine, the compiler, Android, or any workflow.
 """
@@ -14,10 +14,13 @@ class FirstProviderWorkflowContract(unittest.TestCase):
     def setUpClass(cls):
         cls.source = WORKFLOW.read_text(encoding="utf-8")
 
-    def test_manual_only_no_apk_or_secrets(self):
+    def test_scoped_auto_trigger_no_apk_or_secrets(self):
         source = self.source
         self.assertRegex(source, r"(?m)^on:\s*\n\s+workflow_dispatch:\s*$")
-        self.assertNotRegex(source, r"(?m)^\s+(?:push|pull_request|schedule|workflow_run):")
+        self.assertRegex(source, r"(?m)^  push:\s*$")
+        self.assertIn("branches: [main]", source)
+        self.assertIn("\'.github/workflows/wine29-first-provider-crossbuild.yml\'", source)
+        self.assertNotRegex(source, r"(?m)^  (?:pull_request|schedule|workflow_run):")
         self.assertIn("contents: read", source)
         self.assertIn("persist-credentials: false", source)
         self.assertNotIn("secrets.", source)
@@ -27,7 +30,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertRegex(source, r"(?m)^concurrency:\s*\n\s+group: wine29-first-provider-crossbuild\s*\n\s+cancel-in-progress: false\s*$")
 
     def test_lightweight_ci_covers_provider_workflow_edits(self):
-        # Editing a manual expensive workflow must still run the cheap offline
+        # Editing an expensive workflow must still run the cheap offline
         # regression on both pushes and pull requests.
         static = (WORKFLOW.parent / "charoite-agent-pr-check.yml").read_text(encoding="utf-8")
         for event in ("push", "pull_request"):
@@ -51,11 +54,11 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335", source)
         self.assertIn("prepare-source.sh", source)
         self.assertIn("build-arm64ec-ntdll.sh", source)
-        self.assertIn("make -j2 dlls/mouhid.sys/aarch64-windows/mouhid.sys", source)
+        self.assertIn("dlls/mouhid.sys/aarch64-windows/mouhid.sys", source)
         self.assertIn('machine == 0xAA64', source)
         self.assertIn("module.pe_imports(raw)", source)
         self.assertIn("sha256", source)
-        self.assertIn("Wine29-Mouhid-ARM64-Source-Built-PE-NOT-APK", source)
+        self.assertIn("Wine29-HID-XInput-Five-ARM64-PE-NOT-APK", source)
 
     def test_evidence_does_not_claim_runtime_closure(self):
         source = self.source

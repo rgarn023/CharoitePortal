@@ -139,6 +139,13 @@ jobs:
               summary.write(chr(10)+"Source inventory only; native companion closure and runtime NOT VERIFIED."+chr(10))
           print("REMAINING_PROVIDER_SOURCE_INVENTORY=PASS")
           PY
+      - name: Publish pinned provider source inventory (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Remaining-Provider-Source-Inventory-NOT-APK
+          path: wine29-provider-source-inventory.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Build pinned Wine ARM64 host and Android native toolchain (no execution)
         run: |
           set -euo pipefail

@@ -102,11 +102,22 @@ jobs:
           root=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source"
           targets=("mscms.dll","winebth.sys","winebus.sys","wineusb.sys")
           inventory={}
+          # Compare final patched source with pinned upstream tree without modifying it.
+          import subprocess
+          for name in targets:
+              relative=f"dlls/{name}/Makefile.in"
+              upstream=subprocess.run(["git","-C",str(root),"cat-file","-e",
+                                       "c74acb09d51b447f5d5ac56c87608d3ec565a767:"+relative],
+                                      stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              print(f"{name.upper()}_UPSTREAM_PINNED_MAKEFILE={'PRESENT' if upstream.returncode==0 else 'ABSENT'}")
           for name in targets:
               makefile=root/"dlls"/name/"Makefile.in"
+              upstream_present=subprocess.run(["git","-C",str(root),"cat-file","-e",
+                   "c74acb09d51b447f5d5ac56c87608d3ec565a767:dlls/"+name+"/Makefile.in"],
+                   stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0
               if not makefile.is_file() or makefile.is_symlink():
                   inventory[name]={"makefile":str(makefile.relative_to(root)),
-                                   "source_present":False,"imports_declared":[],
+                                   "source_present":False,"upstream_source_present":upstream_present,"imports_declared":[],
                                    "unix_libs_declared":[],"sources_declared":[],
                                    "native_companion_verified":False,
                                    "pe_build_verified":False,"runtime_verified":False}
@@ -120,7 +131,7 @@ jobs:
                           values.extend(line.partition("=")[2].split())
                   return sorted(set(values))
               inventory[name]={"makefile":str(makefile.relative_to(root)),
-                               "source_present":True,
+                               "source_present":True,"upstream_source_present":upstream_present,
                                "imports_declared":fields("IMPORTS"),
                                "unix_libs_declared":fields("UNIX_LIBS"),
                                "sources_declared":fields("SOURCES"),

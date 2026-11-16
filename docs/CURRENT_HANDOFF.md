@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — AUTOMATIC CONTINUATION NOTIFICATION SAFETY TESTS
+
+[Commit d8c0471](https://github.com/rgarn023/CharoitePortal/commit/d8c0471d208980f625e26010b8edbf67eab65f28) adds the GitHub completion-notification workflow to lightweight static CI push and PR path coverage. [Commit 0cb954b](https://github.com/rgarn023/CharoitePortal/commit/0cb954b20c672199ba0670242cab97c4e6a0d469) adds an offline regression contract asserting that continuation requests are main-repository/main-branch scoped, retain Issue #8 notices, cannot recursively dispatch workflows, and do not falsely claim to wake ChatGPT. **CI validation pending**; no external AI trigger or GitHub-hosted autonomous agent has been created. Existing hourly ChatGPT automation remains separate; direct wake-up from GitHub unsupported. **v1.0 31%; owner action NO.** No Wine runtime, phone, existing prefixes/games/saves/rootfs/stable Portal touched.
+
+
 ## 2026-11-16 — GITHUB COMPLETION-DRIVEN CONTINUATION REQUESTS
 
 [Commit 386453a](https://github.com/rgarn023/CharoitePortal/commit/386453a161d0f5296f4ea085112e6d5f4d09f9e2) updates `.github/workflows/charoite-continue-notifications.yml` so the **existing** subscribed Issue #8 completion notification for a workflow on this repository's main branch includes a machine-readable `charoite-continue-request:v1` marker with run ID and conclusion, plus safe next-step instructions. Reuses one existing comment, no secrets, no additional AI service, no recursive workflow dispatch, no additional GitHub build. **Important limitation:** GitHub cannot directly wake ChatGPT; the marker is a queue for the already configured hourly ChatGPT automation to inspect on its next run. The ChatGPT automation prompt itself has not been updated/verified here, and this GitHub change has not yet passed CI. Future hourly runs should read Issue #8 completion requests, deduplicate by run ID, inspect logs and artifacts, then commit only safe source changes; no owner phone tests unless necessary. **v1.0 31%; owner action NO.** Stable Portal, games, saves, prefixes, rootfs and prior Wine generations untouched.

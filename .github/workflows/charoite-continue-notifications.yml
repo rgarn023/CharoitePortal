@@ -1,0 +1,49 @@
+name: Charoite Continue Build Notifications
+on:
+  workflow_run:
+    workflows:
+      - "Wine29 Missing Provider ARM64 PE Cross-Build (No APK)"
+      - "Charoite Next Lightweight Static Verification"
+      - "Wine29 Provider Postbuild"
+    types: [requested, in_progress, completed]
+permissions:
+  actions: read
+  issues: write
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Comment on subscribed build notification issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const run = context.payload.workflow_run;
+            const action = context.payload.action;
+            if (!run || !['requested', 'in_progress', 'completed'].includes(action)) {
+              core.info('No supported workflow run transition');
+              return;
+            }
+            const status = action === 'completed'
+              ? 'COMPLETED — ' + (run.conclusion || 'unknown').toUpperCase()
+              : action === 'in_progress' ? 'STARTED — RUNNING' : 'STARTED — QUEUED';
+            const body = [
+              '### Charoite GitHub Actions: ' + status,
+              '',
+              '**Workflow:** ' + run.name,
+              '**Run:** [#' + run.run_number + '](' + run.html_url + ')',
+              '**Run ID:** ' + run.id,
+              '**Commit:** `' + run.head_sha.slice(0, 12) + '`',
+              '**Owner action:** ' + (action === 'completed'
+                ? 'Review the result; you may say Continue in ChatGPT.'
+                : 'None; wait for the completion notification.'),
+              '',
+              '_Automated status notice. A successful CI run does not imply Wine runtime or phone testing passed._'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 8,
+              body
+            });

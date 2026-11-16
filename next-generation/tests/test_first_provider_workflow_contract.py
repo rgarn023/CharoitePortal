@@ -30,7 +30,8 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("retention-days: 7", source)
         self.assertIn("concurrency:", source)
         self.assertIn("  group: wine29-first-provider-crossbuild-v3", source)
-        self.assertIn("  cancel-in-progress: true", source)
+        # Preserve already-running cross-build evidence during subsequent pushes.
+        self.assertIn("  cancel-in-progress: false", source)
 
     def test_lightweight_ci_covers_provider_workflow_edits(self):
         # Editing an expensive workflow must still run the cheap offline

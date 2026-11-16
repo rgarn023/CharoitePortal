@@ -308,7 +308,7 @@ jobs:
                   'libusb_api_check_failed':bool(re.search(r'libusb_interrupt_event_handler.*(?:no|not found)',content)),
                   'runtime_compatibility_verified':False}
           (out/'usb-configure-evidence.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
-          print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v['present'] for k,v in report.items()},sort_keys=True))
+          print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v.get('present',False) for k,v in report.items() if k!='usb_dependency_diagnosis'},sort_keys=True))
           PY
           # Inspect the generated make database without executing any Wine code.
           # A missing rule is a build-generation issue, not a PE compiler failure.

@@ -371,7 +371,7 @@ jobs:
                     # Record actual PE imports for dependency-closure analysis.
                     # Import inventory is evidence only, not proof of resolution.
                     "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
-                      --coff-imports --coff-delay-imports "$BIN" \
+                      --coff-imports "$BIN" \
                       > "$OUT/$module-pe-imports.txt"
                     python3 - "$OUT/$module-pe-imports.txt" "$OUT/$module-import-inventory.json" <<'PYIMPORT'
           import json,re,sys

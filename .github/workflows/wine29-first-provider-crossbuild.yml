@@ -278,6 +278,24 @@ jobs:
               print('GENERATED_TARGET_INVENTORY',module,json.dumps(report[module],sort_keys=True))
           (out/'generated-target-inventory.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           PY
+          # Inspect the generated make database without executing any Wine code.
+          # A missing rule is a build-generation issue, not a PE compiler failure.
+          python3 - "$BUILD" "$OUT" <<'PY'
+          import pathlib,subprocess,sys,json
+          build=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2])
+          result={}
+          for name in ('mscms.dll','winebth.sys','winebus.sys','wineusb.sys'):
+              target=f'dlls/{name.removesuffix(".dll")}/aarch64-windows/{name}'
+              proc=subprocess.run(['make','--no-print-directory','-n',target],cwd=build,
+                                  capture_output=True,text=True,timeout=25)
+              diagnostic=(proc.stderr+'\n'+proc.stdout)[-8192:]
+              missing='No rule to make target' in diagnostic
+              result[name]={'target':target,'dry_run_exit_code':proc.returncode,
+                            'no_rule_reported':missing,'dry_run_success':proc.returncode==0}
+              (out/(name+'-target-dry-run.txt')).write_text(diagnostic)
+              print('GENERATED_MAKE_TARGET',name,json.dumps(result[name],sort_keys=True))
+          (out/'generated-make-targets.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          PY
           for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
             echo "Probing source-built PE target: $module"
             LOG="$OUT/$module-build.log"

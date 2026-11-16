@@ -467,7 +467,11 @@ jobs:
                       if offset+6<=len(header):
                           arm64_header=(header[offset:offset+4]==b"PE"+bytes(2)
                                         and struct.unpack_from("<H",header,offset+4)[0]==0xAA64)
-              dependency_files[name]={"pe_candidate_file_present":present,
+              source_makefile=build.parent/"dlls"/name/"Makefile.in"
+              generated_makefile=build/"dlls"/name/"Makefile"
+              dependency_files[name]={"pinned_source_makefile_present":source_makefile.is_file() and not source_makefile.is_symlink(),
+                                      "generated_makefile_present":generated_makefile.is_file() and not generated_makefile.is_symlink(),
+                                      "pe_candidate_file_present":present,
                                       "arm64_pe_header_verified":arm64_header,
                                       "import_resolution_verified":False,
                                       "runtime_compatibility_verified":False}

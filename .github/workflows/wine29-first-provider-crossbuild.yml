@@ -299,6 +299,14 @@ jobs:
                               matches.append(f'{lineno}: {line.rstrip()[:300]}')
                               if len(matches)>=80:break
               report[label]={'present':exists,'matched_lines':matches}
+          # Distinguish missing Android libusb headers from a generic missing make rule.
+          log=files['configure_log']
+          if log.is_file() and not log.is_symlink():
+              content=log.read_text(encoding='utf-8',errors='replace')
+              report['usb_dependency_diagnosis']={
+                  'libusb_header_check_failed':bool(re.search(r'checking for libusb\.h\.\.\. no',content)),
+                  'libusb_api_check_failed':bool(re.search(r'libusb_interrupt_event_handler.*(?:no|not found)',content)),
+                  'runtime_compatibility_verified':False}
           (out/'usb-configure-evidence.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v['present'] for k,v in report.items()},sort_keys=True))
           PY

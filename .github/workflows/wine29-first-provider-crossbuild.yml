@@ -378,7 +378,7 @@ jobs:
           from pathlib import Path
           lines=Path(sys.argv[1]).read_text(errors="replace").splitlines()
           dlls=sorted(set(m.group(1).lower() for line in lines
-              if (m:=re.search(r"^\\s*Name:\\s*(\\S+\\.(?:dll|sys|exe))\\s*$",line,re.I))))
+              if (m:=re.search(r"^\s*Name:\s*(\S+\.(?:dll|sys|exe))\s*$",line,re.I))))
           Path(sys.argv[2]).write_text(json.dumps({
               "schema_version":1,"imported_module_names":dlls,
               "import_count":len(dlls),"resolution_verified":False,

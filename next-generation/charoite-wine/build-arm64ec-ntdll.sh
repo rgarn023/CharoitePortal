@@ -101,7 +101,18 @@ export CROSSCFLAGS="-O2 -g0"
 export PKG_CONFIG_LIBDIR="$usb_prefix/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR=""
 export USB_CFLAGS="-I$usb_prefix/include/libusb-1.0"
-export USB_LIBS="$usb_prefix/lib/libusb-1.0.a"
+export USB_LIBS="-L$usb_prefix/lib -lusb-1.0"
+# AC_CHECK_LIB explicitly links -lusb-1.0, so the cross linker needs the
+# Android archive search directory even if USB_LIBS is later overwritten.
+export LDFLAGS="$LDFLAGS -L$usb_prefix/lib"
+# Validate the exact function using the same Android compiler/linker that
+# Wine's configure uses; this is a link-only test, never executed on CI.
+printf '%s\n' 'extern int libusb_interrupt_event_handler(void*);' \
+  'int main(void) { return libusb_interrupt_event_handler((void*)0); }' \
+  > "$source_dir/charoite-usb-link-probe.c"
+"$CC" "$source_dir/charoite-usb-link-probe.c" -L"$usb_prefix/lib" \
+  -lusb-1.0 -o "$source_dir/charoite-usb-link-probe"
+test -s "$source_dir/charoite-usb-link-probe"
 # Wine may probe both aarch64 and x86_64 due to ARM64EC's hybrid ABI.
 export arm64ec_CC="$source_dir/charoite-arm64ec-toolwrap/arm64ec-w64-mingw32-clang"
 export aarch64_CC="$llvm_bin/aarch64-w64-mingw32-clang"

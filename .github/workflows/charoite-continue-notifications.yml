@@ -36,7 +36,7 @@ jobs:
               '**Run ID:** ' + run.id,
               '**Commit:** `' + run.head_sha.slice(0, 12) + '`',
               '**Owner action:** None; the existing hourly ChatGPT automation can review this result.',
-              ...(action === 'completed' && run.head_branch === 'main' && run.head_repository?.full_name === context.repo.owner + '/' + context.repo.repo
+              ...(action === 'completed' && ['success', 'failure'].includes(run.conclusion) && run.head_branch === 'main' && run.head_repository?.full_name === context.repo.owner + '/' + context.repo.repo
                 ? [
                     '',
                     '<!-- charoite-continue-request:v1 run_id=' + run.id + ' conclusion=' + (run.conclusion || 'unknown') + ' -->',

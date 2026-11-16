@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — DEPENDENCY SOURCE/GENERATED TARGET TRIAGE ADDED
+
+[Commit 85b79c0](https://github.com/rgarn023/CharoitePortal/commit/85b79c0024b524f69ff8c13f0c0871b6dfa9d220) extends the isolated CI-only `ntoskrnl.exe`/`hidparse.sys` inventory with pinned-source Makefile and generated-build Makefile presence flags, alongside the existing candidate file and ARM64 PE header flags. This helps distinguish source availability, configure generation, and missing compiled outputs. **Commit only; latest CI validation not independently verified.** Next inspect `PROVIDER_DEPENDENCY_FILE` output and generated JSON, then implement the specific missing build dependency. **v1.0: 31% unchanged; owner action NO.** No phone, APK, Wine execution, prior generations, prefixes, games, saves, rootfs, or stable Portal accessed.
+
+
 ## 2026-11-16 — ARM64 PE HEADER VALIDATION FOR DEPENDENCY CANDIDATES
 
 [Commit b5e401d](https://github.com/rgarn023/CharoitePortal/commit/b5e401dc9ec3d73e46cf176bcefa1d190148188d) extends isolated source-only CI inventory for `ntoskrnl.exe` and `hidparse.sys` to check MZ, PE signature, and machine 0xAA64 rather than treating a nonempty file as sufficient ARM64 evidence. The report retains `import_resolution_verified=false` and `runtime_compatibility_verified=false`. **New CI execution not yet verified.** Next check cross-build `PROVIDER_DEPENDENCY_FILE` output, then investigate missing module build targets and Android-native USB/DBus/HID/LCMS2 support. **v1.0: 31%; owner action: NO.** No Wine execution, APK/phone testing, prior Wine generations, prefixes, games, saves, rootfs, or stable Portal accessed.

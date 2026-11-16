@@ -436,6 +436,8 @@ jobs:
               if inventory_file.is_file() and not inventory_file.is_symlink():
                   imports=json.loads(inventory_file.read_text()).get("imported_module_names",[])
               assert isinstance(imports,list) and all(isinstance(x,str) for x in imports)
+              if status=="arm64_pe_candidate_verified":
+                  assert imports, f"{module}: verified PE candidate has no dependency inventory"
               records[module]={
                   "build_status":status,
                   "imports":imports,

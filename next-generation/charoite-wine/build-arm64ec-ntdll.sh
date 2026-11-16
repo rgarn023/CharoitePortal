@@ -84,9 +84,12 @@ mkdir "$usb_root/charoite-build"
 test -s "$usb_prefix/lib/libusb-1.0.a"
 test -f "$usb_prefix/include/libusb-1.0/libusb.h"
 test -s "$usb_prefix/lib/pkgconfig/libusb-1.0.pc"
-# Fail early if the required API is not actually exported by Android libusb.
-"$ndk_bin/llvm-nm" -g --defined-only "$usb_prefix/lib/libusb-1.0.a" |
-  grep -Eq '[[:space:]]libusb_interrupt_event_handler
+# Verify the pinned Android archive exports the API Wine probes.
+"$ndk_bin/llvm-nm" -g --defined-only "$usb_prefix/lib/libusb-1.0.a" \
+  | grep -F 'libusb_interrupt_event_handler'
+export PKG_CONFIG_PATH="$usb_prefix/lib/pkgconfig"
+pkg-config --modversion libusb-1.0
+pkg-config --libs --static libusb-1.0
 
 mkdir "$source_dir/charoite-arm64ec-android"
 cd "$source_dir/charoite-arm64ec-android"

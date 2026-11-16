@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — DEPENDENCY REPORT INTEGRITY GUARD (PENDING CI)
+
+[Commit e360aa8](https://github.com/rgarn023/CharoitePortal/commit/e360aa86baac19d5fd6d365e6d08e9c5c32f8851) fixes JSON newline serialization in the provider closure report. [Commit 00c7927](https://github.com/rgarn023/CharoitePortal/commit/00c792700bee5cba8a95b3a38892ca0ff8634324) adds an assertion that a provider marked `arm64_pe_candidate_verified` must have a nonempty imported-module inventory. **Both are source changes, not yet verified by a completed CI run.** Next inspect latest cross-build for `PROVIDER_DEPENDENCY_GATE` and `provider-dependency-closure.json`; investigate actual missing Android native companions and unresolved PE dependencies. **v1.0: 31% unchanged; owner action: NO.** Source-only CI, no Wine execution, phone, APK, historical Wine generations, user prefixes, games, saves, rootfs, or stable Portal accessed.
+
+
 ## 2026-11-16 — PROVIDER DEPENDENCY CLOSURE REPORT ADDED (AWAITING CI)
 
 [Commit 7b29787](https://github.com/rgarn023/CharoitePortal/commit/7b29787e2f96b677beb708e491cc25c5429140ac) adds an isolated, source-only workflow step to emit `provider-dependency-closure.json` in the existing provider probe artifact. The report records each provider's build status, candidate-batch imports and external imports, with explicit **unverified** resolution, Android native companion, and runtime flags. This is a **committed diagnostic, not a validated new CI result**; check subsequent cross-build run and job log for `PROVIDER_DEPENDENCY_GATE` and artifact upload. Next investigate ntoskrnl/hidparse and Unix-side USB, DBus/Bluetooth, HID, and LCMS2 dependencies using CI evidence. **v1.0: 31% unchanged. Owner action: NO.** No APK, phone, Wine execution, existing Wine generations, prefixes, games, saves, rootfs, or stable Portal touched.

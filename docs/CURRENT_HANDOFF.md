@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — VERIFIED WINE29 #72 NTOSKRNL ARM64 HEADER GATE
+
+[Wine29 cross-build #72](https://github.com/rgarn023/CharoitePortal/actions/runs/43943712393) **COMPLETED SUCCESS**, job 133567652063 actual logs: `NTOSKRNL_ARM64_PE_HEADER=PASS`, `NTOSKRNL_PE_BUILD_PROBE=arm64_pe_header_verified_not_runtime`; corrected PE-signature validation is confirmed. `PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED` remains. [Static #93](https://github.com/rgarn023/CharoitePortal/actions/runs/43943712512) and [Provider Postbuild #49](https://github.com/rgarn023/CharoitePortal/actions/runs/43944191662) completed success. Build probes artifact #14263741906 (NOT APK) includes bounded logs and ntoskrnl import-table output; next inspect actual imports and map unresolved PE/Android-native dependencies. **v1.0 31%; owner action NO.** No Wine runtime/phone or existing generations, prefixes, games, saves, rootfs, stable Portal accessed.
+
+
 ## 2026-11-16 — CROSS-BUILD #71 FALSE NEGATIVE FIXED
 
 [Wine29 cross-build #71](https://github.com/rgarn023/CharoitePortal/actions/runs/43943073874) job 133565416360 **COMPLETED SUCCESS**, but its optional ntoskrnl probe printed `NTOSKRNL_PE_BUILD_PROBE=invalid_arm64_pe_header` despite the independent dependency inventory reporting `ntoskrnl.exe ... present=true arm64_pe_header=true`. The newly introduced probe mistakenly compared the PE signature against the literal backslash sequence `b'PE\\x00\\x00'` instead of PE followed by two NUL bytes. [Commit 47d4fc4](https://github.com/rgarn023/CharoitePortal/commit/47d4fc4f62861bb4745ab7a915dd22177afadbf4) corrects this to `b'PE'+bytes(2)`. **Post-fix CI validation pending; do not claim closure.** [Static #92](https://github.com/rgarn023/CharoitePortal/actions/runs/43943073891) and [Provider Postbuild #48](https://github.com/rgarn023/CharoitePortal/actions/runs/43943621745) completed success. Next verify fixed probe and review ntoskrnl import inventory. **v1.0 31%; owner action NO.** No Wine runtime, phone, existing prefixes/games/saves/rootfs/stable Portal accessed.

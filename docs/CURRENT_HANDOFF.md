@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — STATIC #111 FAILURE DIAGNOSED AND TEST FIXED
+
+[Static #111](https://github.com/rgarn023/CharoitePortal/actions/runs/43974900556) **FAILURE**: actual job logs show one failure among 328 tests, `test_ntoskrnl_static_export_comparison_is_bounded_and_not_runtime`, where the fixture used literal `\\n` characters instead of newline characters; the multiline `^\\s+Name:` regex therefore matched nothing. [Static #110](https://github.com/rgarn023/CharoitePortal/actions/runs/43974886695) **CANCELLED** after superseding push. [Commit 3159ad3](https://github.com/rgarn023/CharoitePortal/commit/3159ad3e2db14144831222d9c276bc0e8728186a) corrects only the offline regression fixture to use real newline escapes. **New static CI validation pending**; no Wine29 cross-build dependency closure established. Next verify the corrected test, then inspect new isolated cross-build export probe results. **v1.0 31%; owner action NO.** No phone, existing Wine generations, prefixes, games, saves, rootfs or stable Portal touched.
+
+
 ## 2026-11-16 — EXPORT NAME PARSER HARDENING
 
 [Static #109](https://github.com/rgarn023/CharoitePortal/actions/runs/43967354931) **SUCCESS** on prior import/export comparison contract; [Static #108](https://github.com/rgarn023/CharoitePortal/actions/runs/43967333754) **CANCELLED** after superseding push. [Commit 4eb6a5e](https://github.com/rgarn023/CharoitePortal/commit/4eb6a5ebcf7c78998f38cec2862efc2d6e11c923) relaxes the static PE export-name parser to accept variable indentation in llvm-readobj output; [commit e79cc29](https://github.com/rgarn023/CharoitePortal/commit/e79cc29be1643ac49e79f5ca27b2aae9a1e164f8) adds regression samples for two indentation widths. **New CI validation pending; no new Wine29 cross-build result verified this check.** Next verify static test and isolated cross-build export probe, inspect missing export names, then prioritize missing modules. Import/export static checks remain non-runtime diagnostics; closure **UNVERIFIED**. **v1.0 31%; owner action NO.** No phone, stable Portal, historical Wine generations, prefixes, games, saves or rootfs accessed.

@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — DEPENDENCY BUILD EVIDENCE EXPOSED IN JOB LOG
+
+[Commit 3439e0a](https://github.com/rgarn023/CharoitePortal/commit/3439e0a3886702ac22cda9562bc39f6d064d4d0f) prints pinned source Makefile, generated Makefile, candidate binary, and ARM64 PE header presence for `ntoskrnl.exe` and `hidparse.sys` in searchable `PROVIDER_DEPENDENCY_FILE` lines. The JSON inventory already recorded these flags; this improves failure diagnosis without requiring artifact download. **No new run result verified; do not claim runtime closure.** Next inspect new cross-build logs for these flags, then implement targeted missing dependency builds and native companion checks. **v1.0 31%; owner action NO.** Source-only CI, no phone, APK, Wine execution, previous Wine generations, prefixes, games, saves, rootfs, or stable Portal accessed.
+
+
 ## 2026-11-16 — PRESERVE ACTIVE WINE29 CROSS-BUILDS
 
 [Commit 2492ee2](https://github.com/rgarn023/CharoitePortal/commit/2492ee248881b2843647384fc4975f88b69b342e) changes the Wine29 cross-build concurrency policy from `cancel-in-progress: true` to `false`, resolving a conflict between existing YAML and the requirement not to cancel active evidence-producing CI. GitHub may still replace an older pending run; this is not a guarantee that every queued run executes. **Committed, but new CI run state/result not independently verified.** Next inspect the newest cross-build log for `PROVIDER_DEPENDENCY_FILE`, candidate file headers and source/generated Makefile flags; then tackle actual PE/native dependency closure. **v1.0 31%; owner action NO.** No device, Wine execution, APK, historical generations, prefixes, games, saves, rootfs, or stable Portal accessed.

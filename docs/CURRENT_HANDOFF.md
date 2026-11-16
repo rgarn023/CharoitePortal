@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — GITHUB COMPLETION-DRIVEN CONTINUATION REQUESTS
+
+[Commit 386453a](https://github.com/rgarn023/CharoitePortal/commit/386453a161d0f5296f4ea085112e6d5f4d09f9e2) updates `.github/workflows/charoite-continue-notifications.yml` so the **existing** subscribed Issue #8 completion notification for a workflow on this repository's main branch includes a machine-readable `charoite-continue-request:v1` marker with run ID and conclusion, plus safe next-step instructions. Reuses one existing comment, no secrets, no additional AI service, no recursive workflow dispatch, no additional GitHub build. **Important limitation:** GitHub cannot directly wake ChatGPT; the marker is a queue for the already configured hourly ChatGPT automation to inspect on its next run. The ChatGPT automation prompt itself has not been updated/verified here, and this GitHub change has not yet passed CI. Future hourly runs should read Issue #8 completion requests, deduplicate by run ID, inspect logs and artifacts, then commit only safe source changes; no owner phone tests unless necessary. **v1.0 31%; owner action NO.** Stable Portal, games, saves, prefixes, rootfs and prior Wine generations untouched.
+
+
 ## 2026-11-16 — VERIFIED WINE29 #72 NTOSKRNL ARM64 HEADER GATE
 
 [Wine29 cross-build #72](https://github.com/rgarn023/CharoitePortal/actions/runs/43943712393) **COMPLETED SUCCESS**, job 133567652063 actual logs: `NTOSKRNL_ARM64_PE_HEADER=PASS`, `NTOSKRNL_PE_BUILD_PROBE=arm64_pe_header_verified_not_runtime`; corrected PE-signature validation is confirmed. `PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED` remains. [Static #93](https://github.com/rgarn023/CharoitePortal/actions/runs/43943712512) and [Provider Postbuild #49](https://github.com/rgarn023/CharoitePortal/actions/runs/43944191662) completed success. Build probes artifact #14263741906 (NOT APK) includes bounded logs and ntoskrnl import-table output; next inspect actual imports and map unresolved PE/Android-native dependencies. **v1.0 31%; owner action NO.** No Wine runtime/phone or existing generations, prefixes, games, saves, rootfs, stable Portal accessed.

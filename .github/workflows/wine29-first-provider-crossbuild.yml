@@ -474,7 +474,10 @@ jobs:
                                       "arm64_pe_header_verified":arm64_header,
                                       "import_resolution_verified":False,
                                       "runtime_compatibility_verified":False}
-              print("PROVIDER_DEPENDENCY_FILE",name,"present="+str(present).lower(),
+              print("PROVIDER_DEPENDENCY_FILE",name,
+                    "source_makefile="+str(dependency_files[name]["pinned_source_makefile_present"]).lower(),
+                    "generated_makefile="+str(dependency_files[name]["generated_makefile_present"]).lower(),
+                    "present="+str(present).lower(),
                     "arm64_pe_header="+str(arm64_header).lower())
           report={"schema_version":2,"source_only":True,"full_provider_closure_verified":False,
                   "dependency_file_inventory":dependency_files,"modules":records}

@@ -448,7 +448,21 @@ jobs:
                   "runtime_compatibility_verified":False,
               }
               print("PROVIDER_DEPENDENCY_GATE",module,status,"external="+",".join(records[module]["external_imports_unresolved"]))
-          report={"schema_version":1,"source_only":True,"full_provider_closure_verified":False,"modules":records}
+          # Report actual file presence, not loader resolution or ABI compatibility.
+          build=pathlib.Path(__import__("os").environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
+          candidates={
+              "ntoskrnl.exe":build/"dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe",
+              "hidparse.sys":build/"dlls/hidparse.sys/aarch64-windows/hidparse.sys",
+          }
+          dependency_files={}
+          for name,path in candidates.items():
+              present=path.is_file() and not path.is_symlink() and path.stat().st_size>1024
+              dependency_files[name]={"pe_candidate_file_present":present,
+                                      "import_resolution_verified":False,
+                                      "runtime_compatibility_verified":False}
+              print("PROVIDER_DEPENDENCY_FILE",name,"present="+str(present).lower())
+          report={"schema_version":2,"source_only":True,"full_provider_closure_verified":False,
+                  "dependency_file_inventory":dependency_files,"modules":records}
           (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
           print("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED")
           PY

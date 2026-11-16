@@ -68,7 +68,7 @@ git clone --filter=blob:none --no-checkout https://github.com/libusb/libusb.git 
 git -C "$usb_root" fetch --depth=1 origin 15a7ebb4d426c5ce196684347d2b7cafad862626
 git -C "$usb_root" checkout --detach 15a7ebb4d426c5ce196684347d2b7cafad862626
 test "$(git -C "$usb_root" rev-parse HEAD)" = 15a7ebb4d426c5ce196684347d2b7cafad862626
-( cd "$usb_root" && ./autogen.sh )
+( cd "$usb_root" && NOCONFIGURE=1 ./autogen.sh )
 mkdir "$usb_root/charoite-build"
 (
   cd "$usb_root/charoite-build"

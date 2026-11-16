@@ -306,6 +306,27 @@ jobs:
           (out/'usb-configure-evidence.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v.get('present',False) for k,v in report.items() if k!='usb_dependency_diagnosis'},sort_keys=True))
           PY
+          # Attempt the ntoskrnl PE binary independently: the HID linker has
+          # previously used its import library, which does not prove a PE image.
+          # Keep failure nonfatal and log bounded; never execute Wine.
+          NT_TARGET="dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe"
+          NT_LOG="$OUT/ntoskrnl.exe-build.log"
+          NT_STATUS="build_failed_or_timed_out"
+          if timeout 180 make -j2 "$NT_TARGET" > "$NT_LOG" 2>&1; then
+            NT_BIN="$BUILD/$NT_TARGET"
+            NT_STATUS="missing_binary"
+            if test -s "$NT_BIN" && test ! -L "$NT_BIN"; then
+              if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-header.txt" 2>&1; then
+                NT_STATUS="pe_header_inspected_not_runtime_verified"
+              else
+                NT_STATUS="invalid_pe_header"
+              fi
+            fi
+          fi
+          printf '%s\\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"
+          echo "NTOSKRNL_PE_BUILD_PROBE=$NT_STATUS"
+          # Cap diagnostics to avoid uploading unbounded compiler output.
+          if test -f "$NT_LOG"; then tail -c 65536 "$NT_LOG" > "$NT_LOG.bounded"; mv "$NT_LOG.bounded" "$NT_LOG"; fi
           # Inspect the generated make database without executing any Wine code.
           # A missing rule is a build-generation issue, not a PE compiler failure.
           python3 - "$BUILD" "$OUT" <<'PY'

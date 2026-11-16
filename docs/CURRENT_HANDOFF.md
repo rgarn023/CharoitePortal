@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 13:00 ET — HISTORICAL BUILD LOG RECHECK: NTOSKRNL IMPORT LIBRARY
+
+Reinspected the actual successful [Wine29 cross-build #61 job](https://github.com/rgarn023/CharoitePortal/actions/runs/43912090032): its linker invocations explicitly reference `dlls/ntoskrnl.exe/aarch64-windows/libntoskrnl.a` while building HID modules; `HIDPARSE_ARM64_PE_BUILD_AND_IMPORT_INSPECTION=PASS` and `HIDPARSE_EVIDENCE_INTEGRITY=PASS` appear in the job log. This establishes the **linker's use of the ntoskrnl import library**, not presence of the complete `ntoskrnl.exe` PE binary or successful Android runtime resolution. The newer dependency-file and Makefile checks from commits 384d4b2, b5e401d, and 85b79c0 still need their own CI execution evidence. A commit-SHA workflow lookup returned no runs, but that endpoint filters to PR-triggered runs and **cannot establish absence of push-triggered runs**. No new Actions start/completion independently verified. Next verify candidate PE file and generated Makefile flags from a subsequent cross-build, then target actual native companions. **v1.0 31%; owner action NO.** No phone or historical user data touched.
+
+
 ## 2026-11-16 — DEPENDENCY SOURCE/GENERATED TARGET TRIAGE ADDED
 
 [Commit 85b79c0](https://github.com/rgarn023/CharoitePortal/commit/85b79c0024b524f69ff8c13f0c0871b6dfa9d220) extends the isolated CI-only `ntoskrnl.exe`/`hidparse.sys` inventory with pinned-source Makefile and generated-build Makefile presence flags, alongside the existing candidate file and ARM64 PE header flags. This helps distinguish source availability, configure generation, and missing compiled outputs. **Commit only; latest CI validation not independently verified.** Next inspect `PROVIDER_DEPENDENCY_FILE` output and generated JSON, then implement the specific missing build dependency. **v1.0: 31% unchanged; owner action NO.** No phone, APK, Wine execution, prior generations, prefixes, games, saves, rootfs, or stable Portal accessed.

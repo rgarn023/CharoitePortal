@@ -323,7 +323,7 @@ jobs:
               fi
             fi
           fi
-          printf '%s\\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"
+          printf '%s\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"
           echo "NTOSKRNL_PE_BUILD_PROBE=$NT_STATUS"
           # Cap diagnostics to avoid uploading unbounded compiler output.
           if test -f "$NT_LOG"; then tail -c 65536 "$NT_LOG" > "$NT_LOG.bounded"; mv "$NT_LOG.bounded" "$NT_LOG"; fi

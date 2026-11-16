@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — PRESERVE ACTIVE WINE29 CROSS-BUILDS
+
+[Commit 2492ee2](https://github.com/rgarn023/CharoitePortal/commit/2492ee248881b2843647384fc4975f88b69b342e) changes the Wine29 cross-build concurrency policy from `cancel-in-progress: true` to `false`, resolving a conflict between existing YAML and the requirement not to cancel active evidence-producing CI. GitHub may still replace an older pending run; this is not a guarantee that every queued run executes. **Committed, but new CI run state/result not independently verified.** Next inspect the newest cross-build log for `PROVIDER_DEPENDENCY_FILE`, candidate file headers and source/generated Makefile flags; then tackle actual PE/native dependency closure. **v1.0 31%; owner action NO.** No device, Wine execution, APK, historical generations, prefixes, games, saves, rootfs, or stable Portal accessed.
+
+
 ## 2026-11-16 13:00 ET — HISTORICAL BUILD LOG RECHECK: NTOSKRNL IMPORT LIBRARY
 
 Reinspected the actual successful [Wine29 cross-build #61 job](https://github.com/rgarn023/CharoitePortal/actions/runs/43912090032): its linker invocations explicitly reference `dlls/ntoskrnl.exe/aarch64-windows/libntoskrnl.a` while building HID modules; `HIDPARSE_ARM64_PE_BUILD_AND_IMPORT_INSPECTION=PASS` and `HIDPARSE_EVIDENCE_INTEGRITY=PASS` appear in the job log. This establishes the **linker's use of the ntoskrnl import library**, not presence of the complete `ntoskrnl.exe` PE binary or successful Android runtime resolution. The newer dependency-file and Makefile checks from commits 384d4b2, b5e401d, and 85b79c0 still need their own CI execution evidence. A commit-SHA workflow lookup returned no runs, but that endpoint filters to PR-triggered runs and **cannot establish absence of push-triggered runs**. No new Actions start/completion independently verified. Next verify candidate PE file and generated Makefile flags from a subsequent cross-build, then target actual native companions. **v1.0 31%; owner action NO.** No phone or historical user data touched.

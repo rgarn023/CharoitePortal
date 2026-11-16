@@ -101,6 +101,16 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("'runtime_dependency_closure_verified':False", source)
         self.assertIn("timeout=15", source)
 
+    def test_ntoskrnl_static_export_comparison_is_bounded_and_not_runtime(self):
+        source = self.source
+        self.assertIn("required=set(imports.get('import_symbols',{}).get(dll,[]))", source)
+        self.assertIn("entry['missing_export_symbol_count']", source)
+        self.assertIn("sorted(required-exports)[:100]", source)
+        self.assertIn("entry['static_export_match']", source)
+        self.assertIn("static_export_match_is_not_runtime_verification", source)
+        self.assertIn("'symbol_resolution_verified':False", source)
+        self.assertIn("'runtime_dependency_closure_verified':False", source)
+
     def test_evidence_does_not_claim_runtime_closure(self):
         source = self.source
         for key in (

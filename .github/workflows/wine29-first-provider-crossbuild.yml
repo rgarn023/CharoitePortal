@@ -286,12 +286,20 @@ jobs:
           result={}
           for name in ('mscms.dll','winebth.sys','winebus.sys','wineusb.sys'):
               target=f'dlls/{name.removesuffix(".dll")}/aarch64-windows/{name}'
-              proc=subprocess.run(['make','--no-print-directory','-n',target],cwd=build,
-                                  capture_output=True,text=True,timeout=25)
-              diagnostic=(proc.stderr+'\n'+proc.stdout)[-8192:]
+              try:
+                  proc=subprocess.run(['make','--no-print-directory','-n',target],cwd=build,
+                                      capture_output=True,text=True,timeout=25)
+                  diagnostic=(proc.stderr+'\n'+proc.stdout)[-8192:]
+                  exit_code=proc.returncode
+                  timed_out=False
+              except subprocess.TimeoutExpired:
+                  diagnostic='Make target dry run exceeded 25 seconds; result inconclusive.\n'
+                  exit_code=None
+                  timed_out=True
               missing='No rule to make target' in diagnostic
-              result[name]={'target':target,'dry_run_exit_code':proc.returncode,
-                            'no_rule_reported':missing,'dry_run_success':proc.returncode==0}
+              result[name]={'target':target,'dry_run_exit_code':exit_code,
+                            'no_rule_reported':missing,'dry_run_success':exit_code==0,
+                            'timed_out':timed_out}
               (out/(name+'-target-dry-run.txt')).write_text(diagnostic)
               print('GENERATED_MAKE_TARGET',name,json.dumps(result[name],sort_keys=True))
           (out/'generated-make-targets.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')

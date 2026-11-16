@@ -59,6 +59,31 @@ cd "$source_dir/charoite-arm64ec-host-tools"
   --without-gstreamer --without-alsa --without-pulse --without-sdl --without-gnutls
 make -j2 __tooldeps__
 
+# Build a pinned Android-native libusb in fresh CI scratch, never on device.
+# This supplies Wine's USB feature probe; actual USB access remains unverified.
+usb_root="$source_dir/charoite-libusb-source"
+usb_prefix="$source_dir/charoite-libusb-android"
+test ! -e "$usb_root" && test ! -e "$usb_prefix"
+git clone --filter=blob:none --no-checkout https://github.com/libusb/libusb.git "$usb_root"
+git -C "$usb_root" fetch --depth=1 origin 15a7ebb4d426c5ce196684347d2b7cafad862626
+git -C "$usb_root" checkout --detach 15a7ebb4d426c5ce196684347d2b7cafad862626
+test "$(git -C "$usb_root" rev-parse HEAD)" = 15a7ebb4d426c5ce196684347d2b7cafad862626
+( cd "$usb_root" && ./autogen.sh )
+mkdir "$usb_root/charoite-build"
+(
+  cd "$usb_root/charoite-build"
+  CC="$ndk_bin/aarch64-linux-android35-clang" \
+  AR="$ndk_bin/llvm-ar" RANLIB="$ndk_bin/llvm-ranlib" \
+  CFLAGS="-O2 -g0 -fPIC -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES" \
+  LDFLAGS="-Wl,-z,max-page-size=16384" \
+  ../configure --host=aarch64-linux-android --prefix="$usb_prefix" \
+    --disable-shared --enable-static --disable-udev --disable-examples --disable-tests
+  make -j2
+  make install
+)
+test -s "$usb_prefix/lib/libusb-1.0.a"
+test -f "$usb_prefix/include/libusb-1.0/libusb.h"
+
 mkdir "$source_dir/charoite-arm64ec-android"
 cd "$source_dir/charoite-arm64ec-android"
 export CC="$ndk_bin/aarch64-linux-android35-clang"
@@ -70,6 +95,8 @@ export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-Wl,-z,max-page-size=16384"
 export CROSSCFLAGS="-O2 -g0"
 export PKG_CONFIG_LIBDIR="/nonexistent/charoite-mingw-pkgconfig"
+export USB_CFLAGS="-I$usb_prefix/include/libusb-1.0"
+export USB_LIBS="$usb_prefix/lib/libusb-1.0.a"
 # Wine may probe both aarch64 and x86_64 due to ARM64EC's hybrid ABI.
 export arm64ec_CC="$source_dir/charoite-arm64ec-toolwrap/arm64ec-w64-mingw32-clang"
 export aarch64_CC="$llvm_bin/aarch64-w64-mingw32-clang"

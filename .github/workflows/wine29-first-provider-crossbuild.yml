@@ -1,10 +1,7 @@
 name: Wine29 Missing Provider ARM64 PE Cross-Build (No APK)
 on:
   workflow_dispatch:
-  # Hourly unattended source-only rebuild; GitHub schedules may be delayed.
-  # No paid API, Wine execution, APK installation, or access to user data.
-  schedule:
-    - cron: '17 * * * *'
+  # Build only when inputs change or manually dispatched; no hourly duplicate rebuilds.
   push:
     branches: [main]
     paths:
@@ -19,9 +16,9 @@ permissions:
 # Serialize manual cross-builds to avoid overlapping expensive standard-runner jobs.
 # A pending duplicate is not a reason to cancel an active evidence-producing build.
 concurrency:
-  # New generation isolates dispatches from a stale, uncancellable old queue.
-  group: wine29-first-provider-crossbuild-v2
-  cancel-in-progress: false
+  # Superseded runs are cancelled so the latest USB fix gets runner time.
+  group: wine29-first-provider-crossbuild-v3
+  cancel-in-progress: true
 
 # Automatically rebuild only when provider build inputs change on main; manual dispatch remains available.
 # No Wine process, Android app, device, prefix, historical scratch, or APK.

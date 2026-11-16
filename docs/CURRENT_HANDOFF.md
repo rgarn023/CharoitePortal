@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — INDEPENDENT NTOSKRNL ARM64 PE COMPILATION PROBE COMMITTED
+
+[Commit 9f25e03](https://github.com/rgarn023/CharoitePortal/commit/9f25e03a121587688398bb83a3fc3cac77b64b60) adds an isolated CI-only 180-second `make -j2 dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe` probe, bounded compiler log, and PE-header inspection. [Commit 7dcabd6](https://github.com/rgarn023/CharoitePortal/commit/7dcabd6e9c2d9620d03aeebbd2fd81398588a1bd) corrects status-file newline formatting. The probe is nonfatal, runs only in ephemeral CI, and never executes Wine. **No new CI run or build outcome verified yet**; do not infer PE image availability, import resolution, Android native companions or runtime compatibility. Next inspect `NTOSKRNL_PE_BUILD_PROBE` and `ntoskrnl.exe-build.log` in the next completed cross-build and address compiler/configuration failures. **v1.0 31%; owner action NO.** No phone, APK, historical Wine generations, prefixes, games, saves, rootfs or stable Portal accessed.
+
+
 ## 2026-11-16 — DEPENDENCY BUILD EVIDENCE EXPOSED IN JOB LOG
 
 [Commit 3439e0a](https://github.com/rgarn023/CharoitePortal/commit/3439e0a3886702ac22cda9562bc39f6d064d4d0f) prints pinned source Makefile, generated Makefile, candidate binary, and ARM64 PE header presence for `ntoskrnl.exe` and `hidparse.sys` in searchable `PROVIDER_DEPENDENCY_FILE` lines. The JSON inventory already recorded these flags; this improves failure diagnosis without requiring artifact download. **No new run result verified; do not claim runtime closure.** Next inspect new cross-build logs for these flags, then implement targeted missing dependency builds and native companion checks. **v1.0 31%; owner action NO.** Source-only CI, no phone, APK, Wine execution, previous Wine generations, prefixes, games, saves, rootfs, or stable Portal accessed.

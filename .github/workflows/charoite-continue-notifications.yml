@@ -35,9 +35,14 @@ jobs:
               '**Run:** [#' + run.run_number + '](' + run.html_url + ')',
               '**Run ID:** ' + run.id,
               '**Commit:** `' + run.head_sha.slice(0, 12) + '`',
-              '**Owner action:** ' + (action === 'completed'
-                ? 'Review the result; you may say Continue in ChatGPT.'
-                : 'None; wait for the completion notification.'),
+              '**Owner action:** None; the existing hourly ChatGPT automation can review this result.',
+              ...(action === 'completed' && run.head_branch === 'main' && run.head_repository?.full_name === context.repo.owner + '/' + context.repo.repo
+                ? [
+                    '',
+                    '<!-- charoite-continue-request:v1 run_id=' + run.id + ' conclusion=' + (run.conclusion || 'unknown') + ' -->',
+                    '**Automatic continuation request:** Queued for the next hourly ChatGPT development check. This GitHub comment does not directly wake ChatGPT or execute an AI agent.',
+                    '**Next step:** Inspect the completed run logs/artifacts; make only source-safe changes; avoid repeated builds without new inputs.'
+                  ] : []),
               '',
               '_Automated status notice. A successful CI run does not imply Wine runtime or phone testing passed._'
             ].join('\n');

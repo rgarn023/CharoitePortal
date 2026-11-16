@@ -13,12 +13,11 @@ on:
 permissions:
   contents: read
 
-# Serialize manual cross-builds to avoid overlapping expensive standard-runner jobs.
-# A pending duplicate is not a reason to cancel an active evidence-producing build.
+# Serialize cross-builds without cancelling an active evidence-producing run.
+# A new run may wait; GitHub can still replace an older pending run.
 concurrency:
-  # Superseded runs are cancelled so the latest USB fix gets runner time.
   group: wine29-first-provider-crossbuild-v3
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Automatically rebuild only when provider build inputs change on main; manual dispatch remains available.
 # No Wine process, Android app, device, prefix, historical scratch, or APK.

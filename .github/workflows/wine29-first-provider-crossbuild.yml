@@ -343,6 +343,7 @@ jobs:
           import collections,pathlib,re,sys,json
           lines=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
           counts=collections.Counter()
+          symbols=collections.defaultdict(list)
           current=None
           for line in lines:
               match=re.match(r'  Name: ([^ ]+)',line)
@@ -351,8 +352,10 @@ jobs:
                   counts[current]+=0
               elif current is not None and line.startswith('  Symbol: '):
                   counts[current]+=1
+                  symbols[current].append(line.split('Symbol: ',1)[1].strip())
           assert counts, 'No import DLL names found'
           summary={'module':'ntoskrnl.exe','import_symbol_counts':dict(sorted(counts.items())),
+                   'import_symbols':{k:sorted(set(v)) for k,v in sorted(symbols.items())},
                    'total_import_symbols':sum(counts.values()),
                    'runtime_dependency_closure_verified':False}
           pathlib.Path(sys.argv[1]).with_name('ntoskrnl.exe-import-summary.json').write_text(

@@ -1,6 +1,10 @@
 name: Wine29 Missing Provider ARM64 PE Cross-Build (No APK)
 on:
   workflow_dispatch:
+  # Daily unattended source-only rebuild; GitHub schedules may be delayed.
+  # No paid API, Wine execution, APK installation, or access to user data.
+  schedule:
+    - cron: '17 6 * * *'
   push:
     branches: [main]
     paths:

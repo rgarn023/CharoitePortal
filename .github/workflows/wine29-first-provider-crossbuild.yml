@@ -258,6 +258,26 @@ jobs:
           OUT="$GITHUB_WORKSPACE/wine29-provider-build-probes"
           mkdir "$OUT"
           cd "$BUILD"
+          # Capture generated-target evidence before compiling: wineusb.sys has
+          # a pinned Makefile.in but its aarch64-windows target was not emitted.
+          # This distinguishes configure/feature gating from compiler failures.
+          python3 - "$BUILD" "$OUT" <<'PY'
+          import pathlib,sys,json
+          build=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2])
+          report={}
+          for module in ('mscms.dll','winebth.sys','winebus.sys','wineusb.sys'):
+              source=module.removesuffix('.dll')
+              directory=build/'dlls'/source
+              paths=[directory/'Makefile',directory/'aarch64-windows',directory/'aarch64-windows'/module]
+              report[module]={
+                  'generated_makefile_present':paths[0].is_file(),
+                  'arm64_output_directory_present':paths[1].is_dir(),
+                  'arm64_binary_present_before_probe':paths[2].is_file(),
+                  'configure_or_generation_failure_proven':False,
+              }
+              print('GENERATED_TARGET_INVENTORY',module,json.dumps(report[module],sort_keys=True))
+          (out/'generated-target-inventory.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
           for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
             echo "Probing source-built PE target: $module"
             LOG="$OUT/$module-build.log"

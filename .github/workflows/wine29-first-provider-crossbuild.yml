@@ -455,12 +455,24 @@ jobs:
               "hidparse.sys":build/"dlls/hidparse.sys/aarch64-windows/hidparse.sys",
           }
           dependency_files={}
+          import struct
           for name,path in candidates.items():
               present=path.is_file() and not path.is_symlink() and path.stat().st_size>1024
+              arm64_header=False
+              if present:
+                  with path.open("rb") as stream:
+                      header=stream.read(4096)
+                  if len(header)>=64 and header[:2]==b"MZ":
+                      offset=struct.unpack_from("<I",header,0x3c)[0]
+                      if offset+6<=len(header):
+                          arm64_header=(header[offset:offset+4]==b"PE"+bytes(2)
+                                        and struct.unpack_from("<H",header,offset+4)[0]==0xAA64)
               dependency_files[name]={"pe_candidate_file_present":present,
+                                      "arm64_pe_header_verified":arm64_header,
                                       "import_resolution_verified":False,
                                       "runtime_compatibility_verified":False}
-              print("PROVIDER_DEPENDENCY_FILE",name,"present="+str(present).lower())
+              print("PROVIDER_DEPENDENCY_FILE",name,"present="+str(present).lower(),
+                    "arm64_pe_header="+str(arm64_header).lower())
           report={"schema_version":2,"source_only":True,"full_provider_closure_verified":False,
                   "dependency_file_inventory":dependency_files,"modules":records}
           (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")

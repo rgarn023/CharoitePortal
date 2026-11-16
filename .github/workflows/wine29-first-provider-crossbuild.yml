@@ -451,14 +451,6 @@ jobs:
           path: wine29-first-provider-candidate/
           if-no-files-found: error
           retention-days: 7
-      - name: Publish remaining-provider build probe logs (NOT APK)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wine29-Remaining-Provider-Build-Probes-NOT-APK
-          path: wine29-provider-build-probes/
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Verify five-module evidence set before publishing
         run: |
           set -euo pipefail

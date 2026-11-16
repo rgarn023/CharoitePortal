@@ -481,11 +481,3 @@ jobs:
           assert set(closure["module_imports"])=={name+".sys" for name in names}
           print("FIVE_MODULE_EVIDENCE_SET=PASS; FULL_CLOSURE=UNVERIFIED")
           PY
-      - name: Publish bounded source-built PE evidence (NOT APK)
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wine29-HID-XInput-Five-ARM64-PE-NOT-APK
-          path: wine29-first-provider-candidate/
-          if-no-files-found: error
-          retention-days: 7

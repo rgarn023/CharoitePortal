@@ -51,6 +51,20 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("python3 -m unittest discover -s next-generation/tests", static)
         self.assertNotIn("gradlew", static)
 
+    def test_github_completion_request_is_safe_and_nonrecursive(self):
+        notice = (WORKFLOW.parent / "charoite-continue-notifications.yml").read_text(encoding="utf-8")
+        static = (WORKFLOW.parent / "charoite-agent-pr-check.yml").read_text(encoding="utf-8")
+        self.assertIn("types: [requested, in_progress, completed]", notice)
+        self.assertIn("charoite-continue-request:v1 run_id=", notice)
+        self.assertIn("run.head_branch === 'main'", notice)
+        self.assertIn("run.head_repository?.full_name === context.repo.owner", notice)
+        self.assertIn("does not directly wake ChatGPT", notice)
+        self.assertIn("issue_number: 8", notice)
+        self.assertNotIn("workflow_dispatch", notice)
+        self.assertNotIn("repository_dispatch", notice)
+        self.assertNotIn("secrets.OPENAI", notice)
+        self.assertIn("'.github/workflows/charoite-continue-notifications.yml'", static)
+
     def test_genuine_pinned_provider_build_not_stub(self):
         source = self.source
         self.assertIn("c74acb09d51b447f5d5ac56c87608d3ec565a767", source)

@@ -329,7 +329,7 @@ jobs:
               assert 64<=offset<p.stat().st_size-24
               f.seek(offset)
               pe=f.read(24)
-              assert pe[:4]==b'PE\\x00\\x00'
+              assert pe[:4]==b'PE'+bytes(2)
               assert struct.unpack_from('<H',pe,4)[0]==0xAA64
           print('NTOSKRNL_ARM64_PE_HEADER=PASS')
           PYPE

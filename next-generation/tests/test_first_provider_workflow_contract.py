@@ -92,6 +92,15 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("NTOSKRNL_PE_BUILD_PROBE=", source)
         self.assertIn("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED", source)
 
+    def test_dependency_export_probes_remain_read_only_and_non_runtime(self):
+        source = self.source
+        self.assertIn("NTOSKRNL_DEPENDENCY_EXPORT_PROBES=", source)
+        self.assertIn("ntoskrnl-dependency-export-probes.json", source)
+        self.assertIn("'--coff-exports'", source)
+        self.assertIn("'symbol_resolution_verified':False", source)
+        self.assertIn("'runtime_dependency_closure_verified':False", source)
+        self.assertIn("timeout=15", source)
+
     def test_evidence_does_not_claim_runtime_closure(self):
         source = self.source
         for key in (

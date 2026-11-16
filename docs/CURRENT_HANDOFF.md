@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — IMPORT-NAME NORMALIZATION REGRESSION GATE
+
+[Static #104](https://github.com/rgarn023/CharoitePortal/actions/runs/43960570425) **SUCCESS** on the workflow normalization change; [Static #103](https://github.com/rgarn023/CharoitePortal/actions/runs/43960505007) **CANCELLED** after superseding push. [Commit b986375](https://github.com/rgarn023/CharoitePortal/commit/b986375caba1e0d8e0a2620185311bf956bc80be) adds an offline regression contract that the Wine29 import report retains normalized symbol names, strips only numeric llvm-readobj metadata, and still explicitly disclaims runtime dependency closure. **New static validation pending.** Cross-build with normalized symbols not yet verified; do not infer PE export compatibility. Next inspect cross-build evidence and compare actual exports. **v1.0 31%; owner action NO.** No Wine execution, phone, historical Wine generations, prefixes, games, saves, rootfs or stable Portal accessed.
+
+
 ## 2026-11-16 — WINE29 #76 SYMBOL NAMES VERIFIED
 
 [Cross-build #76](https://github.com/rgarn023/CharoitePortal/actions/runs/43959539580) **SUCCESS**; actual job logs contain `NTOSKRNL_IMPORT_SUMMARY` with named symbols and `PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED`. [Static #102](https://github.com/rgarn023/CharoitePortal/actions/runs/43959539588) and [Postbuild #53](https://github.com/rgarn023/CharoitePortal/actions/runs/43960034586) **SUCCESS**. Import listing includes llvm-readobj parenthesized numeric metadata, which must be removed before comparing import names to PE exports. [Commit be88338](https://github.com/rgarn023/CharoitePortal/commit/be88338c29f37203cd2885ecc0b0a3a51dce9f27) normalizes that metadata in source-only cross-build JSON; **new validation pending**. Next collect PE export inventories and check unresolved symbols, without inferring runtime readiness. **v1.0 31%; owner action NO.** Existing Wine generations, prefixes, games, saves, rootfs, stable Portal untouched.

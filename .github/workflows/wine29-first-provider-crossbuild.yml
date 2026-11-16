@@ -345,7 +345,7 @@ jobs:
           counts=collections.Counter()
           current=None
           for line in lines:
-              match=re.match(r'  Name: ([^\\s]+)',line)
+              match=re.match(r'  Name: ([^ ]+)',line)
               if match:
                   current=match.group(1).lower()
                   counts[current]+=0
@@ -356,7 +356,7 @@ jobs:
                    'total_import_symbols':sum(counts.values()),
                    'runtime_dependency_closure_verified':False}
           pathlib.Path(sys.argv[1]).with_name('ntoskrnl.exe-import-summary.json').write_text(
-              json.dumps(summary,indent=2,sort_keys=True)+'\\n')
+              json.dumps(summary,indent=2,sort_keys=True)+chr(10))
           print('NTOSKRNL_IMPORT_SUMMARY='+json.dumps(summary,sort_keys=True))
           PYIMPORT
                   else

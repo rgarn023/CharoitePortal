@@ -451,34 +451,6 @@ jobs:
           path: wine29-first-provider-candidate/
           if-no-files-found: error
           retention-days: 7
-,line,re.I))
-          ))
-          Path(sys.argv[2]).write_text(json.dumps({
-              "schema_version":1,"imported_module_names":dlls,
-              "import_count":len(dlls),"resolution_verified":False,
-              "native_companion_closure_verified":False
-          },indent=2,sort_keys=True)+"\\n")
-          print("PROVIDER_IMPORT_INVENTORY",sys.argv[2],",".join(dlls))
-          PYIMPORT
-                    cp "$BIN" "$OUT/$module-arm64-pe-candidate"
-                    STATUS="arm64_pe_candidate_verified"
-                  fi
-                fi
-              fi
-            fi
-            printf '%s\n' "$STATUS" > "$OUT/$module-status.txt"
-            echo "$module: $STATUS; dependency/native companion/runtime closure NOT verified" >> "$GITHUB_STEP_SUMMARY"
-            echo "PROVIDER_PROBE_RESULT module=$module status=$STATUS"
-            if test "$STATUS" != arm64_pe_candidate_verified && test -f "$LOG"; then
-              echo "PROVIDER_PROBE_DIAGNOSTIC_BEGIN $module"
-              tail -n 16 "$LOG" | cut -c 1-240
-              echo "PROVIDER_PROBE_DIAGNOSTIC_END $module"
-            fi
-            if test -f "$LOG"; then
-              tail -c 65536 "$LOG" > "$LOG.bounded" || :
-              mv "$LOG.bounded" "$LOG"
-            fi
-          done
       - name: Publish remaining-provider build probe logs (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4

@@ -311,7 +311,7 @@ jobs:
           # Keep failure nonfatal and log bounded; never execute Wine.
           NT_TARGET="dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe"
           NT_LOG="$OUT/ntoskrnl.exe-build.log"
-          NT_STATUS="build_failed_or_timed_out"
+          NT_STATUS="build_failed"
           if timeout 180 make -j2 "$NT_TARGET" > "$NT_LOG" 2>&1; then
             NT_BIN="$BUILD/$NT_TARGET"
             NT_STATUS="missing_binary"
@@ -321,6 +321,12 @@ jobs:
               else
                 NT_STATUS="invalid_pe_header"
               fi
+            fi
+          fi
+          # Preserve timeout vs ordinary compiler failure as distinct evidence.
+          if test "$NT_STATUS" = "build_failed" && test -f "$NT_LOG"; then
+            if grep -q 'Terminated' "$NT_LOG"; then
+              NT_STATUS="build_interrupted_or_timed_out"
             fi
           fi
           printf '%s\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"

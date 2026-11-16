@@ -386,6 +386,17 @@ jobs:
                       if probe.returncode==0:
                           (out/('ntoskrnl-dependency-'+dll+'-exports.txt')).write_text(
                               probe.stdout[-65536:])
+                          # llvm-readobj COFF exports include one Name field per
+                          # exported symbol. This is a static, PE-only comparison.
+                          import re
+                          exports=set(re.findall(r'^  Name: (\\S+)',probe.stdout,re.M))
+                          required=set(imports.get('import_symbols',{}).get(dll,[]))
+                          entry['exported_symbol_count']=len(exports)
+                          entry['required_symbol_count']=len(required)
+                          entry['missing_export_symbols']=sorted(required-exports)[:100]
+                          entry['missing_export_symbol_count']=len(required-exports)
+                          entry['static_export_match']=bool(exports) and not (required-exports)
+                          entry['static_export_match_is_not_runtime_verification']=True
                   except (OSError,subprocess.TimeoutExpired):
                       entry['export_inspection']='error_or_timeout'
               result[dll]=entry

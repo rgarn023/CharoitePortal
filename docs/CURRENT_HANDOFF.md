@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — CROSS-BUILD #71 FALSE NEGATIVE FIXED
+
+[Wine29 cross-build #71](https://github.com/rgarn023/CharoitePortal/actions/runs/43943073874) job 133565416360 **COMPLETED SUCCESS**, but its optional ntoskrnl probe printed `NTOSKRNL_PE_BUILD_PROBE=invalid_arm64_pe_header` despite the independent dependency inventory reporting `ntoskrnl.exe ... present=true arm64_pe_header=true`. The newly introduced probe mistakenly compared the PE signature against the literal backslash sequence `b'PE\\x00\\x00'` instead of PE followed by two NUL bytes. [Commit 47d4fc4](https://github.com/rgarn023/CharoitePortal/commit/47d4fc4f62861bb4745ab7a915dd22177afadbf4) corrects this to `b'PE'+bytes(2)`. **Post-fix CI validation pending; do not claim closure.** [Static #92](https://github.com/rgarn023/CharoitePortal/actions/runs/43943073891) and [Provider Postbuild #48](https://github.com/rgarn023/CharoitePortal/actions/runs/43943621745) completed success. Next verify fixed probe and review ntoskrnl import inventory. **v1.0 31%; owner action NO.** No Wine runtime, phone, existing prefixes/games/saves/rootfs/stable Portal accessed.
+
+
 ## 2026-11-16 — NTOSKRNL MACHINE VALIDATION AND IMPORT CAPTURE
 
 [Commit 9543315](https://github.com/rgarn023/CharoitePortal/commit/9543315d1ddbdd8dbd8c27583743834740a425d6) strengthens the isolated Wine29 CI probe: after `llvm-readobj --file-headers`, explicitly verify DOS MZ, PE signature, bounds and ARM64 machine `0xAA64`, and save the `ntoskrnl.exe` COFF import table for dependency review. This is a CI-only static inspection; no Wine execution or APK. The preceding [cross-build #70](https://github.com/rgarn023/CharoitePortal/actions/runs/43940900220) already showed a present ARM64 PE header for ntoskrnl and hidparse; **new probe itself awaits CI validation**. Import resolution and Android runtime closure remain unverified. Next review the new `ntoskrnl.exe-pe-imports.txt` and classify dependencies. **v1.0 31%; owner action NO.** No existing generations, prefixes, games, saves, rootfs or stable Portal accessed.

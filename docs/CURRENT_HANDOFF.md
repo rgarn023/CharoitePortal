@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — CONTINUATION REQUESTS VERIFIED AND CANCELLED RUNS FILTERED
+
+[Static #95](https://github.com/rgarn023/CharoitePortal/actions/runs/43944742286) **COMPLETED SUCCESS**, and Issue #8 contains `charoite-continue-request:v1 run_id=43944742286 conclusion=success`, verifying GitHub-side event-to-comment delivery. [Static #94](https://github.com/rgarn023/CharoitePortal/actions/runs/43944725691) was **CANCELLED** by newer run but initially also produced a continuation request. [Commit 0461516](https://github.com/rgarn023/CharoitePortal/commit/04615166b045c8a5a926ccb8bef531522180017d) filters new requests to successful or failed completions only, preserving status notifications for cancelled runs. [Commit 44ba034](https://github.com/rgarn023/CharoitePortal/commit/44ba0342ba1e3578e7a5950b04541f076d33494e) adds an offline regression assertion. **New fix CI not yet verified.** ChatGPT hourly automation pickup remains unverified; GitHub cannot wake the conversation directly. Next inspect the Wine29 #72 import evidence and pursue PE/native dependency closure. **v1.0 31%; owner action NO.** No Wine runtime, phone, prior generations, prefixes, games, saves, rootfs, or stable Portal touched.
+
+
 ## 2026-11-16 — AUTOMATIC CONTINUATION NOTIFICATION SAFETY TESTS
 
 [Commit d8c0471](https://github.com/rgarn023/CharoitePortal/commit/d8c0471d208980f625e26010b8edbf67eab65f28) adds the GitHub completion-notification workflow to lightweight static CI push and PR path coverage. [Commit 0cb954b](https://github.com/rgarn023/CharoitePortal/commit/0cb954b20c672199ba0670242cab97c4e6a0d469) adds an offline regression contract asserting that continuation requests are main-repository/main-branch scoped, retain Issue #8 notices, cannot recursively dispatch workflows, and do not falsely claim to wake ChatGPT. **CI validation pending**; no external AI trigger or GitHub-hosted autonomous agent has been created. Existing hourly ChatGPT automation remains separate; direct wake-up from GitHub unsupported. **v1.0 31%; owner action NO.** No Wine runtime, phone, existing prefixes/games/saves/rootfs/stable Portal touched.

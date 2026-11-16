@@ -108,7 +108,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         # llvm-readobj may indent export names differently across versions.
         self.assertIn("Name:", source)
         for indent in ("  ", "    "):
-            sample = "Export {\\n" + indent + "Name: ExampleExport\\n}"
+            sample = "Export {\n" + indent + "Name: ExampleExport\n}"
             self.assertEqual(re.findall(r"^\\s+Name:\\s+(\\S+)", sample, re.M),
                              ["ExampleExport"])
         self.assertIn("entry['missing_export_symbol_count']", source)

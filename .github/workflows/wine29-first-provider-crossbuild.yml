@@ -447,7 +447,7 @@ jobs:
               }
               print("PROVIDER_DEPENDENCY_GATE",module,status,"external="+",".join(records[module]["external_imports_unresolved"]))
           report={"schema_version":1,"source_only":True,"full_provider_closure_verified":False,"modules":records}
-          (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
           print("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED")
           PY
       - name: Publish remaining-provider build probe logs (NOT APK)

@@ -335,7 +335,16 @@ jobs:
           PYPE
                 then
                   NT_STATUS="arm64_pe_header_verified_not_runtime"
-                  "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-imports.txt" 2>&1 || :
+                  if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-imports.txt" 2>&1; then
+                    echo "NTOSKRNL_IMPORT_INSPECTION=PASS"
+                  else
+                    echo "NTOSKRNL_IMPORT_INSPECTION=FAILED_NOT_RUNTIME_VERIFIED"
+                  fi
+                  # Bound raw evidence; an import listing is not proof of closure.
+                  if test -f "$OUT/ntoskrnl.exe-pe-imports.txt"; then
+                    tail -c 65536 "$OUT/ntoskrnl.exe-pe-imports.txt" > "$OUT/ntoskrnl.exe-pe-imports.bounded"
+                    mv "$OUT/ntoskrnl.exe-pe-imports.bounded" "$OUT/ntoskrnl.exe-pe-imports.txt"
+                  fi
                 else
                   NT_STATUS="invalid_arm64_pe_header"
                 fi

@@ -104,6 +104,13 @@ class FirstProviderWorkflowContract(unittest.TestCase):
     def test_ntoskrnl_static_export_comparison_is_bounded_and_not_runtime(self):
         source = self.source
         self.assertIn("required=set(imports.get('import_symbols',{}).get(dll,[]))", source)
+        self.assertIn("exports=set(re.findall(", source)
+        # llvm-readobj may indent export names differently across versions.
+        self.assertIn("Name:", source)
+        for indent in ("  ", "    "):
+            sample = "Export {\\n" + indent + "Name: ExampleExport\\n}"
+            self.assertEqual(re.findall(r"^\\s+Name:\\s+(\\S+)", sample, re.M),
+                             ["ExampleExport"])
         self.assertIn("entry['missing_export_symbol_count']", source)
         self.assertIn("sorted(required-exports)[:100]", source)
         self.assertIn("entry['static_export_match']", source)

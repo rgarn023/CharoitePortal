@@ -389,7 +389,7 @@ jobs:
                           # llvm-readobj COFF exports include one Name field per
                           # exported symbol. This is a static, PE-only comparison.
                           import re
-                          exports=set(re.findall(r'^  Name: (\\S+)',probe.stdout,re.M))
+                          exports=set(re.findall(r'^\\s+Name:\\s+(\\S+)',probe.stdout,re.M))
                           required=set(imports.get('import_symbols',{}).get(dll,[]))
                           entry['exported_symbol_count']=len(exports)
                           entry['required_symbol_count']=len(required)

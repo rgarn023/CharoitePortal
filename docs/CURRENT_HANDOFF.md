@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — NTOSKRNL PROBE TIMEOUT TRIAGE
+
+[Commit ba99f12](https://github.com/rgarn023/CharoitePortal/commit/ba99f1204e3c2c18afa5ef4501b4d812573abe89) makes the isolated ntoskrnl build probe distinguish GNU timeout exit code 124 from ordinary compiler failures; it supersedes intermediate [commit 427fdfb](https://github.com/rgarn023/CharoitePortal/commit/427fdfbc534db1ab1f21d0245d22e183d3cf3348)'s less precise log-text heuristic. This is diagnostic source only. **No newer Actions run or result independently verified.** Next inspect a completed Wine29 cross-build for `NTOSKRNL_PE_BUILD_PROBE`, actual compiler log, and dependency-file inventory before further build changes. **v1.0 31%; owner action NO.** No Wine execution, phone, APK, existing generations, prefixes, games, saves, rootfs or stable Portal touched.
+
+
 ## 2026-11-16 — INDEPENDENT NTOSKRNL ARM64 PE COMPILATION PROBE COMMITTED
 
 [Commit 9f25e03](https://github.com/rgarn023/CharoitePortal/commit/9f25e03a121587688398bb83a3fc3cac77b64b60) adds an isolated CI-only 180-second `make -j2 dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe` probe, bounded compiler log, and PE-header inspection. [Commit 7dcabd6](https://github.com/rgarn023/CharoitePortal/commit/7dcabd6e9c2d9620d03aeebbd2fd81398588a1bd) corrects status-file newline formatting. The probe is nonfatal, runs only in ephemeral CI, and never executes Wine. **No new CI run or build outcome verified yet**; do not infer PE image availability, import resolution, Android native companions or runtime compatibility. Next inspect `NTOSKRNL_PE_BUILD_PROBE` and `ntoskrnl.exe-build.log` in the next completed cross-build and address compiler/configuration failures. **v1.0 31%; owner action NO.** No phone, APK, historical Wine generations, prefixes, games, saves, rootfs or stable Portal accessed.

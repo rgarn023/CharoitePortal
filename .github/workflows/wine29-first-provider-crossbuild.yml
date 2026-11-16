@@ -355,7 +355,7 @@ jobs:
                   raw_symbol=line.split('Symbol: ',1)[1].strip()
                   # llvm-readobj appends hint/ordinal metadata in parentheses;
                   # preserve exact PE import names for future export comparison.
-                  symbols[current].append(re.sub(r' \\(\\d+\\)
+                  symbols[current].append(raw_symbol.rsplit(' (',1)[0] if raw_symbol.endswith(')') and raw_symbol.rsplit(' (',1)[-1][:-1].isdigit() else raw_symbol)
           assert counts, 'No import DLL names found'
           summary={'module':'ntoskrnl.exe','import_symbol_counts':dict(sorted(counts.items())),
                    'import_symbols':{k:sorted(set(v)) for k,v in sorted(symbols.items())},

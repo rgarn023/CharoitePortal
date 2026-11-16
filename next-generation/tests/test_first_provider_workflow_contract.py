@@ -79,6 +79,16 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("sha256", source)
         self.assertIn("Wine29-HID-XInput-Five-ARM64-PE-NOT-APK", source)
 
+    def test_ntoskrnl_import_summary_remains_diagnostic_only(self):
+        source = self.source
+        self.assertIn("NTOSKRNL_IMPORT_INSPECTION=PASS", source)
+        self.assertIn("NTOSKRNL_IMPORT_SUMMARY=", source)
+        self.assertIn("ntoskrnl.exe-import-summary.json", source)
+        self.assertIn("'runtime_dependency_closure_verified':False", source)
+        self.assertIn("assert counts, 'No import DLL names found'", source)
+        self.assertIn("NTOSKRNL_PE_BUILD_PROBE=", source)
+        self.assertIn("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED", source)
+
     def test_evidence_does_not_claim_runtime_closure(self):
         source = self.source
         for key in (

@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — WINE29 #76 SYMBOL NAMES VERIFIED
+
+[Cross-build #76](https://github.com/rgarn023/CharoitePortal/actions/runs/43959539580) **SUCCESS**; actual job logs contain `NTOSKRNL_IMPORT_SUMMARY` with named symbols and `PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED`. [Static #102](https://github.com/rgarn023/CharoitePortal/actions/runs/43959539588) and [Postbuild #53](https://github.com/rgarn023/CharoitePortal/actions/runs/43960034586) **SUCCESS**. Import listing includes llvm-readobj parenthesized numeric metadata, which must be removed before comparing import names to PE exports. [Commit be88338](https://github.com/rgarn023/CharoitePortal/commit/be88338c29f37203cd2885ecc0b0a3a51dce9f27) normalizes that metadata in source-only cross-build JSON; **new validation pending**. Next collect PE export inventories and check unresolved symbols, without inferring runtime readiness. **v1.0 31%; owner action NO.** Existing Wine generations, prefixes, games, saves, rootfs, stable Portal untouched.
+
+
 ## 2026-11-16 — WINE29 IMPORT SYMBOL AUDIT INPUT
 
 [Static #101](https://github.com/rgarn023/CharoitePortal/actions/runs/43955998484) **SUCCESS** on prior import-summary regression test. [Cross-build #75](https://github.com/rgarn023/CharoitePortal/actions/runs/43951406547) **SUCCESS**, 633 imported symbols reported; provider dependency closure **UNVERIFIED**. [Commit a788b3e](https://github.com/rgarn023/CharoitePortal/commit/a788b3ea37e64accce7a785c69225432bdd9b321) extends the isolated NTOSKRNL import JSON evidence to preserve individual imported symbol names by DLL, permitting future export-vs-import comparison rather than only counts. **New cross-build validation pending**; no symbol resolution or runtime compatibility is claimed. Next compare import names with source-pinned PE exports, identify missing symbols and native companion requirements, then verify in CI. **v1.0 31%; owner action NO.** No phone, existing Wine generations, prefixes, games, saves, rootfs, stable Portal accessed.

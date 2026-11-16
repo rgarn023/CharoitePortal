@@ -322,12 +322,12 @@ jobs:
                 NT_STATUS="invalid_pe_header"
               fi
             fi
+          else
+            NT_EXIT_CODE=$?
           fi
-          # Preserve timeout vs ordinary compiler failure as distinct evidence.
-          if test "$NT_STATUS" = "build_failed" && test -f "$NT_LOG"; then
-            if grep -q 'Terminated' "$NT_LOG"; then
-              NT_STATUS="build_interrupted_or_timed_out"
-            fi
+          # Exit 124 is GNU timeout's expiry code; preserve other build errors.
+          if test "$NT_STATUS" = "build_failed"; then
+            if test "${NT_EXIT_CODE:-0}" -eq 124; then NT_STATUS="build_timed_out"; fi
           fi
           printf '%s\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"
           echo "NTOSKRNL_PE_BUILD_PROBE=$NT_STATUS"

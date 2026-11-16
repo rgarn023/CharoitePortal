@@ -8,6 +8,7 @@ on:
       - '.github/workflows/charoite-agent-pr-check.yml'
       - '.github/workflows/charoite-next.yml'
       - '.github/workflows/wine29-first-provider-crossbuild.yml'
+      - '.github/workflows/charoite-continue-notifications.yml'
   pull_request:
     paths:
       # Match push coverage: proposed Next source changes also need static CI.
@@ -15,6 +16,7 @@ on:
       - '.github/workflows/charoite-agent-pr-check.yml'
       - '.github/workflows/charoite-next.yml'
       - '.github/workflows/wine29-first-provider-crossbuild.yml'
+      - '.github/workflows/charoite-continue-notifications.yml'
   workflow_dispatch:
 
 concurrency:

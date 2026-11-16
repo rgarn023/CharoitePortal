@@ -415,6 +415,41 @@ jobs:
               mv "$LOG.bounded" "$LOG"
             fi
           done
+      - name: Summarize provider PE dependency closure without executing Wine
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path("wine29-provider-build-probes")
+          if not root.is_dir() or root.is_symlink():
+              print("PROVIDER_CLOSURE_REPORT=UNAVAILABLE; probe directory missing")
+              raise SystemExit(0)
+          modules=("mscms.dll","winebth.sys","winebus.sys","wineusb.sys")
+          batch={"mouhid.sys","hidclass.sys","hidparse.sys","winehid.sys","winexinput.sys"}
+          records={}
+          for module in modules:
+              status_file=root/(module+"-status.txt")
+              inventory_file=root/(module+"-import-inventory.json")
+              status=status_file.read_text().strip() if status_file.is_file() and not status_file.is_symlink() else "missing_status"
+              imports=[]
+              if inventory_file.is_file() and not inventory_file.is_symlink():
+                  imports=json.loads(inventory_file.read_text()).get("imported_module_names",[])
+              assert isinstance(imports,list) and all(isinstance(x,str) for x in imports)
+              records[module]={
+                  "build_status":status,
+                  "imports":imports,
+                  "candidate_batch_imports":sorted(set(imports)&batch),
+                  "external_imports_unresolved":sorted(set(imports)-batch),
+                  "all_imports_resolved":False,
+                  "android_native_companions_verified":False,
+                  "runtime_compatibility_verified":False,
+              }
+              print("PROVIDER_DEPENDENCY_GATE",module,status,"external="+",".join(records[module]["external_imports_unresolved"]))
+          report={"schema_version":1,"source_only":True,"full_provider_closure_verified":False,"modules":records}
+          (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          print("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED")
+          PY
       - name: Publish remaining-provider build probe logs (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4

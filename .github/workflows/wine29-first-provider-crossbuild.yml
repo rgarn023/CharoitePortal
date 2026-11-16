@@ -317,7 +317,28 @@ jobs:
             NT_STATUS="missing_binary"
             if test -s "$NT_BIN" && test ! -L "$NT_BIN"; then
               if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-header.txt" 2>&1; then
-                NT_STATUS="pe_header_inspected_not_runtime_verified"
+                # A successful llvm-readobj invocation alone does not establish
+                # that the file is a real ARM64 PE executable.
+                if python3 - "$NT_BIN" <<'PYPE'
+          import pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1])
+          with p.open('rb') as f:
+              dos=f.read(64)
+              assert len(dos)==64 and dos[:2]==b'MZ'
+              offset=struct.unpack_from('<I',dos,0x3c)[0]
+              assert 64<=offset<p.stat().st_size-24
+              f.seek(offset)
+              pe=f.read(24)
+              assert pe[:4]==b'PE\\x00\\x00'
+              assert struct.unpack_from('<H',pe,4)[0]==0xAA64
+          print('NTOSKRNL_ARM64_PE_HEADER=PASS')
+          PYPE
+                then
+                  NT_STATUS="arm64_pe_header_verified_not_runtime"
+                  "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-imports.txt" 2>&1 || :
+                else
+                  NT_STATUS="invalid_arm64_pe_header"
+                fi
               else
                 NT_STATUS="invalid_pe_header"
               fi

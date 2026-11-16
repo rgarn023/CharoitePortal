@@ -337,6 +337,28 @@ jobs:
                   NT_STATUS="arm64_pe_header_verified_not_runtime"
                   if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-imports.txt" 2>&1; then
                     echo "NTOSKRNL_IMPORT_INSPECTION=PASS"
+                    # Import names/counts are diagnostic only; none proves runtime
+                    # availability or symbol resolution on Android.
+                    python3 - "$OUT/ntoskrnl.exe-pe-imports.txt" <<'PYIMPORT'
+          import collections,pathlib,re,sys,json
+          lines=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
+          counts=collections.Counter()
+          current=None
+          for line in lines:
+              match=re.match(r'  Name: ([^\\s]+)',line)
+              if match:
+                  current=match.group(1).lower()
+                  counts[current]+=0
+              elif current is not None and line.startswith('  Symbol: '):
+                  counts[current]+=1
+          assert counts, 'No import DLL names found'
+          summary={'module':'ntoskrnl.exe','import_symbol_counts':dict(sorted(counts.items())),
+                   'total_import_symbols':sum(counts.values()),
+                   'runtime_dependency_closure_verified':False}
+          pathlib.Path(sys.argv[1]).with_name('ntoskrnl.exe-import-summary.json').write_text(
+              json.dumps(summary,indent=2,sort_keys=True)+'\\n')
+          print('NTOSKRNL_IMPORT_SUMMARY='+json.dumps(summary,sort_keys=True))
+          PYIMPORT
                   else
                     echo "NTOSKRNL_IMPORT_INSPECTION=FAILED_NOT_RUNTIME_VERIFIED"
                   fi

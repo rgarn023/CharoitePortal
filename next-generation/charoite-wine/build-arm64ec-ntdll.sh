@@ -83,6 +83,7 @@ mkdir "$usb_root/charoite-build"
 )
 test -s "$usb_prefix/lib/libusb-1.0.a"
 test -f "$usb_prefix/include/libusb-1.0/libusb.h"
+test -s "$usb_prefix/lib/pkgconfig/libusb-1.0.pc"
 
 mkdir "$source_dir/charoite-arm64ec-android"
 cd "$source_dir/charoite-arm64ec-android"
@@ -94,7 +95,8 @@ export CFLAGS="-O2 -g0 -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES"
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-Wl,-z,max-page-size=16384"
 export CROSSCFLAGS="-O2 -g0"
-export PKG_CONFIG_LIBDIR="/nonexistent/charoite-mingw-pkgconfig"
+export PKG_CONFIG_LIBDIR="$usb_prefix/lib/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR=""
 export USB_CFLAGS="-I$usb_prefix/include/libusb-1.0"
 export USB_LIBS="$usb_prefix/lib/libusb-1.0.a"
 # Wine may probe both aarch64 and x86_64 due to ARM64EC's hybrid ABI.

@@ -278,6 +278,30 @@ jobs:
               print('GENERATED_TARGET_INVENTORY',module,json.dumps(report[module],sort_keys=True))
           (out/'generated-target-inventory.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           PY
+          # Keep bounded, source-only evidence for USB configure gating.
+          # A missing Makefile may be caused by feature detection even when
+          # --without-usb was removed; do not assume the PE target is enabled.
+          python3 - "$ROOT" "$BUILD" "$OUT" <<'PY'
+          import pathlib,sys,json,re
+          root,build,out=map(pathlib.Path,sys.argv[1:])
+          files={'source_makefile':root/'dlls/wineusb.sys/Makefile.in',
+                 'generated_makefile':build/'dlls/wineusb.sys/Makefile',
+                 'configure_log':build/'config.log',
+                 'config_status':build/'config.status'}
+          report={}
+          for label,path in files.items():
+              exists=path.is_file() and not path.is_symlink()
+              matches=[]
+              if exists:
+                  with path.open('r',encoding='utf-8',errors='replace') as stream:
+                      for lineno,line in enumerate(stream,1):
+                          if re.search(r'wineusb|libusb|without.usb|have_usb|usb_1_0',line,re.I):
+                              matches.append(f'{lineno}: {line.rstrip()[:300]}')
+                              if len(matches)>=80:break
+              report[label]={'present':exists,'matched_lines':matches}
+          (out/'usb-configure-evidence.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v['present'] for k,v in report.items()},sort_keys=True))
+          PY
           # Inspect the generated make database without executing any Wine code.
           # A missing rule is a build-generation issue, not a PE compiler failure.
           python3 - "$BUILD" "$OUT" <<'PY'

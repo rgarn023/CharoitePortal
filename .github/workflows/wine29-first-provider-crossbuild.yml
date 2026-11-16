@@ -365,6 +365,36 @@ jobs:
               json.dumps(summary,indent=2,sort_keys=True)+chr(10))
           print('NTOSKRNL_IMPORT_SUMMARY='+json.dumps(summary,sort_keys=True))
           PYIMPORT
+                  # Inspect PE exports of candidate dependencies already present
+                  # in this isolated build. Never execute PE files or imply closure.
+                  python3 - "$OUT/ntoskrnl.exe-import-summary.json" "$BUILD" "$OUT" "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" <<'PYEXPORT'
+          import json,pathlib,subprocess,sys
+          imports=json.loads(pathlib.Path(sys.argv[1]).read_text())
+          build=pathlib.Path(sys.argv[2])
+          out=pathlib.Path(sys.argv[3])
+          readobj=sys.argv[4]
+          result={}
+          for dll in sorted(imports['import_symbol_counts']):
+              candidates=sorted(build.glob('dlls/*/aarch64-windows/'+dll))
+              entry={'candidate_count':len(candidates),'export_inspection':'not_available',
+                     'runtime_verified':False}
+              if len(candidates)==1 and candidates[0].is_file() and not candidates[0].is_symlink():
+                  try:
+                      probe=subprocess.run([readobj,'--coff-exports',str(candidates[0])],
+                                           capture_output=True,text=True,timeout=15,check=False)
+                      entry['export_inspection']='pass' if probe.returncode==0 else 'failed'
+                      if probe.returncode==0:
+                          (out/('ntoskrnl-dependency-'+dll+'-exports.txt')).write_text(
+                              probe.stdout[-65536:])
+                  except (OSError,subprocess.TimeoutExpired):
+                      entry['export_inspection']='error_or_timeout'
+              result[dll]=entry
+          (out/'ntoskrnl-dependency-export-probes.json').write_text(
+              json.dumps({'dependency_probes':result,'symbol_resolution_verified':False,
+                          'runtime_dependency_closure_verified':False},
+                         indent=2,sort_keys=True)+chr(10))
+          print('NTOSKRNL_DEPENDENCY_EXPORT_PROBES='+json.dumps(result,sort_keys=True))
+          PYEXPORT
                   else
                     echo "NTOSKRNL_IMPORT_INSPECTION=FAILED_NOT_RUNTIME_VERIFIED"
                   fi

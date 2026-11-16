@@ -21,7 +21,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("branches: [main]", source)
         self.assertIn("\'.github/workflows/wine29-first-provider-crossbuild.yml\'", source)
         self.assertNotRegex(source, r"(?m)^  (?:pull_request|workflow_run):")
-        self.assertRegex(source, r"(?m)^  schedule:\s*\n    - cron: '17 \* \* \* \*'$")
+        self.assertNotRegex(source, r"(?m)^  schedule:")
         self.assertIn("contents: read", source)
         self.assertIn("persist-credentials: false", source)
         self.assertNotIn("secrets.", source)
@@ -29,8 +29,8 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("timeout-minutes: 58", source)
         self.assertIn("retention-days: 7", source)
         self.assertIn("concurrency:", source)
-        self.assertIn("  group: wine29-first-provider-crossbuild-v2", source)
-        self.assertIn("  cancel-in-progress: false", source)
+        self.assertIn("  group: wine29-first-provider-crossbuild-v3", source)
+        self.assertIn("  cancel-in-progress: true", source)
 
     def test_lightweight_ci_covers_provider_workflow_edits(self):
         # Editing an expensive workflow must still run the cheap offline

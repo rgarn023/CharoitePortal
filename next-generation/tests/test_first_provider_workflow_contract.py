@@ -57,6 +57,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("types: [requested, in_progress, completed]", notice)
         self.assertIn("charoite-continue-request:v1 run_id=", notice)
         self.assertIn("run.head_branch === 'main'", notice)
+        self.assertIn("['success', 'failure'].includes(run.conclusion)", notice)
         self.assertIn("run.head_repository?.full_name === context.repo.owner", notice)
         self.assertIn("does not directly wake ChatGPT", notice)
         self.assertIn("issue_number: 8", notice)

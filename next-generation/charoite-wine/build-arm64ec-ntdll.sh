@@ -88,9 +88,9 @@ export x86_64_CC="$llvm_bin/x86_64-w64-mingw32-clang"
   --without-alsa --without-pulse --without-sdl --without-gnutls \
   --without-inotify --without-unwind --without-gettext \
   --without-cups --without-dbus --without-gssapi --without-opencl \
-  --without-sane --without-pcap --without-usb --without-udev
+  --without-sane --without-pcap --without-udev
 
-# Windows ARM64EC PE and Unix Android loader must come from THE SAME source.
+# Do not force-disable USB at configure time: it can suppress wineusb.sys PE\n# target generation. Native libusb availability and Android USB access remain\n# separately unverified; this is a source-only CI experiment.\n# Windows ARM64EC PE and Unix Android loader must come from THE SAME source.
 # Wine 10's ARM64EC PE install directory uses aarch64-windows.
 make -j2 dlls/ntdll/aarch64-windows/ntdll.dll dlls/ntdll/ntdll.so
 

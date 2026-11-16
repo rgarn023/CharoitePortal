@@ -1,5 +1,10 @@
 # Charoite Portal — Current Handoff
 
+## 2026-11-16 — ARM64 PE HEADER VALIDATION FOR DEPENDENCY CANDIDATES
+
+[Commit b5e401d](https://github.com/rgarn023/CharoitePortal/commit/b5e401dc9ec3d73e46cf176bcefa1d190148188d) extends isolated source-only CI inventory for `ntoskrnl.exe` and `hidparse.sys` to check MZ, PE signature, and machine 0xAA64 rather than treating a nonempty file as sufficient ARM64 evidence. The report retains `import_resolution_verified=false` and `runtime_compatibility_verified=false`. **New CI execution not yet verified.** Next check cross-build `PROVIDER_DEPENDENCY_FILE` output, then investigate missing module build targets and Android-native USB/DBus/HID/LCMS2 support. **v1.0: 31%; owner action: NO.** No Wine execution, APK/phone testing, prior Wine generations, prefixes, games, saves, rootfs, or stable Portal accessed.
+
+
 ## 2026-11-16 — NTOSKRNL/HIDPARSE FILE-PRESENCE CI GATE COMMITTED
 
 [Commit 384d4b2](https://github.com/rgarn023/CharoitePortal/commit/384d4b2202ad242eac538a4fad1e4e6edade25dd) extends the source-only dependency closure JSON (schema 2) with explicit non-symlink, nonempty build-tree candidate file checks for `ntoskrnl.exe` and `hidparse.sys`. The new `PROVIDER_DEPENDENCY_FILE` lines will distinguish absent candidates from present build outputs, **not** prove loader resolution or Android runtime. **Await new CI validation**; next use the evidence to prioritize actual ntoskrnl build closure and Android-native USB/DBus/HID/LCMS2 requirements. **v1.0 remains 31%, four percentage points from 35%. Owner action NO.** No phone, APK, Wine execution, existing generations, prefixes, games, saves, rootfs or stable Portal accessed.

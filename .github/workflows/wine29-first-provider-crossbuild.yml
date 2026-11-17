@@ -245,6 +245,63 @@ jobs:
             stream.write("\n**Full dependency closure, native companions and Android runtime: NOT VERIFIED.**\n")
           print("GITHUB_STEP_SUMMARY=WRITTEN")
           PY
+      - name: Probe three NTOSKRNL dependency PE builds in isolated CI scratch
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BUILD="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-ntoskrnl-dependency-probes"
+          mkdir -p "$OUT"
+          cd "$BUILD"
+          # Only compile PE targets in the new runner scratch. Never execute Wine.
+          for dll in advapi32.dll kernel32.dll msvcrt.dll; do
+            target="dlls/$dll/aarch64-windows/$dll"
+            log="$OUT/$dll-build.log"
+            status=build_failed
+            if timeout 120 make -j2 "$target" > "$log" 2>&1; then
+              status=build_returned_zero
+            else
+              code=$?
+              if test "$code" -eq 124; then status=build_timed_out; fi
+            fi
+            binary="$BUILD/$target"
+            if test "$status" = build_returned_zero; then
+              status=missing_or_invalid_pe
+              if test -f "$binary" && test ! -L "$binary"; then
+                if python3 - "$binary" <<'PYHEADER'
+          import pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1])
+          raw=p.read_bytes()
+          assert 1024<len(raw)<32*1024*1024 and raw[:2]==b'MZ'
+          offset=struct.unpack_from('<I',raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24
+          assert raw[offset:offset+4]==b'PE'+bytes(2)
+          assert struct.unpack_from('<H',raw,offset+4)[0]==0xaa64
+          PYHEADER
+                then
+                  status=arm64_pe_header_verified_not_runtime
+                  "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-exports "$binary" > "$OUT/$dll-exports.txt" 2>&1 || :
+                  tail -c 65536 "$OUT/$dll-exports.txt" > "$OUT/$dll-exports.bounded"
+                  mv "$OUT/$dll-exports.bounded" "$OUT/$dll-exports.txt"
+                fi
+              fi
+            fi
+            printf '%s\n' "$status" > "$OUT/$dll-status.txt"
+            echo "NTOSKRNL_DEPENDENCY_BUILD module=$dll status=$status"
+            if test -f "$log"; then
+              tail -c 65536 "$log" > "$log.bounded"
+              mv "$log.bounded" "$log"
+            fi
+          done
+          echo "NTOSKRNL_DEPENDENCY_RUNTIME_CLOSURE=UNVERIFIED"
+      - name: Publish bounded NTOSKRNL dependency PE build diagnostics (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-NTOSKRNL-Dependency-Probes-NOT-APK
+          path: wine29-ntoskrnl-dependency-probes/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Probe remaining four provider PE build targets without blocking proven batch
         continue-on-error: true
         run: |

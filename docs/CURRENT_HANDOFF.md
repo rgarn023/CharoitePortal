@@ -1,3 +1,7 @@
+## 2026-11-17 04:00 ET — DOWNSTREAM IMPORT INVENTORY PROBE ADDED; CI PENDING
+
+[Commit bde4a33](https://github.com/rgarn023/CharoitePortal/commit/bde4a33e06bdc33141c476760bc5b31a0d242079) adds a bounded, source-only `llvm-readobj --coff-imports` inventory for each available NTOSKRNL dependency PE candidate in the isolated Wine29 cross-build. It records downstream imported DLL names/counts, a 64-KiB tail of readobj evidence, and explicitly sets `transitive_dependency_closure_verified=false`. No Wine execution, APK, device, or user data access. An initial commit 001107e had an accidentally malformed workflow text substitution; bde4a33 restored the complete prior workflow before adding the corrected probe. **New CI validation pending; no downstream imports or transitive closure verified yet.** Prior [Cross-Build #98](https://github.com/rgarn023/CharoitePortal/actions/runs/44028302514) and [Static #118](https://github.com/rgarn023/CharoitePortal/actions/runs/44028302522) remain successful, with 633/633 ordinary NTOSKRNL import names statically matched. Next inspect new cross-build job and artifact, triage downstream imports and forwarders. **v1.0 31%; owner action NO.**
+
 # Charoite Portal — Current Handoff
 
 ## 2026-11-17 03:04 ET — CROSS-BUILD #98 THREE DLLS BUILT AND STATIC EXPORTS MATCHED

@@ -475,9 +475,9 @@ jobs:
                   python3 - "$OUT/$dll-static.log" "$OUT/$dll-symbol-inventory.txt" "$dll" <<'PYSYMBOLS'
           import pathlib,re,sys
           raw=pathlib.Path(sys.argv[1]).read_text(errors="replace")
-          imports=len(re.findall(r"(?m)^\\s*Import \\{",raw))
-          exports=len(re.findall(r"(?m)^\\s*Export \\{",raw))
-          pathlib.Path(sys.argv[2]).write_text(f"module={sys.argv[3]} import_blocks={imports} export_blocks={exports} runtime_unverified=true\\n")
+          imports=len(re.findall(r"(?m)^\s*Import \{",raw))
+          exports=len(re.findall(r"(?m)^\s*Export \{",raw))
+          pathlib.Path(sys.argv[2]).write_text(f"module={sys.argv[3]} import_blocks={imports} export_blocks={exports} runtime_unverified=true\n")
           print(f"NTOSKRNL_NEXT_PROVIDER_SYMBOL_INVENTORY module={sys.argv[3]} import_blocks={imports} export_blocks={exports} closure=unverified")
           PYSYMBOLS
                   tail -c 65536 "$OUT/$dll-static.log" > "$OUT/$dll-static.bounded"

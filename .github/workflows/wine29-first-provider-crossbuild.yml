@@ -409,7 +409,7 @@ jobs:
           for dll in combase gdi32 imm32 iphlpapi ole32 oleaut32 secur32 ucrtbase win32u wininet ws2_32; do
             source=absent
             generated=absent
-            if test -f "$BUILD/dlls/$dll/Makefile.in"; then source=present; fi
+            if test -f "$BUILD/../dlls/$dll/Makefile.in"; then source=present; fi
             if test -f "$BUILD/dlls/$dll/Makefile"; then generated=present; fi
             echo "NTOSKRNL_NEXT_PROVIDER_SOURCE module=$dll.dll source_makefile=$source generated_makefile=$generated"
             printf '%s source=%s generated=%s\\n' "$dll.dll" "$source" "$generated" >> "$OUT/next-provider-target-inventory.txt"

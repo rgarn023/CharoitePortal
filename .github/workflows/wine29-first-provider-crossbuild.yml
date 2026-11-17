@@ -346,6 +346,8 @@ jobs:
                 then
                   status=arm64_pe_header_verified_not_runtime
                   "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-exports --coff-imports "$binary" > "$OUT/$dll-pe-static.txt" 2>&1 || :
+                  # Extract imported DLL names before truncating the raw readobj evidence.
+                  grep -E '^[[:space:]]*Name:.*[.]dll' "$OUT/$dll-pe-static.txt" | sort -u | head -n 100 > "$OUT/$dll-import-names.txt" || :
                   tail -c 65536 "$OUT/$dll-pe-static.txt" > "$OUT/$dll-pe-static.bounded"
                   mv "$OUT/$dll-pe-static.bounded" "$OUT/$dll-pe-static.txt"
                 fi
@@ -366,7 +368,7 @@ jobs:
           # Summarize first-level imported DLL names from bounded llvm-readobj evidence.
           # This is not symbol closure or runtime verification.
           for dll in kernelbase.dll rpcrt4.dll sechost.dll user32.dll; do
-            evidence="$OUT/$dll-pe-static.txt"
+            evidence="$OUT/$dll-import-names.txt"
             if test -f "$evidence" && test ! -L "$evidence"; then
               echo "NTOSKRNL_DOWNSTREAM_IMPORT_SUMMARY_BEGIN module=$dll"
               grep -E '^[[:space:]]*Name:.*\.dll' "$evidence" | sort -u | head -n 80 || :

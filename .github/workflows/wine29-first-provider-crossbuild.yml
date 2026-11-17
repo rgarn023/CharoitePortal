@@ -363,6 +363,498 @@ jobs:
               mv "$log.bounded" "$log"
             fi
           done
+          # First-level dependency inventory for all four newly built PE modules.
+          # llvm-readobj reports DLL names only; symbol/forwarder closure remains unverified.
+          python3 - "$BUILD" "$OUT" "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" <<'PYDOWNSTREAMIMPORTS'
+          import json,pathlib,re,subprocess,sys
+          build,out,reader=map(pathlib.Path,sys.argv[1:])
+          inventory={}
+          for dll in ('kernelbase.dll','rpcrt4.dll','sechost.dll','user32.dll'):
+              pe=build/'dlls'/dll.removesuffix('.dll')/'aarch64-windows'/dll
+              entry={'arm64_pe_present':pe.is_file() and not pe.is_symlink(),
+                     'import_inventory':'unavailable','import_dlls':[],
+                     'symbol_closure_verified':False,'runtime_verified':False}
+              if entry['arm64_pe_present']:
+                  try:
+                      result=subprocess.run([str(reader),'--coff-imports',str(pe)],
+                                            capture_output=True,text=True,timeout=15)
+                      if result.returncode==0:
+                          names=sorted(set(x.lower() for x in re.findall(
+                              r'^\\s*Name:\\s*([^\\s]+\\.dll)\\s*
+      - name: Publish bounded downstream NTOSKRNL PE diagnostics (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-NTOSKRNL-Downstream-PE-Probes-NOT-APK
+          path: wine29-ntoskrnl-downstream-build-probes/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Probe remaining four provider PE build targets without blocking proven batch
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/charoite-first-provider-source"
+          BUILD="$ROOT/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-provider-build-probes"
+          mkdir "$OUT"
+          cd "$BUILD"
+          # Capture generated-target evidence before compiling: wineusb.sys has
+          # a pinned Makefile.in but its aarch64-windows target was not emitted.
+          # This distinguishes configure/feature gating from compiler failures.
+          python3 - "$BUILD" "$OUT" <<'PY'
+          import pathlib,sys,json
+          build=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2])
+          report={}
+          for module in ('mscms.dll','winebth.sys','winebus.sys','wineusb.sys'):
+              source=module.removesuffix('.dll')
+              directory=build/'dlls'/source
+              paths=[directory/'Makefile',directory/'aarch64-windows',directory/'aarch64-windows'/module]
+              report[module]={
+                  'generated_makefile_present':paths[0].is_file(),
+                  'arm64_output_directory_present':paths[1].is_dir(),
+                  'arm64_binary_present_before_probe':paths[2].is_file(),
+                  'configure_or_generation_failure_proven':False,
+              }
+              print('GENERATED_TARGET_INVENTORY',module,json.dumps(report[module],sort_keys=True))
+          (out/'generated-target-inventory.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          PY
+          # Keep bounded, source-only evidence for USB configure gating.
+          # A missing Makefile may be caused by feature detection even when
+          # --without-usb was removed; do not assume the PE target is enabled.
+          python3 - "$ROOT" "$BUILD" "$OUT" <<'PY'
+          import pathlib,sys,json,re
+          root,build,out=map(pathlib.Path,sys.argv[1:])
+          files={'source_makefile':root/'dlls/wineusb.sys/Makefile.in',
+                 'generated_makefile':build/'dlls/wineusb.sys/Makefile',
+                 'configure_log':build/'config.log',
+                 'config_status':build/'config.status'}
+          report={}
+          for label,path in files.items():
+              exists=path.is_file() and not path.is_symlink()
+              matches=[]
+              if exists:
+                  with path.open('r',encoding='utf-8',errors='replace') as stream:
+                      for lineno,line in enumerate(stream,1):
+                          if re.search(r'wineusb|libusb|without.usb|have_usb|usb_1_0',line,re.I):
+                              matches.append(f'{lineno}: {line.rstrip()[:300]}')
+                              if len(matches)>=80:break
+              report[label]={'present':exists,'matched_lines':matches}
+          # Distinguish missing Android libusb headers from a generic missing make rule.
+          log=files['configure_log']
+          if log.is_file() and not log.is_symlink():
+              content=log.read_text(encoding='utf-8',errors='replace')
+              report['usb_dependency_diagnosis']={
+                  'libusb_header_check_failed':bool(re.search(r'checking for libusb\.h\.\.\. no',content)),
+                  'libusb_api_check_failed':bool(re.search(r'libusb_interrupt_event_handler.*(?:no|not found)',content)),
+                  'runtime_compatibility_verified':False}
+          (out/'usb-configure-evidence.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print('WINEUSB_CONFIGURE_EVIDENCE',json.dumps({k:v.get('present',False) for k,v in report.items() if k!='usb_dependency_diagnosis'},sort_keys=True))
+          PY
+          # Attempt the ntoskrnl PE binary independently: the HID linker has
+          # previously used its import library, which does not prove a PE image.
+          # Keep failure nonfatal and log bounded; never execute Wine.
+          NT_TARGET="dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe"
+          NT_LOG="$OUT/ntoskrnl.exe-build.log"
+          NT_STATUS="build_failed"
+          if timeout 180 make -j2 "$NT_TARGET" > "$NT_LOG" 2>&1; then
+            NT_BIN="$BUILD/$NT_TARGET"
+            NT_STATUS="missing_binary"
+            if test -s "$NT_BIN" && test ! -L "$NT_BIN"; then
+              if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-header.txt" 2>&1; then
+                # A successful llvm-readobj invocation alone does not establish
+                # that the file is a real ARM64 PE executable.
+                if python3 - "$NT_BIN" <<'PYPE'
+          import pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1])
+          with p.open('rb') as f:
+              dos=f.read(64)
+              assert len(dos)==64 and dos[:2]==b'MZ'
+              offset=struct.unpack_from('<I',dos,0x3c)[0]
+              assert 64<=offset<p.stat().st_size-24
+              f.seek(offset)
+              pe=f.read(24)
+              assert pe[:4]==b'PE'+bytes(2)
+              assert struct.unpack_from('<H',pe,4)[0]==0xAA64
+          print('NTOSKRNL_ARM64_PE_HEADER=PASS')
+          PYPE
+                then
+                  NT_STATUS="arm64_pe_header_verified_not_runtime"
+                  if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports "$NT_BIN" > "$OUT/ntoskrnl.exe-pe-imports.txt" 2>&1; then
+                    echo "NTOSKRNL_IMPORT_INSPECTION=PASS"
+                    # Import names/counts are diagnostic only; none proves runtime
+                    # availability or symbol resolution on Android.
+                    python3 - "$OUT/ntoskrnl.exe-pe-imports.txt" <<'PYIMPORT'
+          import collections,pathlib,re,sys,json
+          lines=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
+          counts=collections.Counter()
+          symbols=collections.defaultdict(list)
+          current=None
+          for line in lines:
+              match=re.match(r'  Name: ([^ ]+)',line)
+              if match:
+                  current=match.group(1).lower()
+                  counts[current]+=0
+              elif current is not None and line.startswith('  Symbol: '):
+                  counts[current]+=1
+                  raw_symbol=line.split('Symbol: ',1)[1].strip()
+                  # llvm-readobj appends hint/ordinal metadata in parentheses;
+                  # preserve exact PE import names for future export comparison.
+                  symbols[current].append(raw_symbol.rsplit(' (',1)[0] if raw_symbol.endswith(')') and raw_symbol.rsplit(' (',1)[-1][:-1].isdigit() else raw_symbol)
+          assert counts, 'No import DLL names found'
+          summary={'module':'ntoskrnl.exe','import_symbol_counts':dict(sorted(counts.items())),
+                   'import_symbols':{k:sorted(set(v)) for k,v in sorted(symbols.items())},
+                   'total_import_symbols':sum(counts.values()),
+                   'runtime_dependency_closure_verified':False}
+          pathlib.Path(sys.argv[1]).with_name('ntoskrnl.exe-import-summary.json').write_text(
+              json.dumps(summary,indent=2,sort_keys=True)+chr(10))
+          print('NTOSKRNL_IMPORT_SUMMARY='+json.dumps(summary,sort_keys=True))
+          PYIMPORT
+                  # Inspect PE exports of candidate dependencies already present
+                  # in this isolated build. Never execute PE files or imply closure.
+                  python3 - "$OUT/ntoskrnl.exe-import-summary.json" "$BUILD" "$OUT" "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" <<'PYEXPORT'
+          import json,pathlib,subprocess,sys
+          imports=json.loads(pathlib.Path(sys.argv[1]).read_text())
+          build=pathlib.Path(sys.argv[2])
+          out=pathlib.Path(sys.argv[3])
+          readobj=sys.argv[4]
+          result={}
+          for dll in sorted(imports['import_symbol_counts']):
+              candidates=sorted(build.glob('dlls/*/aarch64-windows/'+dll))
+              source_dir=build.parent/'dlls'/dll.removesuffix('.dll')
+              generated_dir=build/'dlls'/dll.removesuffix('.dll')
+              entry={'candidate_count':len(candidates),'export_inspection':'not_available',
+                     'pinned_source_makefile_present':(source_dir/'Makefile.in').is_file(),
+                     'generated_makefile_present':(generated_dir/'Makefile').is_file(),
+                     'required_import_symbol_count':imports['import_symbol_counts'][dll],
+                     'runtime_verified':False}
+              if len(candidates)==1 and candidates[0].is_file() and not candidates[0].is_symlink():
+                  try:
+                      probe=subprocess.run([readobj,'--coff-exports',str(candidates[0])],
+                                           capture_output=True,text=True,timeout=15,check=False)
+                      entry['export_inspection']='pass' if probe.returncode==0 else 'failed'
+                      if probe.returncode==0:
+                          (out/('ntoskrnl-dependency-'+dll+'-exports.txt')).write_text(
+                              probe.stdout[-65536:])
+                          # llvm-readobj COFF exports include one Name field per
+                          # exported symbol. This is a static, PE-only comparison.
+                          import re
+                          exports=set(re.findall(r'^\s+Name:\s+(\S+)',probe.stdout,re.M))
+                          required=set(imports.get('import_symbols',{}).get(dll,[]))
+                          entry['exported_symbol_count']=len(exports)
+                          entry['required_symbol_count']=len(required)
+                          entry['missing_export_symbols']=sorted(required-exports)[:100]
+                          entry['missing_export_symbol_count']=len(required-exports)
+                          entry['static_export_match']=bool(exports) and not (required-exports)
+                          entry['static_export_match_is_not_runtime_verification']=True
+                          # Inspect downstream PE import DLL names without executing Wine.
+                          downstream=subprocess.run(
+                              [readobj,'--coff-imports',str(candidates[0])],
+                              capture_output=True,text=True,timeout=15,check=False)
+                          entry['downstream_import_inspection']=(
+                              'pass' if downstream.returncode==0 else 'failed')
+                          if downstream.returncode==0:
+                              names=sorted(set(re.findall(
+                                  r'^\s+Name:\s+(\S+\.(?:dll|sys|exe))\s*$',
+                                  downstream.stdout,re.M|re.I)))
+                              entry['downstream_import_dlls']=names[:100]
+                              entry['downstream_import_dll_count']=len(names)
+                              print('NTOSKRNL_DOWNSTREAM_IMPORTS='+json.dumps({'module':dll,'inspection':'pass','dll_count':len(names),'dlls':names[:100],'transitive_dependency_closure_verified':False},sort_keys=True))
+                              (out/('ntoskrnl-dependency-'+dll+'-imports.txt')).write_text(
+                                  downstream.stdout[-65536:])
+                          entry['transitive_dependency_closure_verified']=False
+                  except (OSError,subprocess.TimeoutExpired):
+                      entry['export_inspection']='error_or_timeout'
+              result[dll]=entry
+          # Inventory newly discovered downstream DLL build definitions in the
+          # same isolated pinned source/build trees. No PE execution or builds.
+          downstream_targets=('kernelbase.dll','rpcrt4.dll','sechost.dll','user32.dll')
+          downstream_inventory={}
+          for dll in downstream_targets:
+              stem=dll.removesuffix('.dll')
+              source=build.parent/'dlls'/stem/'Makefile.in'
+              generated=build/'dlls'/stem/'Makefile'
+              candidate=build/'dlls'/stem/'aarch64-windows'/dll
+              entry={
+                  'pinned_source_makefile_present':source.is_file() and not source.is_symlink(),
+                  'generated_makefile_present':generated.is_file() and not generated.is_symlink(),
+                  'pe_candidate_file_present':candidate.is_file() and not candidate.is_symlink(),
+                  'static_import_export_closure_verified':False,
+                  'runtime_verified':False}
+              downstream_inventory[dll]=entry
+              print('NTOSKRNL_DOWNSTREAM_SOURCE_INVENTORY='+json.dumps(
+                  {'module':dll,**entry},sort_keys=True))
+          (out/'ntoskrnl-downstream-source-inventory.json').write_text(
+              json.dumps({'modules':downstream_inventory,
+                          'transitive_dependency_closure_verified':False},
+                         indent=2,sort_keys=True)+chr(10))
+          (out/'ntoskrnl-dependency-export-probes.json').write_text(
+              json.dumps({'dependency_probes':result,'symbol_resolution_verified':False,
+                          'runtime_dependency_closure_verified':False},
+                         indent=2,sort_keys=True)+chr(10))
+          print('NTOSKRNL_DEPENDENCY_EXPORT_PROBES='+json.dumps(result,sort_keys=True))
+          PYEXPORT
+                  else
+                    echo "NTOSKRNL_IMPORT_INSPECTION=FAILED_NOT_RUNTIME_VERIFIED"
+                  fi
+                  # Bound raw evidence; an import listing is not proof of closure.
+                  if test -f "$OUT/ntoskrnl.exe-pe-imports.txt"; then
+                    tail -c 65536 "$OUT/ntoskrnl.exe-pe-imports.txt" > "$OUT/ntoskrnl.exe-pe-imports.bounded"
+                    mv "$OUT/ntoskrnl.exe-pe-imports.bounded" "$OUT/ntoskrnl.exe-pe-imports.txt"
+                  fi
+                else
+                  NT_STATUS="invalid_arm64_pe_header"
+                fi
+              else
+                NT_STATUS="invalid_pe_header"
+              fi
+            fi
+          else
+            NT_EXIT_CODE=$?
+          fi
+          # Exit 124 is GNU timeout's expiry code; preserve other build errors.
+          if test "$NT_STATUS" = "build_failed"; then
+            if test "${NT_EXIT_CODE:-0}" -eq 124; then NT_STATUS="build_timed_out"; fi
+          fi
+          printf '%s\n' "$NT_STATUS" > "$OUT/ntoskrnl.exe-status.txt"
+          echo "NTOSKRNL_PE_BUILD_PROBE=$NT_STATUS"
+          # Cap diagnostics to avoid uploading unbounded compiler output.
+          if test -f "$NT_LOG"; then tail -c 65536 "$NT_LOG" > "$NT_LOG.bounded"; mv "$NT_LOG.bounded" "$NT_LOG"; fi
+          # Inspect the generated make database without executing any Wine code.
+          # A missing rule is a build-generation issue, not a PE compiler failure.
+          python3 - "$BUILD" "$OUT" <<'PY'
+          import pathlib,subprocess,sys,json
+          build=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2])
+          result={}
+          for name in ('mscms.dll','winebth.sys','winebus.sys','wineusb.sys'):
+              target=f'dlls/{name.removesuffix(".dll")}/aarch64-windows/{name}'
+              try:
+                  proc=subprocess.run(['make','--no-print-directory','-n',target],cwd=build,
+                                      capture_output=True,text=True,timeout=25)
+                  diagnostic=(proc.stderr+'\n'+proc.stdout)[-8192:]
+                  exit_code=proc.returncode
+                  timed_out=False
+              except subprocess.TimeoutExpired:
+                  diagnostic='Make target dry run exceeded 25 seconds; result inconclusive.\n'
+                  exit_code=None
+                  timed_out=True
+              missing='No rule to make target' in diagnostic
+              result[name]={'target':target,'dry_run_exit_code':exit_code,
+                            'no_rule_reported':missing,'dry_run_success':exit_code==0,
+                            'timed_out':timed_out}
+              (out/(name+'-target-dry-run.txt')).write_text(diagnostic)
+              print('GENERATED_MAKE_TARGET',name,json.dumps(result[name],sort_keys=True))
+          (out/'generated-make-targets.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          PY
+          for module in mscms.dll winebth.sys winebus.sys wineusb.sys; do
+            echo "Probing source-built PE target: $module"
+            LOG="$OUT/$module-build.log"
+            SOURCE_DIR="${module%.dll}"
+            if test ! -f "$ROOT/dlls/$SOURCE_DIR/Makefile.in"; then
+              printf '%s\n' "pinned source Makefile.in absent; no build attempted" > "$LOG"
+              printf '%s\n' "pinned_source_absent" > "$OUT/$module-status.txt"
+              echo "$module: pinned source absent; no build attempted" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            STATUS="build_failed_or_timed_out"
+            if timeout 180 make -j2 "dlls/$SOURCE_DIR/aarch64-windows/$module" > "$LOG" 2>&1; then
+              BIN="$BUILD/dlls/$SOURCE_DIR/aarch64-windows/$module"
+              STATUS="missing_binary_or_invalid_header"
+              if test -s "$BIN" && test ! -L "$BIN"; then
+                if "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers "$BIN" > "$OUT/$module-pe-header.txt" 2>&1; then
+                  if python3 - "$BIN" "$OUT/$module-manifest.json" "$module" <<'PY'
+          import hashlib,json,pathlib,struct,sys
+          binary=pathlib.Path(sys.argv[1]); manifest=pathlib.Path(sys.argv[2]); module=sys.argv[3]
+          raw=binary.read_bytes()
+          assert 1024<len(raw)<32*1024*1024 and raw[:2]==b"MZ"
+          offset=struct.unpack_from("<I",raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24 and raw[offset:offset+4]==b"PE"+bytes(2)
+          assert struct.unpack_from("<H",raw,offset+4)[0]==0xAA64
+          manifest.write_text(json.dumps({
+              "schema_version":1,"module":module,"machine":"0xAA64",
+              "source_commit":"c74acb09d51b447f5d5ac56c87608d3ec565a767",
+              "sha256":hashlib.sha256(raw).hexdigest(),"bytes":len(raw),
+              "pe_compilation_verified":True,
+              "provider_import_closure_verified":False,
+              "native_companion_closure_verified":False,
+              "runtime_compatibility_verified":False,
+              "wine_executed":False,"phone_tested":False},indent=2,sort_keys=True)+chr(10))
+          PY
+                  then
+                    # Record actual PE imports for dependency-closure analysis.
+                    # Import inventory is evidence only, not proof of resolution.
+                    "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" \
+                      --coff-imports "$BIN" \
+                      > "$OUT/$module-pe-imports.txt"
+                    python3 - "$OUT/$module-pe-imports.txt" "$OUT/$module-import-inventory.json" "$module" <<'PYIMPORT'
+          import json,re,sys
+          from pathlib import Path
+          lines=Path(sys.argv[1]).read_text(errors="replace").splitlines()
+          dlls=sorted(set(m.group(1).lower() for line in lines
+              if (m:=re.search(r"^\s*Name:\s*(\S+\.(?:dll|sys|exe))\s*$",line,re.I))))
+          expected={
+              "mscms.dll":{"advapi32.dll","shlwapi.dll"},
+              "winebth.sys":{"ntoskrnl.exe"},
+              "winebus.sys":{"ntoskrnl.exe","hidparse.sys"},
+              "wineusb.sys":{"ntoskrnl.exe"}
+          }
+          module=sys.argv[3]
+          assert module in expected, f"unexpected provider {module}"
+          assert expected[module].issubset(set(dlls)), (
+              f"{module}: missing expected imports {sorted(expected[module]-set(dlls))}")
+          Path(sys.argv[2]).write_text(json.dumps({
+              "schema_version":1,"imported_module_names":dlls,
+              "import_count":len(dlls),"resolution_verified":False,
+              "native_companion_closure_verified":False
+          },indent=2,sort_keys=True)+chr(10))
+          print("PROVIDER_IMPORT_INVENTORY",sys.argv[2],",".join(dlls))
+          PYIMPORT
+                    cp "$BIN" "$OUT/$module-arm64-pe-candidate"
+                    STATUS="arm64_pe_candidate_verified"
+                  fi
+                fi
+              fi
+            fi
+            printf '%s\n' "$STATUS" > "$OUT/$module-status.txt"
+            echo "$module: $STATUS; dependency/native companion/runtime closure NOT verified" >> "$GITHUB_STEP_SUMMARY"
+            echo "PROVIDER_PROBE_RESULT module=$module status=$STATUS"
+            if test "$STATUS" != arm64_pe_candidate_verified && test -f "$LOG"; then
+              echo "PROVIDER_PROBE_DIAGNOSTIC_BEGIN $module"
+              tail -n 16 "$LOG" | cut -c 1-240
+              echo "PROVIDER_PROBE_DIAGNOSTIC_END $module"
+            fi
+            if test -f "$LOG"; then
+              tail -c 65536 "$LOG" > "$LOG.bounded" || :
+              mv "$LOG.bounded" "$LOG"
+            fi
+          done
+      - name: Summarize provider PE dependency closure without executing Wine
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path("wine29-provider-build-probes")
+          if not root.is_dir() or root.is_symlink():
+              print("PROVIDER_CLOSURE_REPORT=UNAVAILABLE; probe directory missing")
+              raise SystemExit(0)
+          modules=("mscms.dll","winebth.sys","winebus.sys","wineusb.sys")
+          batch={"mouhid.sys","hidclass.sys","hidparse.sys","winehid.sys","winexinput.sys"}
+          records={}
+          for module in modules:
+              status_file=root/(module+"-status.txt")
+              inventory_file=root/(module+"-import-inventory.json")
+              status=status_file.read_text().strip() if status_file.is_file() and not status_file.is_symlink() else "missing_status"
+              imports=[]
+              if inventory_file.is_file() and not inventory_file.is_symlink():
+                  imports=json.loads(inventory_file.read_text()).get("imported_module_names",[])
+              assert isinstance(imports,list) and all(isinstance(x,str) for x in imports)
+              if status=="arm64_pe_candidate_verified":
+                  assert imports, f"{module}: verified PE candidate has no dependency inventory"
+              records[module]={
+                  "build_status":status,
+                  "imports":imports,
+                  "candidate_batch_imports":sorted(set(imports)&batch),
+                  "external_imports_unresolved":sorted(set(imports)-batch),
+                  "all_imports_resolved":False,
+                  "android_native_companions_verified":False,
+                  "runtime_compatibility_verified":False,
+              }
+              print("PROVIDER_DEPENDENCY_GATE",module,status,"external="+",".join(records[module]["external_imports_unresolved"]))
+          # Report actual file presence, not loader resolution or ABI compatibility.
+          build=pathlib.Path(__import__("os").environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
+          candidates={
+              "ntoskrnl.exe":build/"dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe",
+              "hidparse.sys":build/"dlls/hidparse.sys/aarch64-windows/hidparse.sys",
+          }
+          dependency_files={}
+          import struct
+          for name,path in candidates.items():
+              present=path.is_file() and not path.is_symlink() and path.stat().st_size>1024
+              arm64_header=False
+              if present:
+                  with path.open("rb") as stream:
+                      header=stream.read(4096)
+                  if len(header)>=64 and header[:2]==b"MZ":
+                      offset=struct.unpack_from("<I",header,0x3c)[0]
+                      if offset+6<=len(header):
+                          arm64_header=(header[offset:offset+4]==b"PE"+bytes(2)
+                                        and struct.unpack_from("<H",header,offset+4)[0]==0xAA64)
+              source_makefile=build.parent/"dlls"/name/"Makefile.in"
+              generated_makefile=build/"dlls"/name/"Makefile"
+              dependency_files[name]={"pinned_source_makefile_present":source_makefile.is_file() and not source_makefile.is_symlink(),
+                                      "generated_makefile_present":generated_makefile.is_file() and not generated_makefile.is_symlink(),
+                                      "pe_candidate_file_present":present,
+                                      "arm64_pe_header_verified":arm64_header,
+                                      "import_resolution_verified":False,
+                                      "runtime_compatibility_verified":False}
+              print("PROVIDER_DEPENDENCY_FILE",name,
+                    "source_makefile="+str(dependency_files[name]["pinned_source_makefile_present"]).lower(),
+                    "generated_makefile="+str(dependency_files[name]["generated_makefile_present"]).lower(),
+                    "present="+str(present).lower(),
+                    "arm64_pe_header="+str(arm64_header).lower())
+          report={"schema_version":2,"source_only":True,"full_provider_closure_verified":False,
+                  "dependency_file_inventory":dependency_files,"modules":records}
+          (root/"provider-dependency-closure.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+          print("PROVIDER_DEPENDENCY_CLOSURE=UNVERIFIED")
+          PY
+      - name: Publish remaining-provider build probe logs (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Remaining-Provider-Build-Probes-NOT-APK
+          path: wine29-provider-build-probes/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Verify five-module evidence set before publishing
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,struct
+          root=pathlib.Path("wine29-first-provider-candidate")
+          names=("mouhid","hidclass","hidparse","winehid","winexinput")
+          assert root.is_dir() and not root.is_symlink()
+          for name in names:
+              binary=root/(name+"-arm64.sys")
+              manifest=root/(name+"-manifest.json")
+              assert binary.is_file() and not binary.is_symlink()
+              assert manifest.is_file() and not manifest.is_symlink()
+              raw=binary.read_bytes()
+              info=json.loads(manifest.read_text())
+              assert 1024<len(raw)<32*1024*1024
+              offset=struct.unpack_from("<I",raw,0x3c)[0]
+              assert raw[:2]==b"MZ" and 64<=offset<len(raw)-24
+              assert raw[offset:offset+4]==b"PE\x00\x00"
+              assert struct.unpack_from("<H",raw,offset+4)[0]==0xaa64
+              assert hashlib.sha256(raw).hexdigest()==info["sha256"]
+              assert info["module"]==name+".sys"
+              assert info["provider_import_closure_verified"] is False
+              assert info["runtime_compatibility_verified"] is False
+              print(f"{name.upper()}_EVIDENCE_INTEGRITY=PASS")
+          closure=json.loads((root/"batch-import-closure.json").read_text())
+          assert closure["full_provider_closure_verified"] is False
+          assert set(closure["module_imports"])=={name+".sys" for name in names}
+          print("FIVE_MODULE_EVIDENCE_SET=PASS; FULL_CLOSURE=UNVERIFIED")
+          PY
+      - name: Publish bounded source-built PE evidence (NOT APK)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-HID-XInput-Five-ARM64-PE-NOT-APK
+          path: wine29-first-provider-candidate/
+          if-no-files-found: error
+          retention-days: 7
+,result.stdout,re.M|re.I)))
+                          entry.update(import_inventory='pass',import_dlls=names[:100])
+                          (out/(dll+'-imports.txt')).write_text(result.stdout[-65536:])
+                      else: entry['import_inventory']='readobj_failed'
+                  except (OSError,subprocess.TimeoutExpired):
+                      entry['import_inventory']='readobj_error_or_timeout'
+              inventory[dll]=entry
+              print('NTOSKRNL_DOWNSTREAM_DLL_IMPORTS='+json.dumps({'module':dll,**entry},sort_keys=True))
+          (out/'downstream-import-inventory.json').write_text(
+              json.dumps({'modules':inventory,'transitive_closure_verified':False},
+                         indent=2,sort_keys=True)+'\\n')
+          PYDOWNSTREAMIMPORTS
           echo "NTOSKRNL_DOWNSTREAM_RUNTIME_CLOSURE=UNVERIFIED"
       - name: Publish bounded downstream NTOSKRNL PE diagnostics (NOT APK)
         if: always()

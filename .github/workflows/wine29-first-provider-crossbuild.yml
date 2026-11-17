@@ -309,6 +309,69 @@ jobs:
           path: wine29-ntoskrnl-dependency-probes/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Probe four downstream NTOSKRNL dependency PE targets in isolated CI
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BUILD="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-ntoskrnl-downstream-build-probes"
+          mkdir -p "$OUT"
+          cd "$BUILD"
+          # Source/generated Makefiles confirmed by #102; no Wine/PE execution.
+          # Independent 90s target limits, capped logs, and no shared user state.
+          for dll in kernelbase.dll rpcrt4.dll sechost.dll user32.dll; do
+            target="dlls/${dll%.dll}/aarch64-windows/$dll"
+            log="$OUT/$dll-build.log"
+            status=build_failed
+            exit_code=0
+            if timeout 90 make -j2 "$target" > "$log" 2>&1; then
+              status=build_returned_zero
+            else
+              exit_code=$?
+              if test "$exit_code" -eq 124; then status=build_timed_out; fi
+            fi
+            binary="$BUILD/$target"
+            if test "$status" = build_returned_zero; then
+              status=missing_or_invalid_arm64_pe
+              if test -f "$binary" && test ! -L "$binary"; then
+                if python3 - "$binary" <<'PYDOWNSTREAM'
+          import pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1]); raw=p.read_bytes()
+          assert 1024<len(raw)<64*1024*1024 and raw[:2]==b'MZ'
+          offset=struct.unpack_from('<I',raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24
+          assert raw[offset:offset+4]==b'PE'+bytes(2)
+          assert struct.unpack_from('<H',raw,offset+4)[0]==0xaa64
+          PYDOWNSTREAM
+                then
+                  status=arm64_pe_header_verified_not_runtime
+                  "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-exports --coff-imports "$binary" > "$OUT/$dll-pe-static.txt" 2>&1 || :
+                  tail -c 65536 "$OUT/$dll-pe-static.txt" > "$OUT/$dll-pe-static.bounded"
+                  mv "$OUT/$dll-pe-static.bounded" "$OUT/$dll-pe-static.txt"
+                fi
+              fi
+            fi
+            printf '%s\n' "$status" > "$OUT/$dll-status.txt"
+            echo "NTOSKRNL_DOWNSTREAM_BUILD module=$dll status=$status exit_code=$exit_code"
+            if test "$status" != arm64_pe_header_verified_not_runtime && test -f "$log"; then
+              echo "NTOSKRNL_DOWNSTREAM_DIAGNOSTIC_BEGIN module=$dll"
+              tail -n 10 "$log" | cut -c 1-240
+              echo "NTOSKRNL_DOWNSTREAM_DIAGNOSTIC_END module=$dll"
+            fi
+            if test -f "$log"; then
+              tail -c 65536 "$log" > "$log.bounded"
+              mv "$log.bounded" "$log"
+            fi
+          done
+          echo "NTOSKRNL_DOWNSTREAM_RUNTIME_CLOSURE=UNVERIFIED"
+      - name: Publish bounded downstream NTOSKRNL PE diagnostics (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-NTOSKRNL-Downstream-PE-Probes-NOT-APK
+          path: wine29-ntoskrnl-downstream-build-probes/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Probe remaining four provider PE build targets without blocking proven batch
         continue-on-error: true
         run: |

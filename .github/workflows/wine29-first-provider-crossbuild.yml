@@ -423,6 +423,12 @@ jobs:
           OUT="$GITHUB_WORKSPACE/wine29-ntoskrnl-next-provider-build-probes"
           mkdir -p "$OUT"
           cd "$BUILD"
+          # Inspect the pinned Wine source at the known oleaut32 ARM64EC assembler failure.
+          # Read-only CI diagnostics; do not patch or execute Wine binaries.
+          if test -f "$BUILD/../dlls/oleaut32/vartype.c"; then
+            echo "NTOSKRNL_OLEAUT32_SOURCE_DIAGNOSTIC lines=3485-3530"
+            sed -n '3485,3530p' "$BUILD/../dlls/oleaut32/vartype.c" | cut -c 1-180
+          fi
           for dll in ucrtbase.dll win32u.dll combase.dll gdi32.dll imm32.dll iphlpapi.dll ole32.dll oleaut32.dll secur32.dll wininet.dll ws2_32.dll; do
             target="dlls/${dll%.dll}/aarch64-windows/$dll"
             log="$OUT/$dll-build.log"

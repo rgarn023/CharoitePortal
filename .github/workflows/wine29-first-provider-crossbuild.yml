@@ -376,7 +376,12 @@ jobs:
           result={}
           for dll in sorted(imports['import_symbol_counts']):
               candidates=sorted(build.glob('dlls/*/aarch64-windows/'+dll))
+              source_dir=build.parent/'dlls'/dll.removesuffix('.dll')
+              generated_dir=build/'dlls'/dll.removesuffix('.dll')
               entry={'candidate_count':len(candidates),'export_inspection':'not_available',
+                     'pinned_source_makefile_present':(source_dir/'Makefile.in').is_file(),
+                     'generated_makefile_present':(generated_dir/'Makefile').is_file(),
+                     'required_import_symbol_count':imports['import_symbol_counts'][dll],
                      'runtime_verified':False}
               if len(candidates)==1 and candidates[0].is_file() and not candidates[0].is_symlink():
                   try:

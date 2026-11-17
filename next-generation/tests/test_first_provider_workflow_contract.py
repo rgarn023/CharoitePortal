@@ -109,7 +109,7 @@ class FirstProviderWorkflowContract(unittest.TestCase):
         self.assertIn("Name:", source)
         for indent in ("  ", "    "):
             sample = "Export {\n" + indent + "Name: ExampleExport\n}"
-            self.assertEqual(re.findall(r"^\\s+Name:\\s+(\\S+)", sample, re.M),
+            self.assertEqual(re.findall(r"^\s+Name:\s+(\S+)", sample, re.M),
                              ["ExampleExport"])
         self.assertIn("entry['missing_export_symbol_count']", source)
         self.assertIn("sorted(required-exports)[:100]", source)

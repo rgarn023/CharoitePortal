@@ -377,6 +377,27 @@ jobs:
               echo "NTOSKRNL_DOWNSTREAM_IMPORT_SUMMARY_UNAVAILABLE module=$dll"
             fi
           done
+          # CI-only audit: identify imported DLL providers absent from the eight
+          # PE candidates compiled in this isolated workflow. Not a symbol audit.
+          python3 - "$OUT" <<'PYPROVIDERAUDIT'
+          import pathlib,re,sys
+          out=pathlib.Path(sys.argv[1])
+          built={'advapi32.dll','kernel32.dll','msvcrt.dll','ntdll.dll',
+                 'kernelbase.dll','rpcrt4.dll','sechost.dll','user32.dll'}
+          imported=set()
+          for dll in ('kernelbase.dll','rpcrt4.dll','sechost.dll','user32.dll'):
+              p=out/(dll+'-import-names.txt')
+              if not p.is_file() or p.is_symlink():
+                  print('NTOSKRNL_PROVIDER_AUDIT_INCOMPLETE module='+dll)
+                  continue
+              names=set(re.findall(r'Name:\s*([^\s]+[.]dll)',p.read_text(),re.I))
+              imported.update(name.lower() for name in names)
+              print('NTOSKRNL_PROVIDER_IMPORT_COUNT module='+dll+' count='+str(len(names)))
+          missing=sorted(imported-built)
+          print('NTOSKRNL_PROVIDER_NOT_IN_EIGHT='+','.join(missing))
+          print('NTOSKRNL_PROVIDER_AUDIT_STATIC_ONLY=TRUE')
+          (out/'unbuilt-imported-dll-providers.txt').write_text('\n'.join(missing)+'\n')
+          PYPROVIDERAUDIT
           echo "NTOSKRNL_DOWNSTREAM_RUNTIME_CLOSURE=UNVERIFIED"
       - name: Publish bounded downstream NTOSKRNL PE diagnostics (NOT APK)
         if: always()

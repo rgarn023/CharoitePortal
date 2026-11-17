@@ -255,7 +255,9 @@ jobs:
           cd "$BUILD"
           # Only compile PE targets in the new runner scratch. Never execute Wine.
           for dll in advapi32.dll kernel32.dll msvcrt.dll; do
-            target="dlls/$dll/aarch64-windows/$dll"
+            source_dir="${dll%.dll}"
+            target="dlls/$source_dir/aarch64-windows/$dll"
+            echo "NTOSKRNL_DEPENDENCY_TARGET module=$dll target=$target"
             log="$OUT/$dll-build.log"
             status=build_failed
             if timeout 120 make -j2 "$target" > "$log" 2>&1; then
@@ -288,6 +290,11 @@ jobs:
             fi
             printf '%s\n' "$status" > "$OUT/$dll-status.txt"
             echo "NTOSKRNL_DEPENDENCY_BUILD module=$dll status=$status"
+            if test "$status" != arm64_pe_header_verified_not_runtime && test -f "$log"; then
+              echo "NTOSKRNL_DEPENDENCY_DIAGNOSTIC_BEGIN module=$dll"
+              tail -n 12 "$log" | cut -c 1-240
+              echo "NTOSKRNL_DEPENDENCY_DIAGNOSTIC_END module=$dll"
+            fi
             if test -f "$log"; then
               tail -c 65536 "$log" > "$log.bounded"
               mv "$log.bounded" "$log"

@@ -415,6 +415,64 @@ jobs:
             printf '%s source=%s generated=%s\\n' "$dll.dll" "$source" "$generated" >> "$OUT/next-provider-target-inventory.txt"
           done
           echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"
+      - name: Probe two next-level provider ARM64 PE builds (CI only)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BUILD="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          OUT="$GITHUB_WORKSPACE/wine29-ntoskrnl-next-provider-build-probes"
+          mkdir -p "$OUT"
+          cd "$BUILD"
+          for dll in ucrtbase.dll win32u.dll; do
+            target="dlls/${dll%.dll}/aarch64-windows/$dll"
+            log="$OUT/$dll-build.log"
+            status=build_failed
+            exit_code=0
+            if timeout 90 make -j2 "$target" > "$log" 2>&1; then
+              status=build_returned_zero
+            else
+              exit_code=$?
+              if test "$exit_code" -eq 124; then status=build_timed_out; fi
+            fi
+            binary="$BUILD/$target"
+            if test "$status" = build_returned_zero; then
+              status=missing_or_invalid_arm64_pe
+              if test -f "$binary" && test ! -L "$binary"; then
+                if python3 - "$binary" <<'PYNEXTPROVIDER'
+          import pathlib,struct,sys
+          raw=pathlib.Path(sys.argv[1]).read_bytes()
+          assert 1024<len(raw)<64*1024*1024 and raw[:2]==b'MZ'
+          offset=struct.unpack_from('<I',raw,0x3c)[0]
+          assert 64<=offset<len(raw)-24
+          assert raw[offset:offset+4]==b'PE'+bytes(2)
+          assert struct.unpack_from('<H',raw,offset+4)[0]==0xaa64
+          PYNEXTPROVIDER
+                then
+                  status=arm64_pe_header_verified_not_runtime
+                  "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --coff-imports --coff-exports "$binary" > "$OUT/$dll-static.log" 2>&1 || :
+                  grep -E '^[[:space:]]*Name:.*[.]dll' "$OUT/$dll-static.log" | sort -u | head -n 100 > "$OUT/$dll-import-names.txt" || :
+                  tail -c 65536 "$OUT/$dll-static.log" > "$OUT/$dll-static.bounded"
+                  mv "$OUT/$dll-static.bounded" "$OUT/$dll-static.log"
+                fi
+              fi
+            fi
+            echo "NTOSKRNL_NEXT_PROVIDER_BUILD module=$dll status=$status exit_code=$exit_code"
+            printf '%s\n' "$status" > "$OUT/$dll-status.txt"
+            if test -f "$log"; then
+              if test "$status" != arm64_pe_header_verified_not_runtime; then tail -n 8 "$log" | cut -c 1-200; fi
+              tail -c 65536 "$log" > "$log.bounded"
+              mv "$log.bounded" "$log"
+            fi
+          done
+          echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"
+      - name: Publish bounded next-level provider build probes (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-NTOSKRNL-Next-Provider-PE-Probes-NOT-APK
+          path: wine29-ntoskrnl-next-provider-build-probes/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Publish bounded downstream NTOSKRNL PE diagnostics (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4

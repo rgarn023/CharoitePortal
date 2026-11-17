@@ -478,6 +478,7 @@ jobs:
                                   downstream.stdout,re.M|re.I)))
                               entry['downstream_import_dlls']=names[:100]
                               entry['downstream_import_dll_count']=len(names)
+                              print('NTOSKRNL_DOWNSTREAM_IMPORTS='+json.dumps({'module':dll,'inspection':'pass','dll_count':len(names),'dlls':names[:100],'transitive_dependency_closure_verified':False},sort_keys=True))
                               (out/('ntoskrnl-dependency-'+dll+'-imports.txt')).write_text(
                                   downstream.stdout[-65536:])
                           entry['transitive_dependency_closure_verified']=False

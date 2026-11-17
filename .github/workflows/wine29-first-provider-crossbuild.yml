@@ -423,7 +423,7 @@ jobs:
           OUT="$GITHUB_WORKSPACE/wine29-ntoskrnl-next-provider-build-probes"
           mkdir -p "$OUT"
           cd "$BUILD"
-          for dll in ucrtbase.dll win32u.dll; do
+          for dll in ucrtbase.dll win32u.dll combase.dll gdi32.dll; do
             target="dlls/${dll%.dll}/aarch64-windows/$dll"
             log="$OUT/$dll-build.log"
             status=build_failed

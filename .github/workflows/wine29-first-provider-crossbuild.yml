@@ -415,7 +415,7 @@ jobs:
             printf '%s source=%s generated=%s\\n' "$dll.dll" "$source" "$generated" >> "$OUT/next-provider-target-inventory.txt"
           done
           echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"
-      - name: Probe two next-level provider ARM64 PE builds (CI only)
+      - name: Probe next-level provider ARM64 PE builds (CI only)
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -459,7 +459,12 @@ jobs:
             echo "NTOSKRNL_NEXT_PROVIDER_BUILD module=$dll status=$status exit_code=$exit_code"
             printf '%s\n' "$status" > "$OUT/$dll-status.txt"
             if test -f "$log"; then
-              if test "$status" != arm64_pe_header_verified_not_runtime; then tail -n 8 "$log" | cut -c 1-200; fi
+              if test "$status" != arm64_pe_header_verified_not_runtime; then
+                grep -m 12 -E "error:|fatal error:|Error [0-9]+|unknown instruction" "$log" | cut -c 1-200 > "$OUT/$dll-first-errors.txt" || :
+                echo "NTOSKRNL_NEXT_PROVIDER_FAILURE_DIAGNOSTICS module=$dll"
+                cat "$OUT/$dll-first-errors.txt"
+                tail -n 8 "$log" | cut -c 1-200
+              fi
               tail -c 65536 "$log" > "$log.bounded"
               mv "$log.bounded" "$log"
             fi

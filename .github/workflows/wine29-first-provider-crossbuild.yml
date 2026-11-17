@@ -485,6 +485,28 @@ jobs:
                   except (OSError,subprocess.TimeoutExpired):
                       entry['export_inspection']='error_or_timeout'
               result[dll]=entry
+          # Inventory newly discovered downstream DLL build definitions in the
+          # same isolated pinned source/build trees. No PE execution or builds.
+          downstream_targets=('kernelbase.dll','rpcrt4.dll','sechost.dll','user32.dll')
+          downstream_inventory={}
+          for dll in downstream_targets:
+              stem=dll.removesuffix('.dll')
+              source=build.parent/'dlls'/stem/'Makefile.in'
+              generated=build/'dlls'/stem/'Makefile'
+              candidate=build/'dlls'/stem/'aarch64-windows'/dll
+              entry={
+                  'pinned_source_makefile_present':source.is_file() and not source.is_symlink(),
+                  'generated_makefile_present':generated.is_file() and not generated.is_symlink(),
+                  'pe_candidate_file_present':candidate.is_file() and not candidate.is_symlink(),
+                  'static_import_export_closure_verified':False,
+                  'runtime_verified':False}
+              downstream_inventory[dll]=entry
+              print('NTOSKRNL_DOWNSTREAM_SOURCE_INVENTORY='+json.dumps(
+                  {'module':dll,**entry},sort_keys=True))
+          (out/'ntoskrnl-downstream-source-inventory.json').write_text(
+              json.dumps({'modules':downstream_inventory,
+                          'transitive_dependency_closure_verified':False},
+                         indent=2,sort_keys=True)+chr(10))
           (out/'ntoskrnl-dependency-export-probes.json').write_text(
               json.dumps({'dependency_probes':result,'symbol_resolution_verified':False,
                           'runtime_dependency_closure_verified':False},

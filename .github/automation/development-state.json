@@ -1,27 +1,19 @@
 {
   "version": 1,
-  "owner": "hourly-20261118T2156Z-crossbuild146",
-  "claimed_run_id": 44398588547,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
-    44397034408
+    44397034408,
+    44398588547
   ],
   "last_result": {
-    "run_id": 44397034408,
+    "run_id": 44398588547,
     "result": "success",
-    "verification": "542/542 matching names and zero LLVM forwarder fields, validated against six artifact JSON files",
-    "next": "Verify PE export-address-table inventories"
+    "verification": "Cross-build #146 actual job log: PE export-address-table forwarders kernel32=99 user32=4 ntdll=0 kernelbase=94 advapi32=31 rpcrt4=0; target resolution and runtime unverified; PE diagnostic artifact published",
+    "next": "Resolve forwarded target DLL/symbol/ordinal and transitive dependency closure in next eligible engineering batch"
   },
   "event_batch_utc": "2026-11-18T19",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44397034408,
-    "branch": "automation/wine29-pe-forwarder-rva-145",
-    "pr_number": 12,
-    "head_sha": "656103ba98636dba40bc880d0b5ed94a9fb26551",
-    "target_branch": "main",
-    "next": "Verify direct PE forwarder inventories",
-    "merged_main_sha": "1beeaedc3ddba20f9107f753d2fa719d52a9550e"
-  }
+  "pending_validation": null
 }

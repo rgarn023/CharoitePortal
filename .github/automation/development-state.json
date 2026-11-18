@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261118T23-9e73",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -14,6 +14,6 @@
     "verification": "Cross-build #146 actual job log: PE export-address-table forwarders kernel32=99 user32=4 ntdll=0 kernelbase=94 advapi32=31 rpcrt4=0; target resolution and runtime unverified; PE diagnostic artifact published",
     "next": "Resolve forwarded target DLL/symbol/ordinal and transitive dependency closure in next eligible engineering batch"
   },
-  "event_batch_utc": "2026-11-18T19",
+  "event_batch_utc": "2026-11-18T23",
   "pending_validation": null
 }

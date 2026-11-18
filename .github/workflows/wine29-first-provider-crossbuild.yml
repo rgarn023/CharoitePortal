@@ -627,12 +627,21 @@ jobs:
           build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
           for item in ranking:
               provider=item["provider"]
-              candidate=build/"dlls"/provider/"aarch64-windows"/provider
+              module_stem=provider.rsplit(".",1)[0]
+              source_makefile=build.parent/"dlls"/module_stem/"Makefile.in"
+              generated_makefile=build/"dlls"/module_stem/"Makefile"
+              candidate=build/"dlls"/module_stem/"aarch64-windows"/provider
               exists=candidate.is_file() and not candidate.is_symlink()
+              source_present=source_makefile.is_file() and not source_makefile.is_symlink()
+              generated_present=generated_makefile.is_file() and not generated_makefile.is_symlink()
+              item["pinned_source_makefile_present"]=source_present
+              item["generated_makefile_present"]=generated_present
               item["pinned_build_pe_candidate_present"]=exists
               item["export_names_verified"]=False
               item["import_resolution_verified"]=False
               print("NTOSKRNL_EXTERNAL_CANDIDATE provider="+provider+
+                    " source_makefile="+str(source_present).lower()+
+                    " generated_makefile="+str(generated_present).lower()+
                     " candidate_present="+str(exists).lower()+
                     " imported_symbols="+str(item["imported_symbols"])+
                     " closure=unverified")

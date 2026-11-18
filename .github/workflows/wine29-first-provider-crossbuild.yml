@@ -486,6 +486,7 @@ jobs:
           import json
           blocks=re.findall(r"(?ms)^\s*(Import|Export) \{(.*?)^\s*\}",raw)
           import_names=set()
+          imports_by_dll={}
           export_names=set()
           # Bounded structural evidence for the llvm-readobj import format;
           # zero imported symbols must not be misreported as resolved imports.
@@ -496,15 +497,21 @@ jobs:
               symbols=re.findall(r"(?m)^\s*Symbol:\s*(\S+)(?:\s+\(\d+\))?\s*$",body)
               if kind=="Import":
                   import_names.update(symbols)
+                  assert len(names)==1, f"{sys.argv[3]}: ambiguous imported provider name {names}"
+                  provider=names[0].lower()
+                  imports_by_dll.setdefault(provider,set()).update(symbols)
                   if len(import_samples)<3:
                       import_samples.append([line.strip()[:180] for line in body.splitlines()[:12]])
               else:
                   export_names.update(names)
           assert export_names, f"{sys.argv[3]}: no export names extracted from nonempty COFF blocks"
           assert import_names, f"{sys.argv[3]}: no import names extracted from nonempty COFF blocks"
+          assert imports_by_dll and all(imports_by_dll.values()), f"{sys.argv[3]}: missing per-provider imports"
           evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
                     "export_names":sorted(export_names)[:10000],
                     "import_symbol_count":len(import_names),
+                    "imports_by_dll":{key:sorted(value) for key,value in sorted(imports_by_dll.items())},
+                    "import_provider_count":len(imports_by_dll),
                     "import_block_samples":import_samples,
                     "export_name_count":len(export_names),
                     "provider_resolution_verified":False,"forwarder_resolution_verified":False,

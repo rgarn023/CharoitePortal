@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261118T19-automation-turn10",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -13,5 +13,13 @@
     "next": "resolve forwarded targets for the six compiled providers"
   },
   "event_batch_utc": "2026-11-18T19",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "awaiting_pr_checks",
+    "source_run_id": 44350971931,
+    "branch": "automation/wine29-forwarder-inventory-20261118-19",
+    "pr_number": 11,
+    "head_sha": "7ca597430bf2ed633cda177836e4ae62ebecc5e2",
+    "target_branch": "main",
+    "next": "Review PR #11 checks and bounded forwarder audit; merge only after validation"
+  }
 }

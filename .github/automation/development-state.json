@@ -1,7 +1,15 @@
 {
   "version": 1,
-  "owner": "hourly-20261118T135916Z-run143",
-  "claimed_run_id": 44310229156,
-  "processed_run_ids": [],
-  "last_result": null
+  "owner": null,
+  "claimed_run_id": null,
+  "processed_run_ids": [
+    44310229156
+  ],
+  "last_result": {
+    "run_id": 44310229156,
+    "result": "success",
+    "engineering_commit": "26f530e5d50e4114838e8398ce1115f0e512c4bf",
+    "validation": "pending",
+    "note": "six export inventories verified; exact-name comparison on coordination branch"
+  }
 }

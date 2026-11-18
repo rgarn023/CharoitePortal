@@ -608,6 +608,24 @@ jobs:
                     " missing_symbols="+str(sum(v["missing_count"] for v in matches.values()))+
                     " external_providers="+str(len(external))+" closure=unverified")
           (root/"next-provider-internal-symbol-comparison.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          # Rank external imports by provider without claiming export/ABI closure.
+          external_totals={}
+          external_consumers={}
+          for consumer,entry in report.items():
+              for provider,count in entry["external_provider_import_counts"].items():
+                  external_totals[provider]=external_totals.get(provider,0)+count
+                  external_consumers.setdefault(provider,[]).append(consumer)
+          ranking=[{"provider":provider,"imported_symbols":count,
+                    "consumer_count":len(external_consumers[provider]),
+                    "consumers":sorted(external_consumers[provider])}
+                   for provider,count in sorted(external_totals.items(),key=lambda pair:(-pair[1],pair[0]))]
+          (root/"next-provider-external-dependency-ranking.json").write_text(
+              json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
+                          "runtime_verified":False},indent=2,sort_keys=True)+"\\n")
+          for item in ranking[:12]:
+              print("NTOSKRNL_EXTERNAL_PRIORITY provider="+item["provider"]+
+                    " imported_symbols="+str(item["imported_symbols"])+
+                    " consumers="+str(item["consumer_count"])+" closure=unverified")
           print("NTOSKRNL_INTERNAL_MATCH_REPORT=GENERATED; FULL_CLOSURE=UNVERIFIED")
           PYINTERNALMATCH
           echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"

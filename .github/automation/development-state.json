@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261118T23-9e73",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -15,5 +15,14 @@
     "next": "Resolve forwarded target DLL/symbol/ordinal and transitive dependency closure in next eligible engineering batch"
   },
   "event_batch_utc": "2026-11-18T23",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "awaiting_pr_checks",
+    "pr_number": 13,
+    "branch": "engineering/wine29-forwarder-target-audit-20261118",
+    "head_sha": "40d03764f6582b462c5742c377c8bb6fd84c0ea9",
+    "source_run_id": 44398588547,
+    "source_run_already_processed": true,
+    "description": "CI-only forwarder destination syntax and candidate presence; review checks and exact diff before merge",
+    "merged_main_sha": null
+  }
 }

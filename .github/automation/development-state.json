@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "manual-cadence-repair-20261118-7245db29",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156
@@ -11,5 +11,6 @@
     "engineering_commit": "26f530e5d50e4114838e8398ce1115f0e512c4bf",
     "validation": "pending",
     "note": "six export inventories verified; exact-name comparison on coordination branch"
-  }
+  },
+  "active_work": "Resume outstanding validation of 26f530e on a separate engineering PR and repair the completion bridge."
 }

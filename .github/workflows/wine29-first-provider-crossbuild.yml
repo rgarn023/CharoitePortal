@@ -596,9 +596,15 @@ jobs:
                                      "missing_count":len(missing),"missing_names":missing[:50],
                                      "forwarders_checked":False,"runtime_verified":False}
               report[name]={"internal_provider_comparisons":matches,"external_provider_import_counts":external,
+                            "internal_required_symbols":sum(v["required"] for v in matches.values()),
+                            "internal_matched_symbols":sum(v["matched"] for v in matches.values()),
+                            "external_required_symbols":sum(external.values()),
                             "complete_dependency_closure_verified":False,"forwarder_resolution_verified":False,
                             "runtime_verified":False}
               print("NTOSKRNL_INTERNAL_MATCH module="+name+" internal="+str(len(matches))+
+                    " internal_matched_symbols="+str(sum(v["matched"] for v in matches.values()))+
+                    " internal_required_symbols="+str(sum(v["required"] for v in matches.values()))+
+                    " external_required_symbols="+str(sum(external.values()))+
                     " missing_symbols="+str(sum(v["missing_count"] for v in matches.values()))+
                     " external_providers="+str(len(external))+" closure=unverified")
           (root/"next-provider-internal-symbol-comparison.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")

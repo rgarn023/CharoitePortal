@@ -622,6 +622,62 @@ jobs:
           (root/"next-provider-external-dependency-ranking.json").write_text(
               json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
                           "runtime_verified":False},indent=2,sort_keys=True)+"\n")
+          def pe_forwarders(data):
+              import struct
+              pe, = struct.unpack_from("<I", data, 0x3c)
+              if data[:2] != b"MZ" or data[pe:pe+4] != b"PE\0\0":
+                  raise ValueError("Invalid PE signature")
+              count, = struct.unpack_from("<H", data, pe+6)
+              opt_size, = struct.unpack_from("<H", data, pe+20)
+              opt = pe+24
+              magic, = struct.unpack_from("<H", data, opt)
+              if magic != 0x20b or opt_size < 120:
+                  raise ValueError("Expected PE32+ with export directory")
+              exports, size = struct.unpack_from("<II", data, opt+112)
+              if not exports or size < 40:
+                  raise ValueError("Missing export directory")
+              sections = [struct.unpack_from("<III", data, opt+opt_size+40*i+12)
+                          for i in range(count)]
+          
+              def window(rva, length):
+                  for va, raw_size, raw_off in sections:
+                      delta = rva-va
+                      if 0 <= delta < raw_size and length <= raw_size-delta:
+                          off = raw_off+delta
+                          end = min(len(data), raw_off+raw_size)
+                          if off+length <= end:
+                              return off, end
+                  raise ValueError(f"Export RVA {rva:#x} has no backing bytes")
+          
+              def table(rva, fmt, count):
+                  off, _ = window(rva, struct.calcsize(fmt)*count)
+                  return struct.unpack_from(f"<{count}{fmt}", data, off)
+          
+              def string(rva, limit=None):
+                  off, end = window(rva, 1)
+                  if limit is not None:
+                      end = min(end, off+limit)
+                  stop = data.find(b"\0", off, min(end, off+4096))
+                  if stop < 0:
+                      raise ValueError("Unterminated export string")
+                  return data[off:stop].decode("ascii")
+          
+              directory, _ = window(exports, 40)
+              base, functions, names, slots, pointers, ordinals = struct.unpack_from(
+                  "<6I", data, directory+16)
+              addresses = table(slots, "I", functions)
+              forwarded = {i: {"ordinal": base+i, "names": [],
+                               "target": string(rva, exports+size-rva)}
+                           for i, rva in enumerate(addresses)
+                           if rva and exports <= rva < exports+size}
+              if names:
+                  for index, pointer in zip(table(ordinals, "H", names), table(pointers, "I", names)):
+                      if index >= functions:
+                          raise ValueError("Export name ordinal outside address table")
+                      if index in forwarded:
+                          forwarded[index]["names"].append(string(pointer))
+              return list(forwarded.values())
+
           # Source-tree presence is a prioritization aid only; it is NOT PE export closure.
           import os
           build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
@@ -650,15 +706,7 @@ jobs:
                   export_names=set()
                   for block in export_blocks:
                       export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
-                  # Capture forwarder fields without treating names as runtime closure.
-                  forwarder_entries=[]
-                  for block in export_blocks:
-                      name_match=re.search(r"(?m)^\s*Name:\s*(\S+)\s*$",block)
-                      forwarder_match=re.search(r"(?mi)^\s*(?:Forwarder|ForwarderName):\s*(\S+)\s*$",block)
-                      if forwarder_match:
-                          forwarder_entries.append({
-                              "name":name_match.group(1) if name_match else None,
-                              "target":forwarder_match.group(1)})
+                  forwarder_entries = pe_forwarders(candidate.read_bytes())
                   item["forwarder_entries_detected"]=len(forwarder_entries)
                   item["forwarder_target_resolution_verified"]=False
                   (root/("external-"+provider+"-forwarders.json")).write_text(
@@ -667,7 +715,7 @@ jobs:
                                   "detected_count":len(forwarder_entries),
                                   "truncated":len(forwarder_entries)>100,
                                   "target_resolution_verified":False,
-                                  "no_detected_fields_does_not_prove_no_forwarders":True},
+                                  "method":"pe_export_directory_rva"},
                                  sort_keys=True,indent=2)+"\n")
                   print(f"NTOSKRNL_EXTERNAL_FORWARDER_AUDIT provider={provider}"
                         f" detected={len(forwarder_entries)} resolution=unverified")

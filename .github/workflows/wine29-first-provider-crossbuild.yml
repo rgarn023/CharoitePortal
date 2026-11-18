@@ -484,17 +484,17 @@ jobs:
           # Extract bounded symbol-name evidence for the next provider matching
           # stage. Import/export blocks are not equivalent to resolved imports.
           import json
-          blocks=re.findall(r"(?ms)^\\s*(Import|Export) \\{(.*?)^\\s*\\}",raw)
+          blocks=re.findall(r"(?ms)^\s*(Import|Export) \{(.*?)^\s*\}",raw)
           import_names=set()
           export_names=set()
           for kind,body in blocks:
-              names=re.findall(r"(?m)^\\s*Name:\\s*(\\S+)\\s*$",body)
-              symbols=re.findall(r"(?m)^\\s*Symbol:\\s*(\\S+)\\s*$",body)
+              names=re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",body)
+              symbols=re.findall(r"(?m)^\s*Symbol:\s*(\S+)\s*$",body)
               if kind=="Import":
                   import_names.update(symbols)
               else:
                   export_names.update(names)
-          evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
+          assert export_names, f"{sys.argv[3]}: no export names extracted from nonempty COFF blocks"\n          evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
                     "export_names":sorted(export_names)[:10000],
                     "import_symbol_count":len(import_names),
                     "export_name_count":len(export_names),

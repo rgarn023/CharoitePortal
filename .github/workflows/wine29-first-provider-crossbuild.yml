@@ -541,7 +541,7 @@ jobs:
                     "provider_resolution_verified":False,"forwarder_resolution_verified":False,
                     "runtime_verified":False}
           pathlib.Path(sys.argv[2]).with_suffix(".json").write_text(
-              json.dumps(evidence,sort_keys=True,indent=2)+"\\n")
+              json.dumps(evidence,sort_keys=True,indent=2)+"\n")
           print(f"NTOSKRNL_NEXT_PROVIDER_NAME_EVIDENCE module={sys.argv[3]} import_symbols={len(import_names)} export_names={len(export_names)} closure=unverified")
           print("NTOSKRNL_NEXT_PROVIDER_IMPORT_STRUCTURE module="+sys.argv[3]+" sample="+json.dumps(import_samples,separators=(",",":")))
           print("NTOSKRNL_NEXT_PROVIDER_ATTRIBUTION module="+sys.argv[3]+" providers="+",".join(sorted(imports_by_dll))+" unknown_symbols="+str(len(imports_by_dll.get("__unknown_provider__",set())))+" complete="+str("__unknown_provider__" not in imports_by_dll).lower())

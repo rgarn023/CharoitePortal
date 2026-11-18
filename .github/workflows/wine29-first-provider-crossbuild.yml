@@ -493,6 +493,8 @@ jobs:
           import_samples=[]
           unknown_import_samples=[]
           unknown_import_context=[]
+          # Track named DelayImport parent boundaries for unnamed nested Import records.
+          delay_headers=list(re.finditer(r"(?m)^\s*DelayImport \{\s*$",raw))
           for match in blocks:
               kind,body=match.group(1),match.group(2)
               names=re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",body)
@@ -504,6 +506,16 @@ jobs:
                   # Preserve unresolved evidence rather than failing the nonblocking probe.
                   provider_match=re.search(r"(?m)^[ \t]*Name:[ \t]*([^\s]+)",body)
                   provider=provider_match.group(1).lower() if provider_match else "__unknown_provider__"
+                  if provider=="__unknown_provider__" and delay_headers:
+                      # A nested delay Import follows a DelayImport header whose
+                      # Name precedes it; restrict the lookup to that parent header.
+                      parents=[m for m in delay_headers if m.start()<match.start()]
+                      if parents:
+                          parent=parents[-1]
+                          parent_text=raw[parent.end():match.start()]
+                          parent_name=re.search(r"(?m)^\s*Name:\s*(\S+)\s*$",parent_text)
+                          if parent_name:
+                              provider=parent_name.group(1).lower()
                   imports_by_dll.setdefault(provider,set()).update(symbols)
                   if provider=="__unknown_provider__" and len(unknown_import_samples)<3:
                       unknown_import_samples.append([line.strip()[:180] for line in body.splitlines()[:16]])

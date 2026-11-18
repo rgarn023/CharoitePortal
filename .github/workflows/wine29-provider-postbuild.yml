@@ -6,6 +6,11 @@ on:
 permissions:
   actions: read
   contents: read
+  issues: write
+
+concurrency:
+  group: wine29-provider-postbuild-signal
+  cancel-in-progress: false
 jobs:
   verify:
     if: ${{ github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' }}
@@ -85,3 +90,48 @@ jobs:
               assert set(details["batch_resolved"]+details["external_unverified"])==imports
             out.write("\nFull dependency closure and runtime compatibility NOT verified.\n")
           PY
+
+  signal-development:
+    needs: verify
+    if: ${{ always() && github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.path == '.github/workflows/wine29-first-provider-crossbuild.yml' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      # No checkout and no execution of upstream artifacts or branch code.
+      - name: Signal one verified completion to the dedicated ChatGPT PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const id = context.payload.workflow_run.id;
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: id});
+            if (run.repository.full_name !== owner + '/' + repo ||
+                run.head_branch !== 'main' || run.status !== 'completed' ||
+                run.path !== '.github/workflows/wine29-first-provider-crossbuild.yml') {
+              throw new Error('Unexpected upstream build');
+            }
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: 9});
+            if (pr.state !== 'open' || pr.head.ref !== 'automation/charoite-continuous-development' ||
+                pr.head.repo.full_name !== owner + '/' + repo) {
+              throw new Error('Coordination PR unavailable; hourly fallback remains active');
+            }
+            const marker = '<!-- charoite-build-completed:' + id + ' -->';
+            const comments = await github.paginate(github.rest.issues.listComments,
+              {owner, repo, issue_number: 9, per_page: 100});
+            if (comments.some(c => c.user.login === 'github-actions[bot]' && c.body.includes(marker))) {
+              core.info('Already signalled this run ID; no duplicate');
+              return;
+            }
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
+              {owner, repo, run_id: id, per_page: 100});
+            const steps = jobs.flatMap(j => (j.steps || []).map(s =>
+              ({job_id: j.id, name: s.name, conclusion: s.conclusion})));
+            const body = 'CHAROITE_BUILD_COMPLETED_V1\n' + marker + '\n' +
+              JSON.stringify({run_id: id, run_attempt: run.run_attempt, sha: run.head_sha,
+                conclusion: run.conclusion, url: run.html_url, steps}, null, 2) +
+              '\nWake-up only: inspect actual diagnostic logs. Overall success is not diagnostic success. No APK is produced. One bounded cycle; shared lock/ledger required.';
+            await github.rest.issues.createComment({owner, repo, issue_number: 9, body});

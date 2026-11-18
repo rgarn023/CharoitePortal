@@ -492,7 +492,8 @@ jobs:
           import_samples=[]
           for kind,body in blocks:
               names=re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",body)
-              symbols=re.findall(r"(?m)^\s*Symbol:\s*(\S+)\s*$",body)
+              # llvm-readobj prints Symbol: FunctionName (ordinal), not a bare token.
+              symbols=re.findall(r"(?m)^\s*Symbol:\s*(\S+)(?:\s+\(\d+\))?\s*$",body)
               if kind=="Import":
                   import_names.update(symbols)
                   if len(import_samples)<3:
@@ -500,6 +501,7 @@ jobs:
               else:
                   export_names.update(names)
           assert export_names, f"{sys.argv[3]}: no export names extracted from nonempty COFF blocks"
+          assert import_names, f"{sys.argv[3]}: no import names extracted from nonempty COFF blocks"
           evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
                     "export_names":sorted(export_names)[:10000],
                     "import_symbol_count":len(import_names),

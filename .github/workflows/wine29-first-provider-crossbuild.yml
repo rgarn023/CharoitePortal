@@ -481,6 +481,28 @@ jobs:
           # blocks; a zero-count parse is an inventory failure, not closure.
           assert imports > 0 and exports > 0, (
               f"{sys.argv[3]}: empty COFF inventory imports={imports} exports={exports}")
+          # Extract bounded symbol-name evidence for the next provider matching
+          # stage. Import/export blocks are not equivalent to resolved imports.
+          import json
+          blocks=re.findall(r"(?ms)^\\s*(Import|Export) \\{(.*?)^\\s*\\}",raw)
+          import_names=set()
+          export_names=set()
+          for kind,body in blocks:
+              names=re.findall(r"(?m)^\\s*Name:\\s*(\\S+)\\s*$",body)
+              symbols=re.findall(r"(?m)^\\s*Symbol:\\s*(\\S+)\\s*$",body)
+              if kind=="Import":
+                  import_names.update(symbols)
+              else:
+                  export_names.update(names)
+          evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
+                    "export_names":sorted(export_names)[:10000],
+                    "import_symbol_count":len(import_names),
+                    "export_name_count":len(export_names),
+                    "provider_resolution_verified":False,"forwarder_resolution_verified":False,
+                    "runtime_verified":False}
+          pathlib.Path(sys.argv[2]).with_suffix(".json").write_text(
+              json.dumps(evidence,sort_keys=True,indent=2)+"\\n")
+          print(f"NTOSKRNL_NEXT_PROVIDER_NAME_EVIDENCE module={sys.argv[3]} import_symbols={len(import_names)} export_names={len(export_names)} closure=unverified")
           pathlib.Path(sys.argv[2]).write_text(f"module={sys.argv[3]} import_blocks={imports} export_blocks={exports} runtime_unverified=true\n")
           print(f"NTOSKRNL_NEXT_PROVIDER_SYMBOL_INVENTORY module={sys.argv[3]} import_blocks={imports} export_blocks={exports} closure=unverified")
           PYSYMBOLS

@@ -129,8 +129,9 @@ jobs:
             });
             const ledger = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
             const batch = ledger.event_batch_utc;
-            const hour = new Date().toISOString().slice(0, 13);
-            if (batch !== hour) {
+            const opened = Date.parse(batch + ':00:00.000Z');
+            const age = Date.now() - opened;
+            if (!Number.isFinite(age) || age < 0 || age >= 3 * 60 * 60 * 1000) {
               core.notice('Hourly task will recover this run and open the next batch.');
               return;
             }
@@ -155,8 +156,8 @@ jobs:
                 if (lines[0] === 'CHAROITE_BUILD_COMPLETED_V1' && lines.includes(batchMarker)) signalled++;
               }
             }
-            if (signalled >= 6) {
-              core.notice('Six completions signalled in this batch. Hourly task will resume pending work.');
+            if (signalled >= 1) {
+              core.notice('One completion already signalled in this three-hour batch. Hourly task will resume pending work.');
               return;
             }
             const body = ['CHAROITE_BUILD_COMPLETED_V1', marker, batchMarker,

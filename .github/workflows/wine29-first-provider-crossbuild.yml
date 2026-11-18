@@ -569,6 +569,41 @@ jobs:
               mv "$log.bounded" "$log"
             fi
           done
+          # Compare only actual source-built candidates in this eleven-DLL batch.
+          # This is static evidence, NOT complete PE/forwarder/ABI closure.
+          python3 - "$OUT" <<'PYINTERNALMATCH'
+          import json,pathlib,sys
+          root=pathlib.Path(sys.argv[1])
+          names=("ucrtbase.dll","win32u.dll","combase.dll","gdi32.dll","imm32.dll","iphlpapi.dll","ole32.dll","oleaut32.dll","secur32.dll","wininet.dll","ws2_32.dll")
+          inventories={}
+          for name in names:
+              p=root/(name+"-symbol-inventory.json")
+              if not p.is_file() or p.is_symlink():
+                  print("NTOSKRNL_INTERNAL_MATCH=UNAVAILABLE missing="+name)
+                  raise SystemExit(0)
+              inventories[name]=json.loads(p.read_text())
+          report={}
+          for name,entry in inventories.items():
+              matches={}
+              external={}
+              for provider,required in entry["imports_by_dll"].items():
+                  if provider not in inventories:
+                      external[provider]=len(required)
+                      continue
+                  available=set(inventories[provider]["export_names"])
+                  missing=sorted(set(required)-available)
+                  matches[provider]={"required":len(required),"matched":len(set(required)&available),
+                                     "missing_count":len(missing),"missing_names":missing[:50],
+                                     "forwarders_checked":False,"runtime_verified":False}
+              report[name]={"internal_provider_comparisons":matches,"external_provider_import_counts":external,
+                            "complete_dependency_closure_verified":False,"forwarder_resolution_verified":False,
+                            "runtime_verified":False}
+              print("NTOSKRNL_INTERNAL_MATCH module="+name+" internal="+str(len(matches))+
+                    " missing_symbols="+str(sum(v["missing_count"] for v in matches.values()))+
+                    " external_providers="+str(len(external))+" closure=unverified")
+          (root/"next-provider-internal-symbol-comparison.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          print("NTOSKRNL_INTERNAL_MATCH_REPORT=GENERATED; FULL_CLOSURE=UNVERIFIED")
+          PYINTERNALMATCH
           echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"
       - name: Publish bounded next-level provider build probes (NOT APK)
         if: always()

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261118T2356Z-pr13-validation",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -16,13 +16,13 @@
   },
   "event_batch_utc": "2026-11-18T23",
   "pending_validation": {
-    "phase": "awaiting_pr_checks",
+    "phase": "awaiting_main_crossbuild",
     "pr_number": 13,
     "branch": "engineering/wine29-forwarder-target-audit-20261118",
     "head_sha": "40d03764f6582b462c5742c377c8bb6fd84c0ea9",
     "source_run_id": 44398588547,
     "source_run_already_processed": true,
-    "description": "CI-only forwarder destination syntax and candidate presence; review checks and exact diff before merge",
-    "merged_main_sha": null
+    "description": "PR #13 checks successful; exact head squash merged. Await main Wine29 crossbuild for forwarder target audit evidence",
+    "merged_main_sha": "b8241cca229e1cef9593399eb773b568b1fb3618"
   }
 }

@@ -639,6 +639,26 @@ jobs:
               item["pinned_build_pe_candidate_present"]=exists
               item["export_names_verified"]=False
               item["import_resolution_verified"]=False
+              # Bounded export evidence for the six highest-priority existing PE files.
+              if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll"):
+                  import subprocess,re
+                  readobj=subprocess.run(["llvm-readobj","--coff-exports",str(candidate)],
+                                         capture_output=True,text=True,timeout=30)
+                  assert readobj.returncode==0, f"{provider}: COFF export inspection failed"
+                  export_blocks=re.findall(r"(?ms)^\s*Export \{(.*?)^\s*\}",readobj.stdout)
+                  export_names=set()
+                  for block in export_blocks:
+                      export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
+                  assert export_names, f"{provider}: no named exports in compiled PE candidate"
+                  item["export_name_count"]=len(export_names)
+                  item["export_names_verified"]=True
+                  (root/("external-"+provider+"-exports.json")).write_text(
+                      json.dumps({"provider":provider,"export_names":sorted(export_names),
+                                  "forwarder_resolution_verified":False,
+                                  "runtime_verified":False},sort_keys=True,indent=2)+"\n")
+                  print("NTOSKRNL_EXTERNAL_EXPORTS provider="+provider+
+                        " named_exports="+str(len(export_names))+" closure=unverified")
               print("NTOSKRNL_EXTERNAL_CANDIDATE provider="+provider+
                     " source_makefile="+str(source_present).lower()+
                     " generated_makefile="+str(generated_present).lower()+

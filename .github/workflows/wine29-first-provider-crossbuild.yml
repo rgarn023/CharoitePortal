@@ -651,6 +651,20 @@ jobs:
                   for block in export_blocks:
                       export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
                   assert export_names, f"{provider}: no named exports in compiled PE candidate"
+                  # Exact names imported by the eleven batch modules from this provider.
+                  required=set()
+                  for consumer_inventory in inventories.values():
+                      required.update(consumer_inventory["imports_by_dll"].get(provider,[]))
+                  missing=sorted(required-export_names)
+                  item["required_unique_import_names"]=len(required)
+                  item["matched_unique_import_names"]=len(required & export_names)
+                  item["missing_unique_import_names"]=len(missing)
+                  item["missing_import_name_samples"]=missing[:25]
+                  item["export_name_match_verified"]=not missing
+                  print("NTOSKRNL_EXTERNAL_NAME_MATCH provider="+provider+
+                        " matched="+str(len(required & export_names))+
+                        " required="+str(len(required))+
+                        " missing="+str(len(missing))+" closure=unverified")
                   item["export_name_count"]=len(export_names)
                   item["export_names_verified"]=True
                   (root/("external-"+provider+"-exports.json")).write_text(

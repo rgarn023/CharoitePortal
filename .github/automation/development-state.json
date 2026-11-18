@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "owner": "manual-cadence-repair-20261118-7245db29",
+  "claimed_run_id": null,
+  "processed_run_ids": [
+    44310229156
+  ],
+  "last_result": {
+    "run_id": 44310229156,
+    "result": "success",
+    "engineering_commit": "26f530e5d50e4114838e8398ce1115f0e512c4bf",
+    "validation": "pending",
+    "note": "six export inventories verified; exact-name comparison on coordination branch"
+  },
+  "active_work": "Resume outstanding validation of 26f530e on a separate engineering PR and repair the completion bridge.",
+  "event_batch_utc": "2026-11-18T16",
+  "pending_validation": {
+    "source_run_id": 44310229156,
+    "phase": "await_pr_checks",
+    "pr": 10,
+    "head_sha": "2cb59a37355ae0b68b071a880af59b8454090f59",
+    "branch": "automation/wine29-resume-verification"
+  }
+}

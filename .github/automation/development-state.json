@@ -18,7 +18,7 @@
     "source_run_id": 44310229156,
     "phase": "await_pr_checks",
     "pr": 10,
-    "head_sha": "501ec327bc9f3886b278854ae34b86c64602b61c",
+    "head_sha": "2cb59a37355ae0b68b071a880af59b8454090f59",
     "branch": "automation/wine29-resume-verification"
   }
 }

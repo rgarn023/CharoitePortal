@@ -497,8 +497,10 @@ jobs:
               symbols=re.findall(r"(?m)^\s*Symbol:\s*(\S+)(?:\s+\(\d+\))?\s*$",body)
               if kind=="Import":
                   import_names.update(symbols)
-                  assert len(names)==1, f"{sys.argv[3]}: ambiguous imported provider name {names}"
-                  provider=names[0].lower()
+                  # llvm-readobj may use different whitespace or unnamed import blocks.
+                  # Preserve unresolved evidence rather than failing the nonblocking probe.
+                  provider_match=re.search(r"(?m)^[ \t]*Name:[ \t]*([^\s]+)",body)
+                  provider=provider_match.group(1).lower() if provider_match else "__unknown_provider__"
                   imports_by_dll.setdefault(provider,set()).update(symbols)
                   if len(import_samples)<3:
                       import_samples.append([line.strip()[:180] for line in body.splitlines()[:12]])

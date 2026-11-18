@@ -643,7 +643,7 @@ jobs:
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
                                           "kernelbase.dll","advapi32.dll","rpcrt4.dll"):
                   import subprocess,re
-                  readobj=subprocess.run(["llvm-readobj","--coff-exports",str(candidate)],
+                  readobj=subprocess.run([str(pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-llvm-mingw/bin/llvm-readobj"),"--coff-exports",str(candidate)],
                                          capture_output=True,text=True,timeout=30)
                   assert readobj.returncode==0, f"{provider}: COFF export inspection failed"
                   export_blocks=re.findall(r"(?ms)^\s*Export \{(.*?)^\s*\}",readobj.stdout)

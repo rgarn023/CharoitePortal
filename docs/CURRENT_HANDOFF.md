@@ -1,3 +1,7 @@
+## 2026-11-18 — Forwarder destination audit proposed (pending CI)
+
+Cross-build #146 verified 228 forwarded export entries across six PE provider candidates. This proposed CI-only change parses the target module and named/ordinal destination, counts syntactically valid targets and target PE candidate presence, and writes bounded diagnostic JSON. It does **not** verify that the destination exports exist, transitive closure, ABI or Wine runtime. Validation of the actual main cross-build is pending. v1.0 remains **31%**; no owner action or phone test.
+
 ## 2026-11-18 — Cross-build #145 verifies the limits of the forwarder-field probe
 
 [Cross-build #145](https://github.com/rgarn023/CharoitePortal/actions/runs/44397034408), run on the merge of [PR #11](https://github.com/rgarn023/CharoitePortal/pull/11), reproduced all 542 distinct provider/name matches. The job and [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44397034408/artifacts/14472006882) report zero forwarder fields in the formatted LLVM output across all six providers. The probe did not establish absence of PE forwarders. The follow-up reads the PE export address table directly and records a bounded inventory with ordinal, aliases and destination. A synthetic PE exercised named, aliased and ordinal-only forwarders, a direct export, an empty slot and an unterminated target. Real-provider counts, target resolution and runtime startup still require verification. v1.0 remains **31%**.

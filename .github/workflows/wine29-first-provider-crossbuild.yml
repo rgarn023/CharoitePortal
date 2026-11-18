@@ -708,7 +708,50 @@ jobs:
                       export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
                   forwarder_entries = pe_forwarders(candidate.read_bytes())
                   item["forwarder_entries_detected"]=len(forwarder_entries)
+                  # Parse forwarder destinations without treating presence as resolution.
+                  # A target is MODULE.Symbol or MODULE.#Ordinal; split at the
+                  # last dot because module names may themselves contain dots.
+                  target_inventory=[]
+                  for forwarder in forwarder_entries:
+                      raw_target=forwarder["target"]
+                      module_sep=raw_target.rfind(".")
+                      target_module=raw_target[:module_sep].lower() if module_sep>0 else ""
+                      target_symbol=raw_target[module_sep+1:] if module_sep>0 else ""
+                      if target_module and not target_module.endswith((".dll",".exe",".sys")):
+                          target_module += ".dll"
+                      ordinal_only=target_symbol.startswith("#") and target_symbol[1:].isdigit()
+                      syntax_valid=bool(target_module and target_symbol and
+                                        (not target_symbol.startswith("#") or ordinal_only))
+                      target_path=(build/"dlls"/target_module.rsplit(".",1)[0]/
+                                   "aarch64-windows"/target_module) if syntax_valid else None
+                      target_inventory.append({
+                          "source_ordinal":forwarder["ordinal"],
+                          "source_names":forwarder["names"],
+                          "target_raw":raw_target,
+                          "target_module":target_module,
+                          "target_symbol":target_symbol,
+                          "target_by_ordinal":ordinal_only,
+                          "target_syntax_valid":syntax_valid,
+                          "target_pe_candidate_present":bool(target_path and
+                              target_path.is_file() and not target_path.is_symlink()),
+                          "target_export_verified":False})
+                  item["forwarder_target_syntax_valid_count"]=sum(
+                      x["target_syntax_valid"] for x in target_inventory)
+                  item["forwarder_target_pe_present_count"]=sum(
+                      x["target_pe_candidate_present"] for x in target_inventory)
                   item["forwarder_target_resolution_verified"]=False
+                  (root/("external-"+provider+"-forwarder-targets.json")).write_text(
+                      json.dumps({"provider":provider,
+                                  "entries":target_inventory[:100],
+                                  "entry_count":len(target_inventory),
+                                  "truncated":len(target_inventory)>100,
+                                  "target_export_verified":False,
+                                  "runtime_verified":False},
+                                 sort_keys=True,indent=2)+"\n")
+                  print(f"NTOSKRNL_FORWARDER_TARGET_AUDIT provider={provider}"
+                        f" syntax_valid={item['forwarder_target_syntax_valid_count']}"
+                        f" target_pe_present={item['forwarder_target_pe_present_count']}"
+                        f" total={len(target_inventory)} export_resolution=unverified")
                   (root/("external-"+provider+"-forwarders.json")).write_text(
                       json.dumps({"provider":provider,
                                   "detected_forwarders":forwarder_entries[:100],

@@ -607,7 +607,7 @@ jobs:
                     " external_required_symbols="+str(sum(external.values()))+
                     " missing_symbols="+str(sum(v["missing_count"] for v in matches.values()))+
                     " external_providers="+str(len(external))+" closure=unverified")
-          (root/"next-provider-internal-symbol-comparison.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+          (root/"next-provider-internal-symbol-comparison.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
           # Rank external imports by provider without claiming export/ABI closure.
           external_totals={}
           external_consumers={}
@@ -621,7 +621,7 @@ jobs:
                    for provider,count in sorted(external_totals.items(),key=lambda pair:(-pair[1],pair[0]))]
           (root/"next-provider-external-dependency-ranking.json").write_text(
               json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
-                          "runtime_verified":False},indent=2,sort_keys=True)+"\\n")
+                          "runtime_verified":False},indent=2,sort_keys=True)+"\n")
           # Source-tree presence is a prioritization aid only; it is NOT PE export closure.
           import os
           build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
@@ -651,6 +651,21 @@ jobs:
                   for block in export_blocks:
                       export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
                   assert export_names, f"{provider}: no named exports in compiled PE candidate"
+                  required = {
+                      symbol
+                      for inventory in inventories.values()
+                      for symbol in inventory["imports_by_dll"].get(provider, [])
+                  }
+                  assert required, f"{provider}: ranked provider has no required names"
+                  missing = sorted(required - export_names)
+                  matched = len(required) - len(missing)
+                  item["required_unique_import_names"] = len(required)
+                  item["matched_unique_import_names"] = matched
+                  item["missing_unique_import_names"] = len(missing)
+                  item["missing_import_name_samples"] = missing[:25]
+                  item["export_name_match_verified"] = not missing
+                  print(f"NTOSKRNL_EXTERNAL_NAME_MATCH provider={provider} matched={matched}"
+                        f" required={len(required)} missing={len(missing)} closure=unverified")
                   item["export_name_count"]=len(export_names)
                   item["export_names_verified"]=True
                   (root/("external-"+provider+"-exports.json")).write_text(
@@ -669,7 +684,7 @@ jobs:
               entry["external_required_symbols"] for entry in report.values()), "external import ranking lost symbols"
           (root/"next-provider-external-dependency-ranking.json").write_text(
               json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
-                          "runtime_verified":False},indent=2,sort_keys=True)+"\\n")
+                          "runtime_verified":False},indent=2,sort_keys=True)+"\n")
           for item in ranking[:12]:
               print("NTOSKRNL_EXTERNAL_PRIORITY provider="+item["provider"]+
                     " imported_symbols="+str(item["imported_symbols"])+

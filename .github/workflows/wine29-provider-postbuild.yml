@@ -6,14 +6,10 @@ on:
 permissions:
   actions: read
   contents: read
-  issues: write
 
-concurrency:
-  group: wine29-provider-postbuild-signal
-  cancel-in-progress: false
 jobs:
   verify:
-    if: ${{ github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' }}
+    if: ${{ github.repository == 'rgarn023/CharoitePortal' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.path == '.github/workflows/wine29-first-provider-crossbuild.yml' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -93,45 +89,81 @@ jobs:
 
   signal-development:
     needs: verify
-    if: ${{ always() && github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.path == '.github/workflows/wine29-first-provider-crossbuild.yml' }}
+    if: ${{ always() && github.repository == 'rgarn023/CharoitePortal' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.path == '.github/workflows/wine29-first-provider-crossbuild.yml' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    concurrency:
+      group: charoite-pr9-completion-signal
+      cancel-in-progress: false
     permissions:
       actions: read
       contents: read
-      issues: write
+      pull-requests: write
     steps:
-      # No checkout and no execution of upstream artifacts or branch code.
-      - name: Signal one verified completion to the dedicated ChatGPT PR
+      - name: Signal a new main cross-build on the coordination PR
         uses: actions/github-script@v7
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
         with:
           script: |
             const {owner, repo} = context.repo;
-            const id = context.payload.workflow_run.id;
-            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: id});
-            if (run.repository.full_name !== owner + '/' + repo ||
-                run.head_branch !== 'main' || run.status !== 'completed' ||
-                run.path !== '.github/workflows/wine29-first-provider-crossbuild.yml') {
-              throw new Error('Unexpected upstream build');
+            const repository = owner + '/' + repo;
+            const pull = 9;
+            const branch = 'automation/charoite-continuous-development';
+            const upstream = context.payload.workflow_run;
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: upstream.id});
+            if (run.repository.full_name !== repository || run.repository.private !== false ||
+                run.head_repository?.full_name !== repository || run.head_branch !== 'main' ||
+                run.path !== '.github/workflows/wine29-first-provider-crossbuild.yml' ||
+                !['push', 'workflow_dispatch'].includes(run.event) || run.status !== 'completed' ||
+                run.head_sha !== upstream.head_sha || run.run_attempt !== upstream.run_attempt) {
+              throw new Error('Upstream run identity or attempt changed');
             }
-            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: 9});
-            if (pr.state !== 'open' || pr.head.ref !== 'automation/charoite-continuous-development' ||
-                pr.head.repo.full_name !== owner + '/' + repo) {
-              throw new Error('Coordination PR unavailable; hourly fallback remains active');
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: pull});
+            if (pr.state !== 'open' || pr.base.ref !== 'main' ||
+                pr.head.ref !== branch || pr.head.repo?.full_name !== repository) {
+              throw new Error('Coordination PR unavailable; hourly task recovers the completion');
             }
-            const marker = '<!-- charoite-build-completed:' + id + ' -->';
-            const comments = await github.paginate(github.rest.issues.listComments,
-              {owner, repo, issue_number: 9, per_page: 100});
-            if (comments.some(c => c.user.login === 'github-actions[bot]' && c.body.includes(marker))) {
-              core.info('Already signalled this run ID; no duplicate');
+            const {data: file} = await github.rest.repos.getContent({
+              owner, repo, path: '.github/automation/development-state.json', ref: branch
+            });
+            const ledger = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+            const batch = ledger.event_batch_utc;
+            const opened = Date.parse(batch + ':00:00.000Z');
+            const age = Date.now() - opened;
+            if (!Number.isFinite(age) || age < 0 || age >= 3 * 60 * 60 * 1000) {
+              core.notice('Hourly task will recover this run and open the next batch.');
               return;
             }
-            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
-              {owner, repo, run_id: id, per_page: 100});
-            const steps = jobs.flatMap(j => (j.steps || []).map(s =>
-              ({job_id: j.id, name: s.name, conclusion: s.conclusion})));
-            const body = 'CHAROITE_BUILD_COMPLETED_V1\n' + marker + '\n' +
-              JSON.stringify({run_id: id, run_attempt: run.run_attempt, sha: run.head_sha,
-                conclusion: run.conclusion, url: run.html_url, steps}, null, 2) +
-              '\nWake-up only: inspect actual diagnostic logs. Overall success is not diagnostic success. No APK is produced. One bounded cycle; shared lock/ledger required.';
-            await github.rest.issues.createComment({owner, repo, issue_number: 9, body});
+            if (ledger.processed_run_ids.includes(run.id)) {
+              core.info('Completion already processed by a worker.');
+              return;
+            }
+            const marker = '<!-- charoite-build-completed:' + run.id + ' -->';
+            const batchMarker = '<!-- charoite-event-batch:' + batch + ' -->';
+            const batchStart = batch + ':00:00.000Z';
+            const since = new Date(Math.min(Date.parse(run.created_at), Date.parse(batchStart))).toISOString();
+            let signalled = 0;
+            for await (const page of github.paginate.iterator(github.rest.issues.listComments,
+                {owner, repo, issue_number: pull, since, per_page: 100})) {
+              for (const comment of page.data) {
+                if (comment.user?.login !== 'github-actions[bot]') continue;
+                const lines = (comment.body || '').split('\n');
+                if (lines.includes(marker)) {
+                  core.info('Completion already signalled.');
+                  return;
+                }
+                if (lines[0] === 'CHAROITE_BUILD_COMPLETED_V1' && lines.includes(batchMarker)) signalled++;
+              }
+            }
+            if (signalled >= 1) {
+              core.notice('One completion already signalled in this three-hour batch. Hourly task will resume pending work.');
+              return;
+            }
+            const body = ['CHAROITE_BUILD_COMPLETED_V1', marker, batchMarker,
+              JSON.stringify({run_id: run.id, run_attempt: run.run_attempt, sha: run.head_sha,
+                conclusion: run.conclusion, postbuild: process.env.VERIFY_RESULT, url: run.html_url}),
+              'Inspect job logs and artifacts before claiming progress. This cross-build produces no APK.'
+            ].join('\n');
+            const {data: comment} = await github.rest.issues.createComment({owner, repo, issue_number: pull, body});
+            core.info('Signalled completion: ' + comment.html_url);

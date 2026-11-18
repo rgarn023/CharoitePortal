@@ -650,6 +650,27 @@ jobs:
                   export_names=set()
                   for block in export_blocks:
                       export_names.update(re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",block))
+                  # Capture forwarder fields without treating names as runtime closure.
+                  forwarder_entries=[]
+                  for block in export_blocks:
+                      name_match=re.search(r"(?m)^\s*Name:\s*(\S+)\s*$",block)
+                      forwarder_match=re.search(r"(?mi)^\s*(?:Forwarder|ForwarderName):\s*(\S+)\s*$",block)
+                      if forwarder_match:
+                          forwarder_entries.append({
+                              "name":name_match.group(1) if name_match else None,
+                              "target":forwarder_match.group(1)})
+                  item["forwarder_entries_detected"]=len(forwarder_entries)
+                  item["forwarder_target_resolution_verified"]=False
+                  (root/("external-"+provider+"-forwarders.json")).write_text(
+                      json.dumps({"provider":provider,
+                                  "detected_forwarders":forwarder_entries[:100],
+                                  "detected_count":len(forwarder_entries),
+                                  "truncated":len(forwarder_entries)>100,
+                                  "target_resolution_verified":False,
+                                  "no_detected_fields_does_not_prove_no_forwarders":True},
+                                 sort_keys=True,indent=2)+"\n")
+                  print(f"NTOSKRNL_EXTERNAL_FORWARDER_AUDIT provider={provider}"
+                        f" detected={len(forwarder_entries)} resolution=unverified")
                   assert export_names, f"{provider}: no named exports in compiled PE candidate"
                   required = {
                       symbol

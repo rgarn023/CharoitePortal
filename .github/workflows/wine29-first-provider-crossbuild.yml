@@ -494,7 +494,8 @@ jobs:
                   import_names.update(symbols)
               else:
                   export_names.update(names)
-          assert export_names, f"{sys.argv[3]}: no export names extracted from nonempty COFF blocks"\n          evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
+          assert export_names, f"{sys.argv[3]}: no export names extracted from nonempty COFF blocks"
+          evidence={"module":sys.argv[3],"import_symbols":sorted(import_names)[:10000],
                     "export_names":sorted(export_names)[:10000],
                     "import_symbol_count":len(import_names),
                     "export_name_count":len(export_names),

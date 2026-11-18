@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261118T19-automation-turn10",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -12,6 +12,6 @@
     "verification": "542 of 542 distinct provider/name matches, diagnostic ZIP digest and ranking verified",
     "next": "resolve forwarded targets for the six compiled providers"
   },
-  "event_batch_utc": "2026-11-18T16",
+  "event_batch_utc": "2026-11-18T19",
   "pending_validation": null
 }

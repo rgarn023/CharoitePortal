@@ -1,24 +1,17 @@
 {
   "version": 1,
-  "owner": "event-44350971931-6985307752",
-  "claimed_run_id": 44350971931,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
-    44310229156
+    44310229156,
+    44350971931
   ],
   "last_result": {
-    "run_id": 44310229156,
+    "run_id": 44350971931,
     "result": "success",
-    "engineering_commit": "26f530e5d50e4114838e8398ce1115f0e512c4bf",
-    "validation": "pending",
-    "note": "six export inventories verified; exact-name comparison on coordination branch"
+    "verification": "542 of 542 distinct provider/name matches, diagnostic ZIP digest and ranking verified",
+    "next": "resolve forwarded targets for the six compiled providers"
   },
   "event_batch_utc": "2026-11-18T16",
-  "pending_validation": {
-    "source_run_id": 44310229156,
-    "phase": "await_main_crossbuild",
-    "pr": 10,
-    "head_sha": "2cb59a37355ae0b68b071a880af59b8454090f59",
-    "branch": "automation/wine29-resume-verification",
-    "merge_sha": "426afbfc3867bc5004f2ba634c0af71d533a2d6d"
-  }
+  "pending_validation": null
 }

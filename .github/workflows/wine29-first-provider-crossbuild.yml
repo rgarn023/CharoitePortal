@@ -622,6 +622,25 @@ jobs:
           (root/"next-provider-external-dependency-ranking.json").write_text(
               json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
                           "runtime_verified":False},indent=2,sort_keys=True)+"\\n")
+          # Source-tree presence is a prioritization aid only; it is NOT PE export closure.
+          import os
+          build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
+          for item in ranking:
+              provider=item["provider"]
+              candidate=build/"dlls"/provider/"aarch64-windows"/provider
+              exists=candidate.is_file() and not candidate.is_symlink()
+              item["pinned_build_pe_candidate_present"]=exists
+              item["export_names_verified"]=False
+              item["import_resolution_verified"]=False
+              print("NTOSKRNL_EXTERNAL_CANDIDATE provider="+provider+
+                    " candidate_present="+str(exists).lower()+
+                    " imported_symbols="+str(item["imported_symbols"])+
+                    " closure=unverified")
+          assert sum(item["imported_symbols"] for item in ranking)==sum(
+              entry["external_required_symbols"] for entry in report.values()), "external import ranking lost symbols"
+          (root/"next-provider-external-dependency-ranking.json").write_text(
+              json.dumps({"ranking":ranking,"provider_export_closure_verified":False,
+                          "runtime_verified":False},indent=2,sort_keys=True)+"\\n")
           for item in ranking[:12]:
               print("NTOSKRNL_EXTERNAL_PRIORITY provider="+item["provider"]+
                     " imported_symbols="+str(item["imported_symbols"])+

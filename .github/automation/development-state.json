@@ -4,23 +4,23 @@
   "claimed_run_id": 44397034408,
   "processed_run_ids": [
     44310229156,
-    44350971931
+    44350971931,
+    44397034408
   ],
   "last_result": {
-    "run_id": 44350971931,
+    "run_id": 44397034408,
     "result": "success",
-    "verification": "542 of 542 distinct provider/name matches, diagnostic ZIP digest and ranking verified",
-    "next": "resolve forwarded targets for the six compiled providers"
+    "verification": "542/542 matching names and zero LLVM forwarder fields, validated against six artifact JSON files",
+    "next": "Verify PE export-address-table inventories"
   },
   "event_batch_utc": "2026-11-18T19",
   "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44350971931,
-    "branch": "automation/wine29-forwarder-inventory-20261118-19",
-    "pr_number": 11,
-    "head_sha": "7ca597430bf2ed633cda177836e4ae62ebecc5e2",
+    "phase": "await_pr_checks",
+    "source_run_id": 44397034408,
+    "branch": "automation/wine29-pe-forwarder-rva-145",
+    "pr_number": 12,
+    "head_sha": "656103ba98636dba40bc880d0b5ed94a9fb26551",
     "target_branch": "main",
-    "next": "Inspect main Wine29 cross-build forwarder diagnostics; do not count static fields as target resolution",
-    "merged_main_sha": "f5b2fa6382da98af68b26066e2d0cfb612099927"
+    "next": "Verify direct PE forwarder inventories"
   }
 }

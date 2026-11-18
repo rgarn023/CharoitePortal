@@ -747,7 +747,7 @@ jobs:
                                   "truncated":len(target_inventory)>100,
                                   "target_export_verified":False,
                                   "runtime_verified":False},
-                                 sort_keys=True,indent=2)+"\\n")
+                                 sort_keys=True,indent=2)+"\n")
                   print(f"NTOSKRNL_FORWARDER_TARGET_AUDIT provider={provider}"
                         f" syntax_valid={item['forwarder_target_syntax_valid_count']}"
                         f" target_pe_present={item['forwarder_target_pe_present_count']}"

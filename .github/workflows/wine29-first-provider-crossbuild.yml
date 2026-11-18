@@ -491,6 +491,7 @@ jobs:
           # Bounded structural evidence for the llvm-readobj import format;
           # zero imported symbols must not be misreported as resolved imports.
           import_samples=[]
+          unknown_import_samples=[]
           for kind,body in blocks:
               names=re.findall(r"(?m)^\s*Name:\s*(\S+)\s*$",body)
               # llvm-readobj prints Symbol: FunctionName (ordinal), not a bare token.
@@ -502,6 +503,8 @@ jobs:
                   provider_match=re.search(r"(?m)^[ \t]*Name:[ \t]*([^\s]+)",body)
                   provider=provider_match.group(1).lower() if provider_match else "__unknown_provider__"
                   imports_by_dll.setdefault(provider,set()).update(symbols)
+                  if provider=="__unknown_provider__" and len(unknown_import_samples)<3:
+                      unknown_import_samples.append([line.strip()[:180] for line in body.splitlines()[:16]])
                   if len(import_samples)<3:
                       import_samples.append([line.strip()[:180] for line in body.splitlines()[:12]])
               else:
@@ -517,6 +520,7 @@ jobs:
                     "unknown_provider_symbol_count":len(imports_by_dll.get("__unknown_provider__",set())),
                     "provider_attribution_complete":("__unknown_provider__" not in imports_by_dll),
                     "import_block_samples":import_samples,
+                    "unknown_provider_block_samples":unknown_import_samples,
                     "export_name_count":len(export_names),
                     "provider_resolution_verified":False,"forwarder_resolution_verified":False,
                     "runtime_verified":False}
@@ -525,6 +529,8 @@ jobs:
           print(f"NTOSKRNL_NEXT_PROVIDER_NAME_EVIDENCE module={sys.argv[3]} import_symbols={len(import_names)} export_names={len(export_names)} closure=unverified")
           print("NTOSKRNL_NEXT_PROVIDER_IMPORT_STRUCTURE module="+sys.argv[3]+" sample="+json.dumps(import_samples,separators=(",",":")))
           print("NTOSKRNL_NEXT_PROVIDER_ATTRIBUTION module="+sys.argv[3]+" providers="+",".join(sorted(imports_by_dll))+" unknown_symbols="+str(len(imports_by_dll.get("__unknown_provider__",set())))+" complete="+str("__unknown_provider__" not in imports_by_dll).lower())
+          if unknown_import_samples:
+              print("NTOSKRNL_NEXT_PROVIDER_UNKNOWN_STRUCTURE module="+sys.argv[3]+" sample="+json.dumps(unknown_import_samples,separators=(",",":")))
           pathlib.Path(sys.argv[2]).write_text(f"module={sys.argv[3]} import_blocks={imports} export_blocks={exports} runtime_unverified=true\n")
           print(f"NTOSKRNL_NEXT_PROVIDER_SYMBOL_INVENTORY module={sys.argv[3]} import_blocks={imports} export_blocks={exports} closure=unverified")
           PYSYMBOLS

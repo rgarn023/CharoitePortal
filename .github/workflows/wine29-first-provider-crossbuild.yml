@@ -570,8 +570,9 @@ jobs:
             fi
           done
           # Build missing providers from the pinned source; leave other candidates intact.
-          for module in crypt32 coml2; do
-            provider_target="dlls/$module/aarch64-windows/$module.dll"
+          for filename in crypt32.dll coml2.dll winspool.drv; do
+            module=${filename%.dll}
+            provider_target="dlls/$module/aarch64-windows/$filename"
             provider_log="$OUT/$module-provider-build.log"
             provider_status=build_failed
             if timeout 120 make -j2 "$provider_target" > "$provider_log" 2>&1; then
@@ -593,7 +594,7 @@ jobs:
             tail -c 65536 "$provider_log" > "$provider_log.bounded"
             mv "$provider_log.bounded" "$provider_log"
             printf '%s\n' "$provider_status" > "$OUT/$module-provider-status.txt"
-            echo "NTOSKRNL_EXTERNAL_PROVIDER_BUILD module=$module.dll status=$provider_status runtime=unverified"
+            echo "NTOSKRNL_EXTERNAL_PROVIDER_BUILD module=$filename status=$provider_status runtime=unverified"
           done
           # Compare only actual source-built candidates in this eleven-DLL batch.
           # This is static evidence, NOT complete PE/forwarder/ABI closure.
@@ -711,7 +712,7 @@ jobs:
           target_inventories = {}
           for item in ranking:
               provider=item["provider"]
-              module_stem=provider.rsplit(".",1)[0]
+              module_stem=provider if provider == "winspool.drv" else provider.rsplit(".",1)[0]
               source_makefile=build.parent/"dlls"/module_stem/"Makefile.in"
               generated_makefile=build/"dlls"/module_stem/"Makefile"
               candidate=build/"dlls"/module_stem/"aarch64-windows"/provider
@@ -725,8 +726,8 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll") and (
-                  provider not in {"crypt32.dll", "coml2.dll"} or
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv") and (
+                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv"} or
                   (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
                   import subprocess,re

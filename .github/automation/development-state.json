@@ -6,23 +6,22 @@
     44310229156,
     44350971931,
     44397034408,
-    44398588547
+    44398588547,
+    44424971376
   ],
   "last_result": {
-    "run_id": 44398588547,
+    "run_id": 44424971376,
     "result": "success",
-    "verification": "Cross-build #146 actual job log: PE export-address-table forwarders kernel32=99 user32=4 ntdll=0 kernelbase=94 advapi32=31 rpcrt4=0; target resolution and runtime unverified; PE diagnostic artifact published",
-    "next": "Resolve forwarded target DLL/symbol/ordinal and transitive dependency closure in next eligible engineering batch"
+    "verification": "228/228 valid named targets, binaries present, immediate names found in verified artifact; chains pending"
   },
   "event_batch_utc": "2026-11-18T23",
   "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "pr_number": 13,
-    "branch": "engineering/wine29-forwarder-target-audit-20261118",
-    "head_sha": "40d03764f6582b462c5742c377c8bb6fd84c0ea9",
-    "source_run_id": 44398588547,
-    "source_run_already_processed": true,
-    "description": "PR #13 checks successful; exact head squash merged. Await main Wine29 crossbuild for forwarder target audit evidence",
-    "merged_main_sha": "b8241cca229e1cef9593399eb773b568b1fb3618"
+    "phase": "await_pr_checks",
+    "source_run_id": 44424971376,
+    "branch": "engineering/wine29-named-forwarder-closure-147",
+    "pr_number": 14,
+    "head_sha": "04f3bcc5fb0602db0dcd0ded612502d842a86c2c",
+    "target_branch": "main",
+    "next": "Check named forwarder chain resolution on main CI"
   }
 }

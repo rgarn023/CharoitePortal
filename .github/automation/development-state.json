@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261119T06-automation11",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -15,6 +15,6 @@
     "result": "success",
     "verification": "Actual job 135231924353: 228/228 named forwarder chains resolved across six indexed providers (99 kernel32, 4 user32, 94 kernelbase, 31 advapi32); no missing/cycles reported. Artifact 14485315510 present with SHA-256 digest; runtime and broader dependency closure unverified."
   },
-  "event_batch_utc": "2026-11-19T02",
+  "event_batch_utc": "2026-11-19T06",
   "pending_validation": null
 }

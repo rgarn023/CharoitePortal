@@ -1,3 +1,7 @@
+## 2026-11-19 — Cross-build #156 verifies Shcore and Propsys ARM64 providers
+
+[PR #23](https://github.com/rgarn023/CharoitePortal/pull/23) landed on main. [Cross-build #156](https://github.com/rgarn023/CharoitePortal/actions/runs/44535421575) and its [digest-verified diagnostic artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44535421575/artifacts/14537065878) verify compiled ARM64 shcore.dll (85 named exports) and propsys.dll (187). Named forwarder resolution reached 197/217 for shlwapi, 36/36 for shell32, and 8/8 for urlmon. The measured direct-import set still has zero unindexed providers. Next, use the remaining forwarder evidence to close the provider gaps, then verify services/RPC, scratch prefix initialization and executable startup. This run produced PE evidence only. v1.0 remains **31%**.
+
 ## 2026-11-19 — Cross-build #155 closes the direct provider index; forwarder work continues
 
 [Cross-build #155](https://github.com/rgarn023/CharoitePortal/actions/runs/44515275339) indexed all 19 direct providers in its measured set. The [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44515275339/artifacts/14525172933) shows unresolved chains into shcore.dll and propsys.dll. This change compiles those two actual targets from pinned Wine source and admits successful ARM64 PE candidates to the existing chain resolver without inflating direct-import counts. Main CI must confirm both binaries and the resulting chain counts. Runtime remains unverified and v1.0 stays at **31%**.

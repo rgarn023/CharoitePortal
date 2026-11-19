@@ -1,3 +1,7 @@
+## 2026-11-18 — Cross-build #147 verifies forwarder destinations; chain audit proposed
+
+[Cross-build #147](https://github.com/rgarn023/CharoitePortal/actions/runs/44424971376) verified 228 valid named destinations. All 228 target PE candidates were present: 207 entries target ntdll, 18 kernelbase, and 3 kernel32. An independent lookup in the [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44424971376/artifacts/14484615969) matched all 228 immediate destination names. The follow-up compares named chains within the six indexed binaries and reports missing exports, unindexed modules, ordinal targets and cycles. Main CI must verify chain results. Runtime, broader dependency closure and APK availability remain unverified. v1.0 **31%**.
+
 ## 2026-11-18 — Forwarder destination audit proposed (pending CI)
 
 Cross-build #146 verified 228 forwarded export entries across six PE provider candidates. This proposed CI-only change parses the target module and named/ordinal destination, counts syntactically valid targets and target PE candidate presence, and writes bounded diagnostic JSON. It does **not** verify that the destination exports exist, transitive closure, ABI or Wine runtime. Validation of the actual main cross-build is pending. v1.0 remains **31%**; no owner action or phone test.

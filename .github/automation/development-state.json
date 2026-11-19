@@ -16,13 +16,20 @@
     44501188714,
     44502438836,
     44515275339,
-    44535421575
+    44535421575,
+    44589922771
   ],
   "last_result": {
-    "run_id": 44535421575,
+    "run_id": 44589922771,
     "result": "success",
-    "verification": "Main #156 job logs and digest-verified diagnostic artifact confirm compiled ARM64 Shcore (85 named exports) and Propsys (187), and resolved named chains shlwapi 197/217, shell32 36/36, urlmon 8/8. Runtime remains unverified."
+    "verification": "Job and digest-verified report show Shlwapi 213/217 and 40 GDI32 forwarders blocked at unindexed Win32u, whose ARM64 PE header passed. PE only."
   },
   "event_batch_utc": "2026-11-19T18",
-  "pending_validation": null
+  "pending_validation": {
+    "source_run_id": 44589922771,
+    "branch": "next/index-win32u-forwarders-157",
+    "pr_number": 24,
+    "head_sha": "2eefec195181f85fb5e168284315ab8c419704dd",
+    "phase": "awaiting_pr_checks"
+  }
 }

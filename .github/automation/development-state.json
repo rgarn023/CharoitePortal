@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "manual-winspool-151-1795074021075",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -20,12 +20,13 @@
   },
   "event_batch_utc": "2026-11-19T06",
   "pending_validation": {
-    "phase": "await_pr_checks",
+    "phase": "awaiting_main_crossbuild",
     "source_run_id": 44479489236,
     "branch": "engineering/wine29-winspool-provider-151",
     "pr_number": 18,
     "head_sha": "b0858d0d6816fbb54e3ea24484d4da84989b2037",
     "target_branch": "main",
-    "next": "Verify the ARM64 winspool candidate and its required exports"
+    "next": "Verify the ARM64 winspool candidate and its required exports",
+    "merged_main_sha": "48a549eddf5c175d6ae6ea9085c1e164cb579ec3"
   }
 }

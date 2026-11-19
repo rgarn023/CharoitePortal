@@ -1,8 +1,14 @@
+## 2026-11-19 — V29 RpcSs startup verified on the phone
+
+**Current v1.0 estimate: 32%.** Owner report from signed Next build 159 / Actions #923: sealed PE/NLS and native preflight passed, Wineboot -i exited 0, and the private server remained alive. Independent SCM query returned STOPPED (exit 0), the RpcSs start command exited 0, and a separate SCM query returned RUNNING (exit 0). The final system.reg contained the exact RpcSs service root with ImagePath, Start, and Type. This closes the fresh-prefix RpcSs milestone. The one-shot V29 run is complete and does not need to be repeated.
+
+Fresh-prefix readiness remains open: Windows and user directories appeared and all three registry files were retained after finalization, but the explicit DefaultInstall helper logged a SetupAPI failure marker despite exit 0, and Program Files was absent at the pre-helper check. Verify final setup state and a fresh-prefix independent Windows executable with known output and exit code before expanding runtime or gameplay claims. Preserve the V29 scratch and keep existing user prefixes, games and saves outside the next test.
+
 ## 2026-11-19 — V29 phone preflight blocked before prefix creation
 
 The owner report shows the sealed PE/NLS preflight blocked at the prerequisite source/staged SHA audit. No Wine process ran and no V29 scratch prefix was created. The report did not distinguish a missing staging slot from a failed integrity check. Build 158 expected a preexisting stage, but its standalone staging control was archived. Build 159 prepares or verifies the existing sealed data slot under the same explicit System consent, then requires the original SHA and PE checks before executing Wine. A failed preparation is reported separately. Existing prefix and game data are outside the test scope. RpcSs remains unverified and Next v1.0 remains **31%**.
 
-[Static #236](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283883) and [signed Next #923](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861) passed. Install the [signed Next build 159 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861/artifacts/14584115344) in place and run **System → Verify RpcSs → Run once**. Return the copied report. This replaces the build 158 test instructions below.
+[Static #236](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283883) and [signed Next #923](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861) passed. Historical test artifact: [signed Next build 159 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861/artifacts/14584115344). The phone test is complete.
 
 ## 2026-11-19 — Prepare the fresh Wine29 RpcSs runtime check
 
@@ -12,7 +18,7 @@ The experimental System tab adds **Verify RpcSs** for a one-shot private V29 pre
 
 [Next build #922](https://github.com/rgarn023/CharoitePortal/actions/runs/44631098116) passed the restored-input checks, Android compilation, persisted signer verification and release publication. [Signed experimental APK artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44631098116/artifacts/14583175001), package `com.charoitx`, version 11.2-next.0.127, build 158. [Static verification #235](https://github.com/rgarn023/CharoitePortal/actions/runs/44631098260) also passed.
 
-The one outstanding user action is to install the APK in place over Charoite Next and run **System → Verify RpcSs → Run once**. Use **Copy report** and return the result. Success requires an independent live SCM response identifying RpcSs with `STATE : 4 RUNNING` after initialization, with the same private server still alive. Existing games, saves and prefixes are outside V29's execution scope. The V29 Android runtime outcome is pending. The latest baseline Actions runs were cross-build #159, postbuild #116, Next static verification #218 and Portal Android #527, all successful. Charoite Next v1.0 remains **31%** until a functional milestone is demonstrated. After the SCM check, verify isolated prefix readiness and a basic Windows executable with expected output and exit code.
+Build 158 is historical. Build 159 corrected its staging prerequisite and verified RpcSs on the phone as recorded above.
 
 ## 2026-11-19 — Cross-build #159 closes the measured Shlwapi forwarder gap
 

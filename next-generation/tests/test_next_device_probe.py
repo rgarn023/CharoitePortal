@@ -17,7 +17,7 @@ class DeviceProbeContract(unittest.TestCase):
     def test_exact_verified_wine_provenance(self):
         self.assertIn("40791083178",SCRIPT)
         self.assertIn("c1658e2d20260ff413e6ba6c47f460e2d5e7cec1",SCRIPT)
-        self.assertIn("1a795a07b9a803c66e8ccba47d20b70ab97e54741e24376cb863a9ba0fb3b33d",SCRIPT)
+        self.assertIn("5870f34af35f7d4b3c14fee61165e03e0ad4bf4a842f7980f2cf2bf77acd0a2b",SCRIPT)
         self.assertIn("verify-pe-foundation.py",SCRIPT)
         self.assertIn("verify-pe-expansion.py",SCRIPT)
 
@@ -45,8 +45,8 @@ class DeviceProbeContract(unittest.TestCase):
         self.assertNotIn("startActivity",JAVA)
 
     def test_ci_fetches_pinned_artifacts_not_a_latest_mutable_run(self):
-        self.assertIn("12861682823",SCRIPT)
-        self.assertIn("12861074729",SCRIPT)
+        self.assertIn("14574830139",SCRIPT)
+        self.assertIn("14574770243",SCRIPT)
         self.assertIn("40791083178",WORKFLOW)
         self.assertIn("Charoite-Wine-ARM64EC-PE-Foundation-Experimental",WORKFLOW)
         self.assertIn("Charoite-Wine-ARM64EC-PE-Expansion-Experimental",WORKFLOW)

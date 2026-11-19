@@ -116,7 +116,7 @@ for p in (app / "res").glob("values*/strings.xml"):
     text = p.read_text(encoding="utf-8")
     text, replacements = re.subn(
         r'(<string name="app_name">)Charoite Portal(</string>)',
-        r'\g<1>Charoite Next\2', text, count=1)
+        r'\g<1>Charoite Portal — Codename Meteorite Alpha\2', text, count=1)
     # Some locales have their own app_name or inherit defaults; all must
     # use Charoite Next if the overlay generated the English name.
     if p.parent.name == "values" and replacements != 1:
@@ -3812,7 +3812,7 @@ ui = ui.replace(destroy_anchor, (
 
 # Deliberately do not inject onPause/onRestart/onNewIntent/onUserLeaveHint:
 # those are not launch events, and were the cause of unwanted replay.
-ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
+ui = ui.replace('"Charoite Portal"', '"Charoite Portal — Codename Meteorite Alpha"')
 source.write_text(ui, encoding="utf-8")
 
 # Reference-only provenance: no binary is downloaded or installed by this

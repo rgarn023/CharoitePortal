@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T1957Z-reconcile-159",
-  "claimed_run_id": 44592939220,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -17,19 +17,14 @@
     44502438836,
     44515275339,
     44535421575,
-    44589922771
+    44589922771,
+    44592939220
   ],
   "last_result": {
-    "run_id": 44589922771,
+    "run_id": 44592939220,
     "result": "success",
-    "verification": "Job and digest-verified report show Shlwapi 213/217 and 40 GDI32 forwarders blocked at unindexed Win32u, whose ARM64 PE header passed. PE only."
+    "verification": "Main #159 actual job logs: Shlwapi 217/217, GDI32 40/40, Comctl32 31/31, Ole32 134/134 named forwarder chains resolved. Artifact names explicitly NOT APK. Full provider dependency closure and runtime remain unverified. PR #24 closed unmerged as superseded by main commit 8c5aad6194b7c42d364d32753c221e510093b7e5."
   },
   "event_batch_utc": "2026-11-19T18",
-  "pending_validation": {
-    "source_run_id": 44589922771,
-    "branch": "next/index-win32u-forwarders-157",
-    "pr_number": 24,
-    "head_sha": "2eefec195181f85fb5e168284315ab8c419704dd",
-    "phase": "needs_branch_update"
-  }
+  "pending_validation": null
 }

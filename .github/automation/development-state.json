@@ -23,5 +23,13 @@
     "verification": "Main #155 job logs verify 0 unindexed direct providers / 0 imported references; 19 provider candidates have required named exports matched; remaining unresolved forwarder chains: shlwapi 56, comctl32 5, shell32 6, urlmon 8. Full transitive closure and runtime unverified."
   },
   "event_batch_utc": "2026-11-19T12",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "await_pr_checks",
+    "source_run_id": 44515275339,
+    "branch": "engineering/wine29-shcore-propsys-155",
+    "pr_number": 23,
+    "head_sha": "59fdedaa404a61b8b161b6bd90b3c047a0fed66e",
+    "target_branch": "main",
+    "next": "Verify Shcore and Propsys build and named chain coverage"
+  }
 }

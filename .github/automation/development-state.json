@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261119T15-provider-forwarder",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -23,6 +23,6 @@
     "result": "success",
     "verification": "Main #156 job logs and digest-verified diagnostic artifact confirm compiled ARM64 Shcore (85 named exports) and Propsys (187), and resolved named chains shlwapi 197/217, shell32 36/36, urlmon 8/8. Runtime remains unverified."
   },
-  "event_batch_utc": "2026-11-19T12",
+  "event_batch_utc": "2026-11-19T15",
   "pending_validation": null
 }

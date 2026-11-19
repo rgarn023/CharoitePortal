@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T06-fix15",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -20,7 +20,7 @@
     "phase": "awaiting_pr_checks",
     "pr_number": 15,
     "branch": "engineering/wine29-unindexed-provider-gap-20261119",
-    "head_sha": "e045c33ca5d446d5365af555b5974edbc4095034",
+    "head_sha": "558a456ea2a2373ccb22c08a250974b9c49d298e",
     "base_branch": "main",
     "source_run_id": 44426305365,
     "notes": "CI-only unindexed provider gap inventory; inspect checks/diff and main provider run after merge; originating #148 already processed"

@@ -1,3 +1,7 @@
+## Meteorite Alpha naming
+
+Charoite Portal — Codename Meteorite Alpha is the display name for the experimental Android app (package `com.charoitx`). Existing GitHub tags, asset filenames and workflow identifiers retain compatibility. Stable Charoite Portal uses `com.charoite`.
+
 ## 2026-11-19 — Cross-build #159 closes the measured Shlwapi forwarder gap
 
 [Cross-build #159](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220) passed on main. The job logs report 217/217 named forwarder chains resolved for Shlwapi, 40/40 for GDI32, 31/31 for Comctl32 and 134/134 for Ole32. The run published PE probe artifacts. Full dependency closure and Android runtime behavior are still unverified. Charoite Next v1.0 remains **31%**.

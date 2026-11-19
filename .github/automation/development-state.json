@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "event-44501188714-7005867478",
-  "claimed_run_id": 44501188714,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -22,12 +22,13 @@
   },
   "event_batch_utc": "2026-11-19T09",
   "pending_validation": {
-    "phase": "await_pr_checks",
+    "phase": "awaiting_main_crossbuild",
     "source_run_id": 44501188714,
     "branch": "engineering/wine29-nsi-provider-153",
     "pr_number": 20,
     "head_sha": "7a9c9554c436191b4d6c3feee7db844f4271e3e7",
     "target_branch": "main",
-    "next": "Verify nsi ARM64 candidate and required exports on main CI"
+    "next": "Verify nsi ARM64 candidate and required exports on main CI",
+    "merged_main_sha": "b37be628bf8a77f886448251f4656eaa97350f6e"
   }
 }

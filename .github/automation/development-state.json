@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "manual-crypt32-run150-20261119T0718",
-  "claimed_run_id": 44477873780,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -9,22 +9,14 @@
     44398588547,
     44424971376,
     44426305365,
-    44476592064
+    44476592064,
+    44477873780
   ],
   "last_result": {
-    "run_id": 44476592064,
+    "run_id": 44477873780,
     "result": "success",
-    "verification": "13 unindexed providers and 72 references, crypt32 17, 228 named chains remain resolved; log and SHA-256-verified ZIP agree"
+    "verification": "main push #150 verified crypt32.dll ARM64 PE header, 246 named exports, 16/16 required names, 2/2 forwarder chains; provider dependency closure and runtime unverified"
   },
   "event_batch_utc": "2026-11-19T06",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44476592064,
-    "branch": "engineering/wine29-crypt32-provider-149",
-    "pr_number": 16,
-    "head_sha": "34697a56ce473633b314a734a2bdf0653816d755",
-    "target_branch": "main",
-    "next": "Verify crypt32 candidate and named export coverage on main CI",
-    "merged_main_sha": "8b36bc3a430a2940b02c3354d5ec91df01df3d09"
-  }
+  "pending_validation": null
 }

@@ -16,7 +16,22 @@ public final class CharoiteWine29V28ScopedTriageHarness {
     private static void lacks(String out,String forbidden){
         require(!out.contains(forbidden),"Leaked synthetic raw text: "+forbidden);
     }
+    private static void checkLiveScm(String output, String expected) {
+        require(expected.equals(CharoiteWine29V28ScopedTriage.liveScmState(output)),
+                "Unexpected live RpcSs state for fixture: " + expected);
+    }
+
     public static void main(String[] unused){
+        String header = "SERVICE_NAME: RpcSs\r\n";
+        checkLiveScm(header + " STATE : 4 RUNNING\r\n", "RUNNING");
+        checkLiveScm(header + " STATE : 1 STOPPED", "STOPPED");
+        checkLiveScm(header + " STATE : 2 START_PENDING", "START_PENDING");
+        checkLiveScm(header + " STATE : 4 STOPPED", "UNKNOWN");
+        checkLiveScm(header + " STATE : 4", "UNKNOWN");
+        checkLiveScm(header + " STATE : 4 RUNNING\n STATE : 1 STOPPED", "UNKNOWN");
+        checkLiveScm(header + " SERVICE_NAME: Other\n STATE : 4 RUNNING", "UNKNOWN");
+        checkLiveScm("trace: state RUNNING", "UNKNOWN");
+
         String running=summarize(
             "SERVICE_NAME: RpcSs\n" +
             "        TYPE               : 20  WIN32_SHARE_PROCESS\n" +

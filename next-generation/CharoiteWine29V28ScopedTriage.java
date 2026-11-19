@@ -43,6 +43,32 @@ public final class CharoiteWine29V28ScopedTriage {
         }
     }
 
+    /** Require a single service block and an exact, labeled state from pinned sc.exe. */
+    static String liveScmState(String output) {
+        String result = "UNKNOWN";
+        boolean service = false;
+        boolean sawState = false;
+        for (String line : output.split("\\r?\\n")) {
+            Matcher header = SERVICE.matcher(line);
+            if (header.matches()) {
+                if (service || !"RpcSs".equalsIgnoreCase(header.group(1))) return "UNKNOWN";
+                service = true;
+            }
+            Matcher state = STATE.matcher(line);
+            if (!state.matches()) continue;
+            if (!service || sawState || state.group(2) == null) return "UNKNOWN";
+            sawState = true;
+            for (int code = 1; code < STATES.length; code++) {
+                if (Integer.toString(code).equals(state.group(1))
+                        && STATES[code].equalsIgnoreCase(state.group(2))) {
+                    result = STATES[code];
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
     private static void classifyScm(StringBuilder out, String scm) {
         if(scm==null || scm.length()>2097152){
             out.append("V28 preserved RpcSs SCM scoped STATE: UNKNOWN (no eligible log)\n");

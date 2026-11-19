@@ -10,13 +10,14 @@ class V28FocusedInfContract(unittest.TestCase):
         for text in (
             "public final class CharoiteWine29V28FocusedInfProbe {",
             "charoite-next-wine29-entry-v28",
-            "if (scratch.exists() || !scratch.mkdir())",
+            "if (!newScratch.mkdir())",
+            "scratch = newScratch;",
             "V28 scratch retained; NEVER retry or delete V28",
             'bootBuiltin.getAbsolutePath(),"-i"',
             'scBuiltin.getAbsolutePath(),"query","RpcSs"',
             "appendV28RegistryMarkers(out, scratch);",
         ): self.assertIn(text, JAVA)
-        self.assertEqual(JAVA.count("new ProcessBuilder("),4)
+        self.assertEqual(JAVA.count("new ProcessBuilder("),5)
         for forbidden in (
             "charoite-next-wine29-entry-v27", ".delete(", ".renameTo(",
             "clearApplicationUserData(", '"create","RpcSs"', '"start","RpcSs"',

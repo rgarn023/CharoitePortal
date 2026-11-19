@@ -43,11 +43,11 @@ assert text.count("versionCode 33") == 1
 # Historical Next report/update release: versionCode 153; versionName 11.2-next.0.122.
 # Historical V28 consumed read-only review: versionCode 154; versionName 11.2-next.0.123.
 # Historical in-app PackageInstaller: versionCode 155; 11.2-next.0.124.
-# Active V28 read-only diagnostic expansion: build 157, 11.2-next.0.126.
+# Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.126"')
-text = text.replace("versionCode 33", "versionCode 157")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.127"')
+text = text.replace("versionCode 33", "versionCode 158")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3696,6 +3696,47 @@ ui = ui.replace(anchor, anchor + """
                 android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
         wine29V28Action.addView(v28HandoffButton);
         nextCoreCard.addView(wine29V28Action);
+
+        LinearLayout rpcssAction = card();
+        rpcssAction.addView(label("WINE29 — VERIFY RPCSS IN A FRESH PREFIX", 16, FOREGROUND, true));
+        rpcssAction.addView(label(
+                "This one-time test initializes a new experimental prefix, requests RpcSs startup "
+                + "if the service is stopped, and checks its status through the service control manager.",
+                13, FOREGROUND, false));
+        android.widget.Button verifyRpcss = new android.widget.Button(this);
+        verifyRpcss.setText("Verify RpcSs");
+        verifyRpcss.setAllCaps(false);
+        verifyRpcss.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setTitle("Run the fresh-prefix RpcSs test?")
+                .setMessage("Wine will create a new private V29 prefix and may start RpcSs in it. "
+                        + "This test preserves your existing games, saves, and prefixes.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Run once", (dialog, which) -> {
+                    verifyRpcss.setEnabled(false);
+                    new Thread(() -> {
+                        String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe
+                                .verifyFreshRpcss(this);
+                        runOnUiThread(() -> new android.app.AlertDialog.Builder(this)
+                                .setTitle("Wine29 RpcSs result")
+                                .setMessage(report)
+                                .setPositiveButton("Copy report", (result, button) -> {
+                                    android.content.ClipboardManager clipboard = getSystemService(
+                                            android.content.ClipboardManager.class);
+                                    if (clipboard != null) clipboard.setPrimaryClip(
+                                            android.content.ClipData.newPlainText("Wine29 RpcSs result", report));
+                                })
+                                .setNegativeButton("Close", null).show());
+                    }, "CharoiteWine29V29Rpcss").start();
+                }).show());
+        rpcssAction.addView(verifyRpcss);
+        android.widget.Button rpcssHandoff = new android.widget.Button(this);
+        rpcssHandoff.setText("Open current project handoff");
+        rpcssHandoff.setAllCaps(false);
+        rpcssHandoff.setOnClickListener(v -> startActivity(new android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md"))));
+        rpcssAction.addView(rpcssHandoff);
+        nextCoreCard.addView(rpcssAction);
 
         // Dedicated app-update control; no silent install or data reset.
         LinearLayout nextUpdatesAction = card();

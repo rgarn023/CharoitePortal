@@ -738,32 +738,103 @@ public final class CharoiteWine29V28FocusedInfProbe {
         out.append("V28 helper trace complete bounded scan: PASS; raw output/paths NOT copied\n");
     }
 
-    private static String shortReport(StringBuilder report) {
-        final String tail="\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+    private static int runRpcssCommand(File nativeDir, File loader, File server, File scratch,
+                                       File prefix, File lib, File sc, String command, File log)
+            throws Exception {
+        ProcessBuilder process = new ProcessBuilder(loader.getAbsolutePath(),
+                                                    sc.getAbsolutePath(), command, "RpcSs");
+        process.directory(scratch);
+        process.redirectErrorStream(true);
+        process.redirectOutput(log);
+        cleanEnv(process, nativeDir, server, scratch, prefix, lib)
+            .put("WINEDEBUG", "-all,err+all");
+        Process child = process.start();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        try {
+            while (System.nanoTime() < deadline && log.length() <= 65536) {
+                if (child.waitFor(100, TimeUnit.MILLISECONDS))
+                    return log.length() <= 65536 ? child.exitValue() : -1;
+            }
+            return -1;
+        } finally {
+            if (child.isAlive()) {
+                child.destroyForcibly();
+                child.waitFor(2, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    private static boolean verifyRpcss(StringBuilder out, File nativeDir, File loader, File server,
+                                       Process privateServer, File scratch, File prefix, File lib, File sc)
+            throws Exception {
+        boolean requestedStart = false;
+        for (int attempt = 0; attempt < 4 && privateServer.isAlive(); attempt++) {
+            File queryLog = child(scratch, "v29-rpcss-query-" + attempt + ".log");
+            int queryExit = runRpcssCommand(nativeDir, loader, server, scratch, prefix, lib,
+                                            sc, "query", queryLog);
+            String state = queryExit == 0
+                ? CharoiteWine29V28ScopedTriage.liveScmState(
+                    new String(java.nio.file.Files.readAllBytes(queryLog.toPath()),
+                               java.nio.charset.StandardCharsets.UTF_8))
+                : "UNKNOWN";
+            out.append("V29 independent SCM query ").append(attempt + 1)
+               .append(" exit=").append(queryExit).append(" state=").append(state).append('\n');
+            if ("RUNNING".equals(state)) return privateServer.isAlive();
+            if ("STOPPED".equals(state) && !requestedStart && privateServer.isAlive()) {
+                File startLog = child(scratch, "v29-rpcss-start.log");
+                int startExit = runRpcssCommand(nativeDir, loader, server, scratch, prefix, lib,
+                                                sc, "start", startLog);
+                requestedStart = true;
+                out.append("V29 RpcSs start native exit=").append(startExit).append('\n');
+                if (startExit < 0) return false;
+            } else if (!"START_PENDING".equals(state)) {
+                return false;
+            }
+            Thread.sleep(500);
+        }
+        return false;
+    }
+
+    private static String shortReport(StringBuilder report, boolean verifyRunning) {
+        final String tail=verifyRunning ? "\nEND OF WINE29 FRESH RPCSS REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
+        if (verifyRunning) summary=summary.replace("V28 ", "V29 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
     }
 
     public static String run(Context context) {
+        return run(context, false);
+    }
+
+    public static String verifyFreshRpcss(Context context) {
+        return run(context, true);
+    }
+
+    private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
-        out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
-        out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
-        out.append("Source-verified v9 sc.exe, v8 userenv.dll, v7 services.exe and original native/sealed modules, NEW v28 scratch ONLY\n");
-        out.append("Wine28, prior Wine29 v1-v27 scratch, stable Portal, games/saves/user prefixes/rootfs: NOT ACCESSED\n");
+        if (verifyRunning) {
+            out.append("CHAROITE NEXT — FRESH WINE29 V29 RPCSS SCM START AND QUERY\n");
+        } else {
+            out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
+            out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
+            out.append("Source-verified v9 sc.exe, v8 userenv.dll, v7 services.exe and original native/sealed modules, NEW v28 scratch ONLY\n");
+            out.append("Wine28, prior Wine29 v1-v27 scratch, stable Portal, games/saves/user prefixes/rootfs: NOT ACCESSED\n");
+        }
+        final int reportHeaderEnd = out.length();
         if (!PACKAGE.equals(context.getPackageName()) || Build.VERSION.SDK_INT < 26)
-            return shortReport(out.append("RESULT: BLOCKED — unsupported package/device\n"));
+            return shortReport(out.append("RESULT: BLOCKED — unsupported package/device\n"), verifyRunning);
         String preflight = CharoiteWine29Sealed012PePreflight.run(context);
         if (!preflight.contains("RESULT: PASS — isolated Wine29 0.12 34-DLL direct/delay PE preflight; NOT RUNNABLE"))
             return shortReport(out.append("RESULT: BLOCKED — sealed Wine29 34-DLL PE import preflight failed; NO new scratch\n")
-                .append(preflight));
+                .append(preflight), verifyRunning);
         out.append("Wine29 34-DLL header/ordinary/delay import preflight: PASS\n");
         String gate = CharoiteWine29Sealed012Stage.verifyOnly(context);
         if (!gate.contains("RESULT: PASS — isolated Wine29 0.12 data-only stage; NOT RUNNABLE"))
             return shortReport(out.append("RESULT: BLOCKED — matched Wine29 111-file source/PE/NLS/native SHA-256 gate failed\n")
-                .append(gate));
+                .append(gate), verifyRunning);
         out.append("Wine29 staged 111 PE/NLS and APK-native three ELF hashes: PASS\n");
 
         byte[] servicesImage;
@@ -785,7 +856,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             out.append("V8 PE/NLS paths: source-isolated, matched v6 selectors\n");
         } catch (Exception e) {
             return shortReport(out.append("RESULT: BLOCKED — V28 source preflight: ")
-                      .append(e.getClass().getSimpleName()).append('\n'));
+                      .append(e.getClass().getSimpleName()).append('\n'), verifyRunning);
         }
 
         Process serverProc = null, peProc = null, setupProc = null, controlProc = null;
@@ -795,9 +866,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            scratch = child(privateBase, SCRATCH);
-            if (scratch.exists() || !scratch.mkdir())
-                throw new SecurityException("V28 one-shot scratch exists or cannot be created; NO retry");
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v29" : SCRATCH);
+            if (!newScratch.mkdir())
+                throw new SecurityException("One-shot scratch exists or cannot be created");
+            scratch = newScratch;
             if (!scratch.getCanonicalFile().getParentFile().equals(privateBase))
                 throw new SecurityException("V28 private scratch parent changed");
             File nativeDir = new File(context.getApplicationInfo().nativeLibraryDir).getCanonicalFile();
@@ -1165,68 +1237,77 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 if (finished && exit==0 && !expired && !overflow
                         && cLinkRetained && windows && system32 && users
                         && !internalCreationFail && serverBeforeControl && setupPassed) {
-                    controlLog=child(scratch,"v28-independent-sc-rpcss-query.log");
-                    ProcessBuilder h=new ProcessBuilder(loader.getAbsolutePath(),
-                                                      scBuiltin.getAbsolutePath(),"query","RpcSs");
-                    h.directory(scratch);
-                    h.redirectErrorStream(true);
-                    h.redirectOutput(controlLog);
-                    Map<String,String> helpEnv=cleanEnv(h,nativeDir,server,scratch,prefix,lib);
-                    if (helpEnv.containsKey("WINEBOOTSTRAPMODE"))
-                        throw new SecurityException("Independent SCM query inherited bootstrap mode");
-                    out.append("V28 independent SCM query launcher WINEBOOTSTRAPMODE: UNSET\n");
-                    out.append("V28 independent SCM query requested from source-verified ARM64 sc.exe PE and APK loader\n");
-                    controlProc=h.start();
-                    boolean helpFinished=false,helpTimedOut=false,helpOverflow=false;
-                    int helpExit=-999;
-                    long helpStart=System.nanoTime();
-                    while (!helpFinished && !helpTimedOut && !helpOverflow) {
-                        helpFinished=controlProc.waitFor(200,TimeUnit.MILLISECONDS);
-                        if (helpFinished) helpExit=controlProc.exitValue();
-                        helpOverflow=controlLog.length()>2L*1024L*1024L;
-                        helpTimedOut=System.nanoTime()-helpStart>=TimeUnit.SECONDS.toNanos(20);
+                    if (verifyRunning) {
+                        controlPassed = verifyRpcss(out, nativeDir, loader, server, serverProc,
+                                                    scratch, prefix, lib, scBuiltin);
+                    } else {
+                        controlLog=child(scratch,"v28-independent-sc-rpcss-query.log");
+                        ProcessBuilder h=new ProcessBuilder(loader.getAbsolutePath(),
+                                                          scBuiltin.getAbsolutePath(),"query","RpcSs");
+                        h.directory(scratch);
+                        h.redirectErrorStream(true);
+                        h.redirectOutput(controlLog);
+                        Map<String,String> helpEnv=cleanEnv(h,nativeDir,server,scratch,prefix,lib);
+                        if (helpEnv.containsKey("WINEBOOTSTRAPMODE"))
+                            throw new SecurityException("Independent SCM query inherited bootstrap mode");
+                        out.append("V28 independent SCM query launcher WINEBOOTSTRAPMODE: UNSET\n");
+                        out.append("V28 independent SCM query requested from source-verified ARM64 sc.exe PE and APK loader\n");
+                        controlProc=h.start();
+                        boolean helpFinished=false,helpTimedOut=false,helpOverflow=false;
+                        int helpExit=-999;
+                        long helpStart=System.nanoTime();
+                        while (!helpFinished && !helpTimedOut && !helpOverflow) {
+                            helpFinished=controlProc.waitFor(200,TimeUnit.MILLISECONDS);
+                            if (helpFinished) helpExit=controlProc.exitValue();
+                            helpOverflow=controlLog.length()>2L*1024L*1024L;
+                            helpTimedOut=System.nanoTime()-helpStart>=TimeUnit.SECONDS.toNanos(20);
+                        }
+                        if (controlProc.isAlive()) {
+                            controlProc.destroyForcibly();
+                            controlProc.waitFor(2,TimeUnit.SECONDS);
+                        }
+                        String helpText=boundedLog(controlLog);
+                        boolean helpModuleError=helpText.toLowerCase(Locale.US).contains("c0000135")
+                                || helpText.contains("cannot find builtin library for");
+                        boolean helpExecFailure=helpText.contains("CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE");
+                        boolean helpOutput=controlLog.isFile() && controlLog.length()>0;
+                        // Exit code zero alone does not verify that SCM answered the query.
+                        String scmLower=helpText.toLowerCase(Locale.US);
+                        boolean rpcssName=scmLower.contains("service_name: rpcss")
+                                || scmLower.contains("service_name:rpcss");
+                        boolean scmState=rpcssName && scmLower.contains("state");
+                        boolean scm1060=scmLower.contains("1060");
+                        boolean scm1722=scmLower.contains("1722");
+                        out.append("V28 independent sc.exe query RpcSs attempted: true\n");
+                        out.append("V28 independent sc.exe query completed within 20s: ").append(helpFinished).append('\n');
+                        out.append("V28 independent sc.exe query native exit: ")
+                           .append(helpFinished?Integer.toString(helpExit):"BOUNDED STOP").append('\n');
+                        out.append("V28 independent sc.exe query log nonempty: ").append(helpOutput).append('\n');
+                        out.append("V28 SCM output identifies RpcSs: ").append(rpcssName).append('\n');
+                        out.append("V28 SCM output includes service state: ").append(scmState).append('\n');
+                        out.append("V28 SCM error 1060 marker observed: ").append(scm1060).append('\n');
+                        out.append("V28 SCM error 1722 marker observed: ").append(scm1722).append('\n');
+                        out.append("V28 independent sc.exe query module load failure marker: ").append(helpModuleError).append('\n');
+                        out.append("V28 independent sc.exe query child exec errno marker: ").append(helpExecFailure).append('\n');
+                        out.append("V28 independent sc.exe query log cap exceeded: ").append(helpOverflow).append('\n');
+                        out.append("V28 independent sc.exe query deadline exceeded: ").append(helpTimedOut).append('\n');
+                        out.append("V28 foreground server alive AFTER independent SCM query: ").append(serverProc.isAlive()).append('\n');
+                        out.append("V28 independent SCM query raw output and paths retained privately, not copied\n");
+                        controlPassed=helpFinished && helpExit==0 && helpOutput && scmState
+                                && !scm1060 && !scm1722 && serverProc.isAlive()
+                                && !helpModuleError && !helpExecFailure && !helpOverflow && !helpTimedOut;
                     }
-                    if (controlProc.isAlive()) {
-                        controlProc.destroyForcibly();
-                        controlProc.waitFor(2,TimeUnit.SECONDS);
-                    }
-                    String helpText=boundedLog(controlLog);
-                    boolean helpModuleError=helpText.toLowerCase(Locale.US).contains("c0000135")
-                            || helpText.contains("cannot find builtin library for");
-                    boolean helpExecFailure=helpText.contains("CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE");
-                    boolean helpOutput=controlLog.isFile() && controlLog.length()>0;
-                    // Exit code zero alone does not verify that SCM answered the query.
-                    String scmLower=helpText.toLowerCase(Locale.US);
-                    boolean rpcssName=scmLower.contains("service_name: rpcss")
-                            || scmLower.contains("service_name:rpcss");
-                    boolean scmState=rpcssName && scmLower.contains("state");
-                    boolean scm1060=scmLower.contains("1060");
-                    boolean scm1722=scmLower.contains("1722");
-                    out.append("V28 independent sc.exe query RpcSs attempted: true\n");
-                    out.append("V28 independent sc.exe query completed within 20s: ").append(helpFinished).append('\n');
-                    out.append("V28 independent sc.exe query native exit: ")
-                       .append(helpFinished?Integer.toString(helpExit):"BOUNDED STOP").append('\n');
-                    out.append("V28 independent sc.exe query log nonempty: ").append(helpOutput).append('\n');
-                    out.append("V28 SCM output identifies RpcSs: ").append(rpcssName).append('\n');
-                    out.append("V28 SCM output includes service state: ").append(scmState).append('\n');
-                    out.append("V28 SCM error 1060 marker observed: ").append(scm1060).append('\n');
-                    out.append("V28 SCM error 1722 marker observed: ").append(scm1722).append('\n');
-                    out.append("V28 independent sc.exe query module load failure marker: ").append(helpModuleError).append('\n');
-                    out.append("V28 independent sc.exe query child exec errno marker: ").append(helpExecFailure).append('\n');
-                    out.append("V28 independent sc.exe query log cap exceeded: ").append(helpOverflow).append('\n');
-                    out.append("V28 independent sc.exe query deadline exceeded: ").append(helpTimedOut).append('\n');
-                    out.append("V28 foreground server alive AFTER independent SCM query: ").append(serverProc.isAlive()).append('\n');
-                    out.append("V28 independent SCM query raw output and paths retained privately, not copied\n");
-                    controlPassed=helpFinished && helpExit==0 && helpOutput && scmState
-                            && !scm1060 && !scm1722 && serverProc.isAlive()
-                            && !helpModuleError && !helpExecFailure && !helpOverflow && !helpTimedOut;
                 } else {
-                    out.append("V28 independent sc.exe query RpcSs attempted: false — init, standalone INF or server gate failed\n");
+                    out.append("SCM check skipped because initialization, INF setup, or server readiness failed\n");
                 }
                 out.append("V28 initial registry presence before SCM; bounded service markers observed only AFTER private finalization\n");
                 out.append("V28 foreground server alive BEFORE intentional finalization: ").append(serverProc.isAlive()).append('\n');
-                out.append("V28 control conclusion: only RpcSs service queried; wider SCM/service/game capability not inferred\n");
-                if (controlPassed)
+                if (!verifyRunning) out.append("V28 control conclusion: only RpcSs service queried; wider SCM/service/game capability not inferred\n");
+                if (verifyRunning)
+                    out.insert(reportHeaderEnd, controlPassed
+                        ? "RESULT: VERIFIED — fresh-prefix SCM reports RpcSs RUNNING\n"
+                        : "RESULT: INCOMPLETE — fresh-prefix RpcSs RUNNING unverified\n");
+                else if (controlPassed)
                     out.append("RESULT: OBSERVED — source-pinned INF setup then independent sc.exe query RpcSs returned service status; wider SCM/games NOT TESTED\n");
                 else
                     out.append("RESULT: PARTIAL — source-pinned explicit DefaultInstall and independent RpcSs SCM registration not fully proven; wider SCM/games NOT TESTED\n");
@@ -1277,8 +1358,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 out.append("V28 final registry metadata/marker evidence unavailable; no raw contents reported\n");
             }
         }
-        out.append("V28 scratch retained; NEVER retry or delete V28 after first use\n");
-        out.append("Wine28, Wine29 v1–v27, stable Portal, original Wine and game saves: UNCHANGED\n");
-        return shortReport(out);
+        if (!verifyRunning) out.append("V28 scratch retained; NEVER retry or delete V28 after first use\n");
+        return shortReport(out, verifyRunning);
+
     }
 }

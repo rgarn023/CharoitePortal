@@ -1,3 +1,9 @@
+## 2026-11-19 — Prepare the fresh Wine29 RpcSs runtime check
+
+The experimental System tab adds **Verify RpcSs** for a one-shot private V29 prefix. The check reuses the hash-verified sealed Wine29 cohort and pinned setup inputs. After initialization, it queries RpcSs, requests startup once if SCM reports STOPPED, and waits for an independent exact `STATE : 4 RUNNING` response from the same private server. This uses the previously sealed runtime cohort. Cross-build #159's PE evidence remains CI-only.
+
+The V29 Android runtime outcome is pending. The latest baseline Actions runs were cross-build #159, postbuild #116, Next static verification #218 and Portal Android #527, all successful. Charoite Next v1.0 remains **31%** until a functional milestone is demonstrated. After the SCM check, verify isolated prefix readiness and a basic Windows executable with expected output and exit code.
+
 ## 2026-11-19 — Cross-build #159 closes the measured Shlwapi forwarder gap
 
 [Cross-build #159](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220) passed on main. The job logs report 217/217 named forwarder chains resolved for Shlwapi, 40/40 for GDI32, 31/31 for Comctl32 and 134/134 for Ole32. The run published PE probe artifacts. Full dependency closure and Android runtime behavior are still unverified. Charoite Next v1.0 remains **31%**.

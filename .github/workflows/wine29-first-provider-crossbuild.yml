@@ -863,7 +863,7 @@ jobs:
           assert unindexed_refs + sum(item["imported_symbols"] for item in ranking
               if item["provider"] in indexed) == sum(item["imported_symbols"] for item in ranking)
           (root/"next-provider-unindexed-gap.json").write_text(
-              json.dumps(gap,indent=2,sort_keys=True)+"\\n")
+              json.dumps(gap,indent=2,sort_keys=True)+"\n")
           print(f"NTOSKRNL_UNINDEXED_PROVIDER_GAP providers={len(unindexed)}"
                 f" imported_references={unindexed_refs} closure=unverified")
           assert sum(item["imported_symbols"] for item in ranking)==sum(

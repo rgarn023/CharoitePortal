@@ -569,13 +569,14 @@ jobs:
               mv "$log.bounded" "$log"
             fi
           done
-          # Probe the highest-volume unindexed provider from cross-build #149.
-          crypt32_target=dlls/crypt32/aarch64-windows/crypt32.dll
-          crypt32_log="$OUT/crypt32-provider-build.log"
-          crypt32_status=build_failed
-          if timeout 120 make -j2 "$crypt32_target" > "$crypt32_log" 2>&1; then
-            crypt32_status=invalid_or_missing_pe
-            if python3 - "$BUILD/$crypt32_target" <<'PYCRYPT32'
+          # Build missing providers from the pinned source; leave other candidates intact.
+          for module in crypt32 coml2; do
+            provider_target="dlls/$module/aarch64-windows/$module.dll"
+            provider_log="$OUT/$module-provider-build.log"
+            provider_status=build_failed
+            if timeout 120 make -j2 "$provider_target" > "$provider_log" 2>&1; then
+              provider_status=invalid_or_missing_pe
+              if python3 - "$BUILD/$provider_target" <<'PYPEPROVIDER'
           import pathlib, struct, sys
           candidate = pathlib.Path(sys.argv[1])
           assert candidate.is_file() and not candidate.is_symlink()
@@ -584,15 +585,16 @@ jobs:
           offset, = struct.unpack_from("<I", data, 0x3c)
           assert data[:2] == b"MZ" and 64 <= offset <= len(data)-24
           assert data[offset:offset+6] == b"PE\x00\x00\x64\xaa"
-          PYCRYPT32
-            then
-              crypt32_status=arm64_pe_header_verified_not_runtime
+          PYPEPROVIDER
+              then
+                provider_status=arm64_pe_header_verified_not_runtime
+              fi
             fi
-          fi
-          tail -c 65536 "$crypt32_log" > "$crypt32_log.bounded"
-          mv "$crypt32_log.bounded" "$crypt32_log"
-          printf '%s\n' "$crypt32_status" > "$OUT/crypt32-provider-status.txt"
-          echo "NTOSKRNL_CRYPT32_PROVIDER status=$crypt32_status runtime=unverified"
+            tail -c 65536 "$provider_log" > "$provider_log.bounded"
+            mv "$provider_log.bounded" "$provider_log"
+            printf '%s\n' "$provider_status" > "$OUT/$module-provider-status.txt"
+            echo "NTOSKRNL_EXTERNAL_PROVIDER_BUILD module=$module.dll status=$provider_status runtime=unverified"
+          done
           # Compare only actual source-built candidates in this eleven-DLL batch.
           # This is static evidence, NOT complete PE/forwarder/ABI closure.
           python3 - "$OUT" <<'PYINTERNALMATCH'
@@ -723,9 +725,9 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll") and (
-                  provider != "crypt32.dll" or
-                  (root/"crypt32-provider-status.txt").read_text().strip() ==
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll") and (
+                  provider not in {"crypt32.dll", "coml2.dll"} or
+                  (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
                   import subprocess,re
                   readobj=subprocess.run([str(pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-llvm-mingw/bin/llvm-readobj"),"--coff-exports",str(candidate)],

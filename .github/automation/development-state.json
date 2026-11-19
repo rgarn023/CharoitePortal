@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "manual-coml2-150-mwn82pxt",
-  "claimed_run_id": 44479489236,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -10,22 +10,14 @@
     44424971376,
     44426305365,
     44476592064,
-    44477873780
+    44477873780,
+    44479489236
   ],
   "last_result": {
-    "run_id": 44477873780,
+    "run_id": 44479489236,
     "result": "success",
-    "verification": "main push #150 verified crypt32.dll ARM64 PE header, 246 named exports, 16/16 required names, 2/2 forwarder chains; provider dependency closure and runtime unverified"
+    "verification": "coml2 ARM64 PE built, 23 named exports, 12/12 required names, zero forwarders, 43 references outside index across 11 providers; artifact digest verified"
   },
   "event_batch_utc": "2026-11-19T06",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44477873780,
-    "branch": "engineering/wine29-coml2-provider-150",
-    "pr_number": 17,
-    "head_sha": "0496865934af2ed12d0f9dfc904853c5b24c34eb",
-    "target_branch": "main",
-    "next": "Verify compiled coml2 and required exports in main CI",
-    "merged_main_sha": "da20761d8b30c405f5f6adfa2aa2b116595c748d"
-  }
+  "pending_validation": null
 }

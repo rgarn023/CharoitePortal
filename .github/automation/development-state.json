@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "event-44476592064-7002328637",
-  "claimed_run_id": 44476592064,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -18,12 +18,13 @@
   },
   "event_batch_utc": "2026-11-19T06",
   "pending_validation": {
-    "phase": "await_pr_checks",
+    "phase": "awaiting_main_crossbuild",
     "source_run_id": 44476592064,
     "branch": "engineering/wine29-crypt32-provider-149",
     "pr_number": 16,
     "head_sha": "34697a56ce473633b314a734a2bdf0653816d755",
     "target_branch": "main",
-    "next": "Verify crypt32 candidate and named export coverage on main CI"
+    "next": "Verify crypt32 candidate and named export coverage on main CI",
+    "merged_main_sha": "8b36bc3a430a2940b02c3354d5ec91df01df3d09"
   }
 }

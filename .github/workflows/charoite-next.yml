@@ -3,7 +3,8 @@ on:
   push:
     paths:
       # Full Android builds are for source milestones, not static test edits.
-      # Workflow-only changes require explicit dispatch after lightweight checks.
+      # Workflow edits can request an artifact-only build on the Meteorite Alpha branch.
+      - '.github/workflows/charoite-next.yml'
       - 'next-generation/**'
       - '!next-generation/charoite-wine/**'
       - '!next-generation/tests/**'
@@ -22,8 +23,9 @@ jobs:
   build-runtime-preview:
     # Milestone-only: routine Next source pushes must not generate ~465 MB APKs.
     # A reviewed main push with [next-apk] in its head commit, or an explicit
-    # workflow_dispatch, is required. Source-only CI remains independent.
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[next-apk]'))
+    # workflow_dispatch, is required on main. The named branding branch can
+    # explicitly request a test artifact without publishing a release.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[next-apk]')) || (github.event_name == 'push' && github.ref == 'refs/heads/engineering/meteorite-alpha-branding' && contains(github.event.head_commit.message, '[meteorite-test-apk]'))
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:

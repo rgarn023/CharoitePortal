@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T06-automation11",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -16,5 +16,13 @@
     "verification": "Actual job 135231924353: 228/228 named forwarder chains resolved across six indexed providers (99 kernel32, 4 user32, 94 kernelbase, 31 advapi32); no missing/cycles reported. Artifact 14485315510 present with SHA-256 digest; runtime and broader dependency closure unverified."
   },
   "event_batch_utc": "2026-11-19T06",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "awaiting_pr_checks",
+    "pr_number": 15,
+    "branch": "engineering/wine29-unindexed-provider-gap-20261119",
+    "head_sha": "e045c33ca5d446d5365af555b5974edbc4095034",
+    "base_branch": "main",
+    "source_run_id": 44426305365,
+    "notes": "CI-only unindexed provider gap inventory; inspect checks/diff and main provider run after merge; originating #148 already processed"
+  }
 }

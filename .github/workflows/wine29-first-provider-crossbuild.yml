@@ -712,7 +712,7 @@ jobs:
           target_inventories = {}
           # Forwarder-only DLLs are indexed without inflating direct import counts.
           forwarder_only = [{"provider": name, "imported_symbols": 0}
-                            for name in ("shcore.dll", "propsys.dll")
+                            for name in ("shcore.dll", "propsys.dll", "gdi32.dll")
                             if not any(item["provider"] == name for item in ranking)]
           index_candidates = ranking + forwarder_only
           for item in index_candidates:
@@ -731,7 +731,10 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll","shcore.dll","propsys.dll") and (
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll","shcore.dll","propsys.dll","gdi32.dll") and (
+                  provider != "gdi32.dll" or
+                  (root/"gdi32.dll-status.txt").read_text().strip() ==
+                  "arm64_pe_header_verified_not_runtime") and (
                   provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll", "shcore.dll", "propsys.dll"} or
                   (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
@@ -869,7 +872,8 @@ jobs:
               resolved = counts["named_chain_resolved"]
               item["forwarder_named_chain_resolved_count"] = resolved
               (root/("external-"+provider+"-forwarder-targets.json")).write_text(
-                  json.dumps({"provider": provider, "entries": entries[:100],
+                  json.dumps({"provider": provider, "entries": sorted(entries, key=lambda entry:
+                              entry["named_chain_status"] == "named_chain_resolved")[:100],
                               "entry_count": len(entries), "truncated": len(entries)>100,
                               "named_chain_counts": counts,
                               "scope": "indexed provider PE exports only",

@@ -1643,7 +1643,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='159' versionName='11.2-next.0.128'"
+            grep -F "package: name='com.charoitx' versionCode='160' versionName='11.2-next.0.129'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2136,7 +2136,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc159
+          TAG=charoite-next-vc160
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2148,8 +2148,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.128 (build 159)" \
-              --notes "Signed experimental Charoite Next with a one-shot Wine29 V29 RpcSs check in a fresh private prefix. System > Verify RpcSs requests explicit consent before initializing Wine or starting the service. Android build verification does not establish the on-device service result." \
+              --title "Charoite Next 11.2-next.0.129 (build 160)" \
+              --notes "Signed experimental Charoite Next with a one-shot Wine29 V30 fresh-prefix check and an independent Wineboot help smoke test. System > Verify fresh prefix requests explicit consent before initializing Wine. Android build verification does not establish the on-device service result." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

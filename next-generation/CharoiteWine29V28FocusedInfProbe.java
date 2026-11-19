@@ -738,11 +738,14 @@ public final class CharoiteWine29V28FocusedInfProbe {
         out.append("V28 helper trace complete bounded scan: PASS; raw output/paths NOT copied\n");
     }
 
-    private static int runRpcssCommand(File nativeDir, File loader, File server, File scratch,
-                                       File prefix, File lib, File sc, String command, File log)
+    private static int runBoundedPe(File nativeDir, File loader, File server, File scratch,
+                                       File prefix, File lib, File executable, File log, String... arguments)
             throws Exception {
-        ProcessBuilder process = new ProcessBuilder(loader.getAbsolutePath(),
-                                                    sc.getAbsolutePath(), command, "RpcSs");
+        java.util.ArrayList<String> command = new java.util.ArrayList<>();
+        command.add(loader.getAbsolutePath());
+        command.add(executable.getAbsolutePath());
+        java.util.Collections.addAll(command, arguments);
+        ProcessBuilder process = new ProcessBuilder(command);
         process.directory(scratch);
         process.redirectErrorStream(true);
         process.redirectOutput(log);
@@ -770,8 +773,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
         boolean requestedStart = false;
         for (int attempt = 0; attempt < 4 && privateServer.isAlive(); attempt++) {
             File queryLog = child(scratch, "v29-rpcss-query-" + attempt + ".log");
-            int queryExit = runRpcssCommand(nativeDir, loader, server, scratch, prefix, lib,
-                                            sc, "query", queryLog);
+            int queryExit = runBoundedPe(nativeDir, loader, server, scratch, prefix, lib,
+                                            sc, queryLog, "query", "RpcSs");
             String state = queryExit == 0
                 ? CharoiteWine29V28ScopedTriage.liveScmState(
                     new String(java.nio.file.Files.readAllBytes(queryLog.toPath()),
@@ -782,8 +785,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
             if ("RUNNING".equals(state)) return privateServer.isAlive();
             if ("STOPPED".equals(state) && !requestedStart && privateServer.isAlive()) {
                 File startLog = child(scratch, "v29-rpcss-start.log");
-                int startExit = runRpcssCommand(nativeDir, loader, server, scratch, prefix, lib,
-                                                sc, "start", startLog);
+                int startExit = runBoundedPe(nativeDir, loader, server, scratch, prefix, lib,
+                                                sc, startLog, "start", "RpcSs");
                 requestedStart = true;
                 out.append("V29 RpcSs start native exit=").append(startExit).append('\n');
                 if (startExit < 0) return false;
@@ -796,10 +799,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static String shortReport(StringBuilder report, boolean verifyRunning) {
-        final String tail=verifyRunning ? "\nEND OF WINE29 FRESH RPCSS REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+        final String tail=verifyRunning ? "\nEND OF WINE29 V30 PREFIX SMOKE REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
-        if (verifyRunning) summary=summary.replace("V28 ", "V29 ");
+        if (verifyRunning) summary=summary.replace("V28 ", "V30 ").replace("v28 ", "v30 ").replace("V29 ", "V30 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
@@ -809,14 +812,14 @@ public final class CharoiteWine29V28FocusedInfProbe {
         return run(context, false);
     }
 
-    public static String verifyFreshRpcss(Context context) {
+    public static String verifyFreshPrefix(Context context) {
         return run(context, true);
     }
 
     private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (verifyRunning) {
-            out.append("CHAROITE NEXT — FRESH WINE29 V29 RPCSS SCM START AND QUERY\n");
+            out.append("CHAROITE NEXT — FRESH WINE29 V30 PREFIX SETUP AND PE SMOKE TEST\n");
         } else {
             out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
             out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
@@ -876,7 +879,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v29" : SCRATCH);
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v30" : SCRATCH);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1243,13 +1246,25 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 boolean controlPassed=false;
                 boolean serverBeforeControl=serverProc.isAlive();
                 out.append("V28 foreground server alive BEFORE independent SCM query: ").append(serverBeforeControl).append('\n');
-                out.append("V28 independent Wineboot --help: NOT ATTEMPTED (no extra control process)\n");
+                if (!verifyRunning) out.append("V28 independent Wineboot --help: NOT ATTEMPTED (no extra control process)\n");
                 if (finished && exit==0 && !expired && !overflow
                         && cLinkRetained && windows && system32 && users
                         && !internalCreationFail && serverBeforeControl && setupPassed) {
                     if (verifyRunning) {
                         controlPassed = verifyRpcss(out, nativeDir, loader, server, serverProc,
                                                     scratch, prefix, lib, scBuiltin);
+                        if (controlPassed) {
+                            File smokeLog = child(scratch, "v30-wineboot-help.log");
+                            int smokeExit = runBoundedPe(nativeDir, loader, server, scratch, prefix,
+                                                        lib, bootBuiltin, smokeLog, "--help");
+                            boolean usage = smokeExit == 0 && java.nio.file.Files.readAllLines(
+                                smokeLog.toPath(), java.nio.charset.StandardCharsets.UTF_8)
+                                .contains("Usage: wineboot [options]");
+                            out.insert(reportHeaderEnd, "PE smoke: Wineboot --help exit=" + smokeExit
+                                + ", exact usage line=" + usage
+                                + ", private server alive=" + serverProc.isAlive() + "\n");
+                        }
+
                     } else {
                         controlLog=child(scratch,"v28-independent-sc-rpcss-query.log");
                         ProcessBuilder h=new ProcessBuilder(loader.getAbsolutePath(),
@@ -1362,6 +1377,11 @@ public final class CharoiteWine29V28FocusedInfProbe {
                     out.append("V28 POST-FINALIZATION retained ").append(reg).append(" metadata: ")
                        .append(f.isFile() ? f.length() + " bytes" : "absent")
                        .append("; contents checked ONLY by fixed V28 marker scan\n");
+                }
+                if (verifyRunning) {
+                    boolean programFiles = child(prefix, "drive_c/Program Files").isDirectory();
+                    out.insert(reportHeaderEnd, "Post-finalization Program Files present: "
+                        + programFiles + "\n");
                 }
                 appendV28RegistryMarkers(out, scratch);
             } catch(Exception ignored) {

@@ -1,3 +1,7 @@
+## 2026-11-19 — V30 fresh-prefix readiness and Windows PE smoke test
+
+Build 160 adds a one-shot V30 test in separate private scratch. It reuses the verified V29 inputs and bootstrap sequence. After SCM confirms RpcSs is running, it launches the source-verified Windows Wineboot PE independently with --help. Success evidence is exit 0, the pinned usage line and the private server remaining alive. The report also checks Program Files after finalization, alongside existing registry evidence. V29 and existing user data are preserved. This tests a separate PE process invocation with the already verified Wineboot image. Third-party executable compatibility and full SetupAPI readiness remain open. Overall v1.0 estimate remains **32%** pending phone evidence.
+
 ## 2026-11-19 — V29 RpcSs startup verified on the phone
 
 **Current v1.0 estimate: 32%.** Owner report from signed Next build 159 / Actions #923: sealed PE/NLS and native preflight passed, Wineboot -i exited 0, and the private server remained alive. Independent SCM query returned STOPPED (exit 0), the RpcSs start command exited 0, and a separate SCM query returned RUNNING (exit 0). The final system.reg contained the exact RpcSs service root with ImagePath, Start, and Type. This closes the fresh-prefix RpcSs milestone. The one-shot V29 run is complete and does not need to be repeated.

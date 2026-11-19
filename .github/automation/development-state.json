@@ -1,28 +1,20 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T01-crossbuild148",
-  "claimed_run_id": 44426305365,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
     44397034408,
     44398588547,
-    44424971376
+    44424971376,
+    44426305365
   ],
   "last_result": {
-    "run_id": 44424971376,
+    "run_id": 44426305365,
     "result": "success",
-    "verification": "228/228 valid named targets, binaries present, immediate names found in verified artifact; chains pending; follow-up replay on #147 artifact resolved all 228 named chains"
+    "verification": "Actual job 135231924353: 228/228 named forwarder chains resolved across six indexed providers (99 kernel32, 4 user32, 94 kernelbase, 31 advapi32); no missing/cycles reported. Artifact 14485315510 present with SHA-256 digest; runtime and broader dependency closure unverified."
   },
   "event_batch_utc": "2026-11-18T23",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44424971376,
-    "branch": "engineering/wine29-named-forwarder-closure-147",
-    "pr_number": 14,
-    "head_sha": "04f3bcc5fb0602db0dcd0ded612502d842a86c2c",
-    "target_branch": "main",
-    "next": "Check named forwarder chain resolution on main CI",
-    "merged_main_sha": "4c2cb16501157659bde6a28902f077af73e13bd2"
-  }
+  "pending_validation": null
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-3682d8e0-e41f-11f1-9b0d-6e5a49c06b42",
-  "claimed_run_id": 44535421575,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -15,22 +15,14 @@
     44481727377,
     44501188714,
     44502438836,
-    44515275339
+    44515275339,
+    44535421575
   ],
   "last_result": {
-    "run_id": 44515275339,
+    "run_id": 44535421575,
     "result": "success",
-    "verification": "Main #155 job logs verify 0 unindexed direct providers / 0 imported references; 19 provider candidates have required named exports matched; remaining unresolved forwarder chains: shlwapi 56, comctl32 5, shell32 6, urlmon 8. Full transitive closure and runtime unverified."
+    "verification": "Main #156 job logs and digest-verified diagnostic artifact confirm compiled ARM64 Shcore (85 named exports) and Propsys (187), and resolved named chains shlwapi 197/217, shell32 36/36, urlmon 8/8. Runtime remains unverified."
   },
   "event_batch_utc": "2026-11-19T12",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44515275339,
-    "branch": "engineering/wine29-shcore-propsys-155",
-    "pr_number": 23,
-    "head_sha": "59fdedaa404a61b8b161b6bd90b3c047a0fed66e",
-    "target_branch": "main",
-    "next": "Verify Shcore and Propsys build and named chain coverage",
-    "merged_main_sha": "ca4d989dabb00cc03a2874a1ed61fa9789e2db3e"
-  }
+  "pending_validation": null
 }

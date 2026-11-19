@@ -570,7 +570,7 @@ jobs:
             fi
           done
           # Build missing providers from the pinned source; leave other candidates intact.
-          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll; do
+          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll dnsapi.dll comctl32.dll mpr.dll shell32.dll urlmon.dll cryptui.dll dhcpcsvc.dll windowscodecs.dll; do
             module=${filename%.dll}
             provider_target="dlls/$module/aarch64-windows/$filename"
             provider_log="$OUT/$module-provider-build.log"
@@ -726,8 +726,8 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll") and (
-                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll"} or
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll") and (
+                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll"} or
                   (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
                   import subprocess,re

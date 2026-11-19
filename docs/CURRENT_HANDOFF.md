@@ -2,6 +2,8 @@
 
 The owner report shows the sealed PE/NLS preflight blocked at the prerequisite source/staged SHA audit. No Wine process ran and no V29 scratch prefix was created. The report did not distinguish a missing staging slot from a failed integrity check. Build 158 expected a preexisting stage, but its standalone staging control was archived. Build 159 prepares or verifies the existing sealed data slot under the same explicit System consent, then requires the original SHA and PE checks before executing Wine. A failed preparation is reported separately. Existing prefix and game data are outside the test scope. RpcSs remains unverified and Next v1.0 remains **31%**.
 
+[Static #236](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283883) and [signed Next #923](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861) passed. Install the [signed Next build 159 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44634283861/artifacts/14584115344) in place and run **System → Verify RpcSs → Run once**. Return the copied report. This replaces the build 158 test instructions below.
+
 ## 2026-11-19 — Prepare the fresh Wine29 RpcSs runtime check
 
 The experimental System tab adds **Verify RpcSs** for a one-shot private V29 prefix. The check reuses the hash-verified sealed Wine29 cohort and pinned setup inputs. After initialization, it queries RpcSs, requests startup once if SCM reports STOPPED, and waits for an independent exact `STATE : 4 RUNNING` response from the same private server. This uses the previously sealed runtime cohort. Cross-build #159's PE evidence remains CI-only.

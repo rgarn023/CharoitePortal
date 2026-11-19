@@ -841,6 +841,31 @@ jobs:
                              sort_keys=True, indent=2)+"\n")
               print(f"NTOSKRNL_FORWARDER_NAMED_CHAINS provider={provider}"
                     f" resolved={resolved} total={len(entries)} statuses={dict(counts)}")
+          # Account for provider imports beyond the six compiled export inventories.
+          # This is a bounded evidence gap report, never a claim of resolution.
+          indexed = set(indexed_exports)
+          unindexed = [item for item in ranking if item["provider"] not in indexed]
+          unindexed_refs = sum(item["imported_symbols"] for item in unindexed)
+          unindexed_consumers = sorted({consumer for inv in inventories.values()
+              for provider in inv["imports_by_dll"] if provider not in indexed
+              for consumer in [inv.get("module", "unknown")]})
+          gap = {
+              "schema_version": 1,
+              "indexed_provider_count": len(indexed),
+              "unindexed_provider_count": len(unindexed),
+              "unindexed_import_references": unindexed_refs,
+              "unindexed_provider_names": sorted(item["provider"] for item in unindexed),
+              "unindexed_consumer_labels": unindexed_consumers,
+              "unindexed_name_resolution_verified": False,
+              "transitive_dependency_closure_verified": False,
+              "runtime_verified": False,
+          }
+          assert unindexed_refs + sum(item["imported_symbols"] for item in ranking
+              if item["provider"] in indexed) == sum(item["imported_symbols"] for item in ranking)
+          (root/"next-provider-unindexed-gap.json").write_text(
+              json.dumps(gap,indent=2,sort_keys=True)+"\n")
+          print(f"NTOSKRNL_UNINDEXED_PROVIDER_GAP providers={len(unindexed)}"
+                f" imported_references={unindexed_refs} closure=unverified")
           assert sum(item["imported_symbols"] for item in ranking)==sum(
               entry["external_required_symbols"] for entry in report.values()), "external import ranking lost symbols"
           (root/"next-provider-external-dependency-ranking.json").write_text(

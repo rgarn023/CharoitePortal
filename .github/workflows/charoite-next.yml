@@ -1,4 +1,4 @@
-name: Charoite Core Next Android
+name: Charoite Portal — Codename Meteorite Alpha
 on:
   push:
     paths:
@@ -1802,7 +1802,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "application-label:'Charoite Next'"
+            grep -F "application-label:'Charoite Portal — Codename Meteorite Alpha'"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
             grep -F "package: name='com.charoitx'"
@@ -2103,7 +2103,7 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.126 (build 157)" \
+              --title "Charoite Portal — Codename Meteorite Alpha 11.2-next.0.126 (build 157)" \
               --notes "Signed com.charoitx v0.126: owner-authorized READ-ONLY V28 RpcSs SCM exit class, fixed registry Start mode and source-identified SetupAPI error groups; no new Wine execution. Synthetic Java fixtures verify parsing; no V28 Wine execution or writes. Existing official signed in-app updater remains available to install this release via Android approval; never uninstall or clear data, and never rerun V28." \
               --latest=false
           fi

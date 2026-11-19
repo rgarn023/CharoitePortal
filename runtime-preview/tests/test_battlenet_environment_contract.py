@@ -13,6 +13,7 @@ class BattleNetEnvironmentContract(unittest.TestCase):
         self.assertIn('public static final String BATTLE_NET = "battle-net-gaming";', ENV)
         self.assertIn('make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0)', ENV)
         upgrade = ENV.split('if (p.contains(KEY)) {',1)[1].split('int legacyId',1)[0]
+        self.assertIn('if (hasGeneral && hasTouhou && hasBattleNet && !renamedHome) return;', upgrade)
         self.assertIn('if (!hasBattleNet)', upgrade)
         self.assertNotIn('putString(ACTIVE,', upgrade)
         self.assertNotIn('delete(', upgrade)

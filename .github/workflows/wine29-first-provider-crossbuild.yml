@@ -711,7 +711,7 @@ jobs:
           indexed_exports = {}
           target_inventories = {}
           # Forwarder-only DLLs are indexed without inflating direct import counts.
-          prebuilt_forwarder_providers = ("gdi32.dll", "ole32.dll", "wininet.dll")
+          prebuilt_forwarder_providers = ("gdi32.dll", "ole32.dll", "wininet.dll", "combase.dll", "win32u.dll")
           forwarder_only = [{"provider": name, "imported_symbols": 0}
                             for name in ("shcore.dll", "propsys.dll", "userenv.dll", *prebuilt_forwarder_providers)
                             if not any(item["provider"] == name for item in ranking)]

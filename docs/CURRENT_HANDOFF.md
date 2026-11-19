@@ -1,3 +1,7 @@
+## 2026-11-19 — Cross-build #158 verifies Userenv and isolates remaining forwarder dependencies
+
+[Cross-build #158](https://github.com/rgarn023/CharoitePortal/actions/runs/44591404534) builds ARM64 Userenv and resolves 216/217 Shlwapi chains. The SHA-256-verified artifact shows the remaining route enters Ole32 through CLSIDFromProgID. Ole32 forwards into Combase, and GDI32 forwards into Win32u. CI now indexes those two existing, PE-header-verified ARM64 binaries and will check the resulting chain counts. Runtime services/RPC and isolated prefix startup remain pending. v1.0 stays at **31%**.
+
 ## 2026-11-19 — Add Meteoric (Home) Realm alongside General Gaming
 
 Fresh Charoite Portal installs open in a separate Meteoric (Home) Realm. General Gaming, Touhou and Battle.net remain available. Upgrades add Meteoric with a unique realm ID and its own library and container. Existing selections and storage IDs are preserved, and installations that received the interim rename recover the original General Gaming label. All 138 local runtime-preview contract tests passed. Android APK verification is pending.

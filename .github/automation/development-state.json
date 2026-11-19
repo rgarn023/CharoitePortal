@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "manual-merge-pr22-1795087755577",
-  "claimed_run_id": 44502438836,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -27,6 +27,8 @@
     "pr_number": 22,
     "branch": "engineering/wine29-provider-batch-154",
     "head_sha": "944c3d8c1d03db9b8db9e57128466e3a75cdc02b",
-    "phase": "pr_checks"
+    "phase": "main_ci",
+    "main_sha": "007118cd874b3d564f22bffe0198e30e0b5c88db",
+    "merged_main_sha": "007118cd874b3d564f22bffe0198e30e0b5c88db"
   }
 }

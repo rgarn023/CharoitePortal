@@ -12,22 +12,22 @@
     44476592064,
     44477873780,
     44479489236,
-    44481727377
+    44481727377,
+    44501188714
   ],
   "last_result": {
-    "run_id": 44481727377,
+    "run_id": 44501188714,
     "result": "success",
-    "verification": "Winspool ARM64 PE built, 157 named exports, 12/12 required names, zero forwarders; 31 references outside index across 10 providers; artifact digest verified"
+    "verification": "Shlwapi ARM64 PE built, 362 named exports, 10/10 required names, 161/217 named forwarder chains, 21 references across nine unindexed providers; artifact digest verified"
   },
   "event_batch_utc": "2026-11-19T09",
   "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44481727377,
-    "branch": "engineering/wine29-shlwapi-provider-152",
-    "pr_number": 19,
-    "head_sha": "df44ba627250e8ff9862a148379f2fc20007f097",
+    "phase": "await_pr_checks",
+    "source_run_id": 44501188714,
+    "branch": "engineering/wine29-nsi-provider-153",
+    "pr_number": 20,
+    "head_sha": "7a9c9554c436191b4d6c3feee7db844f4271e3e7",
     "target_branch": "main",
-    "next": "Verify main shlwapi ARM64 candidate, required export names and artifact evidence",
-    "merged_main_sha": "f11e41b252b0654e569ef6f731d04a80896c2d8d"
+    "next": "Verify nsi ARM64 candidate and required exports on main CI"
   }
 }

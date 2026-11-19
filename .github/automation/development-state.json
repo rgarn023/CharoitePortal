@@ -18,5 +18,13 @@
     "verification": "main push #150 verified crypt32.dll ARM64 PE header, 246 named exports, 16/16 required names, 2/2 forwarder chains; provider dependency closure and runtime unverified"
   },
   "event_batch_utc": "2026-11-19T06",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "await_pr_checks",
+    "source_run_id": 44477873780,
+    "branch": "engineering/wine29-coml2-provider-150",
+    "pr_number": 17,
+    "head_sha": "0496865934af2ed12d0f9dfc904853c5b24c34eb",
+    "target_branch": "main",
+    "next": "Verify compiled coml2 and required exports in main CI"
+  }
 }

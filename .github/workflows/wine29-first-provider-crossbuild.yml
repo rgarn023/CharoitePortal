@@ -681,6 +681,8 @@ jobs:
           # Source-tree presence is a prioritization aid only; it is NOT PE export closure.
           import os
           build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
+          indexed_exports = {}
+          target_inventories = {}
           for item in ranking:
               provider=item["provider"]
               module_stem=provider.rsplit(".",1)[0]
@@ -740,14 +742,8 @@ jobs:
                   item["forwarder_target_pe_present_count"]=sum(
                       x["target_pe_candidate_present"] for x in target_inventory)
                   item["forwarder_target_resolution_verified"]=False
-                  (root/("external-"+provider+"-forwarder-targets.json")).write_text(
-                      json.dumps({"provider":provider,
-                                  "entries":target_inventory[:100],
-                                  "entry_count":len(target_inventory),
-                                  "truncated":len(target_inventory)>100,
-                                  "target_export_verified":False,
-                                  "runtime_verified":False},
-                                 sort_keys=True,indent=2)+"\n")
+                  target_inventories[provider] = target_inventory
+                  indexed_exports[provider] = export_names
                   print(f"NTOSKRNL_FORWARDER_TARGET_AUDIT provider={provider}"
                         f" syntax_valid={item['forwarder_target_syntax_valid_count']}"
                         f" target_pe_present={item['forwarder_target_pe_present_count']}"
@@ -792,6 +788,59 @@ jobs:
                     " candidate_present="+str(exists).lower()+
                     " imported_symbols="+str(item["imported_symbols"])+
                     " closure=unverified")
+          def resolve_named_forwarder(entry, exports, edges):
+              seen = set()
+              while True:
+                  if not entry["target_syntax_valid"]:
+                      return "invalid_target"
+                  if entry["target_by_ordinal"]:
+                      return "ordinal_unchecked"
+                  module, symbol = entry["target_module"], entry["target_symbol"]
+                  if module not in exports:
+                      return "module_unindexed"
+                  if symbol not in exports[module]:
+                      return "missing_export"
+                  key = module, symbol
+                  if key in seen:
+                      return "cycle"
+                  seen.add(key)
+                  if key not in edges:
+                      return "named_chain_resolved"
+                  entry = edges[key]
+
+          # Check a two-hop chain and its major failure modes before auditing real files.
+          first = dict(target_syntax_valid=True, target_by_ordinal=False,
+                       target_module="a.dll", target_symbol="Alias")
+          second = dict(first, target_module="b.dll", target_symbol="Func")
+          fixture = {"a.dll": {"Alias"}, "b.dll": {"Func"}}
+          assert resolve_named_forwarder(first, fixture, {("a.dll", "Alias"): second}) == "named_chain_resolved"
+          assert resolve_named_forwarder(first, fixture, {("a.dll", "Alias"): first}) == "cycle"
+          assert resolve_named_forwarder(first, {"a.dll": set()}, {}) == "missing_export"
+          assert resolve_named_forwarder(first, {}, {}) == "module_unindexed"
+          assert resolve_named_forwarder(dict(first, target_by_ordinal=True), fixture, {}) == "ordinal_unchecked"
+
+          from collections import Counter
+          edges = {(module, name): entry for module, entries in target_inventories.items()
+                   for entry in entries for name in entry["source_names"]}
+          for item in ranking:
+              provider = item["provider"]
+              if provider not in target_inventories:
+                  continue
+              entries = target_inventories[provider]
+              for entry in entries:
+                  entry["named_chain_status"] = resolve_named_forwarder(entry, indexed_exports, edges)
+              counts = Counter(entry["named_chain_status"] for entry in entries)
+              resolved = counts["named_chain_resolved"]
+              item["forwarder_named_chain_resolved_count"] = resolved
+              (root/("external-"+provider+"-forwarder-targets.json")).write_text(
+                  json.dumps({"provider": provider, "entries": entries[:100],
+                              "entry_count": len(entries), "truncated": len(entries)>100,
+                              "named_chain_counts": counts,
+                              "scope": "indexed provider PE exports only",
+                              "target_export_verified": False, "runtime_verified": False},
+                             sort_keys=True, indent=2)+"\n")
+              print(f"NTOSKRNL_FORWARDER_NAMED_CHAINS provider={provider}"
+                    f" resolved={resolved} total={len(entries)} statuses={dict(counts)}")
           assert sum(item["imported_symbols"] for item in ranking)==sum(
               entry["external_required_symbols"] for entry in report.values()), "external import ranking lost symbols"
           (root/"next-provider-external-dependency-ranking.json").write_text(

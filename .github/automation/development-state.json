@@ -19,5 +19,13 @@
     "verification": "coml2 ARM64 PE built, 23 named exports, 12/12 required names, zero forwarders, 43 references outside index across 11 providers; artifact digest verified"
   },
   "event_batch_utc": "2026-11-19T06",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "await_pr_checks",
+    "source_run_id": 44479489236,
+    "branch": "engineering/wine29-winspool-provider-151",
+    "pr_number": 18,
+    "head_sha": "b0858d0d6816fbb54e3ea24484d4da84989b2037",
+    "target_branch": "main",
+    "next": "Verify the ARM64 winspool candidate and its required exports"
+  }
 }

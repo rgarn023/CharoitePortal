@@ -8,6 +8,8 @@ on:
       - 'next-generation/**'
       - '!next-generation/charoite-wine/**'
       - '!next-generation/tests/**'
+      # Provenance assertions can request a gated APK rebuild when pins change.
+      - 'next-generation/tests/test_next_device_probe.py'
   workflow_dispatch:
 
 permissions:

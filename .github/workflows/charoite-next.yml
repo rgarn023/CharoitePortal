@@ -208,18 +208,72 @@ jobs:
       - name: Install separate Charoite Next app identity and engine inventory
         run: python3 next-generation/prepare_next.py upstream
 
+      - name: Restore pinned legacy Wine build inputs from signed Next build 157
+        run: |
+          set -euo pipefail
+          prior_apk="$RUNNER_TEMP/charoite-next-vc157.apk"
+          curl --fail --silent --show-error --location --retry 3 \
+            'https://github.com/rgarn023/CharoitePortal/releases/download/charoite-next-vc157/Charoite-Next-Android.apk' \
+            --output "$prior_apk"
+          echo "53d932487dd3f08b7bd664a8c24f42c72a8b4da5e5f952b41d7dc9ab907d6eda  $prior_apk" | sha256sum --check
+          python3 - "$prior_apk" "$RUNNER_TEMP" <<'PY'
+          import shutil
+          import sys
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          apk, temp = map(Path, sys.argv[1:])
+          asset_root = "assets/charoite-next/"
+          bundles = {
+              "wine-bootstrap-22.bundle": "charoite-wine-native-probe",
+              "wine-bootstrap-26.bundle": "charoite-wine26",
+              "wine-bootstrap-27.bundle": "charoite-wine27",
+              "wine-bootstrap-28.bundle": "charoite-wine28",
+              "wine-bootstrap-29.bundle": "charoite-wine29",
+              "wine29-native07/wine29-source-matched.bundle": "charoite-wine29-source07",
+          }
+          pe_groups = {
+              "foundation": ("advapi32", "user32", "ws2_32"),
+              "expansion": ("crypt32", "setupapi", "shlwapi", "version"),
+          }
+          with ZipFile(apk) as signed:
+              def restore(asset, target):
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  with signed.open(asset_root + asset) as source, target.open("xb") as destination:
+                      shutil.copyfileobj(source, destination)
+
+              for asset, group in bundles.items():
+                  restore(asset, temp / group / "charoite-wine-bootstrap-bundle.tar.gz")
+              for group, dlls in pe_groups.items():
+                  target = temp / "charoite-wine-phone-probe" / group
+                  manifest = f"pe-{group}-manifest.json"
+                  restore(f"wine-ci/{group}/{manifest}", target / manifest)
+                  for dll in dlls:
+                      filename = f"{dll}-arm64ec.dll"
+                      restore(f"wine-ci/{group}/{filename}", target / filename)
+          PY
+          rm "$prior_apk"
+          # The signed APK preserves the exact manifests and DLLs. Recreate the
+          # original dual-ABI reports from those DLLs for the existing validators.
+          toolchain="$RUNNER_TEMP/charoite-legacy-pe-readobj"
+          mkdir "$toolchain"
+          curl --fail --silent --show-error --location --retry 3 \
+            'https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-ubuntu-22.04-x86_64.tar.xz' \
+            --output "$toolchain/toolchain.tar.xz"
+          echo "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335  $toolchain/toolchain.tar.xz" | sha256sum --check
+          tar -xJf "$toolchain/toolchain.tar.xz" -C "$toolchain" --strip-components=1
+          for pe in "$RUNNER_TEMP"/charoite-wine-phone-probe/{foundation,expansion}/*-arm64ec.dll; do
+            "$toolchain/bin/llvm-readobj" --file-headers "$pe" > "${pe%-arm64ec.dll}-pe-header.txt"
+          done
+
       - name: Stage exact verified Wine PE binaries for read-only device diagnostics
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine-phone-probe/foundation" "$RUNNER_TEMP/charoite-wine-phone-probe/expansion"
-          gh run download 40791083178 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-ARM64EC-PE-Foundation-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine-phone-probe/foundation"
-          gh run download 40791083178 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-ARM64EC-PE-Expansion-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine-phone-probe/expansion"
+          # Original source: run 40791083178, Charoite-Wine-ARM64EC-PE-Foundation-Experimental.
+          # Original source: run 40791083178, Charoite-Wine-ARM64EC-PE-Expansion-Experimental.
           python3 next-generation/stage_wine_probe.py \
             "$RUNNER_TEMP/charoite-wine-phone-probe/foundation" \
             "$RUNNER_TEMP/charoite-wine-phone-probe/expansion" \
@@ -231,9 +285,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine-native-probe"
-          gh run download 40898982875 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-Coherent-Bootstrap-22-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine-native-probe"
+          # Original source: run 40898982875, Charoite-Wine-Coherent-Bootstrap-22-Experimental.
           python3 next-generation/stage_native_wine_loader.py \
             "$RUNNER_TEMP/charoite-wine-native-probe/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
@@ -258,9 +310,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine26"
-          gh run download 41121328663 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-Coherent-Bootstrap-26-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine26"
+          # Original source: run 41121328663, Charoite-Wine-Coherent-Bootstrap-26-Experimental.
           python3 next-generation/stage_wine26.py \
             "$RUNNER_TEMP/charoite-wine26/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
@@ -286,9 +336,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine27"
-          gh run download 41130899651 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-Coherent-Bootstrap-26-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine27"
+          # Original source: run 41130899651, Charoite-Wine-Coherent-Bootstrap-26-Experimental.
           python3 next-generation/stage_wine27.py \
             "$RUNNER_TEMP/charoite-wine27/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
@@ -314,9 +362,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine28"
-          gh run download 41144679591 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-Coherent-Bootstrap-26-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine28"
+          # Original source: run 41144679591, Charoite-Wine-Coherent-Bootstrap-26-Experimental.
           python3 next-generation/stage_wine28.py \
             "$RUNNER_TEMP/charoite-wine28/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
@@ -342,9 +388,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine29"
-          gh run download 41586391767 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine-Coherent-Bootstrap-27-APISet-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine29"
+          # Original source: run 41586391767, Charoite-Wine-Coherent-Bootstrap-27-APISet-Experimental.
           python3 next-generation/stage_wine29.py \
             "$RUNNER_TEMP/charoite-wine29/charoite-wine-bootstrap-bundle.tar.gz" \
             upstream
@@ -357,9 +401,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/charoite-wine29-source07"
-          gh run download 41749167248 --repo "$GITHUB_REPOSITORY" \
-            --name Charoite-Wine29-Coherent-27-APISet-NLS-Experimental \
-            --dir "$RUNNER_TEMP/charoite-wine29-source07"
+          # Original source: run 41749167248, Charoite-Wine29-Coherent-27-APISet-NLS-Experimental.
           echo "66068032bd2203c8e53fddc92ce46b84086eb293306b2bd12bb741bf9a5e035e  $RUNNER_TEMP/charoite-wine29-source07/charoite-wine-bootstrap-bundle.tar.gz" | sha256sum --check
           python3 next-generation/stage_wine29_native07.py \
             "$RUNNER_TEMP/charoite-wine29-source07/charoite-wine-bootstrap-bundle.tar.gz" \

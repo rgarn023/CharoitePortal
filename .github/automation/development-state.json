@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T12-provider155",
-  "claimed_run_id": 44515275339,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -14,21 +14,14 @@
     44479489236,
     44481727377,
     44501188714,
-    44502438836
+    44502438836,
+    44515275339
   ],
   "last_result": {
-    "run_id": 44502438836,
+    "run_id": 44515275339,
     "result": "success",
-    "verification": "Main #154 job log: nsi.dll ARM64 PE candidate present, 26 named exports, 7/7 required names, zero forwarders; full provider closure and runtime unverified. Artifact metadata listed; ZIP content digest not independently verified."
+    "verification": "Main #155 job logs verify 0 unindexed direct providers / 0 imported references; 19 provider candidates have required named exports matched; remaining unresolved forwarder chains: shlwapi 56, comctl32 5, shell32 6, urlmon 8. Full transitive closure and runtime unverified."
   },
   "event_batch_utc": "2026-11-19T12",
-  "pending_validation": {
-    "source_run_id": 44502438836,
-    "pr_number": 22,
-    "branch": "engineering/wine29-provider-batch-154",
-    "head_sha": "944c3d8c1d03db9b8db9e57128466e3a75cdc02b",
-    "phase": "main_ci",
-    "main_sha": "007118cd874b3d564f22bffe0198e30e0b5c88db",
-    "merged_main_sha": "007118cd874b3d564f22bffe0198e30e0b5c88db"
-  }
+  "pending_validation": null
 }

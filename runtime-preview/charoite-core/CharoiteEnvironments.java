@@ -20,6 +20,8 @@ public final class CharoiteEnvironments {
     public static final String TOUHOU = "touhou-realm";
     public static final String GENERAL = "general-gaming";
     public static final String BATTLE_NET = "battle-net-gaming";
+    private static final String HOME_NAME = "Meteoric (Home) Realm";
+    private static final String LEGACY_HOME_NAME = "General Gaming";
     private static final String KEY = "charoite_environments_v1";
     private static final String ACTIVE = "charoite_active_environment_v1";
 
@@ -84,11 +86,11 @@ public final class CharoiteEnvironments {
     }
 
     /**
-     * First installation: General Gaming is home and Touhou Realm is already
-     * available in the switcher. They are independent Wine containers.
+     * First installation: Meteoric is home. Touhou and Battle.net are available
+     * in the switcher, each with its own Wine container.
      *
      * In-place upgrades: preserve the exact current environment, its games,
-     * theme, settings, and container. Only add missing built-in presets.
+     * theme, settings, and container. Add missing built-ins and update the old default home label.
      * Do not overwrite the ACTIVE setting or attach a second realm to an
      * existing Windows container.
      */
@@ -98,16 +100,23 @@ public final class CharoiteEnvironments {
             if (p.contains(KEY)) {
                 JSONArray existing = new JSONArray(p.getString(KEY, "[]"));
                 boolean hasGeneral = false, hasTouhou = false, hasBattleNet = false;
+                boolean renamedHome = false;
                 for (int i = 0; i < existing.length(); i++) {
                     JSONObject entry = existing.optJSONObject(i);
                     if (entry == null) continue;
-                    hasGeneral |= GENERAL.equals(entry.optString("id"));
+                    if (GENERAL.equals(entry.optString("id"))) {
+                        hasGeneral = true;
+                        if (LEGACY_HOME_NAME.equals(entry.optString("name"))) {
+                            entry.put("name", HOME_NAME);
+                            renamedHome = true;
+                        }
+                    }
                     hasTouhou |= TOUHOU.equals(entry.optString("id"));
                     hasBattleNet |= BATTLE_NET.equals(entry.optString("id"));
                 }
-                if (hasGeneral && hasTouhou && hasBattleNet) return;
+                if (hasGeneral && hasTouhou && hasBattleNet && !renamedHome) return;
                 if (!hasGeneral)
-                    existing.put(make(GENERAL, "General Gaming", "general", 0));
+                    existing.put(make(GENERAL, HOME_NAME, "general", 0));
                 if (!hasTouhou)
                     existing.put(make(TOUHOU, "Touhou Realm", "touhou", 0));
                 // Additive preset for upgrades: NEVER change active ID or
@@ -125,12 +134,12 @@ public final class CharoiteEnvironments {
             if (legacy == null && !manager.getContainers().isEmpty())
                 legacy = manager.getContainers().get(0);
             JSONArray entries = new JSONArray();
-            entries.put(make(GENERAL, "General Gaming", "general", 0));
+            entries.put(make(GENERAL, HOME_NAME, "general", 0));
             entries.put(make(TOUHOU, "Touhou Realm", "touhou",
                     legacy == null ? 0 : legacy.id));
             entries.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0));
             // Existing prefixes created before the environment registry
-            // belong to Touhou; a truly fresh Portal opens in General Gaming.
+            // belong to Touhou; a truly fresh Portal opens in Meteoric.
             String initial = legacy == null ? GENERAL : TOUHOU;
             if (!p.edit().putString(KEY, entries.toString())
                     .putString(ACTIVE, initial).commit())
@@ -182,7 +191,7 @@ public final class CharoiteEnvironments {
     }
 
     public static String activeName(AppCompatActivity host) {
-        return active(host).optString("name", "General Gaming");
+        return active(host).optString("name", HOME_NAME);
     }
 
     public static synchronized boolean switchTo(AppCompatActivity host, String id) {
@@ -205,7 +214,7 @@ public final class CharoiteEnvironments {
                 throw new IllegalArgumentException("Environment is already installed");
         }
         JSONObject result = make(id,
-                GENERAL.equals(id) ? "General Gaming" :
+                GENERAL.equals(id) ? HOME_NAME :
                         BATTLE_NET.equals(id) ? "Battle.net Gaming" : "Touhou Realm",
                 GENERAL.equals(id) ? "general" :
                         BATTLE_NET.equals(id) ? "battlenet" : "touhou", 0);

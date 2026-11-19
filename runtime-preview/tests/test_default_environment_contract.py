@@ -1,4 +1,4 @@
-"""General Gaming is preinstalled and default only for FRESH Portal installs."""
+"""Meteoric (Home) Realm is preinstalled and default only for FRESH Portal installs."""
 from pathlib import Path
 import unittest
 
@@ -10,9 +10,10 @@ CORE = (ROOT / "charoite-core/CharoiteCore.java").read_text()
 
 class DefaultEnvironmentContract(unittest.TestCase):
     def test_built_in_realms_available_on_first_launch(self):
-        self.assertIn('entries.put(make(GENERAL, "General Gaming", "general", 0));', ENV)
+        self.assertIn('HOME_NAME = "Meteoric (Home) Realm"', ENV)
+        self.assertIn('entries.put(make(GENERAL, HOME_NAME, "general", 0));', ENV)
         self.assertIn('entries.put(make(TOUHOU, "Touhou Realm", "touhou",', ENV)
-        first_general = ENV.index('entries.put(make(GENERAL, "General Gaming"')
+        first_general = ENV.index('entries.put(make(GENERAL, HOME_NAME')
         later_touhou = ENV.index('entries.put(make(TOUHOU, "Touhou Realm"')
         self.assertLess(first_general, later_touhou)
         self.assertIn('entries.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0));', ENV)
@@ -29,9 +30,12 @@ class DefaultEnvironmentContract(unittest.TestCase):
 
     def test_upgrade_adds_missing_presets_without_resetting_active_or_wine(self):
         branch = ENV.split('if (p.contains(KEY)) {', 1)[1].split('int legacyId', 1)[0]
-        self.assertIn('existing.put(make(GENERAL, "General Gaming", "general", 0))', branch)
+        self.assertIn('existing.put(make(GENERAL, HOME_NAME, "general", 0))', branch)
         self.assertIn('existing.put(make(TOUHOU, "Touhou Realm", "touhou", 0))', branch)
-        self.assertIn('if (hasGeneral && hasTouhou && hasBattleNet) return;', branch)
+        self.assertIn('if (hasGeneral && hasTouhou && hasBattleNet && !renamedHome) return;', branch)
+        self.assertIn('if (GENERAL.equals(entry.optString("id")))', branch)
+        self.assertIn('if (LEGACY_HOME_NAME.equals(entry.optString("name")))', branch)
+        self.assertIn('entry.put("name", HOME_NAME)', branch)
         self.assertIn('if (!hasBattleNet)', branch)
         self.assertIn('existing.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0))', branch)
         self.assertNotIn('.putString(ACTIVE,', branch)

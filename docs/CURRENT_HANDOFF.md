@@ -1,3 +1,7 @@
+## 2026-11-19 — Meteoric (Home) Realm is the Portal default
+
+Fresh Charoite Portal installs open in Meteoric (Home) Realm. Upgrades update the original General Gaming label and preserve the selected realm and existing storage IDs, libraries and containers. Touhou and Battle.net remain available in the switcher. All 138 local runtime-preview contract tests passed. Android APK verification is pending.
+
 ## 2026-11-19 — Build Userenv and index remaining Shlwapi forwarder providers
 
 [Cross-build #157](https://github.com/rgarn023/CharoitePortal/actions/runs/44589922771) and its [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44589922771/artifacts/14563582571) confirm that indexing GDI32 increased resolved Shlwapi forwarders from 197/217 to 213/217. The four remaining entries target Ole32, Wininet and Userenv. [The follow-up](https://github.com/rgarn023/CharoitePortal/commit/950bd54c4e9f960cb679e79f2ae0c466135984de) indexes the existing ARM64 Ole32 and Wininet candidates after their header checks and builds Userenv from pinned Wine source. All 15 shell blocks and 21 embedded Python blocks passed syntax checks. Main CI must verify the new candidate and chain counts before moving to services/RPC, isolated prefix initialization and a Windows executable smoke test. v1.0 remains **31%**.

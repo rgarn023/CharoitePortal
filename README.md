@@ -2,13 +2,13 @@
 
 ## First-launch environments
 
-A fresh installation opens in **General Gaming**, while **Touhou Realm** is
-available immediately from **System → Switch Environment**. Each environment
+A fresh installation opens in **Meteoric (Home) Realm**. **Touhou Realm** and
+**Battle.net Gaming** are available from **System → Switch Environment**. Each environment
 has its own Wine container, installed games, Library, and compatibility
 preferences, all running through the same Charoite Core. Portal remembers the
 last selected environment across app restarts. Existing installations retain
 their active environment and original files when the built-in General Gaming
-entry is added during an APK update.
+realm is renamed to Meteoric (Home) Realm during an APK update.
 
 # Charoite Portal for Android
 
@@ -20,7 +20,7 @@ Charoite Portal now uses its own Android package ID **`com.charoite`** (a new ap
 
 - **Environments — System tab:** Switch realms; select a downloaded **`.cenv`** profile with Android Files to install an environment; create a named realm and save its portable `.cenv` profile in a phone folder of your choice; or export an existing realm as `.cenv`. Installing or creating a realm provisions an independent Wine container through the bundled Charoite Core runtime, never a full Windows OS installation.
 - **Touhou Realm:** On the new `com.charoite` clean installation, creates an independent Wine environment and maintains Touhou-specific discovery, Japanese text compatibility and its original sakura-themed wallpaper. The previous `com.touhoudr` Wine prefix and saves do not migrate automatically.
-- **General Gaming:** A second built-in template with an original purple/cosmic background, independent Wine container, and generic Windows executable discovery. Japanese guest locale/fonts remain opt-in per environment (enabled in Touhou Realm by default); an optional validated Inno Setup helper can assist other Japanese installers.
+- **Meteoric (Home) Realm:** The default built-in realm with an original purple/cosmic background, independent Wine container, and generic Windows executable discovery. Japanese guest locale/fonts remain opt-in per environment (enabled in Touhou Realm by default); an optional validated Inno Setup helper can assist other Japanese installers.
 - **Custom environments:** User-provided names, separate library preferences, separate `C:\CharoitePortal\` staging folders within each independent Wine container, separate graphics/display/DeX pointer preferences and wallpaper overrides.
 - **Library, Setup, System:** Core-owned, connected page-tab UI plus swipe-left/right switching within the scrollable content, touch/DeX compatible. Library shows one environment at a time. Setup imports a complete Windows game or installer folder, or standalone installer; a Windows installer chooses its own installation destination. System provides Windows compatibility settings, diagnostics and launcher wallpaper selection.
 - **Themes & wallpaper:** Environment-specific default artwork, plus independent phone-image wallpaper overrides with Fit / Crop to Fill and Remove. Selecting a wallpaper never alters Android/One UI or the source image. The new official Charoite Portal app icon is a purple crystal/cosmic gateway with no Touhou branding.

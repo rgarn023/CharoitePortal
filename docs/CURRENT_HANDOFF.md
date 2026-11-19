@@ -1,6 +1,6 @@
-## 2026-11-19 — Meteoric (Home) Realm is the Portal default
+## 2026-11-19 — Add Meteoric (Home) Realm alongside General Gaming
 
-Fresh Charoite Portal installs open in Meteoric (Home) Realm. Upgrades update the original General Gaming label and preserve the selected realm and existing storage IDs, libraries and containers. Touhou and Battle.net remain available in the switcher. All 138 local runtime-preview contract tests passed. Android APK verification is pending.
+Fresh Charoite Portal installs open in a separate Meteoric (Home) Realm. General Gaming, Touhou and Battle.net remain available. Upgrades add Meteoric with a unique realm ID and its own library and container. Existing selections and storage IDs are preserved, and installations that received the interim rename recover the original General Gaming label. All 138 local runtime-preview contract tests passed. Android APK verification is pending.
 
 ## 2026-11-19 — Build Userenv and index remaining Shlwapi forwarder providers
 

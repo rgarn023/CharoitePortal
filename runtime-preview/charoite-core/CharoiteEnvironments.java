@@ -20,8 +20,9 @@ public final class CharoiteEnvironments {
     public static final String TOUHOU = "touhou-realm";
     public static final String GENERAL = "general-gaming";
     public static final String BATTLE_NET = "battle-net-gaming";
+    public static final String METEORIC = "meteoric-realm";
     private static final String HOME_NAME = "Meteoric (Home) Realm";
-    private static final String LEGACY_HOME_NAME = "General Gaming";
+    private static final String GENERAL_NAME = "General Gaming";
     private static final String KEY = "charoite_environments_v1";
     private static final String ACTIVE = "charoite_active_environment_v1";
 
@@ -86,11 +87,11 @@ public final class CharoiteEnvironments {
     }
 
     /**
-     * First installation: Meteoric is home. Touhou and Battle.net are available
+     * First installation: Meteoric is home. General Gaming, Touhou and Battle.net are available
      * in the switcher, each with its own Wine container.
      *
      * In-place upgrades: preserve the exact current environment, its games,
-     * theme, settings, and container. Add missing built-ins and update the old default home label.
+     * theme, settings, and container. Add missing presets and restore the original General Gaming label if needed.
      * Do not overwrite the ACTIVE setting or attach a second realm to an
      * existing Windows container.
      */
@@ -100,23 +101,26 @@ public final class CharoiteEnvironments {
             if (p.contains(KEY)) {
                 JSONArray existing = new JSONArray(p.getString(KEY, "[]"));
                 boolean hasGeneral = false, hasTouhou = false, hasBattleNet = false;
-                boolean renamedHome = false;
+                boolean hasMeteoric = false, restoredGeneralName = false;
                 for (int i = 0; i < existing.length(); i++) {
                     JSONObject entry = existing.optJSONObject(i);
                     if (entry == null) continue;
                     if (GENERAL.equals(entry.optString("id"))) {
                         hasGeneral = true;
-                        if (LEGACY_HOME_NAME.equals(entry.optString("name"))) {
-                            entry.put("name", HOME_NAME);
-                            renamedHome = true;
+                        if (HOME_NAME.equals(entry.optString("name"))) {
+                            entry.put("name", GENERAL_NAME);
+                            restoredGeneralName = true;
                         }
                     }
+                    hasMeteoric |= METEORIC.equals(entry.optString("id"));
                     hasTouhou |= TOUHOU.equals(entry.optString("id"));
                     hasBattleNet |= BATTLE_NET.equals(entry.optString("id"));
                 }
-                if (hasGeneral && hasTouhou && hasBattleNet && !renamedHome) return;
+                if (hasGeneral && hasTouhou && hasBattleNet && hasMeteoric && !restoredGeneralName) return;
+                if (!hasMeteoric)
+                    existing.put(make(METEORIC, HOME_NAME, "general", 0));
                 if (!hasGeneral)
-                    existing.put(make(GENERAL, HOME_NAME, "general", 0));
+                    existing.put(make(GENERAL, GENERAL_NAME, "general", 0));
                 if (!hasTouhou)
                     existing.put(make(TOUHOU, "Touhou Realm", "touhou", 0));
                 // Additive preset for upgrades: NEVER change active ID or
@@ -134,13 +138,14 @@ public final class CharoiteEnvironments {
             if (legacy == null && !manager.getContainers().isEmpty())
                 legacy = manager.getContainers().get(0);
             JSONArray entries = new JSONArray();
-            entries.put(make(GENERAL, HOME_NAME, "general", 0));
+            entries.put(make(METEORIC, HOME_NAME, "general", 0));
+            entries.put(make(GENERAL, GENERAL_NAME, "general", 0));
             entries.put(make(TOUHOU, "Touhou Realm", "touhou",
                     legacy == null ? 0 : legacy.id));
             entries.put(make(BATTLE_NET, "Battle.net Gaming", "battlenet", 0));
             // Existing prefixes created before the environment registry
             // belong to Touhou; a truly fresh Portal opens in Meteoric.
-            String initial = legacy == null ? GENERAL : TOUHOU;
+            String initial = legacy == null ? METEORIC : TOUHOU;
             if (!p.edit().putString(KEY, entries.toString())
                     .putString(ACTIVE, initial).commit())
                 throw new IllegalStateException("Cannot save environment registry");
@@ -159,7 +164,7 @@ public final class CharoiteEnvironments {
     }
 
     public static String activeId(AppCompatActivity host) {
-        return prefs(host).getString(ACTIVE, GENERAL);
+        return prefs(host).getString(ACTIVE, METEORIC);
     }
 
     public static String libraryKey(AppCompatActivity host) {
@@ -180,8 +185,8 @@ public final class CharoiteEnvironments {
     }
 
     public static synchronized JSONObject active(AppCompatActivity host) {
-        String id = activeId(host);
         JSONArray entries = list(host);
+        String id = activeId(host);
         for (int i=0; i<entries.length(); i++) {
             JSONObject item = entries.optJSONObject(i);
             if (item != null && id.equals(item.optString("id"))) return item;
@@ -205,7 +210,7 @@ public final class CharoiteEnvironments {
 
     public static synchronized JSONObject installPreset(AppCompatActivity host, String id)
             throws Exception {
-        if (!GENERAL.equals(id) && !TOUHOU.equals(id) && !BATTLE_NET.equals(id))
+        if (!GENERAL.equals(id) && !TOUHOU.equals(id) && !BATTLE_NET.equals(id) && !METEORIC.equals(id))
             throw new IllegalArgumentException("Only verified built-in environment templates are supported");
         JSONArray entries = list(host);
         for (int i=0; i<entries.length(); i++) {
@@ -214,9 +219,9 @@ public final class CharoiteEnvironments {
                 throw new IllegalArgumentException("Environment is already installed");
         }
         JSONObject result = make(id,
-                GENERAL.equals(id) ? HOME_NAME :
+                METEORIC.equals(id) ? HOME_NAME : GENERAL.equals(id) ? GENERAL_NAME :
                         BATTLE_NET.equals(id) ? "Battle.net Gaming" : "Touhou Realm",
-                GENERAL.equals(id) ? "general" :
+                (GENERAL.equals(id) || METEORIC.equals(id)) ? "general" :
                         BATTLE_NET.equals(id) ? "battlenet" : "touhou", 0);
         entries.put(result);
         if (!prefs(host).edit().putString(KEY, entries.toString()).commit())

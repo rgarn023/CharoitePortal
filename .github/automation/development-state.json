@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "manual-provider-batch-154",
-  "claimed_run_id": 44502438836,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -22,5 +22,11 @@
     "verification": "Main #154 job log: nsi.dll ARM64 PE candidate present, 26 named exports, 7/7 required names, zero forwarders; full provider closure and runtime unverified. Artifact metadata listed; ZIP content digest not independently verified."
   },
   "event_batch_utc": "2026-11-19T09",
-  "pending_validation": null
+  "pending_validation": {
+    "source_run_id": 44502438836,
+    "pr_number": 22,
+    "branch": "engineering/wine29-provider-batch-154",
+    "head_sha": "944c3d8c1d03db9b8db9e57128466e3a75cdc02b",
+    "phase": "pr_checks"
+  }
 }

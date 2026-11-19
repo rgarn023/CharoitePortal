@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-pr19-20261119T0957",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -21,12 +21,13 @@
   },
   "event_batch_utc": "2026-11-19T09",
   "pending_validation": {
-    "phase": "awaiting_pr_checks",
+    "phase": "awaiting_main_crossbuild",
     "source_run_id": 44481727377,
     "branch": "engineering/wine29-shlwapi-provider-152",
     "pr_number": 19,
     "head_sha": "df44ba627250e8ff9862a148379f2fc20007f097",
     "target_branch": "main",
-    "next": "Review exact PR diff and passing applicable checks; merge expected head; verify main crossbuild shlwapi PE candidate"
+    "next": "Verify main shlwapi ARM64 candidate, required export names and artifact evidence",
+    "merged_main_sha": "f11e41b252b0654e569ef6f731d04a80896c2d8d"
   }
 }

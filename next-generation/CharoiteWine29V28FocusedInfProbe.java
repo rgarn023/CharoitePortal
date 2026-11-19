@@ -826,6 +826,16 @@ public final class CharoiteWine29V28FocusedInfProbe {
         final int reportHeaderEnd = out.length();
         if (!PACKAGE.equals(context.getPackageName()) || Build.VERSION.SDK_INT < 26)
             return shortReport(out.append("RESULT: BLOCKED — unsupported package/device\n"), verifyRunning);
+        if (verifyRunning) {
+            String stage = CharoiteWine29Sealed012Stage.run(context);
+            if (!stage.contains("RESULT: PASS — Wine29 0.12 data staged; NOT RUNNABLE")
+                    && !stage.contains("RESULT: PASS — existing Wine29 .0.12 data; NOT RUNNABLE")) {
+                String detail = stage.replace(context.getNoBackupFilesDir().getAbsolutePath(),
+                                              "[private data]");
+                return shortReport(out.append("RESULT: BLOCKED — sealed Wine29 data preparation failed\n")
+                    .append(detail), true);
+            }
+        }
         String preflight = CharoiteWine29Sealed012PePreflight.run(context);
         if (!preflight.contains("RESULT: PASS — isolated Wine29 0.12 34-DLL direct/delay PE preflight; NOT RUNNABLE"))
             return shortReport(out.append("RESULT: BLOCKED — sealed Wine29 34-DLL PE import preflight failed; NO new scratch\n")

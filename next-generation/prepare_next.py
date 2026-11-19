@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.127"')
-text = text.replace("versionCode 33", "versionCode 158")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.128"')
+text = text.replace("versionCode 33", "versionCode 159")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3708,7 +3708,7 @@ ui = ui.replace(anchor, anchor + """
         verifyRpcss.setAllCaps(false);
         verifyRpcss.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
                 .setTitle("Run the fresh-prefix RpcSs test?")
-                .setMessage("Wine will create a new private V29 prefix and may start RpcSs in it. "
+                .setMessage("This test prepares and verifies the sealed Wine files, then creates a new private V29 prefix and may start RpcSs in it. "
                         + "This test preserves your existing games, saves, and prefixes.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Run once", (dialog, which) -> {

@@ -1,3 +1,9 @@
+## 2026-11-19 — Cross-build #159 closes the measured Shlwapi forwarder gap
+
+[Cross-build #159](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220) passed on main. The job logs report 217/217 named forwarder chains resolved for Shlwapi, 40/40 for GDI32, 31/31 for Comctl32 and 134/134 for Ole32. The run published PE probe artifacts. Full dependency closure and Android runtime behavior are still unverified. Charoite Next v1.0 remains **31%**.
+
+The next functional milestone is to start Wine services and verify that the service control manager reports RpcSs running in a new experimental prefix. Then verify that a fresh isolated prefix initializes and can launch a basic Windows executable with the expected output and exit code. The working targets are at least 32% after a demonstrated functional milestone and 35% by Sunday, November 22, subject to runtime results.
+
 ## 2026-11-19 — Cross-build #158 verifies Userenv and isolates remaining forwarder dependencies
 
 [Cross-build #158](https://github.com/rgarn023/CharoitePortal/actions/runs/44591404534) builds ARM64 Userenv and resolves 216/217 Shlwapi chains. The SHA-256-verified artifact shows the remaining route enters Ole32 through CLSIDFromProgID. Ole32 forwards into Combase, and GDI32 forwards into Win32u. CI now indexes those two existing, PE-header-verified ARM64 binaries and will check the resulting chain counts. Runtime services/RPC and isolated prefix startup remain pending. v1.0 stays at **31%**.

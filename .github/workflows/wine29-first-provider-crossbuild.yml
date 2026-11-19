@@ -570,7 +570,7 @@ jobs:
             fi
           done
           # Build missing providers from the pinned source; leave other candidates intact.
-          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll dnsapi.dll comctl32.dll mpr.dll shell32.dll urlmon.dll cryptui.dll dhcpcsvc.dll windowscodecs.dll shcore.dll propsys.dll; do
+          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll dnsapi.dll comctl32.dll mpr.dll shell32.dll urlmon.dll cryptui.dll dhcpcsvc.dll windowscodecs.dll shcore.dll propsys.dll userenv.dll; do
             module=${filename%.dll}
             provider_target="dlls/$module/aarch64-windows/$filename"
             provider_log="$OUT/$module-provider-build.log"
@@ -711,8 +711,9 @@ jobs:
           indexed_exports = {}
           target_inventories = {}
           # Forwarder-only DLLs are indexed without inflating direct import counts.
+          prebuilt_forwarder_providers = ("gdi32.dll", "ole32.dll", "wininet.dll")
           forwarder_only = [{"provider": name, "imported_symbols": 0}
-                            for name in ("shcore.dll", "propsys.dll", "gdi32.dll")
+                            for name in ("shcore.dll", "propsys.dll", "userenv.dll", *prebuilt_forwarder_providers)
                             if not any(item["provider"] == name for item in ranking)]
           index_candidates = ranking + forwarder_only
           for item in index_candidates:
@@ -731,11 +732,11 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll","shcore.dll","propsys.dll","gdi32.dll") and (
-                  provider != "gdi32.dll" or
-                  (root/"gdi32.dll-status.txt").read_text().strip() ==
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll","shcore.dll","propsys.dll","userenv.dll", *prebuilt_forwarder_providers) and (
+                  provider not in prebuilt_forwarder_providers or
+                  (root/(provider+"-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime") and (
-                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll", "shcore.dll", "propsys.dll"} or
+                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll", "shcore.dll", "propsys.dll", "userenv.dll"} or
                   (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
                   import subprocess,re

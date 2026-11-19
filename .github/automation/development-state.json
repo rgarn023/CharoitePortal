@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261119T09-shlwapi",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -19,6 +19,6 @@
     "result": "success",
     "verification": "Winspool ARM64 PE built, 157 named exports, 12/12 required names, zero forwarders; 31 references outside index across 10 providers; artifact digest verified"
   },
-  "event_batch_utc": "2026-11-19T06",
+  "event_batch_utc": "2026-11-19T09",
   "pending_validation": null
 }

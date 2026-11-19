@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261119T09-shlwapi",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -20,5 +20,13 @@
     "verification": "Winspool ARM64 PE built, 157 named exports, 12/12 required names, zero forwarders; 31 references outside index across 10 providers; artifact digest verified"
   },
   "event_batch_utc": "2026-11-19T09",
-  "pending_validation": null
+  "pending_validation": {
+    "phase": "awaiting_pr_checks",
+    "source_run_id": 44481727377,
+    "branch": "engineering/wine29-shlwapi-provider-152",
+    "pr_number": 19,
+    "head_sha": "df44ba627250e8ff9862a148379f2fc20007f097",
+    "target_branch": "main",
+    "next": "Review exact PR diff and passing applicable checks; merge expected head; verify main crossbuild shlwapi PE candidate"
+  }
 }

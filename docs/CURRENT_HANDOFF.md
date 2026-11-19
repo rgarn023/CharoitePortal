@@ -1,3 +1,7 @@
+## 2026-11-19 — Cross-build #155 closes the direct provider index; forwarder work continues
+
+[Cross-build #155](https://github.com/rgarn023/CharoitePortal/actions/runs/44515275339) indexed all 19 direct providers in its measured set. The [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44515275339/artifacts/14525172933) shows unresolved chains into shcore.dll and propsys.dll. This change compiles those two actual targets from pinned Wine source and admits successful ARM64 PE candidates to the existing chain resolver without inflating direct-import counts. Main CI must confirm both binaries and the resulting chain counts. Runtime remains unverified and v1.0 stays at **31%**.
+
 ## 2026-11-19 — Cross-build #153 compiles Shlwapi; NSI is next
 
 [PR #19](https://github.com/rgarn023/CharoitePortal/pull/19) merged and [cross-build #153](https://github.com/rgarn023/CharoitePortal/actions/runs/44501188714) built ARM64 shlwapi.dll. The logs and [digest-verified artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44501188714/artifacts/14517517809) agree on 362 named exports, 10/10 required names, and 161/217 resolved named forwarder chains. The other 56 stop at an unindexed module. The direct import gap fell from 31 references across 10 providers to 21 across nine. NSI accounts for seven of those and has a generated target. This change compiles it from pinned Wine source and checks required exports only after its ARM64 PE header passes. Main CI and runtime tests still need to verify the next gates. v1.0 **31%**.

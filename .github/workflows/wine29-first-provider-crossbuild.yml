@@ -570,7 +570,7 @@ jobs:
             fi
           done
           # Build missing providers from the pinned source; leave other candidates intact.
-          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll dnsapi.dll comctl32.dll mpr.dll shell32.dll urlmon.dll cryptui.dll dhcpcsvc.dll windowscodecs.dll; do
+          for filename in crypt32.dll coml2.dll winspool.drv shlwapi.dll nsi.dll dnsapi.dll comctl32.dll mpr.dll shell32.dll urlmon.dll cryptui.dll dhcpcsvc.dll windowscodecs.dll shcore.dll propsys.dll; do
             module=${filename%.dll}
             provider_target="dlls/$module/aarch64-windows/$filename"
             provider_log="$OUT/$module-provider-build.log"
@@ -710,7 +710,12 @@ jobs:
           build=pathlib.Path(os.environ["RUNNER_TEMP"])/"charoite-first-provider-source/charoite-arm64ec-android"
           indexed_exports = {}
           target_inventories = {}
-          for item in ranking:
+          # Forwarder-only DLLs are indexed without inflating direct import counts.
+          forwarder_only = [{"provider": name, "imported_symbols": 0}
+                            for name in ("shcore.dll", "propsys.dll")
+                            if not any(item["provider"] == name for item in ranking)]
+          index_candidates = ranking + forwarder_only
+          for item in index_candidates:
               provider=item["provider"]
               module_stem=provider if provider == "winspool.drv" else provider.rsplit(".",1)[0]
               source_makefile=build.parent/"dlls"/module_stem/"Makefile.in"
@@ -726,8 +731,8 @@ jobs:
               item["import_resolution_verified"]=False
               # Bounded export evidence for the indexed PE candidates.
               if exists and provider in ("kernel32.dll","user32.dll","ntdll.dll",
-                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll") and (
-                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll"} or
+                                          "kernelbase.dll","advapi32.dll","rpcrt4.dll","crypt32.dll","coml2.dll","winspool.drv","shlwapi.dll","nsi.dll","dnsapi.dll","comctl32.dll","mpr.dll","shell32.dll","urlmon.dll","cryptui.dll","dhcpcsvc.dll","windowscodecs.dll","shcore.dll","propsys.dll") and (
+                  provider not in {"crypt32.dll", "coml2.dll", "winspool.drv", "shlwapi.dll", "nsi.dll", "dnsapi.dll", "comctl32.dll", "mpr.dll", "shell32.dll", "urlmon.dll", "cryptui.dll", "dhcpcsvc.dll", "windowscodecs.dll", "shcore.dll", "propsys.dll"} or
                   (root/(module_stem+"-provider-status.txt")).read_text().strip() ==
                   "arm64_pe_header_verified_not_runtime"):
                   import subprocess,re
@@ -794,14 +799,15 @@ jobs:
                       for inventory in inventories.values()
                       for symbol in inventory["imports_by_dll"].get(provider, [])
                   }
-                  assert required, f"{provider}: ranked provider has no required names"
+                  if item["imported_symbols"]:
+                      assert required, f"{provider}: ranked provider has no required names"
                   missing = sorted(required - export_names)
                   matched = len(required) - len(missing)
                   item["required_unique_import_names"] = len(required)
                   item["matched_unique_import_names"] = matched
                   item["missing_unique_import_names"] = len(missing)
                   item["missing_import_name_samples"] = missing[:25]
-                  item["export_name_match_verified"] = not missing
+                  item["export_name_match_verified"] = bool(required) and not missing
                   print(f"NTOSKRNL_EXTERNAL_NAME_MATCH provider={provider} matched={matched}"
                         f" required={len(required)} missing={len(missing)} closure=unverified")
                   item["export_name_count"]=len(export_names)
@@ -852,7 +858,7 @@ jobs:
           from collections import Counter
           edges = {(module, name): entry for module, entries in target_inventories.items()
                    for entry in entries for name in entry["source_names"]}
-          for item in ranking:
+          for item in index_candidates:
               provider = item["provider"]
               if provider not in target_inventories:
                   continue

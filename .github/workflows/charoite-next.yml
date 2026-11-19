@@ -3,10 +3,11 @@ on:
   push:
     paths:
       # Full Android builds are for source milestones, not static test edits.
-      # Workflow-only changes require explicit dispatch after lightweight checks.
+      # The job below still requires [next-apk] on main or explicit dispatch.
       - 'next-generation/**'
       - '!next-generation/charoite-wine/**'
       - '!next-generation/tests/**'
+      - '.github/workflows/charoite-next.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-run154-20261119T1055",
-  "claimed_run_id": 44502438836,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -13,22 +13,14 @@
     44477873780,
     44479489236,
     44481727377,
-    44501188714
+    44501188714,
+    44502438836
   ],
   "last_result": {
-    "run_id": 44501188714,
+    "run_id": 44502438836,
     "result": "success",
-    "verification": "Shlwapi ARM64 PE built, 362 named exports, 10/10 required names, 161/217 named forwarder chains, 21 references across nine unindexed providers; artifact digest verified"
+    "verification": "Main #154 job log: nsi.dll ARM64 PE candidate present, 26 named exports, 7/7 required names, zero forwarders; full provider closure and runtime unverified. Artifact metadata listed; ZIP content digest not independently verified."
   },
   "event_batch_utc": "2026-11-19T09",
-  "pending_validation": {
-    "phase": "awaiting_main_crossbuild",
-    "source_run_id": 44501188714,
-    "branch": "engineering/wine29-nsi-provider-153",
-    "pr_number": 20,
-    "head_sha": "7a9c9554c436191b4d6c3feee7db844f4271e3e7",
-    "target_branch": "main",
-    "next": "Verify nsi ARM64 candidate and required exports on main CI",
-    "merged_main_sha": "b37be628bf8a77f886448251f4656eaa97350f6e"
-  }
+  "pending_validation": null
 }

@@ -1,6 +1,8 @@
 ## 2026-11-20 — V33 packages verified Wine ATL registrar candidate
 
-[Cross-build #160](https://github.com/rgarn023/CharoitePortal/actions/runs/44757889116) produced a hash-verified ARM64X atl100.dll with AtlCreateRegistrar and nine named ordinary DLL dependencies present by filename in the sealed runtime. Build 167 stages this candidate in the separate V33 prefix alongside the verified V32 copy media. The V33 report checks installed payloads, registrar error sites, RpcSs and the standalone ARM64 smoke test. Import symbol compatibility and registration success still require the device result. Preserve V32, other prefixes, and existing app data. The v1.0 estimate remains **35%**.
+[Cross-build #160](https://github.com/rgarn023/CharoitePortal/actions/runs/44757889116) produced a hash-verified ARM64X atl100.dll with AtlCreateRegistrar and nine named ordinary DLL dependencies present by filename in the sealed runtime. Build 167 stages this candidate in the separate V33 prefix alongside the verified V32 copy media. The V33 report checks installed payloads, registrar error sites, RpcSs and the standalone ARM64 smoke test. All 92 direct import entries matched exports in the sealed binaries by name or ordinal. Forwarded imports and runtime registration still require verification. Preserve V32, other prefixes, and existing app data. The v1.0 estimate remains **35%**.
+
+[Signed build 167 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44759389478/artifacts/14640098654) is ready. Android #932 and static #246 passed. Install in place and open **System → Verify ATL registrar → Copy report**.
 
 ## 2026-11-20 — Build the missing Wine ATL registrar provider
 

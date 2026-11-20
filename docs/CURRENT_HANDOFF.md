@@ -1,8 +1,8 @@
-## 2026-11-19 — V31 standalone ARM64 Windows executable
+## 2026-11-19 — V31 standalone ARM64 Windows executable verified on Android
 
-Build 161 adds a source-built standalone console PE to the experimental APK. CI checks that it is ARM64, imports only kernel32.dll, and matches the exact bytes and digest packaged in the APK. After verified prefix initialization and RpcSs startup in a fresh V31 scratch, it must print CHAROITE_WINDOWS_ARM64_SMOKE_OK and return exit code 42 with the private Wine server still alive. The report also applies existing SetupAPI error classification to the bounded helper trace and shares categories only. V29 and V30 are preserved. The device result is pending and the v1.0 estimate remains **33%**.
+**Current v1.0 estimate: 34%.** In a fresh V31 prefix, the standalone ARM64 console PE printed the expected line and exited 42 with the private wineserver still alive. RpcSs reached RUNNING. Program Files and all three registry files were present after finalization. [Signed Android build #925](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887) and [static verification #238](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017879) passed. The completed [build 161 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887/artifacts/14589471038) requires no repeat V31 run.
 
-[Signed Next #925](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887) and [Static #238](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017879) passed. Install the [signed build 161 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887/artifacts/14589471038) in place over Charoite Next and open **System → Test standalone Windows executable → Run once**. Share the copied report.
+The explicit DefaultInstall helper exited 0 but logged 16 SetupAPI error lines. File copy/rename was the only flagged category, and eight lines were unclassified. Determine which file operations failed and whether their targets are needed for full prefix readiness. The standalone proof covers the ARM64 console program and its measured kernel32 path. x86/x64 programs, graphics, installers and gameplay still need verification. Preserve V31 and earlier scratch and existing user data.
 
 ## 2026-11-19 — V30 prefix and independent Windows PE smoke verified on Android
 

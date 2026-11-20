@@ -2,6 +2,8 @@
 
 Build 164 extracts resource ID 1 from the eight pinned ARM64 provider binaries at build time. The experimental fresh-prefix test supplies the resulting files as ordinary copy media for a derived wine.inf with only eight source fields changed. It keeps the original bootstrap INF and verifies installed bytes against the packaged SHA-256 manifest. V32 runs in separate scratch and preserves V31. The Android result is pending; v1.0 remains **34%**. Driver runtime compatibility remains open.
 
+[Signed build 164 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44733870635/artifacts/14627777735) is ready. Android #929 and static #242 passed. Install in place and open **System → Verify setup resource copies → Copy report**. Look for 8/8 digest-verified installed payloads, SetupAPI errors, RpcSs status and standalone exit 42.
+
 ## 2026-11-20 — Verified all eight V31 resource payloads and their INF destinations
 
 Verified SHA-256 digests for [remaining-provider candidates](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220/artifacts/14564806910), [HID/XInput candidates](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220/artifacts/14564397441), and [pinned prefix setup inputs](https://github.com/rgarn023/CharoitePortal/actions/runs/42552476223/artifacts/13645473200). Direct PE resource-directory inspection found a nonempty WINE_DATA_FILE, ID 1, language 0, in all eight ARM64 candidates.

@@ -27,8 +27,33 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[next-apk]'))
     runs-on: ubuntu-latest
     timeout-minutes: 55
+    outputs:
+      version_code: ${{ steps.version.outputs.code }}
+      version_name: ${{ steps.version.outputs.name }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Allocate Next update version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Run numbers increase within this workflow and stay fixed on retries.
+          code=$((173 + GITHUB_RUN_NUMBER))
+          test "$code" -le 2100000000
+          name="11.2-next.0.$((code - 31))"
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            tag="charoite-next-vc$code"
+            target=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+              --jq ".[] | select(.ref == \"refs/tags/$tag\") | .object.sha")
+            if [ -n "$target" ] && [ "$target" != "$GITHUB_SHA" ]; then
+              echo "::error::Next release tag $tag belongs to a different commit."
+              exit 1
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
 
       # Expose the real push run ID through GitHub commit status API.
       # This makes the workflow run discoverable from the connected GitHub tools.
@@ -1196,6 +1221,28 @@ jobs:
           (cd "$assets" && sha256sum -c SHA256SUMS)
           curl -fsSL --retry 3 https://raw.githubusercontent.com/FEX-Emu/FEX/bce85d9941b2d37755f3b44a4f6e178617d94fba/LICENSE > "$assets/FEX-LICENSE.txt"
 
+      - name: Apply the allocated Android version
+        env:
+          NEXT_VERSION_CODE: ${{ steps.version.outputs.code }}
+          NEXT_VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          gradle = Path("upstream/app/build.gradle")
+          text = gradle.read_text(encoding="utf-8")
+          for pattern, replacement in (
+              (r'^([ \t]*versionCode[ \t]+)\d+[ \t]*$', os.environ["NEXT_VERSION_CODE"]),
+              (r'^([ \t]*versionName[ \t]+)"11\.2-next\.0\.\d+"[ \t]*$', '"' + os.environ["NEXT_VERSION_NAME"] + '"'),
+          ):
+              text, count = re.subn(pattern, lambda match: match[1] + replacement, text, flags=re.MULTILINE)
+              if count != 1:
+                  raise SystemExit(f"Expected one Next Android version field, found {count}: {pattern}")
+          gradle.write_text(text, encoding="utf-8")
+          PY
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1717,7 +1764,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='173' versionName='11.2-next.0.142'"
+            grep -F "package: name='com.charoitx' versionCode='${{ steps.version.outputs.code }}' versionName='${{ steps.version.outputs.name }}'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2212,7 +2259,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc173
+          TAG=charoite-next-vc${{ needs.build-runtime-preview.outputs.version_code }}
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2224,7 +2271,7 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Portal (Metorite Pre-Alpha) 11.2-next.0.142 (build 173)" \
+              --title "Charoite Portal (Metorite Pre-Alpha) ${{ needs.build-runtime-preview.outputs.version_name }} (build ${{ needs.build-runtime-preview.outputs.version_code }})" \
               --notes "Packages the FEX ARM64EC and x64 console test assets for experimental Wine29." \
               --latest=false
           fi

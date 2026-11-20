@@ -1,8 +1,8 @@
-## 2026-11-20 — V32 packages the eight verified SetupAPI data resources
+## 2026-11-20 — V32 setup resource copies verified on Android
 
-Build 164 extracts resource ID 1 from the eight pinned ARM64 provider binaries at build time. The experimental fresh-prefix test supplies the resulting files as ordinary copy media for a derived wine.inf with only eight source fields changed. It keeps the original bootstrap INF and verifies installed bytes against the packaged SHA-256 manifest. V32 runs in separate scratch and preserves V31. The Android result is pending; v1.0 remains **34%**. Driver runtime compatibility remains open.
+**Current v1.0 estimate: 35%.** On signed build 164, the fresh V32 prefix installed all eight SetupAPI payloads, and each installed SHA-256 matched its expected value. The copy/rename category cleared, and the reported SetupAPI error count dropped from 16 in V31 to eight in V32. The eight remaining lines are unclassified. RpcSs reached RUNNING, the standalone ARM64 executable returned exit 42 with exact output while its private server remained alive, and Program Files plus all three registry files were present after finalization.
 
-[Signed build 164 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44733870635/artifacts/14627777735) is ready. Android #929 and static #242 passed. Install in place and open **System → Verify setup resource copies → Copy report**. Look for 8/8 digest-verified installed payloads, SetupAPI errors, RpcSs status and standalone exit 42.
+The resource-copy fix is verified for this fresh-prefix path. Runtime driver readiness, x86/x64 execution, graphics, and gameplay remain open. Preserve the V32 scratch and private helper log for any further diagnosis. The V32 test is complete. [Signed Android #929](https://github.com/rgarn023/CharoitePortal/actions/runs/44733870635) and [static #242](https://github.com/rgarn023/CharoitePortal/actions/runs/44733870677) passed.
 
 ## 2026-11-20 — Verified all eight V31 resource payloads and their INF destinations
 

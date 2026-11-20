@@ -22,6 +22,15 @@ public final class CharoiteWine29V28ScopedTriageHarness {
     }
 
     public static void main(String[] unused){
+        StringBuilder sites = new StringBuilder();
+        CharoiteWine29V28ScopedTriage.describeSetupErrorSites(sites,
+            "0040:err:setupapi:install_device secret-path\n"
+            + "0120:0044:err:setupapi:install_device private-name\n"
+            + "0040:trace:setupapi:ignored err:setupapi:spoof\n");
+        has(sites.toString(), "install_device: 2");
+        lacks(sites.toString(), "secret-path");
+        lacks(sites.toString(), "private-name");
+        lacks(sites.toString(), "spoof");
         String header = "SERVICE_NAME: RpcSs\r\n";
         checkLiveScm(header + " STATE : 4 RUNNING\r\n", "RUNNING");
         checkLiveScm(header + " STATE : 1 STOPPED", "STOPPED");

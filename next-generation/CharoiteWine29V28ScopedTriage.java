@@ -151,6 +151,20 @@ public final class CharoiteWine29V28ScopedTriage {
         out.append("Parsed copy/rename events (max 32): ").append(Math.min(count, 32)).append('\n');
     }
 
+    static void describeSetupErrorSites(StringBuilder out, String log) {
+        java.util.regex.Pattern site = java.util.regex.Pattern.compile(
+            "(?m)^(?:(?:[0-9a-f]+|[0-9]+\\.[0-9]+):)*err:setupapi:([a-z_][a-z0-9_]{0,63})(?=\\s|$)");
+        java.util.regex.Matcher entries = site.matcher(log);
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        int total = 0;
+        while (entries.find() && total < 256) {
+            counts.merge(entries.group(1), 1, Integer::sum);
+            total++;
+        }
+        out.append("SetupAPI error sites (up to 256 entries): ").append(total).append('\n');
+        counts.forEach((name, count) -> out.append(name).append(": ").append(count).append('\n'));
+    }
+
     static void classifySetupApi(StringBuilder out, String helper) {
         if(helper==null || helper.length()>4194304){
             out.append("V28 preserved SetupAPI error lines: UNKNOWN (no eligible log)\n");

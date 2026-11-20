@@ -1,3 +1,7 @@
+## 2026-11-20 — Read-only review of remaining V32 SetupAPI errors
+
+Build 166 replaces the completed V32 execution button with a review of the saved helper log. It reports the Wine SetupAPI function names and counts from bounded error records while omitting message text and paths. This is intended to identify what produced the eight unclassified errors after all eight resource copies passed. No new prefix is created. The v1.0 estimate remains **35%**.
+
 ## 2026-11-20 — Experimental app display name
 
 The experimental Android app is named **Charoite Portal (Metorite Pre-Alpha)**. Build 165 applies the name to the launcher, boot version text and update UI. The package ID remains com.charoitx, with the existing signer and release naming conventions for in-place updates. Stable Portal remains com.charoite. This is a naming change and the v1.0 estimate remains **35%**.

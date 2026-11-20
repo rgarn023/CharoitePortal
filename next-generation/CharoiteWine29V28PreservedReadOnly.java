@@ -99,6 +99,24 @@ public final class CharoiteWine29V28PreservedReadOnly {
         return report.toString();
     }
 
+    public static String reviewV32(Context context) {
+        StringBuilder report = new StringBuilder(
+            "Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n"
+            + "Wine29 V32 SetupAPI error sites (preserved log)\n");
+        try {
+            if (!PACKAGE.equals(context.getPackageName()))
+                throw new SecurityException("Unexpected package");
+            File root = context.getNoBackupFilesDir().getCanonicalFile();
+            File scratch = exactChild(root, "charoite-next-wine29-entry-v32");
+            safeDirectory(scratch);
+            String log = readIfSafe(scratch, "v28-independent-defaultinstall.log", 4194304, report);
+            if (log != null) CharoiteWine29V28ScopedTriage.describeSetupErrorSites(report, log);
+        } catch (Exception e) {
+            report.append("Preserved V32 review unavailable: ").append(e.getClass().getSimpleName());
+        }
+        return report.toString();
+    }
+
     private static void flag(StringBuilder b,String label, String log,String pattern) {
         b.append(label).append(": ")
             .append(log==null?"UNKNOWN (missing/over-cap log)":Boolean.toString(log.contains(pattern)))

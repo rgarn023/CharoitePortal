@@ -42,7 +42,7 @@ class NextEditionContract(unittest.TestCase):
         self.assertIn("Charoite-Next-Android.apk", self.workflow)
         self.assertIn("python3 next-generation/rewrite_prefix_next.py upstream", self.workflow)
         self.assertIn("python3 next-generation/prepare_next.py upstream", self.workflow)
-        self.assertIn("application-label:'Charoite Portal (Metorite Pre-Alpha)'", self.workflow)
+        self.assertIn("application-label:'Charoite Portal (Meteorite Alpha)'", self.workflow)
         self.assertIn("package: name='com.charoitx'", self.workflow)
         self.assertIn("Charoite-Portal-Android-APK", self.stable_workflow)
 

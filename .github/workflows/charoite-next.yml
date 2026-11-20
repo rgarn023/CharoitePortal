@@ -1563,6 +1563,18 @@ jobs:
                       assert b"libcharoite_wine27_ntdll.so" in raw
                   if key in ("ntdll_unix","wineserver"):
                       assert b"CHAROITE_WINE26_DATA_DIR" in raw
+          PY
+
+      - name: Verify packaged Wine28 and Wine29 assets
+        run: |
+          python3 - <<'PY'
+          import json,hashlib,struct,zipfile
+          archive_path="upstream/app/build/outputs/apk/debug/app-debug.apk"
+          with zipfile.ZipFile(archive_path) as apk:
+              manifest=json.loads(apk.read("assets/charoite-next/wine-native-probe.json"))
+              native=apk.read("lib/arm64-v8a/libcharoite_wine_loader.so")
+              patched=json.loads(apk.read("assets/charoite-next/wine-bootstrap-27-index.json"))
+              wine26=json.loads(apk.read("assets/charoite-next/wine-bootstrap-26-index.json"))
               new28=json.loads(apk.read("assets/charoite-next/wine-bootstrap-28-index.json"))
               raw28=apk.read("assets/charoite-next/wine-bootstrap-28.bundle")
               assert new28["source_run"]==41144679591
@@ -2255,7 +2267,7 @@ jobs:
 
       - name: Create immutable versioned Next public GitHub Release for in-app updates
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CHAROITE_RELEASE_TOKEN || github.token }}
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157

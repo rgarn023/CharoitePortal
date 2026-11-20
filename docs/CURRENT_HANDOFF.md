@@ -1,3 +1,7 @@
+## 2026-11-20 — Meteorite Alpha in-app release workflow
+
+The Android workflow now runs the existing packaged Wine checks in two steps to fit the GitHub Actions run-script limit. The app label regression check expects Charoite Portal (Meteorite Alpha). Release publication uses `CHAROITE_RELEASE_TOKEN` when configured and otherwise uses the built-in job token. Build 173 previously built and uploaded its APK, but GitHub returned HTTP 403 on release creation. Confirm a fresh signed build publishes a public release before testing System → Check for updates on an older installation. The updater still uses the existing release tag and APK filename. Runtime readiness remains 35%.
+
 ## 2026-11-20 — V35 restores fresh-prefix RpcSs and standalone ARM64 execution on Android
 
 On signed build 172, the V35 setup helper exited 0 and all eight setup payloads matched their digests. Independent SCM queries showed RpcSs STOPPED and then RUNNING after a successful start. The standalone ARM64 PE printed the expected output and exited 42 while the private wineserver remained alive. Finalization retained Program Files and all three registry files. The exact RpcSs service key and its ImagePath, Start, and Type fields were present.

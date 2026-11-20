@@ -1,3 +1,9 @@
+## 2026-11-20 — V34 confirms RpcSs is missing from the ATL-enabled prefix
+
+On build 171, Wineboot exited 0 and the private server remained alive. The DefaultInstall helper exited 5 after installing all eight digest-verified payloads. The independent SCM query reported service error 1060 (RpcSs missing). The RPC-unavailable marker was absent and finalized system.reg lacked the exact RpcSs service section. Service start and ARM64 smoke were gated off. The selected SetupAPI traces reported zero error sites and no RpcSs creation attempt. The cause of helper exit 5 remains unresolved.
+
+The V32 probe source and V34 probe source use the same explicit DefaultInstall command and V32 setup media path. The significant staging difference is that V34 adds the pinned ATL registrar to the private DLL directory before Wineboot. Restore the V32 runtime staging baseline in a new private prefix to recover the last verified setup path. Preserve V32–V34. V34 is complete. DeX is on hold. v1.0 remains **35%**.
+
 ## 2026-11-20 — V34 isolated Wine29 setup and RpcSs verification
 
 Build 171 exposes **System → Verify V34 RpcSs → Run once**. It uses the pinned V33 registrar assets in a new one-shot V34 scratch and retains the bounded SCM response even when setup finishes with an eligible nonzero exit. Service start and ARM64 smoke still require successful setup. V32 and V33 remain available as separate evidence. [Signed build 171 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44799814434/artifacts/14660887182) is ready. Android #942, static #256 and offline safety #111 passed. Install in place, run V34 once and copy its report. DeX remains on hold. v1.0 stays **35%** until the runtime gate is verified.

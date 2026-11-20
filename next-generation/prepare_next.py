@@ -116,7 +116,7 @@ for p in (app / "res").glob("values*/strings.xml"):
     text = p.read_text(encoding="utf-8")
     text, replacements = re.subn(
         r'(<string name="app_name">)Charoite Portal(</string>)',
-        r'\g<1>Charoite Portal (Metorite Pre-Alpha)\2', text, count=1)
+        r'\g<1>Charoite Portal (Meteorite Alpha)\2', text, count=1)
     # Some locales have their own app_name or inherit defaults; all must
     # use the experimental display name if the overlay generated the English name.
     if p.parent.name == "values" and replacements != 1:
@@ -3928,7 +3928,7 @@ ui = ui.replace(anchor, anchor + """
         // Dedicated app-update control; no silent install or data reset.
         LinearLayout nextUpdatesAction = card();
         nextUpdatesAction.addView(label(
-                "Charoite Portal (Metorite Pre-Alpha) — Official GitHub updates",
+                "Charoite Portal (Meteorite Alpha) — Official GitHub updates",
                 16, FOREGROUND, true));
         nextUpdatesAction.addView(label(
                 "When opening, Next checks official GitHub Next releases. Tap Update in app "
@@ -4048,7 +4048,7 @@ ui = ui.replace(destroy_anchor, (
 
 # Deliberately do not inject onPause/onRestart/onNewIntent/onUserLeaveHint:
 # those are not launch events, and were the cause of unwanted replay.
-ui = ui.replace('"Charoite Portal"', '"Charoite Portal (Metorite Pre-Alpha)"')
+ui = ui.replace('"Charoite Portal"', '"Charoite Portal (Meteorite Alpha)"')
 source.write_text(ui, encoding="utf-8")
 
 # Reference-only provenance: no binary is downloaded or installed by this

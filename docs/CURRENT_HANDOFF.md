@@ -1,3 +1,7 @@
+## 2026-11-20 — Preserve the SCM check when Wine29 setup exits nonzero
+
+The next fresh experimental registrar probe can make one bounded RpcSs query after a nonzero setup exit if Wineboot, private server readiness and the helper safety gates pass. It reports Wine sc.exe's explicit service-missing and RPC-unavailable messages. A failed setup still blocks a service start, PE smoke test and overall verification. This is a source-only change for the next isolated probe. Preserve V32 and V33. No phone action and no new APK. v1.0 remains **35%** pending runtime verification.
+
 ## 2026-11-20 — Wine29 V33 trace interpretation corrected
 
 DeX follow-up is on hold. Reviewed the pinned Wine [SetupAPI source](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/dlls/setupapi/install.c#L1366) and [rundll32 source](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/programs/rundll32/rundll32.c#L368). The wide SetupInstallServicesFromInfSectionW implementation has no entry trace. Its add_service helper traces the service name as a Wine wide string immediately before CreateServiceW, which the existing report filtered as plain text. Both readers now recognize the source trace shape. A missing creation trace still leaves open earlier returns such as failing to open SCM.

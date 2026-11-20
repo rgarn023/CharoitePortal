@@ -824,20 +824,27 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static boolean verifyRpcss(StringBuilder out, File nativeDir, File loader, File server,
-                                       Process privateServer, File scratch, File prefix, File lib, File sc)
+                                       Process privateServer, File scratch, File prefix, File lib, File sc, boolean setupPassed)
             throws Exception {
         boolean requestedStart = false;
         for (int attempt = 0; attempt < 4 && privateServer.isAlive(); attempt++) {
             File queryLog = child(scratch, "v29-rpcss-query-" + attempt + ".log");
             int queryExit = runBoundedPe(nativeDir, loader, server, scratch, prefix, lib,
                                             sc, queryLog, "query", "RpcSs");
+            String queryOutput = queryExit >= 0 ? boundedLog(queryLog).replace("\r\n", "\n") : "";
             String state = queryExit == 0
-                ? CharoiteWine29V28ScopedTriage.liveScmState(
-                    new String(java.nio.file.Files.readAllBytes(queryLog.toPath()),
-                               java.nio.charset.StandardCharsets.UTF_8))
+                ? CharoiteWine29V28ScopedTriage.liveScmState(queryOutput)
                 : "UNKNOWN";
             out.append("V29 independent SCM query ").append(attempt + 1)
                .append(" exit=").append(queryExit).append(" state=").append(state).append('\n');
+            if (!setupPassed) {
+                out.append("V29 failed setup SCM query only; service start and PE smoke skipped\n");
+                out.append("V29 SCM service missing marker: ").append(
+                    queryOutput.contains("failed to open service 1060\n") || queryOutput.endsWith("failed to open service 1060")).append('\n');
+                out.append("V29 SCM RPC unavailable marker: ").append(
+                    queryOutput.contains("failed to open service manager: 1722\n") || queryOutput.endsWith("failed to open service manager: 1722")).append('\n');
+                return false;
+            }
             if ("RUNNING".equals(state)) return privateServer.isAlive();
             if ("STOPPED".equals(state) && !requestedStart && privateServer.isAlive()) {
                 File startLog = child(scratch, "v29-rpcss-start.log");
@@ -1238,6 +1245,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 // architecture is identified. This independent source-built helper
                 // is permitted ONLY in NEW V28 scratch with explicit one-shot consent.
                 boolean setupPassed = defaultInstallObserved;
+                boolean queryAfterSetupFailure = false;
                 boolean setupGate = finished && exit == 0 && !expired && !overflow
                         && cLinkRetained && windows && system32 && users
                         && !internalCreationFail && serverProc.isAlive();
@@ -1310,6 +1318,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
                     setupPassed=setupFinished && setupExit==0 && !setupExpired
                             && !setupOverflow && !setupLoadFailure && !setupExecFailure
                             && serverProc.isAlive();
+                    queryAfterSetupFailure = setupFinished && setupExit > 0 && !setupExpired
+                            && !setupOverflow && !setupLoadFailure && !setupExecFailure;
                     out.append("V28 independent DefaultInstall helper attempted: true\n");
                     out.append("V28 independent DefaultInstall helper completed within 35s: ").append(setupFinished).append('\n');
                     out.append("V28 independent DefaultInstall helper native exit: ")
@@ -1335,10 +1345,11 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 if (!verifyRunning) out.append("V28 independent Wineboot --help: NOT ATTEMPTED (no extra control process)\n");
                 if (finished && exit==0 && !expired && !overflow
                         && cLinkRetained && windows && system32 && users
-                        && !internalCreationFail && serverBeforeControl && setupPassed) {
+                        && !internalCreationFail && serverBeforeControl
+                        && (setupPassed || (verifyRunning && queryAfterSetupFailure))) {
                     if (verifyRunning) {
                         controlPassed = verifyRpcss(out, nativeDir, loader, server, serverProc,
-                                                    scratch, prefix, lib, scBuiltin);
+                                                    scratch, prefix, lib, scBuiltin, setupPassed);
                         if (controlPassed) {
                             File smokeLog = child(scratch, "v31-standalone.log");
                             File standalone = child(lib, "charoite-standalone.exe");

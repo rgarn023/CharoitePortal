@@ -1,3 +1,20 @@
+## 2026-11-20 — Verified all eight V31 resource payloads and their INF destinations
+
+Verified SHA-256 digests for [remaining-provider candidates](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220/artifacts/14564806910), [HID/XInput candidates](https://github.com/rgarn023/CharoitePortal/actions/runs/44592939220/artifacts/14564397441), and [pinned prefix setup inputs](https://github.com/rgarn023/CharoitePortal/actions/runs/42552476223/artifacts/13645473200). Direct PE resource-directory inspection found a nonempty WINE_DATA_FILE, ID 1, language 0, in all eight ARM64 candidates.
+
+| Provider | Payload identified by pinned wine.inf | Bytes |
+| --- | --- | ---: |
+| mscms.dll | srgb color space profile.icm | 3024 |
+| hidclass.sys | input.inf | 231 |
+| mouhid.sys | mouhid.inf | 460 |
+| winebth.sys | winebth.inf | 452 |
+| winebus.sys | winebus.inf | 434 |
+| winehid.sys | winehid.inf | 448 |
+| wineusb.sys | wineusb.inf | 434 |
+| winexinput.sys | winexinput.inf | 463 |
+
+The pinned INF requests the color profile from System32 and the other seven resources from the drivers directory. PE imports include ntoskrnl.exe, ucrtbase.dll, hidparse.sys, win32u.dll, shlwapi.dll and other providers. Neither driver import closure nor Android Unix companion readiness is established by the resource check. A narrowly scoped candidate correction can package the verified data payloads for a fresh prefix and check the copy queue and installed files before treating any driver as runnable. Current estimate remains **34%**. No phone action for this artifact audit.
+
 ## 2026-11-20 — V31 identifies all eight failing SetupAPI resource providers
 
 Build 163 read the preserved V31 log. Eight copy operations failed with ERROR_RESOURCE_DATA_NOT_FOUND (1812), each requesting WINE_DATA_FILE resource ID 1 (encoded as ,-1). The providers were mscms.dll, hidclass.sys, mouhid.sys, winebth.sys, winebus.sys, winehid.sys, wineusb.sys, and winexinput.sys. This is an exact match to the eight providers absent from the [sealed cohort source audit](https://github.com/rgarn023/CharoitePortal/blob/main/docs/WINE29_V28_POSTMORTEM_COPYQUEUE_AUDIT.md). The report does not establish which module-load or resource-lookup step failed. No parsed rename errors. The build 163 review is complete.

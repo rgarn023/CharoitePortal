@@ -1,6 +1,6 @@
 ## 2026-11-20 — Build 172 restores the V32 runtime baseline in V35
 
-V35 keeps the eight verified setup payloads and standalone ARM64 smoke executable, and omits the standalone ATL candidate introduced in V33. It uses a new private V35 prefix, retains the one-query SCM result if setup exits nonzero, and gates service start and smoke on successful setup. Confirm V35 on device after signed build 172 is published. v1.0 remains **35%**.
+V35 keeps the eight verified setup payloads and standalone ARM64 smoke executable, and omits the standalone ATL candidate introduced in V33. It uses a new private V35 prefix, retains the one-query SCM result if setup exits nonzero, and gates service start and smoke on successful setup. Android and lightweight static verification passed. Install [signed build 172](https://github.com/rgarn023/CharoitePortal/actions/runs/44805920438/artifacts/14662997488) in place, then open **System → Verify V35 RpcSs → Run once** and copy the report. v1.0 remains **35%**.
 
 ## 2026-11-20 — V34 confirms RpcSs is missing from the ATL-enabled prefix
 

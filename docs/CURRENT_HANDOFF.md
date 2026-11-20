@@ -2,6 +2,8 @@
 
 The experimental Android app is named **Charoite Portal (Metorite Pre-Alpha)**. Build 165 applies the name to the launcher, boot version text and update UI. The package ID remains com.charoitx, with the existing signer and release naming conventions for in-place updates. Stable Portal remains com.charoite. This is a naming change and the v1.0 estimate remains **35%**.
 
+[Signed build 165 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44753267814/artifacts/14636772031) is available. Android #930 verified the packaged display label and static #243 passed. Install in place if updating. The V32 result below requires no repeat test.
+
 ## 2026-11-20 — V32 setup resource copies verified on Android
 
 **Current v1.0 estimate: 35%.** On signed build 164, the fresh V32 prefix installed all eight SetupAPI payloads, and each installed SHA-256 matched its expected value. The copy/rename category cleared, and the reported SetupAPI error count dropped from 16 in V31 to eight in V32. The eight remaining lines are unclassified. RpcSs reached RUNNING, the standalone ARM64 executable returned exit 42 with exact output while its private server remained alive, and Program Files plus all three registry files were present after finalization.

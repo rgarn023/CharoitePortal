@@ -3899,7 +3899,7 @@ ui = ui.replace(anchor, anchor + """
             .setPositiveButton("Run once", (prompt, choice) -> {
             runV34.setEnabled(false);
             new Thread(() -> {
-                String report = com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.verifyFreshPrefix(this);
+                String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.verifyFreshPrefix(this);
                 runOnUiThread(() -> {
                     runV34.setEnabled(true);
                     new android.app.AlertDialog.Builder(this)

@@ -919,6 +919,23 @@ jobs:
           print("NTOSKRNL_INTERNAL_MATCH_REPORT=GENERATED; FULL_CLOSURE=UNVERIFIED")
           PYINTERNALMATCH
           echo "NTOSKRNL_NEXT_PROVIDER_RUNTIME_CLOSURE=UNVERIFIED"
+      - name: Build and verify ARM64 ATL registrar provider
+        run: |
+          set -euo pipefail
+          build="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          readobj="$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+          out="$GITHUB_WORKSPACE/wine29-ntoskrnl-next-provider-build-probes"
+          target=dlls/atl100/aarch64-windows/atl100.dll
+          if ! timeout 180 make -C "$build" -j2 "$target" > "$out/atl100-build.log" 2>&1; then
+            tail -n 60 "$out/atl100-build.log"
+            exit 1
+          fi
+          "$readobj" --file-headers --coff-imports --coff-exports "$build/$target" > "$out/atl100-pe.txt"
+          grep -Eq 'Machine: IMAGE_FILE_MACHINE_ARM64(X)? ' "$out/atl100-pe.txt"
+          grep -Eq '^[[:space:]]*Name: AtlCreateRegistrar$' "$out/atl100-pe.txt"
+          cp "$build/$target" "$out/atl100.dll"
+          (cd "$out" && sha256sum atl100.dll > atl100.dll.sha256)
+
       - name: Publish bounded next-level provider build probes (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,3 +1,7 @@
+## 2026-11-20 — Build the missing Wine ATL registrar provider
+
+Verified the sealed runtime archive digest and checked its file table: atl100.dll is absent, while its six declared runtime DLL imports are present. Pinned Wine exports AtlCreateRegistrar from atl100.dll. This makes the missing registrar DLL a concrete packaging gap, while the V32 report still does not identify the exact failing branch. The cross-build now explicitly builds ARM64 atl100.dll, verifies its registrar export, and publishes the candidate, digest, and import inventory for review. No experimental APK is changed. v1.0 remains **35%** pending device verification.
+
 ## 2026-11-20 — V32 remaining errors isolated to Wine registry-script registration
 
 Build 166 read the preserved V32 helper log and counted eight SetupAPI errors, all emitted by register_fake_dll. In the [pinned Wine implementation](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/dlls/setupapi/fakedll.c#L926-L967), this function logs an error if it cannot obtain IRegistrar through atl100.dll, or if registration of a WINE_REGISTRY resource fails. The preserved report grouped sites only, so it does not distinguish those failure branches or identify affected modules. The eight successful data copies and the standalone ARM64 execution result remain verified. The read-only build 166 review is complete and the v1.0 estimate remains **35%**. Next verify ATL provider availability and inspect the specific registrar error signatures before attempting a runtime fix.

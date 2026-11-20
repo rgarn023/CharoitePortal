@@ -1,6 +1,6 @@
 ## 2026-11-20 — V34 isolated Wine29 setup and RpcSs verification
 
-Build 171 exposes **System → Verify V34 RpcSs → Run once**. It uses the pinned V33 registrar assets in a new one-shot V34 scratch and retains the bounded SCM response even when setup finishes with an eligible nonzero exit. Service start and ARM64 smoke still require successful setup. V32 and V33 remain available as separate evidence. After the signed APK passes CI, install in place, run V34 once and copy its report. DeX remains on hold. v1.0 stays **35%** until the runtime gate is verified.
+Build 171 exposes **System → Verify V34 RpcSs → Run once**. It uses the pinned V33 registrar assets in a new one-shot V34 scratch and retains the bounded SCM response even when setup finishes with an eligible nonzero exit. Service start and ARM64 smoke still require successful setup. V32 and V33 remain available as separate evidence. [Signed build 171 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44799814434/artifacts/14660887182) is ready. Android #942, static #256 and offline safety #111 passed. Install in place, run V34 once and copy its report. DeX remains on hold. v1.0 stays **35%** until the runtime gate is verified.
 
 ## 2026-11-20 — Preserve the SCM check when Wine29 setup exits nonzero
 

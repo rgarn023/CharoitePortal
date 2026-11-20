@@ -131,7 +131,7 @@ public final class CharoiteWine29V28ScopedTriage {
         java.util.regex.Pattern error = java.util.regex.Pattern.compile(
             "err:setupapi:[^\\s]+ (copy|rename) error (-?\\d{1,10}) (.+?) -> (.+)");
         java.util.regex.Pattern knownFile = java.util.regex.Pattern.compile(
-            "(?:^|[/\\\\])((?:hidclass|mouhid|winebth|winebus|winehid|wineusb|winexinput)\\.sys|mscms\\.dll)\"?$");
+            "(?:^|[@/\\\\])((?:hidclass|mouhid|winebth|winebus|winehid|wineusb|winexinput)\\.sys|(?:mscms|ws2_32)\\.dll)(?:,(-[0-9]{1,5}))?\"?$");
         int count = 0;
         for (String line : log.split("\\R")) {
             java.util.regex.Matcher match = error.matcher(line);
@@ -140,8 +140,11 @@ public final class CharoiteWine29V28ScopedTriage {
             out.append(match.group(1)).append(" error ").append(match.group(2));
             for (int field = 3; field <= 4; field++) {
                 java.util.regex.Matcher file = knownFile.matcher(match.group(field));
+                boolean known = file.find();
                 out.append(field == 3 ? " source=" : " target=")
-                   .append(file.find() ? file.group(1) : "[redacted]");
+                   .append(known ? file.group(1) : "[redacted]");
+                if (field == 3 && known && file.group(2) != null)
+                    out.append(" resource=").append(file.group(2));
             }
             out.append('\n');
         }

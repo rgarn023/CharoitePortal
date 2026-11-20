@@ -44,7 +44,7 @@ class NextSystemWorkflow(unittest.TestCase):
             "browser_download_url",
             "sha256:[a-f0-9]{64}",
             "result.versionCode>installed",
-            'setTitle("Charoite Next update available")',
+            'setTitle("Charoite Portal (Metorite Pre-Alpha) update available")',
             'setPositiveButton("Update in app"',
             'public static void checkOnLaunch(Activity activity)',
             'public static void checkNow(Activity activity)'

@@ -101,10 +101,10 @@ public final class CharoiteNextBootActivity extends Activity {
             String name = pkg.versionName;
             long code = pkg.getLongVersionCode();
             if (name == null || name.trim().isEmpty())
-                return "Charoite Next • build " + code;
-            return "Charoite Next • " + name + " • build " + code;
+                return "Charoite Portal (Metorite Pre-Alpha) • build " + code;
+            return "Charoite Portal (Metorite Pre-Alpha) • " + name + " • build " + code;
         } catch (Exception ignored) {
-            return "Charoite Next • version unavailable";
+            return "Charoite Portal (Metorite Pre-Alpha) • version unavailable";
         }
     }
 

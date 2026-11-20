@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.133"')
-text = text.replace("versionCode 33", "versionCode 164")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.134"')
+text = text.replace("versionCode 33", "versionCode 165")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -116,9 +116,9 @@ for p in (app / "res").glob("values*/strings.xml"):
     text = p.read_text(encoding="utf-8")
     text, replacements = re.subn(
         r'(<string name="app_name">)Charoite Portal(</string>)',
-        r'\g<1>Charoite Next\2', text, count=1)
+        r'\g<1>Charoite Portal (Metorite Pre-Alpha)\2', text, count=1)
     # Some locales have their own app_name or inherit defaults; all must
-    # use Charoite Next if the overlay generated the English name.
+    # use the experimental display name if the overlay generated the English name.
     if p.parent.name == "values" and replacements != 1:
         raise RuntimeError("Required default app name missing")
     p.write_text(text, encoding="utf-8")
@@ -3734,7 +3734,7 @@ ui = ui.replace(anchor, anchor + """
         // Dedicated app-update control; no silent install or data reset.
         LinearLayout nextUpdatesAction = card();
         nextUpdatesAction.addView(label(
-                "CHAROITE NEXT — OFFICIAL GITHUB UPDATES",
+                "Charoite Portal (Metorite Pre-Alpha) — Official GitHub updates",
                 16, FOREGROUND, true));
         nextUpdatesAction.addView(label(
                 "When opening, Next checks official GitHub Next releases. Tap Update in app "
@@ -3846,7 +3846,7 @@ ui = ui.replace(destroy_anchor, (
 
 # Deliberately do not inject onPause/onRestart/onNewIntent/onUserLeaveHint:
 # those are not launch events, and were the cause of unwanted replay.
-ui = ui.replace('"Charoite Portal"', '"Charoite Next"')
+ui = ui.replace('"Charoite Portal"', '"Charoite Portal (Metorite Pre-Alpha)"')
 source.write_text(ui, encoding="utf-8")
 
 # Reference-only provenance: no binary is downloaded or installed by this

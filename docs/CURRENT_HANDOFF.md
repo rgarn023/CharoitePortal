@@ -1,3 +1,9 @@
+## 2026-11-20 — V33 registrar result and DeX desktop view requirement
+
+Build 167 verified 8/8 SetupAPI payload digests and reported zero SetupAPI error sites, compared with eight registrar-site errors in V32. The explicit DefaultInstall helper exited 5, so the SCM probe and standalone ARM64 smoke test were skipped. The final V33 registry did not contain the exact RpcSs service key. Preserve V33. Investigate the helper exit and RpcSs registration before repeating the fresh-prefix test. The overall v1.0 estimate remains **35%**.
+
+Product requirement: Add an optional Windows-style desktop view in Charoite Portal for Samsung DeX. Show the view option grayed out when DeX is not detected. The desktop layout and detection behavior still need implementation and verification on device.
+
 ## 2026-11-20 — V33 packages verified Wine ATL registrar candidate
 
 [Cross-build #160](https://github.com/rgarn023/CharoitePortal/actions/runs/44757889116) produced a hash-verified ARM64X atl100.dll with AtlCreateRegistrar and nine named ordinary DLL dependencies present by filename in the sealed runtime. Build 167 stages this candidate in the separate V33 prefix alongside the verified V32 copy media. The V33 report checks installed payloads, registrar error sites, RpcSs and the standalone ARM64 smoke test. All 92 direct import entries matched exports in the sealed binaries by name or ordinal. Forwarded imports and runtime registration still require verification. Preserve V32, other prefixes, and existing app data. The v1.0 estimate remains **35%**.

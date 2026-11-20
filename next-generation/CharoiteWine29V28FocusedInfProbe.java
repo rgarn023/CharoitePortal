@@ -831,7 +831,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File queryLog = child(scratch, "v29-rpcss-query-" + attempt + ".log");
             int queryExit = runBoundedPe(nativeDir, loader, server, scratch, prefix, lib,
                                             sc, queryLog, "query", "RpcSs");
-            String queryOutput = queryExit >= 0 ? boundedLog(queryLog).replace("\r\n", "\n") : "";
+            String queryOutput = queryExit >= 0
+                ? new String(java.nio.file.Files.readAllBytes(queryLog.toPath()),
+                             java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n")
+                : "";
             String state = queryExit == 0
                 ? CharoiteWine29V28ScopedTriage.liveScmState(queryOutput)
                 : "UNKNOWN";

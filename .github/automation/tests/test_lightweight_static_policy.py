@@ -33,7 +33,9 @@ class LightweightBuildSplit(unittest.TestCase):
         self.assertIn("      - 'next-generation/**'", block)
         self.assertIn("      - '!next-generation/tests/**'", block)
         self.assertIn("      - '!next-generation/charoite-wine/**'", block)
-        self.assertNotIn("      - '.github/workflows/charoite-next.yml'", block)
+        self.assertIn("      - '.github/workflows/charoite-next.yml'", block)
+        self.assertIn("contains(github.event.head_commit.message, '[next-apk]')",
+                      HEAVY.read_text(encoding="utf-8"))
         self.assertLess(block.index("'next-generation/**'"),
                         block.index("'!next-generation/tests/**'"))
         # No schedule / timer should launch a 465 MB APK build.
@@ -43,7 +45,7 @@ class LightweightBuildSplit(unittest.TestCase):
         block = triggers(LIGHT)
         self.assertIn("  push:\n", block)
         for required in (
-            "'next-generation/tests/**'",
+            "'next-generation/**'",
             "'.github/workflows/charoite-agent-pr-check.yml'",
             "'.github/workflows/charoite-next.yml'",
             "  pull_request:",

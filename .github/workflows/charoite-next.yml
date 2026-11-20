@@ -1176,6 +1176,19 @@ jobs:
             upstream/app/src/main/assets/charoite-next/wine29-v23-setup/wine.inf \
             upstream/app/src/main/assets/wine29-v32
 
+      - name: Stage pinned Wine ATL registrar provider
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          zip="$RUNNER_TEMP/wine29-atl100.zip"
+          assets=upstream/app/src/main/assets/wine29-v33
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14640881388/zip" > "$zip"
+          echo "0ea2ddc288be9cfa3d03012a1432be39da954d47fe53e63534fb8f1e89e584ea  $zip" | sha256sum --check
+          mkdir -p "$assets"
+          unzip -p "$zip" atl100.dll > "$assets/atl100.dll"
+          echo "b049d53170ae78f7021e465976ba7f47b47bec81b5f40cc65935f5c5b2e3a620  $assets/atl100.dll" | sha256sum --check
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1187,6 +1200,12 @@ jobs:
           for name in standalone.exe standalone.sha256; do
             unzip -p "$apk" "assets/wine29-v31/$name" | cmp - "upstream/app/src/main/assets/wine29-v31/$name"
           done
+
+      - name: Verify packaged Wine ATL registrar provider
+        run: |
+          set -euo pipefail
+          unzip -p upstream/app/build/outputs/apk/debug/app-debug.apk assets/wine29-v33/atl100.dll \
+            | cmp - upstream/app/src/main/assets/wine29-v33/atl100.dll
 
       - name: Verify packaged Wine29 setup resources
         run: |
@@ -1689,7 +1708,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='166' versionName='11.2-next.0.135'"
+            grep -F "package: name='com.charoitx' versionCode='167' versionName='11.2-next.0.136'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2184,7 +2203,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc166
+          TAG=charoite-next-vc167
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2196,8 +2215,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Portal (Metorite Pre-Alpha) 11.2-next.0.135 (build 166)" \
-              --notes "Read-only review of Wine29 V32 SetupAPI error sites." \
+              --title "Charoite Portal (Metorite Pre-Alpha) 11.2-next.0.136 (build 167)" \
+              --notes "Fresh V33 Wine ATL registrar validation." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

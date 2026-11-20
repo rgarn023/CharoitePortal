@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.141"')
-text = text.replace("versionCode 33", "versionCode 172")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.142"')
+text = text.replace("versionCode 33", "versionCode 173")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because

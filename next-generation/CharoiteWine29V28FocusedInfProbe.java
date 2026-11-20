@@ -865,10 +865,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static String shortReport(StringBuilder report, boolean verifyRunning) {
-        final String tail=verifyRunning ? "\nEND OF WINE29 V34 ATL SETUP AND SCM REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+        final String tail=verifyRunning ? "\nEND OF WINE29 V35 BASELINE SETUP AND SCM REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
-        if (verifyRunning) summary=summary.replace("V28 ", "V34 ").replace("v28 ", "v34 ").replace("V29 ", "V34 ");
+        if (verifyRunning) summary=summary.replace("V28 ", "V35 ").replace("v28 ", "v35 ").replace("V29 ", "V35 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
@@ -885,7 +885,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
     private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (verifyRunning) {
-            out.append("CHAROITE NEXT — FRESH WINE29 V34 ATL SETUP AND SCM\n");
+            out.append("CHAROITE NEXT — FRESH WINE29 V35 BASELINE SETUP AND SCM\n");
         } else {
             out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
             out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
@@ -955,7 +955,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v34" : SCRATCH);
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1090,14 +1090,6 @@ public final class CharoiteWine29V28FocusedInfProbe {
             if (verifyRunning)
                 stageV28SetupModule(standaloneImage, child(lib, "charoite-standalone.exe"),
                                     standaloneHash);
-            if (verifyRunning) {
-                byte[] atl = readStandaloneAsset(context, "wine29-v33/atl100.dll", 1048576);
-                String expected = "b049d53170ae78f7021e465976ba7f47b47bec81b5f40cc65935f5c5b2e3a620";
-                if (!expected.equals(hex(MessageDigest.getInstance("SHA-256").digest(atl))))
-                    throw new SecurityException("ATL registrar asset hash mismatch");
-                stageV28SetupModule(atl, child(lib, "atl100.dll"), expected);
-                out.insert(reportHeaderEnd, "ATL registrar DLL staged: SHA-256 PASS\n");
-            }
             stageV28SetupModule(setupImages[0],child(lib,"rundll32.exe"),PINNED_RUNDLL32_SHA);
             stageV28SetupModule(setupImages[1],child(lib,"rpcss.exe"),PINNED_RPCSS_SHA);
             File verifiedInf=child(scratch,"runtime/share/wine/wine.inf");

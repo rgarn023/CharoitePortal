@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.140"')
-text = text.replace("versionCode 33", "versionCode 171")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.141"')
+text = text.replace("versionCode 33", "versionCode 172")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3888,34 +3888,34 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V28Action);
 
         LinearLayout rpcssAction = card();
-        rpcssAction.addView(label("WINE29 — VERIFY V34 RPCSS", 16, FOREGROUND, true));
-        rpcssAction.addView(label("Run Wine29 once in a new private V34 prefix, then copy the report.", 13, FOREGROUND, false));
-        android.widget.Button runV34 = new android.widget.Button(this);
-        runV34.setText("Verify V34 RpcSs");
-        runV34.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
-            .setTitle("Verify Wine29 in a fresh V34 prefix")
+        rpcssAction.addView(label("WINE29 — VERIFY V35 RPCSS", 16, FOREGROUND, true));
+        rpcssAction.addView(label("Run Wine29 once in a new private V35 prefix, then copy the report.", 13, FOREGROUND, false));
+        android.widget.Button runV35 = new android.widget.Button(this);
+        runV35.setText("Verify V35 RpcSs");
+        runV35.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+            .setTitle("Verify Wine29 in a fresh V35 prefix")
             .setMessage("Run setup and query RpcSs in a new private prefix. A successful setup may start RpcSs and run the ARM64 smoke test. Existing prefixes, games and saves are kept intact.")
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Run once", (prompt, choice) -> {
-            runV34.setEnabled(false);
+            runV35.setEnabled(false);
             new Thread(() -> {
                 String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.verifyFreshPrefix(this);
                 runOnUiThread(() -> {
-                    runV34.setEnabled(true);
+                    runV35.setEnabled(true);
                     new android.app.AlertDialog.Builder(this)
-                        .setTitle("V34 RpcSs report")
+                        .setTitle("V35 RpcSs report")
                         .setMessage(report)
                         .setPositiveButton("Copy report", (dialog, which) -> {
                             android.content.ClipboardManager clipboard = getSystemService(
                                     android.content.ClipboardManager.class);
                             if (clipboard != null) clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("V34 RpcSs report", report));
+                                android.content.ClipData.newPlainText("V35 RpcSs report", report));
                         })
                         .setNegativeButton("Close", null).show();
                 });
-            }, "CharoiteWine29V34Registrar").start();
+            }, "CharoiteWine29V35Baseline").start();
         }).show());
-        rpcssAction.addView(runV34);
+        rpcssAction.addView(runV35);
         android.widget.Button rpcssHandoff = new android.widget.Button(this);
         rpcssHandoff.setText("Open current project handoff");
         rpcssHandoff.setAllCaps(false);

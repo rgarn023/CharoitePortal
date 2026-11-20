@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.138"')
-text = text.replace("versionCode 33", "versionCode 169")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.139"')
+text = text.replace("versionCode 33", "versionCode 170")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -350,10 +350,16 @@ ui = ui.replace(desktop_anchor, r"""
         try {
             Class<?> type = config.getClass();
             int enabled = type.getField("SEM_DESKTOP_MODE_ENABLED").getInt(null);
-            return type.getField("semDesktopModeEnabled").getInt(config) == enabled;
+            if (type.getField("semDesktopModeEnabled").getInt(config) == enabled) return true;
         } catch (ReflectiveOperationException | SecurityException unavailable) {
-            return false;
+            // Samsung firmware can hide the vendor fields from third-party apps.
         }
+        int mode = config.uiMode & android.content.res.Configuration.UI_MODE_TYPE_MASK;
+        if (mode == android.content.res.Configuration.UI_MODE_TYPE_DESK) return true;
+        android.view.Display display = android.os.Build.VERSION.SDK_INT >= 30
+                ? getDisplay() : getWindowManager().getDefaultDisplay();
+        // Check the display hosting this window, since DeX can run alongside the phone UI.
+        return display != null && display.getDisplayId() != android.view.Display.DEFAULT_DISPLAY;
     }
 
     private boolean useDexDesktop() {
@@ -4022,6 +4028,10 @@ ui = ui.replace(focus_anchor, (
     "        super.onWindowFocusChanged(hasFocus);\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalWindowFocusChanged(this, hasFocus);\n"
+    "        if (hasFocus && main != null && isDexActive() != lastDexState) {\n"
+    "            render();\n"
+    "            refreshReadyState();\n"
+    "        }\n"
     "    }\n\n" + focus_anchor), 1)
 
 # A truly finished Portal is a new session; Home/Recents do not destroy it.

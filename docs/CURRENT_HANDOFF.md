@@ -1,3 +1,9 @@
+## 2026-11-20 — DeX display detection on Samsung
+
+Build 169 left the desktop option disabled on the owner's active Samsung DeX session. Build 170 adds the Android desk configuration and the Samsung activity's secondary display as fallbacks when the Samsung configuration check gives no positive result. The app rechecks when its window regains focus as well as during resume and configuration changes. The secondary display check is a heuristic. Confirmation on the owner's Galaxy S26 Ultra is pending.
+
+After signed CI passes, install build 170 in place and check **System → Windows-style desktop** in the DeX window, then again on the phone screen outside DeX. Overall v1.0 remains **35%**.
+
 ## 2026-11-20 — DeX desktop opens to wallpaper and user-selected icons
 
 Build 169 replaces the always-visible Portal pane on DeX with a plain Charoite-themed desktop. The crystal button opens a Start menu with Library, Setup and System. The Desktop button returns to the wallpaper, and Desktop icons adds or removes the three page shortcuts with preferences saved locally. The desktop remains optional and DeX-gated. Device verification is pending.

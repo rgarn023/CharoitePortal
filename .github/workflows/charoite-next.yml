@@ -1708,7 +1708,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='170' versionName='11.2-next.0.139'"
+            grep -F "package: name='com.charoitx' versionCode='171' versionName='11.2-next.0.140'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2203,7 +2203,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc170
+          TAG=charoite-next-vc171
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2215,7 +2215,7 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Portal (Metorite Pre-Alpha) 11.2-next.0.139 (build 170)" \
+              --title "Charoite Portal (Metorite Pre-Alpha) 11.2-next.0.140 (build 171)" \
               --notes "Samsung DeX desktop with crystal Start menu and configurable shortcuts." \
               --latest=false
           fi

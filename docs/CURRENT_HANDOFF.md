@@ -1,3 +1,7 @@
+## 2026-11-20 — V34 isolated Wine29 setup and RpcSs verification
+
+Build 171 exposes **System → Verify V34 RpcSs → Run once**. It uses the pinned V33 registrar assets in a new one-shot V34 scratch and retains the bounded SCM response even when setup finishes with an eligible nonzero exit. Service start and ARM64 smoke still require successful setup. V32 and V33 remain available as separate evidence. After the signed APK passes CI, install in place, run V34 once and copy its report. DeX remains on hold. v1.0 stays **35%** until the runtime gate is verified.
+
 ## 2026-11-20 — Preserve the SCM check when Wine29 setup exits nonzero
 
 The next fresh experimental registrar probe can make one bounded RpcSs query after a nonzero setup exit if Wineboot, private server readiness and the helper safety gates pass. It reports Wine sc.exe's explicit service-missing and RPC-unavailable messages. A failed setup still blocks a service start, PE smoke test and overall verification. This is a source-only change for the next isolated probe. Preserve V32 and V33. No phone action and no new APK. v1.0 remains **35%** pending runtime verification.

@@ -862,10 +862,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static String shortReport(StringBuilder report, boolean verifyRunning) {
-        final String tail=verifyRunning ? "\nEND OF WINE29 V33 ATL REGISTRAR REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+        final String tail=verifyRunning ? "\nEND OF WINE29 V34 ATL SETUP AND SCM REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
-        if (verifyRunning) summary=summary.replace("V28 ", "V33 ").replace("v28 ", "v33 ").replace("V29 ", "V33 ");
+        if (verifyRunning) summary=summary.replace("V28 ", "V34 ").replace("v28 ", "v34 ").replace("V29 ", "V34 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
@@ -882,7 +882,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
     private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (verifyRunning) {
-            out.append("CHAROITE NEXT — FRESH WINE29 V33 ATL REGISTRAR COPIES\n");
+            out.append("CHAROITE NEXT — FRESH WINE29 V34 ATL SETUP AND SCM\n");
         } else {
             out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
             out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
@@ -952,7 +952,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v33" : SCRATCH);
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v34" : SCRATCH);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1348,8 +1348,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         && !internalCreationFail && serverBeforeControl
                         && (setupPassed || (verifyRunning && queryAfterSetupFailure))) {
                     if (verifyRunning) {
-                        controlPassed = verifyRpcss(out, nativeDir, loader, server, serverProc,
+                        StringBuilder scmReport = new StringBuilder();
+                        controlPassed = verifyRpcss(scmReport, nativeDir, loader, server, serverProc,
                                                     scratch, prefix, lib, scBuiltin, setupPassed);
+                        out.insert(reportHeaderEnd, scmReport);
                         if (controlPassed) {
                             File smokeLog = child(scratch, "v31-standalone.log");
                             File standalone = child(lib, "charoite-standalone.exe");

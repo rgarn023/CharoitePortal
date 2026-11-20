@@ -875,15 +875,56 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     public static String run(Context context) {
-        return run(context, false);
+        return run(context, false, false);
     }
 
     public static String verifyFreshPrefix(Context context) {
-        return run(context, true);
+        return run(context, true, false);
     }
 
-    private static String run(Context context, boolean verifyRunning) {
+    private static String runX64Smoke(Context context, File nativeDir, File loader, File server,
+                                      Process privateServer, File scratch, File prefix, File lib)
+            throws Exception {
+        String manifest = new String(readStandaloneAsset(context, "wine29-x64/SHA256SUMS", 512),
+                                     java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] emulator = readStandaloneAsset(context, "wine29-x64/libarm64ecfex.dll", 32 * 1024 * 1024);
+        byte[] executable = readStandaloneAsset(context, "wine29-x64/standalone-x64.exe", 65536);
+        String emulatorHash = verifyX64Asset(manifest, "libarm64ecfex.dll", emulator);
+        String executableHash = verifyX64Asset(manifest, "standalone-x64.exe", executable);
+
+        // The pinned Wine PE loader defaults to system32/xtajit64.dll for AMD64.
+        File system32 = child(prefix, "drive_c/windows/system32");
+        if (!system32.isDirectory() || !system32.getCanonicalFile().equals(system32.getAbsoluteFile()))
+            throw new SecurityException("Unexpected x64 system32 path");
+        File emulatorFile = child(system32, "xtajit64.dll");
+        File smoke = child(lib, "standalone-x64.exe");
+        stageV28SetupModule(emulator, emulatorFile, emulatorHash);
+        stageV28SetupModule(executable, smoke, executableHash);
+        File log = child(scratch, "x64-smoke.log");
+        if (!privateServer.isAlive()) return "X64 SMOKE: skipped because the private Wine server stopped\n";
+        int exit = runBoundedPe(nativeDir, loader, server, scratch, prefix, lib, smoke, log);
+        boolean marker = exit == 42 && java.nio.file.Files.readAllLines(
+            log.toPath(), java.nio.charset.StandardCharsets.UTF_8).contains("CHAROITE_WINDOWS_X64_SMOKE_OK");
+        boolean alive = privateServer.isAlive();
+        return "X64 SMOKE: " + (marker && alive ? "PASS" : "FAIL")
+            + ", exit=" + exit + ", exact output=" + marker + ", private server alive=" + alive + "\n";
+    }
+
+    private static String verifyX64Asset(String manifest, String name, byte[] content)
+            throws Exception {
+        String digest = hex(MessageDigest.getInstance("SHA-256").digest(content));
+        if (!java.util.Arrays.asList(manifest.split("\\r?\\n")).contains(digest + "  " + name))
+            throw new SecurityException("x64 smoke asset digest mismatch");
+        return digest;
+    }
+
+    public static String verifyX64Smoke(Context context) {
+        return run(context, true, true);
+    }
+
+    private static String run(Context context, boolean verifyRunning, boolean testX64) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
+        if (testX64) out.append("Wine29 x64 smoke — separate private prefix\n");
         if (verifyRunning) {
             out.append("CHAROITE NEXT — FRESH WINE29 V35 BASELINE SETUP AND SCM\n");
         } else {
@@ -955,7 +996,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH);
+            String scratchName = testX64 ? "charoite-next-wine29-x64-smoke"
+                : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
+            File newScratch = child(privateBase, scratchName);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1347,7 +1390,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         controlPassed = verifyRpcss(scmReport, nativeDir, loader, server, serverProc,
                                                     scratch, prefix, lib, scBuiltin, setupPassed);
                         out.insert(reportHeaderEnd, scmReport);
-                        if (controlPassed) {
+                        if (controlPassed && testX64) {
+                            out.insert(reportHeaderEnd, runX64Smoke(context, nativeDir, loader, server,
+                                serverProc, scratch, prefix, lib));
+                        } else if (controlPassed) {
                             File smokeLog = child(scratch, "v31-standalone.log");
                             File standalone = child(lib, "charoite-standalone.exe");
                             int smokeExit = runBoundedPe(nativeDir, loader, server, scratch, prefix,

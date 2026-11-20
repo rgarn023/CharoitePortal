@@ -3916,6 +3916,32 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29V35Baseline").start();
         }).show());
         rpcssAction.addView(runV35);
+        android.widget.Button runX64 = new android.widget.Button(this);
+        runX64.setText("Run x64 smoke test");
+        runX64.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+            .setTitle("Run Wine29 and FEX in a fresh private prefix")
+            .setMessage("After Wine setup and RpcSs verification, run one packaged x64 console executable through FEX. Copy the report when the test finishes.")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Run once", (prompt, choice) -> {
+            runX64.setEnabled(false);
+            new Thread(() -> {
+                String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.verifyX64Smoke(this);
+                runOnUiThread(() -> {
+                    runX64.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Wine29 x64 smoke report")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            android.content.ClipboardManager clipboard = getSystemService(
+                                    android.content.ClipboardManager.class);
+                            if (clipboard != null) clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("Wine29 x64 smoke report", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29X64Smoke").start();
+        }).show());
+        rpcssAction.addView(runX64);
         android.widget.Button rpcssHandoff = new android.widget.Button(this);
         rpcssHandoff.setText("Open current project handoff");
         rpcssHandoff.setAllCaps(false);

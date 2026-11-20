@@ -1,3 +1,7 @@
+## 2026-11-20 — Wine29 x64 smoke test on Meteorite Alpha
+
+System → Run x64 smoke test creates one new private prefix, reuses the V35 setup and RpcSs gate, verifies the packaged FEX and AMD64 fixture hashes, and stages FEX under the pinned Wine loader's default `xtajit64.dll` name. Success requires the exact x64 output, exit 42, and a live private wineserver. Copy the report after the phone test. Runtime readiness remains 35% until x64 execution is verified.
+
 ## 2026-11-20 — Meteorite Alpha in-app release workflow
 
 The Android workflow now runs the existing packaged Wine checks in two steps to fit the GitHub Actions run-script limit. The app label regression check expects Charoite Portal (Meteorite Alpha). Release publication uses `CHAROITE_RELEASE_TOKEN` when configured and otherwise uses the built-in job token. Build 173 previously built and uploaded its APK, but GitHub returned HTTP 403 on release creation. Confirm a fresh signed build publishes a public release before testing System → Check for updates on an older installation. The updater still uses the existing release tag and APK filename. Runtime readiness remains 35%.

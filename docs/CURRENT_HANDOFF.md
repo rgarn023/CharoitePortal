@@ -1,3 +1,7 @@
+## 2026-11-19 — Read-only review of V31 SetupAPI copy and rename errors
+
+Build 162 replaces the completed V31 execution control with a read-only review of its preserved SetupAPI log. The report exposes operation, numeric error and a fixed list of Wine provider basenames; all other names and paths are redacted. It does not restart Wine or initialize a prefix. The v1.0 estimate remains **34%** pending the review result.
+
 ## 2026-11-19 — V31 standalone ARM64 Windows executable verified on Android
 
 **Current v1.0 estimate: 34%.** In a fresh V31 prefix, the standalone ARM64 console PE printed the expected line and exited 42 with the private wineserver still alive. RpcSs reached RUNNING. Program Files and all three registry files were present after finalization. [Signed Android build #925](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887) and [static verification #238](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017879) passed. The completed [build 161 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44646017887/artifacts/14589471038) requires no repeat V31 run.

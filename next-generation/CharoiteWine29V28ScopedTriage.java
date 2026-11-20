@@ -127,6 +127,29 @@ public final class CharoiteWine29V28ScopedTriage {
         out.append("V28 preserved RpcSs SCM status is HISTORICAL, never a live-service check\n");
     }
 
+    static void describeCopyQueue(StringBuilder out, String log) {
+        java.util.regex.Pattern error = java.util.regex.Pattern.compile(
+            "err:setupapi:[^\\s]+ (copy|rename) error (-?\\d{1,10}) (.+?) -> (.+)");
+        java.util.regex.Pattern knownFile = java.util.regex.Pattern.compile(
+            "(?:^|[/\\\\])((?:hidclass|mouhid|winebth|winebus|winehid|wineusb|winexinput)\\.sys|mscms\\.dll)\"?$");
+        int count = 0;
+        for (String line : log.split("\\R")) {
+            java.util.regex.Matcher match = error.matcher(line);
+            if (!match.find()) continue;
+            if (++count > 32) break;
+            out.append(match.group(1)).append(" error ").append(match.group(2));
+            for (int field = 3; field <= 4; field++) {
+                java.util.regex.Matcher file = knownFile.matcher(match.group(field));
+                out.append(field == 3 ? " source=" : " target=")
+                   .append(file.find() ? file.group(1) : "[redacted]");
+            }
+            out.append('
+');
+        }
+        out.append("Parsed copy/rename events (max 32): ").append(Math.min(count, 32)).append('
+');
+    }
+
     static void classifySetupApi(StringBuilder out, String helper) {
         if(helper==null || helper.length()>4194304){
             out.append("V28 preserved SetupAPI error lines: UNKNOWN (no eligible log)\n");

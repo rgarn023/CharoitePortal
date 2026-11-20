@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.130"')
-text = text.replace("versionCode 33", "versionCode 161")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.131"')
+text = text.replace("versionCode 33", "versionCode 162")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3698,36 +3698,30 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V28Action);
 
         LinearLayout rpcssAction = card();
-        rpcssAction.addView(label("WINE29 — TEST STANDALONE WINDOWS EXECUTABLE", 16, FOREGROUND, true));
-        rpcssAction.addView(label(
-                "This test initializes a new experimental prefix, checks RpcSs, and runs a small standalone Windows executable.",
-                13, FOREGROUND, false));
-        android.widget.Button verifyRpcss = new android.widget.Button(this);
-        verifyRpcss.setText("Test standalone Windows executable");
-        verifyRpcss.setAllCaps(false);
-        verifyRpcss.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
-                .setTitle("Run the fresh-prefix test?")
-                .setMessage("This test prepares and verifies the sealed Wine files, then creates a new private V31 prefix and checks RpcSs and Windows process startup. "
-                        + "This test preserves your existing games, saves, and prefixes.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Run once", (dialog, which) -> {
-                    verifyRpcss.setEnabled(false);
-                    new Thread(() -> {
-                        String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe
-                                .verifyFreshPrefix(this);
-                        runOnUiThread(() -> new android.app.AlertDialog.Builder(this)
-                                .setTitle("Wine29 prefix result")
-                                .setMessage(report)
-                                .setPositiveButton("Copy report", (result, button) -> {
-                                    android.content.ClipboardManager clipboard = getSystemService(
-                                            android.content.ClipboardManager.class);
-                                    if (clipboard != null) clipboard.setPrimaryClip(
-                                            android.content.ClipData.newPlainText("Wine29 prefix result", report));
-                                })
-                                .setNegativeButton("Close", null).show());
-                    }, "CharoiteWine29V31Prefix").start();
-                }).show());
-        rpcssAction.addView(verifyRpcss);
+        rpcssAction.addView(label("WINE29 — REVIEW V31 SETUPAPI ERRORS", 16, FOREGROUND, true));
+        rpcssAction.addView(label("Read the existing V31 setup log and summarize copy or rename errors.", 13, FOREGROUND, false));
+        android.widget.Button reviewV31 = new android.widget.Button(this);
+        reviewV31.setText("Review V31 setup errors");
+        reviewV31.setOnClickListener(v -> {
+            reviewV31.setEnabled(false);
+            new Thread(() -> {
+                String report = com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.reviewV31(this);
+                runOnUiThread(() -> {
+                    reviewV31.setEnabled(true);
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("V31 setup errors")
+                        .setMessage(report)
+                        .setPositiveButton("Copy report", (dialog, which) -> {
+                            android.content.ClipboardManager clipboard = getSystemService(
+                                    android.content.ClipboardManager.class);
+                            if (clipboard != null) clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("V31 setup errors", report));
+                        })
+                        .setNegativeButton("Close", null).show();
+                });
+            }, "CharoiteWine29V31Review").start();
+        });
+        rpcssAction.addView(reviewV31);
         android.widget.Button rpcssHandoff = new android.widget.Button(this);
         rpcssHandoff.setText("Open current project handoff");
         rpcssHandoff.setAllCaps(false);

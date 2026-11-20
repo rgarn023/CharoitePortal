@@ -739,7 +739,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
         out.append("V28 helper trace ARM64 DefaultInstall selection mention: ")
            .append(data.contains("defaultinstall.ntarm64")).append('\n');
         out.append("V28 helper trace RpcSs service creation attempt mention: ")
-           .append(data.contains("service rpcss")).append('\n');
+           .append(data.contains("trace:setupapi:add_service service l\"rpcss\"")).append('\n');
         out.append("V28 helper trace SetupAPI failure marker: ")
            .append(data.contains("err:setupapi") || data.contains("failed err ")).append('\n');
         out.append("V28 helper trace complete bounded scan: PASS; raw output/paths NOT copied\n");

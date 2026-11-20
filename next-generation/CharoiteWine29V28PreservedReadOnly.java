@@ -133,7 +133,8 @@ public final class CharoiteWine29V28PreservedReadOnly {
                 flag(report, "Unhandled exception marker", log, "unhandled exception");
                 flag(report, "ATL registrar creation error marker", log, "failed to create iregistrar");
                 flag(report, "Registry script registration error marker", log, "failed to register");
-                flag(report, "SetupAPI service-install entry marker", log, "setupinstallservicesfrominfsection");
+                flag(report, "SetupAPI service creation trace observed", log, "trace:setupapi:add_service service ");
+                flag(report, "SetupAPI RpcSs creation trace observed", log, "trace:setupapi:add_service service l\"rpcss\"");
                 CharoiteWine29V28ScopedTriage.describeSetupErrorSites(report, log);
             }
         } catch (Exception e) {

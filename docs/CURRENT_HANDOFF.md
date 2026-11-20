@@ -1,3 +1,9 @@
+## 2026-11-20 — Wine29 V33 trace interpretation corrected
+
+DeX follow-up is on hold. Reviewed the pinned Wine [SetupAPI source](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/dlls/setupapi/install.c#L1366) and [rundll32 source](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/programs/rundll32/rundll32.c#L368). The wide SetupInstallServicesFromInfSectionW implementation has no entry trace. Its add_service helper traces the service name as a Wine wide string immediately before CreateServiceW, which the existing report filtered as plain text. Both readers now recognize the source trace shape. A missing creation trace still leaves open earlier returns such as failing to open SCM.
+
+The same source shows InstallHinfSectionW has no returned status and rundll32 returns zero after normal completion. Exit 5 therefore does not identify an INF or SCM access denial. V33 still needs a reproducible explanation and successful SCM verification. Retain V32 as the verified baseline and preserve V33 evidence for the next runtime change. Overall v1.0 remains **35%**. No new APK or phone test for this source-only correction.
+
 ## 2026-11-20 — DeX display detection on Samsung
 
 Build 169 left the desktop option disabled on the owner's active Samsung DeX session. Build 170 adds the Android desk configuration and the Samsung activity's secondary display as fallbacks when the Samsung configuration check gives no positive result. The app rechecks when its window regains focus as well as during resume and configuration changes. The secondary display check is a heuristic. Confirmation on the owner's Galaxy S26 Ultra is pending.

@@ -1,8 +1,8 @@
-## 2026-11-19 — V30 fresh-prefix readiness and Windows PE smoke test
+## 2026-11-19 — V30 prefix and independent Windows PE smoke verified on Android
 
-Build 160 adds a one-shot V30 test in separate private scratch. It reuses the verified V29 inputs and bootstrap sequence. After SCM confirms RpcSs is running, it launches the source-verified Windows Wineboot PE independently with --help. Success evidence is exit 0, the pinned usage line and the private server remaining alive. The report also checks Program Files after finalization, alongside existing registry evidence. V29 and existing user data are preserved. This tests a separate PE process invocation with the already verified Wineboot image. Third-party executable compatibility and full SetupAPI readiness remain open. Overall v1.0 estimate remains **32%** pending phone evidence.
+**Current v1.0 estimate: 33%.** Signed Next build 160 / [Actions #924](https://github.com/rgarn023/CharoitePortal/actions/runs/44639821962). The owner report shows Wineboot -i exited 0, RpcSs reached RUNNING, and a separate launch of the ARM64 Windows Wineboot PE with --help exited 0, printed the exact expected usage line, and left the private wineserver alive. Program Files appeared after finalization, and all three registry files were retained. This verifies basic fresh-prefix operation and an independent Wine-supplied PE invocation. V30 is complete and does not need to be repeated.
 
-[Signed Next #924](https://github.com/rgarn023/CharoitePortal/actions/runs/44639821962) and [Static #237](https://github.com/rgarn023/CharoitePortal/actions/runs/44639821966) passed. [Signed build 160 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44639821962/artifacts/14586191056) is ready for one in-place experimental update. Open **System → Verify fresh prefix → Run once**, then share the copied report.
+The explicit DefaultInstall helper still logged a SetupAPI failure marker even though it exited 0. Its specific failure is unknown. Next, determine what SetupAPI operation failed and validate a standalone Windows executable independent of Wine's bundled utilities. Full dependency closure, third-party application compatibility and gameplay remain unverified. Preserve V29 and V30 scratch and all existing user data.
 
 ## 2026-11-19 — V29 RpcSs startup verified on the phone
 

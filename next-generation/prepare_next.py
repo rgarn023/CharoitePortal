@@ -403,14 +403,6 @@ ui = ui.replace(desktop_anchor, r"""
         lastDexState = isDexActive();
         boolean dexDesktop = useDexDesktop();
 """, 1)
-resume_anchor = "        super.onResume();"
-assert ui.count(resume_anchor) == 1
-ui = ui.replace(resume_anchor, resume_anchor + """
-        if (main != null && isDexActive() != lastDexState) {
-            render();
-            refreshReadyState();
-        }
-""", 1)
 scroll_anchor = "        rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));"
 assert ui.count(scroll_anchor) == 1
 ui = ui.replace(scroll_anchor, """        if (dexDesktop && hostWidthDp >= 560) {
@@ -3938,6 +3930,10 @@ ui = ui.replace(resume_anchor, (
     "        super.onResume();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalResumed(this);\n"
+    "        if (main != null && isDexActive() != lastDexState) {\n"
+    "            render();\n"
+    "            refreshReadyState();\n"
+    "        }\n"
     "        if (CharoiteGameSessions.hasPendingInstallerScan(this)) {"), 1)
 
 # Keep first-start audio reliability after Portal window is visible.

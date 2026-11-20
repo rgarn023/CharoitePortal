@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261120T13-resource-provider",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -25,6 +25,6 @@
     "result": "success",
     "verification": "Main #159 actual job logs: Shlwapi 217/217, GDI32 40/40, Comctl32 31/31, Ole32 134/134 named forwarder chains resolved. Artifact names explicitly NOT APK. Full provider dependency closure and runtime remain unverified. PR #24 closed unmerged as superseded by main commit 8c5aad6194b7c42d364d32753c221e510093b7e5."
   },
-  "event_batch_utc": "2026-11-20T10",
+  "event_batch_utc": "2026-11-20T13",
   "pending_validation": null
 }

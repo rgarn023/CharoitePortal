@@ -4,6 +4,8 @@ Build 169 replaces the always-visible Portal pane on DeX with a plain Charoite-t
 
 The preserved V33 report found no access violation, unhandled exception, ATL registrar creation or registry script failure markers, and no SetupAPI service-install entry marker. The helper's exit 5 and missing RpcSs registration remain unresolved. The V33 test does not need to be repeated. The v1.0 estimate remains **35%**.
 
+[Signed build 169 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44771301464/artifacts/14648146580) passed Android #936 and static #250. Install in place, enable Windows-style desktop in System while in DeX, and test the crystal Start menu, Desktop icons add/remove and return to Desktop.
+
 ## 2026-11-20 — Optional DeX desktop view and preserved V33 setup review
 
 Build 168 adds an experimental Windows-style Portal view with desktop shortcuts, a framed workspace, and a Start taskbar. System exposes a preference that is disabled while Android does not report Samsung DeX through the Samsung configuration flag. The app rechecks desktop state during configuration changes and resume. The view uses the existing Library, Setup and System actions. On-device DeX detection and presentation still need verification.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261120T22-1703ET",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -26,6 +26,6 @@
     "result": "success",
     "verification": "Main push job 136362342810 and SHA-256 verified artifact 14640881388 contain ARM64X atl100.dll, matching binary digest, AtlCreateRegistrar export and nine import modules. Artifact 14641107011 records incomplete provider closure. Next verify all nine ATL imports against the sealed runtime, then integrate the pinned candidate into fresh scratch for registrar validation. Zero APKs, no runtime advancement; v1.0 estimate 35%."
   },
-  "event_batch_utc": "2026-11-20T19",
+  "event_batch_utc": "2026-11-20T22",
   "pending_validation": null
 }

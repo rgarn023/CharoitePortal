@@ -1,8 +1,6 @@
-## 2026-11-20 — Read-only review of remaining V32 SetupAPI errors
+## 2026-11-20 — V32 remaining errors isolated to Wine registry-script registration
 
-Build 166 replaces the completed V32 execution button with a review of the saved helper log. It reports the Wine SetupAPI function names and counts from bounded error records while omitting message text and paths. This is intended to identify what produced the eight unclassified errors after all eight resource copies passed. No new prefix is created. The v1.0 estimate remains **35%**.
-
-[Signed build 166 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44755179464/artifacts/14637810886) is ready. Install in place, then open **System → Review V32 setup errors → Copy report**. Signed Android #931 and release publication passed. The saved V32 log is required for this review.
+Build 166 read the preserved V32 helper log and counted eight SetupAPI errors, all emitted by register_fake_dll. In the [pinned Wine implementation](https://github.com/The412Banner/proton-wine/blob/c74acb09d51b447f5d5ac56c87608d3ec565a767/dlls/setupapi/fakedll.c#L926-L967), this function logs an error if it cannot obtain IRegistrar through atl100.dll, or if registration of a WINE_REGISTRY resource fails. The preserved report grouped sites only, so it does not distinguish those failure branches or identify affected modules. The eight successful data copies and the standalone ARM64 execution result remain verified. The read-only build 166 review is complete and the v1.0 estimate remains **35%**. Next verify ATL provider availability and inspect the specific registrar error signatures before attempting a runtime fix.
 
 ## 2026-11-20 — Experimental app display name
 

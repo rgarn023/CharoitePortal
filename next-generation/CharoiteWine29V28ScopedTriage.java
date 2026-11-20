@@ -143,11 +143,9 @@ public final class CharoiteWine29V28ScopedTriage {
                 out.append(field == 3 ? " source=" : " target=")
                    .append(file.find() ? file.group(1) : "[redacted]");
             }
-            out.append('
-');
+            out.append('\n');
         }
-        out.append("Parsed copy/rename events (max 32): ").append(Math.min(count, 32)).append('
-');
+        out.append("Parsed copy/rename events (max 32): ").append(Math.min(count, 32)).append('\n');
     }
 
     static void classifySetupApi(StringBuilder out, String helper) {

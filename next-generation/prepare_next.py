@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.136"')
-text = text.replace("versionCode 33", "versionCode 167")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.137"')
+text = text.replace("versionCode 33", "versionCode 168")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -338,9 +338,121 @@ print("CHAROITE_NEXT_C_ENERGY_REFERENCE_PORTAL_7_SECONDS=PASS")
 
 source = app / "java/com/winlator/TouhouEntryActivity.java"
 ui = source.read_text(encoding="utf-8")
+# Experimental desktop presentation. Stable Portal uses the original render method.
+desktop_anchor = "    private void render() {"
+assert ui.count(desktop_anchor) == 1
+ui = ui.replace(desktop_anchor, r"""
+    private boolean lastDexState;
+
+    private boolean isDexActive() {
+        if (!"samsung".equalsIgnoreCase(android.os.Build.MANUFACTURER)) return false;
+        android.content.res.Configuration config = getResources().getConfiguration();
+        try {
+            return config.getClass().getField("semDesktopModeEnabled").getInt(config) == 1;
+        } catch (ReflectiveOperationException | SecurityException unavailable) {
+            return false;
+        }
+    }
+
+    private boolean useDexDesktop() {
+        return isDexActive() && getPreferences(MODE_PRIVATE).getBoolean("dex_desktop_view", false);
+    }
+
+    private LinearLayout dexShortcuts() {
+        LinearLayout shortcuts = new LinearLayout(this);
+        shortcuts.setOrientation(LinearLayout.VERTICAL);
+        shortcuts.setPadding(dp(8), dp(16), dp(8), dp(4));
+        String[] names = {"Library", "Setup", "System"};
+        for (int section = 0; section < names.length; section++) {
+            final int destination = section;
+            android.widget.Button shortcut = new android.widget.Button(this);
+            shortcut.setText(names[section]);
+            shortcut.setAllCaps(false);
+            shortcut.setOnClickListener(v -> showSection(destination));
+            shortcuts.addView(shortcut, new LinearLayout.LayoutParams(-1, -2));
+        }
+        return shortcuts;
+    }
+
+    private LinearLayout dexTaskbar(View tabs) {
+        LinearLayout taskbar = new LinearLayout(this);
+        taskbar.setGravity(Gravity.CENTER_VERTICAL);
+        taskbar.setBackgroundColor(PANEL);
+        android.widget.Button start = new android.widget.Button(this);
+        start.setText("Start");
+        start.setAllCaps(false);
+        start.setOnClickListener(v -> {
+            android.widget.PopupMenu menu = new android.widget.PopupMenu(this, start);
+            String[] names = {"Library", "Setup", "System"};
+            for (int section = 0; section < names.length; section++)
+                menu.getMenu().add(0, section, section, names[section]);
+            menu.setOnMenuItemClickListener(item -> {
+                showSection(item.getItemId());
+                return true;
+            });
+            menu.show();
+        });
+        taskbar.addView(start);
+        taskbar.addView(tabs, new LinearLayout.LayoutParams(0, CharoitePageTabs.preferredHeight(this), 1f));
+        return taskbar;
+    }
+
+    private void render() {
+        lastDexState = isDexActive();
+        boolean dexDesktop = useDexDesktop();
+""", 1)
+resume_anchor = "        super.onResume();"
+assert ui.count(resume_anchor) == 1
+ui = ui.replace(resume_anchor, resume_anchor + """
+        if (main != null && isDexActive() != lastDexState) {
+            render();
+            refreshReadyState();
+        }
+""", 1)
+scroll_anchor = "        rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));"
+assert ui.count(scroll_anchor) == 1
+ui = ui.replace(scroll_anchor, """        if (dexDesktop && hostWidthDp >= 560) {
+            LinearLayout desktop = new LinearLayout(this);
+            desktop.addView(dexShortcuts(), new LinearLayout.LayoutParams(dp(120), -1));
+            FrameLayout window = new FrameLayout(this);
+            window.setBackgroundColor(PANEL);
+            FrameLayout.LayoutParams content = new FrameLayout.LayoutParams(-1, -1);
+            window.addView(mainScroll, content);
+            LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(0, -1, 1f);
+            frame.setMargins(dp(8), dp(12), dp(12), dp(12));
+            desktop.addView(window, frame);
+            rootLayout.addView(desktop, new LinearLayout.LayoutParams(-1, 0, 1f));
+        } else {
+            rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        }""")
+width_anchor = "dp(Math.min(hostWidthDp, 940))"
+assert ui.count(width_anchor) == 1
+ui = ui.replace(width_anchor, "dp(Math.min(dexDesktop && hostWidthDp >= 560 ? hostWidthDp - 140 : hostWidthDp, 940))")
+tabs_anchor = "        rootLayout.addView(pageTabs, new LinearLayout.LayoutParams(\n                -1, CharoitePageTabs.preferredHeight(this)));"
+assert ui.count(tabs_anchor) == 1
+ui = ui.replace(tabs_anchor, """        if (dexDesktop) rootLayout.addView(dexTaskbar(pageTabs));
+        else rootLayout.addView(pageTabs, new LinearLayout.LayoutParams(
+                -1, CharoitePageTabs.preferredHeight(this)));""")
 anchor = "        systemScreen.addView(runtimeCard);"
 assert ui.count(anchor) == 1
 ui = ui.replace(anchor, anchor + """
+        spacerIn(systemScreen, 12);
+        LinearLayout dexCard = card();
+        android.widget.Switch dexSwitch = new android.widget.Switch(this);
+        dexSwitch.setText("Windows-style desktop");
+        dexSwitch.setChecked(useDexDesktop());
+        dexSwitch.setEnabled(lastDexState);
+        dexSwitch.setAlpha(lastDexState ? 1f : 0.45f);
+        dexSwitch.setOnCheckedChangeListener((button, checked) -> {
+            if (!isDexActive()) return;
+            getPreferences(MODE_PRIVATE).edit().putBoolean("dex_desktop_view", checked).apply();
+            render();
+            refreshReadyState();
+        });
+        dexCard.addView(dexSwitch);
+        if (!lastDexState)
+            dexCard.addView(label("Available when Samsung DeX is detected.", 13, SECONDARY, false));
+        systemScreen.addView(dexCard);
         spacerIn(systemScreen, 12);
         LinearLayout nextCoreCard = card();
         nextCoreCard.addView(label("CHAROITE CORE NEXT — ENGINE STATUS", 17, FOREGROUND, true));
@@ -3698,24 +3810,24 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V28Action);
 
         LinearLayout rpcssAction = card();
-        rpcssAction.addView(label("WINE29 — VERIFY ATL REGISTRAR", 16, FOREGROUND, true));
-        rpcssAction.addView(label("Run once in a fresh V33 prefix to check Wine registry registration with ATL.", 13, FOREGROUND, false));
+        rpcssAction.addView(label("WINE29 — REVIEW V33 SETUP EXIT", 16, FOREGROUND, true));
+        rpcssAction.addView(label("Read the saved V33 helper log to check why setup stopped before RpcSs.", 13, FOREGROUND, false));
         android.widget.Button reviewV31 = new android.widget.Button(this);
-        reviewV31.setText("Verify ATL registrar");
+        reviewV31.setText("Review V33 setup exit");
         reviewV31.setOnClickListener(v -> {
             reviewV31.setEnabled(false);
             new Thread(() -> {
-                String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.verifyFreshPrefix(this);
+                String report = com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.reviewV33(this);
                 runOnUiThread(() -> {
                     reviewV31.setEnabled(true);
                     new android.app.AlertDialog.Builder(this)
-                        .setTitle("V33 ATL registrar report")
+                        .setTitle("V33 setup exit report")
                         .setMessage(report)
                         .setPositiveButton("Copy report", (dialog, which) -> {
                             android.content.ClipboardManager clipboard = getSystemService(
                                     android.content.ClipboardManager.class);
                             if (clipboard != null) clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("V33 ATL registrar report", report));
+                                android.content.ClipData.newPlainText("V33 setup exit report", report));
                         })
                         .setNegativeButton("Close", null).show();
                 });

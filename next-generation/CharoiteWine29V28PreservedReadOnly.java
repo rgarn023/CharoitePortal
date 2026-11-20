@@ -117,6 +117,31 @@ public final class CharoiteWine29V28PreservedReadOnly {
         return report.toString();
     }
 
+    public static String reviewV33(Context context) {
+        StringBuilder report = new StringBuilder(
+            "Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n"
+            + "Wine29 V33 setup exit (preserved log)\n");
+        try {
+            if (!PACKAGE.equals(context.getPackageName()))
+                throw new SecurityException("Unexpected package");
+            File root = context.getNoBackupFilesDir().getCanonicalFile();
+            File scratch = exactChild(root, "charoite-next-wine29-entry-v33");
+            safeDirectory(scratch);
+            String log = readIfSafe(scratch, "v28-independent-defaultinstall.log", 4194304, report);
+            if (log != null) {
+                flag(report, "Access violation status marker", log, "c0000005");
+                flag(report, "Unhandled exception marker", log, "unhandled exception");
+                flag(report, "ATL registrar creation error marker", log, "failed to create iregistrar");
+                flag(report, "Registry script registration error marker", log, "failed to register");
+                flag(report, "SetupAPI service-install entry marker", log, "setupinstallservicesfrominfsection");
+                CharoiteWine29V28ScopedTriage.describeSetupErrorSites(report, log);
+            }
+        } catch (Exception e) {
+            report.append("Preserved V33 review unavailable: ").append(e.getClass().getSimpleName());
+        }
+        return report.toString();
+    }
+
     private static void flag(StringBuilder b,String label, String log,String pattern) {
         b.append(label).append(": ")
             .append(log==null?"UNKNOWN (missing/over-cap log)":Boolean.toString(log.contains(pattern)))

@@ -1,3 +1,9 @@
+## 2026-11-20 — Optional DeX desktop view and preserved V33 setup review
+
+Build 168 adds an experimental Windows-style Portal view with desktop shortcuts, a framed workspace, and a Start taskbar. System exposes a preference that is disabled while Android does not report Samsung DeX through the Samsung configuration flag. The app rechecks desktop state during configuration changes and resume. The view uses the existing Library, Setup and System actions. On-device DeX detection and presentation still need verification.
+
+The same build reads the preserved V33 helper log and reports bounded exception and service-install markers. Wine source calls the service-install routine after processing the main INF section, but helper exit 5 alone does not identify the cause of the V33 failure. No new prefix is needed for this review. v1.0 remains **35%**.
+
 ## 2026-11-20 — V33 registrar result and DeX desktop view requirement
 
 Build 167 verified 8/8 SetupAPI payload digests and reported zero SetupAPI error sites, compared with eight registrar-site errors in V32. The explicit DefaultInstall helper exited 5, so the SCM probe and standalone ARM64 smoke test were skipped. The final V33 registry did not contain the exact RpcSs service key. Preserve V33. Investigate the helper exit and RpcSs registration before repeating the fresh-prefix test. The overall v1.0 estimate remains **35%**.

@@ -1176,6 +1176,7 @@ jobs:
             upstream/app/src/main/assets/charoite-next/wine29-v23-setup/wine.inf \
             upstream/app/src/main/assets/wine29-v32
 
+      # V35 uses the V32 runtime staging baseline and its verified setup media.
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug

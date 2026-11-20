@@ -1,3 +1,7 @@
+## 2026-11-20 — Build 172 restores the V32 runtime baseline in V35
+
+V35 keeps the eight verified setup payloads and standalone ARM64 smoke executable, and omits the standalone ATL candidate introduced in V33. It uses a new private V35 prefix, retains the one-query SCM result if setup exits nonzero, and gates service start and smoke on successful setup. Confirm V35 on device after signed build 172 is published. v1.0 remains **35%**.
+
 ## 2026-11-20 — V34 confirms RpcSs is missing from the ATL-enabled prefix
 
 On build 171, Wineboot exited 0 and the private server remained alive. The DefaultInstall helper exited 5 after installing all eight digest-verified payloads. The independent SCM query reported service error 1060 (RpcSs missing). The RPC-unavailable marker was absent and finalized system.reg lacked the exact RpcSs service section. Service start and ARM64 smoke were gated off. The selected SetupAPI traces reported zero error sites and no RpcSs creation attempt. The cause of helper exit 5 remains unresolved.

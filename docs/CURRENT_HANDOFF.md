@@ -2,6 +2,8 @@
 
 The build 162 on-device review reported eight copy errors, all ERROR_RESOURCE_DATA_NOT_FOUND (1812), with zero parsed rename errors. The pinned SetupAPI implementation returns 1812 when Wine cannot parse the embedded-resource reference, load the provider module, or locate/load its WINE_DATA_FILE resource. The source-only audit identified eight provider PEs outside the sealed cohort, but the phone report redacted all filenames, so identities are unresolved. Build 163 recognizes the pinned source format @provider,-id and reports allowlisted basenames and numeric resource IDs from the existing V31 log. Overall remains 34%. Preserve the existing V31 prefix and log.
 
+[Signed build 163 APK](https://github.com/rgarn023/CharoitePortal/actions/runs/44675747812/artifacts/14601234226) is available. Signed Android #928 and static #241 passed. Install in place, then use **System → Review V31 setup errors → Copy report**. Build 162 instructions below are historical.
+
 ## 2026-11-19 — Read-only review of V31 SetupAPI copy and rename errors
 
 Build 162 replaces the completed V31 execution control with a read-only review of its preserved SetupAPI log. The report exposes operation, numeric error and a fixed list of Wine provider basenames; all other names and paths are redacted. It does not restart Wine or initialize a prefix. The v1.0 estimate remains **34%** pending the review result.

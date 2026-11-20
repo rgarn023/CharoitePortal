@@ -1,0 +1,56 @@
+name: Wine29 x64 console fixture
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'next-generation/wine29-standalone-smoke.c'
+      - '.github/workflows/wine29-x64-console.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install x64 Windows cross-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64-posix
+      - name: Build and check the x64 console executable
+        run: |
+          set -euo pipefail
+          mkdir -p fixture
+          sed 's/CHAROITE_WINDOWS_ARM64_SMOKE_OK/CHAROITE_WINDOWS_X64_SMOKE_OK/' \
+            next-generation/wine29-standalone-smoke.c > "$RUNNER_TEMP/x64-smoke.c"
+          exe=fixture/standalone-x64.exe
+          x86_64-w64-mingw32-gcc-posix -Wall -Wextra -Werror -Os -nostdlib \
+            -Wl,--entry,smoke_entry,--subsystem,console,--no-insert-timestamp \
+            "$RUNNER_TEMP/x64-smoke.c" -lkernel32 -o "$exe"
+          LC_ALL=C objdump -f "$exe" | grep -F 'file format pei-x86-64'
+          LC_ALL=C objdump -p "$exe" > "$RUNNER_TEMP/x64-pe.txt"
+          imports=$(awk '/DLL Name:/ {print tolower($3)}' "$RUNNER_TEMP/x64-pe.txt")
+          test "$imports" = kernel32.dll
+          test "$(wc -c < "$exe")" -le 65536
+          strings "$exe" | grep -Fx CHAROITE_WINDOWS_X64_SMOKE_OK
+          (cd fixture && sha256sum standalone-x64.exe > SHA256SUMS && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Charoite-Wine29-x64-console-fixture
+          path: fixture/
+          if-no-files-found: error
+      - name: Publish fixture check result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULT: ${{ job.status }}
+        run: |
+          state=failure
+          if [ "$JOB_RESULT" = success ]; then state=success; fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context=wine29-x64-console \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

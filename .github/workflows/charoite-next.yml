@@ -1162,6 +1162,20 @@ jobs:
           test "$(wc -c < "$exe")" -le 65536
           sha256sum "$exe" | cut -d' ' -f1 > "$assets/standalone.sha256"
 
+      - name: Stage pinned Wine29 setup resources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --break-system-packages 'pefile==2024.8.26'
+          for id in 14564806910 14564397441; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$RUNNER_TEMP/$id.zip"
+          done
+          python3 next-generation/stage_wine29_v32_resources.py \
+            "$RUNNER_TEMP/14564806910.zip" "$RUNNER_TEMP/14564397441.zip" \
+            upstream/app/src/main/assets/charoite-next/wine29-v23-setup/wine.inf \
+            upstream/app/src/main/assets/wine29-v32
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
@@ -1172,6 +1186,14 @@ jobs:
           apk=upstream/app/build/outputs/apk/debug/app-debug.apk
           for name in standalone.exe standalone.sha256; do
             unzip -p "$apk" "assets/wine29-v31/$name" | cmp - "upstream/app/src/main/assets/wine29-v31/$name"
+          done
+
+      - name: Verify packaged Wine29 setup resources
+        run: |
+          set -euo pipefail
+          apk=upstream/app/build/outputs/apk/debug/app-debug.apk
+          for file in upstream/app/src/main/assets/wine29-v32/*; do
+            unzip -p "$apk" "assets/wine29-v32/${file##*/}" | cmp - "$file"
           done
 
       - name: Verify seven source-built PE diagnostic DLLs in final APK
@@ -1667,7 +1689,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='163' versionName='11.2-next.0.132'"
+            grep -F "package: name='com.charoitx' versionCode='164' versionName='11.2-next.0.133'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2068,6 +2090,7 @@ jobs:
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-preflight.json legal-bundle/wine-bootstrap-preflight.json
           cp next-generation/stage_native_wine_loader.py legal-bundle/stage_native_wine_loader.py
           cp upstream/app/src/main/assets/charoite-next/wine-native-probe.json legal-bundle/wine-native-probe.json
+          cp next-generation/stage_wine29_v32_resources.py legal-bundle/
           cp next-generation/wine29-standalone-smoke.c legal-bundle/
           cp next-generation/stage_wine_probe.py legal-bundle/stage_wine_probe.py
           mkdir -p legal-bundle/charoite-wine-patches
@@ -2161,7 +2184,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc163
+          TAG=charoite-next-vc164
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2173,8 +2196,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.132 (build 163)" \
-              --notes "Read-only review of preserved Wine29 V31 SetupAPI copy and rename errors." \
+              --title "Charoite Next 11.2-next.0.133 (build 164)" \
+              --notes "Fresh Wine29 V32 prefix test with verified SetupAPI resource payloads." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

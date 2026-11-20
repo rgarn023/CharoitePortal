@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.132"')
-text = text.replace("versionCode 33", "versionCode 163")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.133"')
+text = text.replace("versionCode 33", "versionCode 164")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3698,28 +3698,28 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V28Action);
 
         LinearLayout rpcssAction = card();
-        rpcssAction.addView(label("WINE29 — REVIEW V31 SETUPAPI ERRORS", 16, FOREGROUND, true));
-        rpcssAction.addView(label("Read the existing V31 setup log and summarize copy or rename errors.", 13, FOREGROUND, false));
+        rpcssAction.addView(label("WINE29 — VERIFY SETUP RESOURCE COPIES", 16, FOREGROUND, true));
+        rpcssAction.addView(label("Run once to check whether SetupAPI installs all eight files in a fresh V32 prefix.", 13, FOREGROUND, false));
         android.widget.Button reviewV31 = new android.widget.Button(this);
-        reviewV31.setText("Review V31 setup errors");
+        reviewV31.setText("Verify setup resource copies");
         reviewV31.setOnClickListener(v -> {
             reviewV31.setEnabled(false);
             new Thread(() -> {
-                String report = com.charoitegames.core.CharoiteWine29V28PreservedReadOnly.reviewV31(this);
+                String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.verifyFreshPrefix(this);
                 runOnUiThread(() -> {
                     reviewV31.setEnabled(true);
                     new android.app.AlertDialog.Builder(this)
-                        .setTitle("V31 setup errors")
+                        .setTitle("V32 setup resource report")
                         .setMessage(report)
                         .setPositiveButton("Copy report", (dialog, which) -> {
                             android.content.ClipboardManager clipboard = getSystemService(
                                     android.content.ClipboardManager.class);
                             if (clipboard != null) clipboard.setPrimaryClip(
-                                android.content.ClipData.newPlainText("V31 setup errors", report));
+                                android.content.ClipData.newPlainText("V32 setup resource report", report));
                         })
                         .setNegativeButton("Close", null).show();
                 });
-            }, "CharoiteWine29V31Review").start();
+            }, "CharoiteWine29V32Setup").start();
         });
         rpcssAction.addView(reviewV31);
         android.widget.Button rpcssHandoff = new android.widget.Button(this);

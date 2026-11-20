@@ -744,9 +744,43 @@ public final class CharoiteWine29V28FocusedInfProbe {
         out.append("V28 helper trace complete bounded scan: PASS; raw output/paths NOT copied\n");
     }
 
+    private static final String[] V32_PAYLOADS = {
+        "srgb color space profile.icm", "input.inf", "mouhid.inf", "winebth.inf",
+        "winebus.inf", "winehid.inf", "wineusb.inf", "winexinput.inf"
+    };
+
+    private static void stageV32Media(Context context, File media, JSONObject manifest)
+            throws Exception {
+        for (String name : V32_PAYLOADS)
+            stageV32File(context, media, manifest, name);
+        stageV32File(context, media, manifest, "charoite-v32.inf");
+    }
+
+    private static void stageV32File(Context context, File media, JSONObject manifest, String name)
+            throws Exception {
+        byte[] data = readStandaloneAsset(context, "wine29-v32/" + name, 262144);
+        if (!manifest.getString(name).equals(hex(MessageDigest.getInstance("SHA-256").digest(data))))
+            throw new SecurityException("Setup media hash mismatch");
+        java.nio.file.Files.write(child(media, name).toPath(), data,
+                                 java.nio.file.StandardOpenOption.CREATE_NEW);
+    }
+
+    private static int countV32Installed(File prefix, JSONObject manifest) throws Exception {
+        int verified = 0;
+        for (String name : V32_PAYLOADS) {
+            String directory = name.endsWith(".icm") ? "windows/system32/spool/drivers/color/" : "windows/inf/";
+            File file = child(prefix, "drive_c/" + directory + name);
+            if (file.isFile() && file.length() > 0 && file.length() <= 65536
+                    && manifest.getString(name).equals(hex(MessageDigest.getInstance("SHA-256")
+                        .digest(java.nio.file.Files.readAllBytes(file.toPath())))))
+                verified++;
+        }
+        return verified;
+    }
+
     private static byte[] readStandaloneAsset(Context context, String name, int limit)
             throws Exception {
-        try (InputStream source = context.getAssets().open("wine29-v31/" + name)) {
+        try (InputStream source = context.getAssets().open(name)) {
             ByteArrayOutputStream result = new ByteArrayOutputStream();
             byte[] chunk = new byte[4096];
             int count;
@@ -820,10 +854,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static String shortReport(StringBuilder report, boolean verifyRunning) {
-        final String tail=verifyRunning ? "\nEND OF WINE29 V31 STANDALONE PE REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+        final String tail=verifyRunning ? "\nEND OF WINE29 V32 SETUP RESOURCE REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
-        if (verifyRunning) summary=summary.replace("V28 ", "V31 ").replace("v28 ", "v31 ").replace("V29 ", "V31 ");
+        if (verifyRunning) summary=summary.replace("V28 ", "V32 ").replace("v28 ", "v32 ").replace("V29 ", "V32 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
@@ -840,7 +874,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
     private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (verifyRunning) {
-            out.append("CHAROITE NEXT — FRESH WINE29 V31 STANDALONE WINDOWS PE TEST\n");
+            out.append("CHAROITE NEXT — FRESH WINE29 V32 SETUP RESOURCE COPIES\n");
         } else {
             out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
             out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
@@ -884,8 +918,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
             scImage=verifyV17Sc(context);
             setupImages=verifyV28Setup(context);
             if (verifyRunning) {
-                standaloneImage = readStandaloneAsset(context, "standalone.exe", 65536);
-                standaloneHash = new String(readStandaloneAsset(context, "standalone.sha256", 65),
+                standaloneImage = readStandaloneAsset(context, "wine29-v31/standalone.exe", 65536);
+                standaloneHash = new String(readStandaloneAsset(context, "wine29-v31/standalone.sha256", 65),
                                             java.nio.charset.StandardCharsets.US_ASCII).trim();
                 if (!standaloneHash.matches("[0-9a-f]{64}") || !standaloneHash.equals(
                         hex(MessageDigest.getInstance("SHA-256").digest(standaloneImage))))
@@ -910,7 +944,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v31" : SCRATCH);
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v32" : SCRATCH);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1210,10 +1244,16 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         throw new SecurityException("V28 verified rundll32 sibling layout missing");
                     // V28: address verified INF through NEW prefix's C: DOS mapping.
                     // V26 Unix pathname access is unproven; never revisit V26.
+                    JSONObject mediaManifest = verifyRunning ? new JSONObject(new String(
+                        readStandaloneAsset(context, "wine29-v32/manifest.json", 4096),
+                        java.nio.charset.StandardCharsets.UTF_8)) : null;
                     File mappedInfDir=child(prefix,"drive_c/windows/inf");
+                    if (verifyRunning) mappedInfDir = child(prefix, "drive_c/charoite-v32-setup");
                     mkdir(mappedInfDir);
                     File mappedInf=child(mappedInfDir,"charoite-v28.inf");
-                    stageV28SetupModule(setupImages[2],mappedInf,PINNED_WINE_INF_SHA);
+                    if (verifyRunning) mappedInf = child(mappedInfDir, "charoite-v32.inf");
+                    if (verifyRunning) stageV32Media(context, mappedInfDir, mediaManifest);
+                    else stageV28SetupModule(setupImages[2],mappedInf,PINNED_WINE_INF_SHA);
                     if (!mappedInf.isFile() || !mappedInf.getCanonicalFile().getParentFile()
                               .equals(mappedInfDir.getCanonicalFile()))
                         throw new SecurityException("V28 mapped C: INF stage unsafe");
@@ -1222,7 +1262,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                     ProcessBuilder install=new ProcessBuilder(loader.getAbsolutePath(),
                              rundllBuiltin.getAbsolutePath(),
                              "setupapi,InstallHinfSection", "DefaultInstall", "128",
-                             "C:\\windows\\inf\\charoite-v28.inf");
+                             verifyRunning ? "C:\\charoite-v32-setup\\charoite-v32.inf" : "C:\\windows\\inf\\charoite-v28.inf");
                     install.directory(scratch);
                     install.redirectErrorStream(true);
                     install.redirectOutput(setupLog);
@@ -1250,6 +1290,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         setupProc.destroyForcibly(); setupProc.waitFor(2,TimeUnit.SECONDS);
                     }
                     appendV28HelperTraceMarkers(out, setupLog, verifyRunning);
+                    if (verifyRunning)
+                        out.insert(reportHeaderEnd, "Setup payloads installed and digest-verified: "
+                            + countV32Installed(prefix, mediaManifest) + "/8\n");
                     String setupText=boundedLog(setupLog);
                     String setupLower=setupText.toLowerCase(Locale.US);
                     boolean setupLoadFailure=setupLower.contains("c0000135")

@@ -1177,9 +1177,36 @@ jobs:
             upstream/app/src/main/assets/wine29-v32
 
       # V35 uses the V32 runtime staging baseline and its verified setup media.
+      - name: Stage pinned FEX and x64 smoke assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          assets=upstream/app/src/main/assets/wine29-x64
+          mkdir -p "$assets"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14668483509/zip" > "$RUNNER_TEMP/fex-candidate.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14667817019/zip" > "$RUNNER_TEMP/x64-fixture.zip"
+          echo "81fe6982ce33299f65ff739026346368711ff355110d0f33b953b26931f736cf  $RUNNER_TEMP/fex-candidate.zip" | sha256sum -c -
+          echo "d0dee40e52c5715403f03d1dda3d37b9b914375e92529b27886d3565b0178946  $RUNNER_TEMP/x64-fixture.zip" | sha256sum -c -
+          unzip -p "$RUNNER_TEMP/fex-candidate.zip" libarm64ecfex.dll > "$assets/libarm64ecfex.dll"
+          unzip -p "$RUNNER_TEMP/x64-fixture.zip" standalone-x64.exe > "$assets/standalone-x64.exe"
+          for name in fex-candidate x64-fixture; do
+            unzip -p "$RUNNER_TEMP/$name.zip" SHA256SUMS
+          done > "$assets/SHA256SUMS"
+          (cd "$assets" && sha256sum -c SHA256SUMS)
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/FEX-Emu/FEX/bce85d9941b2d37755f3b44a4f6e178617d94fba/LICENSE > "$assets/FEX-LICENSE.txt"
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify packaged x64 candidate assets
+        run: |
+          set -euo pipefail
+          apk=upstream/app/build/outputs/apk/debug/app-debug.apk
+          for file in upstream/app/src/main/assets/wine29-x64/*; do
+            unzip -p "$apk" "assets/wine29-x64/${file##*/}" | cmp - "$file"
+          done
 
       - name: Verify packaged standalone PE and digest
         run: |

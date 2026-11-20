@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.137"')
-text = text.replace("versionCode 33", "versionCode 168")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.138"')
+text = text.replace("versionCode 33", "versionCode 169")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -360,42 +360,122 @@ ui = ui.replace(desktop_anchor, r"""
         return isDexActive() && getPreferences(MODE_PRIVATE).getBoolean("dex_desktop_view", false);
     }
 
-    private LinearLayout dexShortcuts() {
-        LinearLayout shortcuts = new LinearLayout(this);
-        shortcuts.setOrientation(LinearLayout.VERTICAL);
-        shortcuts.setPadding(dp(8), dp(16), dp(8), dp(4));
-        String[] names = {"Library", "Setup", "System"};
-        for (int section = 0; section < names.length; section++) {
-            final int destination = section;
-            android.widget.Button shortcut = new android.widget.Button(this);
-            shortcut.setText(names[section]);
-            shortcut.setAllCaps(false);
-            shortcut.setOnClickListener(v -> showSection(destination));
-            shortcuts.addView(shortcut, new LinearLayout.LayoutParams(-1, -2));
-        }
-        return shortcuts;
+    private FrameLayout dexWorkspace;
+    private View dexSurface;
+    private boolean dexPageOpen;
+    private static final String[] DEX_APPS = {"Library", "Setup", "System"};
+    private static final int[] DEX_ICONS = {
+        android.R.drawable.ic_menu_agenda, android.R.drawable.ic_menu_add,
+        android.R.drawable.ic_menu_preferences
+    };
+
+    private android.graphics.drawable.GradientDrawable dexBackground() {
+        return new android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+            new int[]{0xff181025, 0xff382152, 0xff211633});
     }
 
-    private LinearLayout dexTaskbar(View tabs) {
+    private View makeDexSurface() {
+        LinearLayout icons = new LinearLayout(this);
+        icons.setOrientation(LinearLayout.VERTICAL);
+        icons.setPadding(dp(16), dp(16), dp(16), dp(16));
+        int pinned = getPreferences(MODE_PRIVATE).getInt("dex_shortcuts", 0);
+        for (int section = 0; section < DEX_APPS.length; section++) {
+            if ((pinned & (1 << section)) == 0) continue;
+            final int destination = section;
+            android.widget.Button shortcut = new android.widget.Button(this);
+            shortcut.setBackgroundColor(Color.TRANSPARENT);
+            shortcut.setTextColor(Color.WHITE);
+            shortcut.setText(DEX_APPS[section]);
+            shortcut.setAllCaps(false);
+            shortcut.setCompoundDrawablesWithIntrinsicBounds(0, DEX_ICONS[section], 0, 0);
+            shortcut.setOnClickListener(v -> openDexPage(destination));
+            shortcut.setOnLongClickListener(v -> {
+                editDexShortcuts();
+                return true;
+            });
+            icons.addView(shortcut, new LinearLayout.LayoutParams(dp(96), dp(68)));
+        }
+        android.widget.ScrollView surface = new android.widget.ScrollView(this);
+        surface.setFillViewport(true);
+        surface.setBackground(dexBackground());
+        surface.addView(icons);
+        surface.setOnLongClickListener(v -> {
+            editDexShortcuts();
+            return true;
+        });
+        return surface;
+    }
+
+    private void editDexShortcuts() {
+        int saved = getPreferences(MODE_PRIVATE).getInt("dex_shortcuts", 0);
+        boolean[] checked = new boolean[DEX_APPS.length];
+        for (int i = 0; i < checked.length; i++) checked[i] = (saved & (1 << i)) != 0;
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Desktop icons")
+            .setMultiChoiceItems(DEX_APPS, checked, (dialog, which, selected) -> checked[which] = selected)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Apply", (dialog, which) -> {
+                int pinned = 0;
+                for (int i = 0; i < checked.length; i++) if (checked[i]) pinned |= 1 << i;
+                getPreferences(MODE_PRIVATE).edit().putInt("dex_shortcuts", pinned).apply();
+                if (dexWorkspace != null && dexSurface != null) {
+                    dexWorkspace.removeView(dexSurface);
+                    dexSurface = makeDexSurface();
+                    dexWorkspace.addView(dexSurface, 0, new FrameLayout.LayoutParams(-1, -1));
+                    showDexSurface();
+                }
+            })
+            .show();
+    }
+
+    private void showDexSurface() {
+        if (dexWorkspace == null || dexSurface == null) return;
+        dexPageOpen = false;
+        mainScroll.setVisibility(View.GONE);
+        dexSurface.setVisibility(View.VISIBLE);
+    }
+
+    private void openDexPage(int section) {
+        if (dexWorkspace == null || dexSurface == null) return;
+        dexPageOpen = true;
+        dexSurface.setVisibility(View.GONE);
+        mainScroll.setVisibility(View.VISIBLE);
+        showSection(section);
+    }
+
+    private LinearLayout dexTaskbar() {
         LinearLayout taskbar = new LinearLayout(this);
         taskbar.setGravity(Gravity.CENTER_VERTICAL);
-        taskbar.setBackgroundColor(PANEL);
-        android.widget.Button start = new android.widget.Button(this);
-        start.setText("Start");
-        start.setAllCaps(false);
+        taskbar.setPadding(dp(8), dp(4), dp(8), dp(4));
+        taskbar.setBackgroundColor(0xff241634);
+        android.widget.ImageButton start = new android.widget.ImageButton(this);
+        start.setContentDescription("Open Start menu");
+        start.setImageDrawable(getApplicationInfo().loadIcon(getPackageManager()));
+        start.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        start.setPadding(dp(6), dp(6), dp(6), dp(6));
+        start.setBackgroundColor(Color.TRANSPARENT);
         start.setOnClickListener(v -> {
             android.widget.PopupMenu menu = new android.widget.PopupMenu(this, start);
-            String[] names = {"Library", "Setup", "System"};
-            for (int section = 0; section < names.length; section++)
-                menu.getMenu().add(0, section, section, names[section]);
+            for (int section = 0; section < DEX_APPS.length; section++)
+                menu.getMenu().add(0, section, section, DEX_APPS[section]);
             menu.setOnMenuItemClickListener(item -> {
-                showSection(item.getItemId());
+                openDexPage(item.getItemId());
                 return true;
             });
             menu.show();
         });
-        taskbar.addView(start);
-        taskbar.addView(tabs, new LinearLayout.LayoutParams(0, CharoitePageTabs.preferredHeight(this), 1f));
+        taskbar.addView(start, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        android.widget.Button desktop = new android.widget.Button(this);
+        desktop.setText("Desktop");
+        desktop.setAllCaps(false);
+        desktop.setOnClickListener(v -> showDexSurface());
+        taskbar.addView(desktop);
+        android.widget.Button icons = new android.widget.Button(this);
+        icons.setText("Desktop icons");
+        icons.setAllCaps(false);
+        icons.setOnClickListener(v -> editDexShortcuts());
+        taskbar.addView(icons);
         return taskbar;
     }
 
@@ -405,26 +485,23 @@ ui = ui.replace(desktop_anchor, r"""
 """, 1)
 scroll_anchor = "        rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));"
 assert ui.count(scroll_anchor) == 1
-ui = ui.replace(scroll_anchor, """        if (dexDesktop && hostWidthDp >= 560) {
-            LinearLayout desktop = new LinearLayout(this);
-            desktop.addView(dexShortcuts(), new LinearLayout.LayoutParams(dp(120), -1));
-            FrameLayout window = new FrameLayout(this);
-            window.setBackgroundColor(PANEL);
-            FrameLayout.LayoutParams content = new FrameLayout.LayoutParams(-1, -1);
-            window.addView(mainScroll, content);
-            LinearLayout.LayoutParams frame = new LinearLayout.LayoutParams(0, -1, 1f);
-            frame.setMargins(dp(8), dp(12), dp(12), dp(12));
-            desktop.addView(window, frame);
-            rootLayout.addView(desktop, new LinearLayout.LayoutParams(-1, 0, 1f));
+ui = ui.replace(scroll_anchor, """        dexWorkspace = null;
+        dexSurface = null;
+        if (dexDesktop) {
+            dexWorkspace = new FrameLayout(this);
+            dexSurface = makeDexSurface();
+            dexWorkspace.addView(dexSurface, new FrameLayout.LayoutParams(-1, -1));
+            dexWorkspace.addView(mainScroll, new FrameLayout.LayoutParams(-1, -1));
+            mainScroll.setVisibility(dexPageOpen ? View.VISIBLE : View.GONE);
+            dexSurface.setVisibility(dexPageOpen ? View.GONE : View.VISIBLE);
+            rootLayout.addView(dexWorkspace, new LinearLayout.LayoutParams(-1, 0, 1f));
         } else {
+            dexPageOpen = false;
             rootLayout.addView(mainScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
         }""")
-width_anchor = "dp(Math.min(hostWidthDp, 940))"
-assert ui.count(width_anchor) == 1
-ui = ui.replace(width_anchor, "dp(Math.min(dexDesktop && hostWidthDp >= 560 ? hostWidthDp - 140 : hostWidthDp, 940))")
 tabs_anchor = "        rootLayout.addView(pageTabs, new LinearLayout.LayoutParams(\n                -1, CharoitePageTabs.preferredHeight(this)));"
 assert ui.count(tabs_anchor) == 1
-ui = ui.replace(tabs_anchor, """        if (dexDesktop) rootLayout.addView(dexTaskbar(pageTabs));
+ui = ui.replace(tabs_anchor, """        if (dexDesktop) rootLayout.addView(dexTaskbar());
         else rootLayout.addView(pageTabs, new LinearLayout.LayoutParams(
                 -1, CharoitePageTabs.preferredHeight(this)));""")
 anchor = "        systemScreen.addView(runtimeCard);"
@@ -440,6 +517,7 @@ ui = ui.replace(anchor, anchor + """
         dexSwitch.setOnCheckedChangeListener((button, checked) -> {
             if (!isDexActive()) return;
             getPreferences(MODE_PRIVATE).edit().putBoolean("dex_desktop_view", checked).apply();
+            dexPageOpen = false;
             render();
             refreshReadyState();
         });

@@ -1,3 +1,9 @@
+## 2026-11-20 — DeX desktop opens to wallpaper and user-selected icons
+
+Build 169 replaces the always-visible Portal pane on DeX with a plain Charoite-themed desktop. The crystal button opens a Start menu with Library, Setup and System. The Desktop button returns to the wallpaper, and Desktop icons adds or removes the three page shortcuts with preferences saved locally. The desktop remains optional and DeX-gated. Device verification is pending.
+
+The preserved V33 report found no access violation, unhandled exception, ATL registrar creation or registry script failure markers, and no SetupAPI service-install entry marker. The helper's exit 5 and missing RpcSs registration remain unresolved. The V33 test does not need to be repeated. The v1.0 estimate remains **35%**.
+
 ## 2026-11-20 — Optional DeX desktop view and preserved V33 setup review
 
 Build 168 adds an experimental Windows-style Portal view with desktop shortcuts, a framed workspace, and a Start taskbar. System exposes a preference that is disabled while Android does not report Samsung DeX through the Samsung configuration flag. The app rechecks desktop state during configuration changes and resume. The view uses the existing Library, Setup and System actions. On-device DeX detection and presentation still need verification.

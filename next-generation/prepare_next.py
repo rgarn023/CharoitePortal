@@ -348,7 +348,9 @@ ui = ui.replace(desktop_anchor, r"""
         if (!"samsung".equalsIgnoreCase(android.os.Build.MANUFACTURER)) return false;
         android.content.res.Configuration config = getResources().getConfiguration();
         try {
-            return config.getClass().getField("semDesktopModeEnabled").getInt(config) == 1;
+            Class<?> type = config.getClass();
+            int enabled = type.getField("SEM_DESKTOP_MODE_ENABLED").getInt(null);
+            return type.getField("semDesktopModeEnabled").getInt(config) == enabled;
         } catch (ReflectiveOperationException | SecurityException unavailable) {
             return false;
         }

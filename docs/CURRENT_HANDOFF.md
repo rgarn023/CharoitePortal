@@ -1,3 +1,9 @@
+## 2026-11-20 — V31 identifies all eight failing SetupAPI resource providers
+
+Build 163 read the preserved V31 log. Eight copy operations failed with ERROR_RESOURCE_DATA_NOT_FOUND (1812), each requesting WINE_DATA_FILE resource ID 1 (encoded as ,-1). The providers were mscms.dll, hidclass.sys, mouhid.sys, winebth.sys, winebus.sys, winehid.sys, wineusb.sys, and winexinput.sys. This is an exact match to the eight providers absent from the [sealed cohort source audit](https://github.com/rgarn023/CharoitePortal/blob/main/docs/WINE29_V28_POSTMORTEM_COPYQUEUE_AUDIT.md). The report does not establish which module-load or resource-lookup step failed. No parsed rename errors. The build 163 review is complete.
+
+Next engineering step: verify resource ID 1 in the pinned candidate PEs and their dependencies, then validate packaging in a fresh isolated prefix. Keep V31 and existing user data preserved. The v1.0 estimate remains **34%** until a corrected copy queue is verified.
+
 ## 2026-11-19 — V31 copy queue returns resource error 1812
 
 The build 162 on-device review reported eight copy errors, all ERROR_RESOURCE_DATA_NOT_FOUND (1812), with zero parsed rename errors. The pinned SetupAPI implementation returns 1812 when Wine cannot parse the embedded-resource reference, load the provider module, or locate/load its WINE_DATA_FILE resource. The source-only audit identified eight provider PEs outside the sealed cohort, but the phone report redacted all filenames, so identities are unresolved. Build 163 recognizes the pinned source format @provider,-id and reports allowlisted basenames and numeric resource IDs from the existing V31 log. Overall remains 34%. Preserve the existing V31 prefix and log.

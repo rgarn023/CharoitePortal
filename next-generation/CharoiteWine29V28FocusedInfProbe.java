@@ -705,7 +705,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     /** Bounded V28-only helper trace; report booleans, no raw paths. */
-    private static void appendV28HelperTraceMarkers(StringBuilder out, File log) throws Exception {
+    private static void appendV28HelperTraceMarkers(StringBuilder out, File log, boolean classify) throws Exception {
         if (!log.isFile() || !log.getCanonicalFile().equals(log.getAbsoluteFile())) {
             out.append("V28 helper trace safe-file gate: false\n");
             return;
@@ -724,7 +724,13 @@ public final class CharoiteWine29V28FocusedInfProbe {
                 buf.write(chunk,0,n);
             }
         }
-        String data=buf.toString("UTF-8").toLowerCase(Locale.US);
+        String helper = buf.toString("UTF-8");
+        String data = helper.toLowerCase(Locale.US);
+        if (classify) {
+            StringBuilder categories = new StringBuilder();
+            CharoiteWine29V28ScopedTriage.classifySetupApi(categories, helper);
+            out.insert(out.indexOf("\n", out.indexOf("\n") + 1) + 1, categories);
+        }
         out.append("V28 helper trace INF open failure marker: ")
            .append(data.contains("failed to open") || data.contains("cannot open") || data.contains("invalid inf")).append('\n');
         out.append("V28 helper trace SetupAPI InstallHinfSection mention: ")
@@ -736,6 +742,21 @@ public final class CharoiteWine29V28FocusedInfProbe {
         out.append("V28 helper trace SetupAPI failure marker: ")
            .append(data.contains("err:setupapi") || data.contains("failed err ")).append('\n');
         out.append("V28 helper trace complete bounded scan: PASS; raw output/paths NOT copied\n");
+    }
+
+    private static byte[] readStandaloneAsset(Context context, String name, int limit)
+            throws Exception {
+        try (InputStream source = context.getAssets().open("wine29-v31/" + name)) {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] chunk = new byte[4096];
+            int count;
+            while ((count = source.read(chunk)) != -1) {
+                if (result.size() + count > limit)
+                    throw new SecurityException("Standalone PE asset exceeds bound");
+                result.write(chunk, 0, count);
+            }
+            return result.toByteArray();
+        }
     }
 
     private static int runBoundedPe(File nativeDir, File loader, File server, File scratch,
@@ -799,10 +820,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     private static String shortReport(StringBuilder report, boolean verifyRunning) {
-        final String tail=verifyRunning ? "\nEND OF WINE29 V30 PREFIX SMOKE REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
+        final String tail=verifyRunning ? "\nEND OF WINE29 V31 STANDALONE PE REPORT\n" : "\nEND OF SHORT V28 PREFIX SETUP SCM REPORT — V28 evidence preserved if generated; all previous generations untouched.\n";
         final int limit=9000-tail.length();
         String summary=report.toString();
-        if (verifyRunning) summary=summary.replace("V28 ", "V30 ").replace("v28 ", "v30 ").replace("V29 ", "V30 ");
+        if (verifyRunning) summary=summary.replace("V28 ", "V31 ").replace("v28 ", "v31 ").replace("V29 ", "V31 ");
         if(summary.length()>limit)
             summary=summary.substring(0,limit-100)+"\n[Clipped to 9,000 characters; log evidence retained.]\n";
         return summary+tail;
@@ -819,7 +840,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
     private static String run(Context context, boolean verifyRunning) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (verifyRunning) {
-            out.append("CHAROITE NEXT — FRESH WINE29 V30 PREFIX SETUP AND PE SMOKE TEST\n");
+            out.append("CHAROITE NEXT — FRESH WINE29 V31 STANDALONE WINDOWS PE TEST\n");
         } else {
             out.append("CHAROITE NEXT — ISOLATED WINE29 V28 SOURCE-PINNED PREFIX SETUP AND RPCSS SCM QUERY\n");
             out.append("EXPLICIT ONE-SHOT OPT-IN; NEW private v28 prefix ONLY; Wineboot -i MAY install source-pinned Wine INF internally; ONE independent sc.exe query RpcSs permitted; NO other SCM commands/games\n");
@@ -854,12 +875,22 @@ public final class CharoiteWine29V28FocusedInfProbe {
         byte[] userenvImage;
         byte[] scImage;
         byte[][] setupImages;
+        byte[] standaloneImage = null;
+        String standaloneHash = null;
         try {
             verifyV6Native(context);
             servicesImage=verifyV7Services(context);
             userenvImage=verifyV8Userenv(context);
             scImage=verifyV17Sc(context);
             setupImages=verifyV28Setup(context);
+            if (verifyRunning) {
+                standaloneImage = readStandaloneAsset(context, "standalone.exe", 65536);
+                standaloneHash = new String(readStandaloneAsset(context, "standalone.sha256", 65),
+                                            java.nio.charset.StandardCharsets.US_ASCII).trim();
+                if (!standaloneHash.matches("[0-9a-f]{64}") || !standaloneHash.equals(
+                        hex(MessageDigest.getInstance("SHA-256").digest(standaloneImage))))
+                    throw new SecurityException("Standalone PE hash mismatch");
+            }
             out.append("V28 pinned source-built rundll32.exe/rpcss.exe/wine.inf SHA-256/PE/INF preflight: PASS\n");
             out.append("V28 ARM64 sc.exe source SHA-256/import/PE gate: PASS\n");
             out.append("V8 source-built ARM64X userenv.dll APK SHA-256/PE header: PASS\n");
@@ -879,7 +910,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v30" : SCRATCH);
+            File newScratch = child(privateBase, verifyRunning ? "charoite-next-wine29-entry-v31" : SCRATCH);
             if (!newScratch.mkdir())
                 throw new SecurityException("One-shot scratch exists or cannot be created");
             scratch = newScratch;
@@ -1011,6 +1042,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
             // V28 only: source-pinned Windows SetupAPI helper and RpcSs binary
             // plus generated Wine INF, all copied into this NEW scratch after
             // candidate imports and hashes were verified BEFORE scratch allocation.
+            if (verifyRunning)
+                stageV28SetupModule(standaloneImage, child(lib, "charoite-standalone.exe"),
+                                    standaloneHash);
             stageV28SetupModule(setupImages[0],child(lib,"rundll32.exe"),PINNED_RUNDLL32_SHA);
             stageV28SetupModule(setupImages[1],child(lib,"rpcss.exe"),PINNED_RPCSS_SHA);
             File verifiedInf=child(scratch,"runtime/share/wine/wine.inf");
@@ -1215,7 +1249,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                     if (setupProc.isAlive()) {
                         setupProc.destroyForcibly(); setupProc.waitFor(2,TimeUnit.SECONDS);
                     }
-                    appendV28HelperTraceMarkers(out, setupLog);
+                    appendV28HelperTraceMarkers(out, setupLog, verifyRunning);
                     String setupText=boundedLog(setupLog);
                     String setupLower=setupText.toLowerCase(Locale.US);
                     boolean setupLoadFailure=setupLower.contains("c0000135")
@@ -1254,14 +1288,15 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         controlPassed = verifyRpcss(out, nativeDir, loader, server, serverProc,
                                                     scratch, prefix, lib, scBuiltin);
                         if (controlPassed) {
-                            File smokeLog = child(scratch, "v30-wineboot-help.log");
+                            File smokeLog = child(scratch, "v31-standalone.log");
+                            File standalone = child(lib, "charoite-standalone.exe");
                             int smokeExit = runBoundedPe(nativeDir, loader, server, scratch, prefix,
-                                                        lib, bootBuiltin, smokeLog, "--help");
-                            boolean usage = smokeExit == 0 && java.nio.file.Files.readAllLines(
+                                                        lib, standalone, smokeLog);
+                            boolean marker = smokeExit == 42 && java.nio.file.Files.readAllLines(
                                 smokeLog.toPath(), java.nio.charset.StandardCharsets.UTF_8)
-                                .contains("Usage: wineboot [options]");
-                            out.insert(reportHeaderEnd, "PE smoke: Wineboot --help exit=" + smokeExit
-                                + ", exact usage line=" + usage
+                                .contains("CHAROITE_WINDOWS_ARM64_SMOKE_OK");
+                            out.insert(reportHeaderEnd, "Standalone ARM64 PE: exit=" + smokeExit
+                                + ", exact output=" + marker
                                 + ", private server alive=" + serverProc.isAlive() + "\n");
                         }
 

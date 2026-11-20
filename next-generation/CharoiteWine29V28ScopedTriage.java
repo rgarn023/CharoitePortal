@@ -127,7 +127,7 @@ public final class CharoiteWine29V28ScopedTriage {
         out.append("V28 preserved RpcSs SCM status is HISTORICAL, never a live-service check\n");
     }
 
-    private static void classifySetupApi(StringBuilder out, String helper) {
+    static void classifySetupApi(StringBuilder out, String helper) {
         if(helper==null || helper.length()>4194304){
             out.append("V28 preserved SetupAPI error lines: UNKNOWN (no eligible log)\n");
             return;

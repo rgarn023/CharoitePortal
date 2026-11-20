@@ -1,3 +1,7 @@
+## 2026-11-19 — V31 standalone ARM64 Windows executable
+
+Build 161 adds a source-built standalone console PE to the experimental APK. CI checks that it is ARM64, imports only kernel32.dll, and matches the exact bytes and digest packaged in the APK. After verified prefix initialization and RpcSs startup in a fresh V31 scratch, it must print CHAROITE_WINDOWS_ARM64_SMOKE_OK and return exit code 42 with the private Wine server still alive. The report also applies existing SetupAPI error classification to the bounded helper trace and shares categories only. V29 and V30 are preserved. The device result is pending and the v1.0 estimate remains **33%**.
+
 ## 2026-11-19 — V30 prefix and independent Windows PE smoke verified on Android
 
 **Current v1.0 estimate: 33%.** Signed Next build 160 / [Actions #924](https://github.com/rgarn023/CharoitePortal/actions/runs/44639821962). The owner report shows Wineboot -i exited 0, RpcSs reached RUNNING, and a separate launch of the ARM64 Windows Wineboot PE with --help exited 0, printed the exact expected usage line, and left the private wineserver alive. Program Files appeared after finalization, and all three registry files were retained. This verifies basic fresh-prefix operation and an independent Wine-supplied PE invocation. V30 is complete and does not need to be repeated.

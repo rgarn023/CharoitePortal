@@ -1146,9 +1146,33 @@ jobs:
           echo WINE29_V12_PRESERVED_SC_ENTRY_READONLY_POSTMORTEM=PASS
           echo WINE29_V12_PHONE_EXECUTION=NOT_ATTEMPTED_IN_CI
 
+      - name: Build and audit standalone ARM64 Windows smoke executable
+        run: |
+          set -euo pipefail
+          tools="$RUNNER_TEMP/charoite-legacy-pe-readobj/bin"
+          assets=upstream/app/src/main/assets/wine29-v31
+          mkdir -p "$assets"
+          exe="$assets/standalone.exe"
+          "$tools/aarch64-w64-mingw32-clang" -Wall -Wextra -Werror -Os -nostdlib \
+            -Wl,--entry,smoke_entry,--subsystem,console,--no-insert-timestamp \
+            next-generation/wine29-standalone-smoke.c -lkernel32 -o "$exe"
+          "$tools/llvm-readobj" --file-headers "$exe" | grep -F 'Machine: IMAGE_FILE_MACHINE_ARM64 (0xAA64)'
+          imports=$("$tools/llvm-readobj" --coff-imports "$exe" | awk '$1 == "Name:" {print tolower($2)}')
+          test "$imports" = kernel32.dll
+          test "$(wc -c < "$exe")" -le 65536
+          sha256sum "$exe" | cut -d' ' -f1 > "$assets/standalone.sha256"
+
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify packaged standalone PE and digest
+        run: |
+          set -euo pipefail
+          apk=upstream/app/build/outputs/apk/debug/app-debug.apk
+          for name in standalone.exe standalone.sha256; do
+            unzip -p "$apk" "assets/wine29-v31/$name" | cmp - "upstream/app/src/main/assets/wine29-v31/$name"
+          done
 
       - name: Verify seven source-built PE diagnostic DLLs in final APK
         run: |
@@ -1643,7 +1667,7 @@ jobs:
           PY
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging \
             upstream/app/build/outputs/apk/debug/app-debug.apk | \
-            grep -F "package: name='com.charoitx' versionCode='160' versionName='11.2-next.0.129'"
+            grep -F "package: name='com.charoitx' versionCode='161' versionName='11.2-next.0.130'"
 
       - name: Verify signed APK includes isolated v6 native cohort and sealed index
         run: |
@@ -2044,6 +2068,7 @@ jobs:
           cp upstream/app/src/main/assets/charoite-next/wine-bootstrap-preflight.json legal-bundle/wine-bootstrap-preflight.json
           cp next-generation/stage_native_wine_loader.py legal-bundle/stage_native_wine_loader.py
           cp upstream/app/src/main/assets/charoite-next/wine-native-probe.json legal-bundle/wine-native-probe.json
+          cp next-generation/wine29-standalone-smoke.c legal-bundle/
           cp next-generation/stage_wine_probe.py legal-bundle/stage_wine_probe.py
           mkdir -p legal-bundle/charoite-wine-patches
           cp next-generation/charoite-wine/patches/*.patch legal-bundle/charoite-wine-patches/
@@ -2136,7 +2161,7 @@ jobs:
         run: |
           set -euo pipefail
           # Historical V28 release tag: charoite-next-vc157
-          TAG=charoite-next-vc160
+          TAG=charoite-next-vc161
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::Versioned release already exists; not clobbering any asset."
             test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq '.targetCommitish')" = "$GITHUB_SHA"
@@ -2148,8 +2173,8 @@ jobs:
               Charoite-Next-LGPL-Sources.zip \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "Charoite Next 11.2-next.0.129 (build 160)" \
-              --notes "Signed experimental Charoite Next with a one-shot Wine29 V30 fresh-prefix check and an independent Wineboot help smoke test. System > Verify fresh prefix requests explicit consent before initializing Wine. Android build verification does not establish the on-device service result." \
+              --title "Charoite Next 11.2-next.0.130 (build 161)" \
+              --notes "Signed experimental Charoite Next with a one-shot Wine29 V31 standalone ARM64 Windows executable. System > Test standalone Windows executable requests explicit consent before initializing Wine. Android build verification does not establish the on-device service result." \
               --latest=false
           fi
           echo "NEXT_VERSIONED_PUBLIC_RELEASE_PUBLISHED=PASS"

@@ -46,8 +46,8 @@ assert text.count("versionCode 33") == 1
 # Historical V28 read-only diagnostic expansion: versionCode 157, 11.2-next.0.126.
 # Historical V25 exact manifest literal used by old read-only regression tests:
 # versionName "11.2-next.0.117" (HISTORICAL ONLY; active build is v0.119).
-text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.129"')
-text = text.replace("versionCode 33", "versionCode 160")
+text = text.replace('versionName "11.2"', 'versionName "11.2-next.0.130"')
+text = text.replace("versionCode 33", "versionCode 161")
 gradle.write_text(text, encoding="utf-8")
 
 # Keep the Java namespaces com.winlator and com.charoitegames.core because
@@ -3698,16 +3698,16 @@ ui = ui.replace(anchor, anchor + """
         nextCoreCard.addView(wine29V28Action);
 
         LinearLayout rpcssAction = card();
-        rpcssAction.addView(label("WINE29 — VERIFY FRESH PREFIX", 16, FOREGROUND, true));
+        rpcssAction.addView(label("WINE29 — TEST STANDALONE WINDOWS EXECUTABLE", 16, FOREGROUND, true));
         rpcssAction.addView(label(
-                "This test initializes a new experimental prefix, checks RpcSs, and runs Wineboot --help as a separate Windows process.",
+                "This test initializes a new experimental prefix, checks RpcSs, and runs a small standalone Windows executable.",
                 13, FOREGROUND, false));
         android.widget.Button verifyRpcss = new android.widget.Button(this);
-        verifyRpcss.setText("Verify fresh prefix");
+        verifyRpcss.setText("Test standalone Windows executable");
         verifyRpcss.setAllCaps(false);
         verifyRpcss.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
                 .setTitle("Run the fresh-prefix test?")
-                .setMessage("This test prepares and verifies the sealed Wine files, then creates a new private V30 prefix and checks RpcSs and Windows process startup. "
+                .setMessage("This test prepares and verifies the sealed Wine files, then creates a new private V31 prefix and checks RpcSs and Windows process startup. "
                         + "This test preserves your existing games, saves, and prefixes.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Run once", (dialog, which) -> {
@@ -3725,7 +3725,7 @@ ui = ui.replace(anchor, anchor + """
                                             android.content.ClipData.newPlainText("Wine29 prefix result", report));
                                 })
                                 .setNegativeButton("Close", null).show());
-                    }, "CharoiteWine29V30Prefix").start();
+                    }, "CharoiteWine29V31Prefix").start();
                 }).show());
         rpcssAction.addView(verifyRpcss);
         android.widget.Button rpcssHandoff = new android.widget.Button(this);

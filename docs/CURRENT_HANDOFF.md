@@ -1,3 +1,9 @@
+## 2026-11-20 — V35 restores fresh-prefix RpcSs and standalone ARM64 execution on Android
+
+On signed build 172, the V35 setup helper exited 0 and all eight setup payloads matched their digests. Independent SCM queries showed RpcSs STOPPED and then RUNNING after a successful start. The standalone ARM64 PE printed the expected output and exited 42 while the private wineserver remained alive. Finalization retained Program Files and all three registry files. The exact RpcSs service key and its ImagePath, Start, and Type fields were present.
+
+The eight remaining SetupAPI errors came from register_fake_dll. V35 reproduces the V32 execution baseline without the standalone ATL candidate. The cause of the ATL-enabled helper exit remains open. Treat V35 as the known-good ARM64 comparison point and preserve its private prefix. Overall v1.0 remains **35%** because this restores a previously verified capability. V35 verification is complete. Next, map the dependencies for an isolated x64 console smoke test while keeping the ARM64 baseline available.
+
 ## 2026-11-20 — Build 172 restores the V32 runtime baseline in V35
 
 V35 keeps the eight verified setup payloads and standalone ARM64 smoke executable, and omits the standalone ATL candidate introduced in V33. It uses a new private V35 prefix, retains the one-query SCM result if setup exits nonzero, and gates service start and smoke on successful setup. Android and lightweight static verification passed. Install [signed build 172](https://github.com/rgarn023/CharoitePortal/actions/runs/44805920438/artifacts/14662997488) in place, then open **System → Verify V35 RpcSs → Run once** and copy the report. v1.0 remains **35%**.

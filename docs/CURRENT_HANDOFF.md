@@ -1,3 +1,9 @@
+## 2026-11-20 — Wine29 Android display link fix merged
+
+The [provider job](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894) and its [verified diagnostic archive](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894/artifacts/14692512723) show that Android `win32u.so` failed to link because `vulkan_update_surfaces` was undefined. The pinned source defines it only when the Vulkan loader is enabled. [PR #28](https://github.com/rgarn023/CharoitePortal/pull/28) adds the missing fallback in the isolated CI display build. The reviewed head passed static verification and Android debug checks.
+
+[Main provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44868006366) is running. Verify the two PE modules, two AArch64 ELF companions and digest manifest before display integration. The estimate remains **40%**. Galaxy window rendering is still unverified.
+
 ## 2026-11-20 — Preserve compiler output from the Android display build
 
 The callback conversion merged in PR #27, but the [next main validation](https://github.com/rgarn023/CharoitePortal/actions/runs/44863426039) still exited 2 in the display step and produced no display artifact. The underlying compiler error was unavailable through the public run view. The [new validation](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894) captures generated display target names and the last 128 KiB of build output, and uploads the diagnostics if the job fails. The runtime readiness estimate stays at 40% until the Galaxy window test progresses.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Prepare a private Wine29 runtime for the x64 window test
+
+[The staging implementation](https://github.com/rgarn023/CharoitePortal/commit/e80266ef8b2da521c4c2410b9b61027b3fcd07c8) adds a separate scratch directory for the window test. It reuses fresh-prefix initialization and the RpcSs gate, then stages FEX under both verified loader names and digest-checks the six display host files and x64 fixture. The Android activity still needs to invoke this path and start Wine through JNI. The staging code has not run on the Galaxy. No APK requested yet, and estimated runtime readiness remains 40%.
+
 ## 2026-11-21 — Implement the Wine29 test window's Android surfaces
 
 The [Java host change](https://github.com/rgarn023/CharoitePortal/commit/c892d9309c6c27e4fc5e442027db2933a05ef1c5) adds the callback names and signatures from the pinned Android driver. The host creates and positions Android TextureViews on the UI thread, forwards their surfaces to Wine, and releases them on destruction. This implementation targets the single-window fixture with a flat desktop and the default cursor. The library check remains the only enabled entry point. Private runtime staging and Java-initiated Wine launch are still pending, so this code has not rendered a window and no device test build was requested. Readiness remains 40%.

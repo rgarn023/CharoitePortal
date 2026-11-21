@@ -1,3 +1,7 @@
+## 2026-11-21 — Wine29 Android Java host bundle verified
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555) and published the [Java host bundle](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555/artifacts/14697190124). The downloaded archive SHA-256 is `7af48bf2e3b062f32d15ddaf12404efdb9f65e7167c7e415e7d12c460555c7f0`. All six binaries independently matched SHA256SUMS. The bundled ntdll.so defines JNI_OnLoad, java_vm, java_object, and java_gdt_sel in its dynamic symbol table. The next integration uses this cohort from a separate, non-exported Android activity process and passes Android surfaces through Wine’s Java callbacks. The x64 fixture still needs Galaxy rendering verification. Readiness remains 40% and this provider run produced no APK.
+
 ## 2026-11-21 — Retry Wine29 Java host symbol validation
 
 The [prior provider run](https://github.com/rgarn023/CharoitePortal/actions/runs/44873253877) published the display driver binaries but failed the separate Java host validation. The first run did not preserve the ntdll symbol table. The [retry](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555) explicitly marks the four Android JNI and driver symbols with default ELF visibility, rebuilds the host ntdll in CI, and preserves its dynamic symbol table so any missing definition can be diagnosed. The host bundle remains pending CI and the runtime readiness estimate remains 40%.

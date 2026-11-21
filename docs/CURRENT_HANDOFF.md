@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1129 published
+
+The [signed release](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1129) and [Actions artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44884888987/artifacts/14700005949) are available. Update in place from System → Check for updates → Update in app. Run Check Wine29 display libraries once. If the test closes, reopen Portal and report the checkpoint plus Android’s process-exit reason and status, if shown. Galaxy verification is pending and estimated readiness remains 40%.
+
 ## 2026-11-21 — Galaxy checkpoint isolates the interruption to ntdll.so
 
 Build 1128 reported `Interrupted while loading ntdll.so.` after the display test process closed. The checkpoint places the interruption inside the first System.load call, before win32u.so and wineandroid.so were tested. It does not distinguish ELF loading from JNI initialization. The [follow-up build](https://github.com/rgarn023/CharoitePortal/actions/runs/44884888987) adds an after-load checkpoint and reports the matching Android process exit reason and numeric status. Runtime readiness remains 40%.

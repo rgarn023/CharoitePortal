@@ -13,6 +13,8 @@ import android.widget.LinearLayout;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.Keep;
+
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -22,8 +24,11 @@ import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.nio.file.Files;
 
+// Wine looks up the class and method by their original JNI names.
+@Keep
 public final class WineActivity extends Activity {
     // ntdll registers this exact method during JNI_OnLoad.
+    @Keep
     private native String wine_init(String[] command, String[] environment);
 
     private static AtomicFile checkpoint(Context context) {

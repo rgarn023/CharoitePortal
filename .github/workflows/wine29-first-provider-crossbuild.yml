@@ -1483,6 +1483,41 @@ jobs:
           path: wine29-android-display-candidate/
           if-no-files-found: error
           retention-days: 7
+      - name: Verify and stage matching Wine Android Java host inputs
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/charoite-first-provider-source"
+          build="$root/charoite-arm64ec-android"
+          display="$GITHUB_WORKSPACE/wine29-android-display-candidate"
+          host="$GITHUB_WORKSPACE/wine29-android-java-host"
+          readelf="$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          mkdir "$host"
+          (cd "$display" && sha256sum -c SHA256SUMS)
+          cp "$display"/{wineandroid.drv,wineandroid.so,win32u.dll,win32u.so} "$host/"
+          cp "$build/dlls/ntdll/ntdll.so" "$build/dlls/ntdll/aarch64-windows/ntdll.dll" "$host/"
+          cd "$host"
+          "$readelf" -h -d ntdll.so > ntdll-elf.txt
+          "$readelf" --dyn-syms -W ntdll.so > ntdll-exports.txt
+          grep -E 'Machine:[[:space:]]+AArch64' ntdll-elf.txt
+          grep -E 'Type:[[:space:]]+DYN' ntdll-elf.txt
+          for symbol in JNI_OnLoad java_vm; do
+            awk -v symbol="$symbol" '$7 != "UND" && $8 == symbol { found = 1 } END { exit !found }' ntdll-exports.txt
+          done
+          grep -F '#define WINE_JAVA_CLASS "org/winehq/wine/WineActivity"' "$root/dlls/ntdll/unix/loader.c"
+          "$readelf" -d wineandroid.so > wineandroid-dependencies.txt
+          "$readelf" -d win32u.so > win32u-dependencies.txt
+          for file in wineandroid-dependencies.txt win32u-dependencies.txt; do
+            grep -F 'Shared library: [ntdll.so]' "$file"
+          done
+          grep -F 'Shared library: [win32u.so]' wineandroid-dependencies.txt
+          sha256sum ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so > SHA256SUMS
+      - name: Publish matching Wine Android Java host inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Android-Java-Host-Inputs
+          path: wine29-android-java-host/
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish Android display build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

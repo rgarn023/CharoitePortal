@@ -3957,6 +3957,12 @@ ui = ui.replace(anchor, anchor + """
             displayHost.setText("Check Wine29 display libraries");
             displayHost.setOnClickListener(v -> org.winehq.wine.WineActivity.launchCheck(this));
             rpcssAction.addView(displayHost);
+            try (java.io.InputStream fixture = getAssets().open("wine29-java-host/x64-window.sha256")) {
+                android.widget.Button windowTest = new android.widget.Button(this);
+                windowTest.setText("Run Wine29 x64 window test");
+                windowTest.setOnClickListener(v -> org.winehq.wine.WineActivity.launchWindow(this));
+                rpcssAction.addView(windowTest);
+            }
         } catch (java.io.IOException ignored) {
             // The display bundle is available only in dedicated test builds.
         }

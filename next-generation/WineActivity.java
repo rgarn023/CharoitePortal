@@ -154,9 +154,17 @@ public final class WineActivity extends Activity {
     }
 
     public static void launchCheck(Activity portal) {
+        launch(portal, false);
+    }
+
+    public static void launchWindow(Activity portal) {
+        launch(portal, true);
+    }
+
+    private static void launch(Activity portal, boolean window) {
         try {
             record(portal, "Interrupted before the Wine29 display activity started.");
-            portal.startActivity(new Intent(portal, WineActivity.class));
+            portal.startActivity(new Intent(portal, WineActivity.class).putExtra("window", window));
         } catch (IOException | RuntimeException failure) {
             checkpoint(portal).delete();
             new AlertDialog.Builder(portal).setTitle("Wine29 display check")
@@ -270,7 +278,8 @@ public final class WineActivity extends Activity {
         int inset = Math.round(20 * getResources().getDisplayMetrics().density);
         layout.setPadding(inset, inset, inset, inset);
         TextView result = new TextView(this);
-        result.setText("Checking Wine29 display libraries…");
+        boolean window = getIntent().getBooleanExtra("window", false);
+        result.setText(window ? "Preparing the private Wine29 window test…" : "Checking Wine29 display libraries…");
         layout.addView(result);
         Button done = new Button(this);
         done.setText("Return to Charoite Portal");
@@ -279,7 +288,9 @@ public final class WineActivity extends Activity {
         setContentView(layout);
 
         new Thread(() -> {
-            String checked = checkLibraries();
+            String checked = window
+                    ? com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.runX64Window(this, this::launchFixture)
+                    : checkLibraries();
             try {
                 record(this, checked);
             } catch (IOException failure) {
@@ -290,6 +301,23 @@ public final class WineActivity extends Activity {
                 if (!isDestroyed()) result.setText(report);
             });
         }, "Wine29DisplayLibraries").start();
+    }
+
+    private void launchFixture(File host, String[] command, String[] environment) throws IOException {
+        for (String library : new String[] {"ntdll.so", "win32u.so", "wineandroid.so"}) {
+            record(this, "Interrupted while loading window-test " + library + ".");
+            System.load(new File(host, "aarch64-unix/" + library).getAbsolutePath());
+        }
+        record(this, "Interrupted while running the x64 window fixture.");
+        android.os.Handler timeout = new android.os.Handler(android.os.Looper.getMainLooper());
+        Runnable stop = () -> android.os.Process.killProcess(android.os.Process.myPid());
+        timeout.postDelayed(stop, 45000);
+        try {
+            wine_init(command, environment);
+        } finally {
+            timeout.removeCallbacks(stop);
+        }
+        throw new IOException("Wine returned to Java before the test process exited.");
     }
 
     private String checkLibraries() {

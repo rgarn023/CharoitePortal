@@ -875,11 +875,11 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     public static String run(Context context) {
-        return run(context, false, false, false);
+        return run(context, false, false, null);
     }
 
     public static String verifyFreshPrefix(Context context) {
-        return run(context, true, false, false);
+        return run(context, true, false, null);
     }
 
     private static void stageWindowInputs(Context context, File scratch, File prefix)
@@ -892,7 +892,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
         for (String name : new String[] {"ntdll.dll", "ntdll.so", "wineandroid.drv",
                                          "wineandroid.so", "win32u.dll", "win32u.so"}) {
             byte[] bytes = readStandaloneAsset(context, root + name, 32 * 1024 * 1024);
-            stageV28SetupModule(bytes, child(host, name), verifyX64Asset(manifest, name, bytes));
+            File destination = child(host, name.endsWith(".so") ? "aarch64-unix/" + name
+                    : "aarch64-windows/" + name);
+            stageV28SetupModule(bytes, destination, verifyX64Asset(manifest, name, bytes));
         }
         String executable = "x64-window.exe";
         String executableManifest = new String(readStandaloneAsset(context, root + "x64-window.sha256", 512),
@@ -986,15 +988,20 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     public static String verifyX64Smoke(Context context) {
-        return run(context, true, true, false);
+        return run(context, true, true, null);
     }
 
-    public static String prepareX64Window(Context context) {
-        return run(context, true, false, true);
+    public interface WindowLauncher {
+        void launch(File host, String[] command, String[] environment) throws Exception;
+    }
+
+    public static String runX64Window(Context context, WindowLauncher launcher) {
+        return run(context, true, false, java.util.Objects.requireNonNull(launcher));
     }
 
     private static String run(Context context, boolean verifyRunning, boolean testX64,
-                              boolean prepareWindow) {
+                              WindowLauncher launcher) {
+        boolean prepareWindow = launcher != null;
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (testX64) out.append("Wine29 x64 smoke — separate private prefix\n");
         if (verifyRunning) {
@@ -1242,7 +1249,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             // V6 explicitly requests -i; Wine may internally attempt auto --init as well.
             // A foreground server supplies a known-good socket before PE startup.
             serverLog=child(scratch,"v28-foreground-wineserver.log");
-            ProcessBuilder s=new ProcessBuilder(server.getAbsolutePath(),"-f","-d","-p");
+            ProcessBuilder s=new ProcessBuilder(server.getAbsolutePath(),"-f","-d",prepareWindow ? "-p30" : "-p");
             s.directory(scratch);
             s.redirectErrorStream(true);
             s.redirectOutput(serverLog);
@@ -1465,7 +1472,21 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         out.insert(reportHeaderEnd, scmReport);
                         if (controlPassed && prepareWindow) {
                             stageWindowInputs(context, scratch, prefix);
-                            out.insert(reportHeaderEnd, "X64 WINDOW INPUTS: staged and digest-verified\n");
+                            File host = child(scratch, "display-host");
+                            File peRoot = child(host, "aarch64-windows");
+                            Map<String,String> env = cleanEnv(new ProcessBuilder(), nativeDir, server, scratch, prefix, lib);
+                            env.put("WINEDLLPATH", host.getCanonicalPath() + ":" + env.get("WINEDLLPATH"));
+                            env.put("CHAROITE_WINE29_V6_PE_DIR", peRoot.getCanonicalPath());
+                            env.put("WINEDEBUG", "-all");
+                            env.put("WINEDEBUGLOG", child(scratch, "x64-window-native.log").getCanonicalPath());
+                            String[] environment = new String[2 * env.size()];
+                            int slot = 0;
+                            for (Map.Entry<String,String> entry : env.entrySet()) {
+                                environment[slot++] = entry.getKey();
+                                environment[slot++] = entry.getValue();
+                            }
+                            launcher.launch(host, new String[] {loader.getCanonicalPath(),
+                                    child(host, "x64-window.exe").getCanonicalPath()}, environment);
                         } else if (controlPassed && testX64) {
                             out.insert(reportHeaderEnd, runX64Smoke(context, nativeDir, loader, server,
                                 serverProc, scratch, prefix, lib));

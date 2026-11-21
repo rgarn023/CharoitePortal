@@ -1,3 +1,7 @@
+## 2026-11-21 — Wine29 Android display cross-build verified
+
+[Main provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44868006366) passed. Independently downloaded the [display candidate](https://github.com/rgarn023/CharoitePortal/actions/runs/44868006366/artifacts/14692907360), verified all four SHA-256 checksums and confirmed ARM64 PE headers for `wineandroid.drv` and `win32u.dll` and AArch64 Android 35 ELF headers for `wineandroid.so` and `win32u.so`. The ELF dependencies require the names `ntdll.so` and `win32u.so` in Wine's native linker namespace. The driver resolves `java_vm` from ntdll, which the Java loading path initializes in `JNI_OnLoad`. The Android host therefore needs to initialize the same ntdll instance used by the display driver and connect its surface callbacks before the x64 window fixture can run on the Galaxy. No APK was produced. Runtime readiness remains 40% pending device verification.
+
 ## 2026-11-20 — Wine29 Android display link fix merged
 
 The [provider job](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894) and its [verified diagnostic archive](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894/artifacts/14692512723) show that Android `win32u.so` failed to link because `vulkan_update_surfaces` was undefined. The pinned source defines it only when the Vulkan loader is enabled. [PR #28](https://github.com/rgarn023/CharoitePortal/pull/28) adds the missing fallback in the isolated CI display build. The reviewed head passed static verification and Android debug checks.

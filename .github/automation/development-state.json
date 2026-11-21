@@ -21,21 +21,20 @@
     44592939220,
     44757889116,
     44862325497,
-    44863426039
+    44863426039,
+    44867163894
   ],
   "last_result": {
-    "run_id": 44863426039,
+    "run_id": 44867163894,
     "result": "failure",
-    "verification": "Main provider #162 job 136721691795: Android display compilation progressed beyond callback conversion, but linking Android AArch64 win32u.so failed: undefined symbol vulkan_update_surfaces referenced by win32u/window.o. Display artifact not uploaded; other PE probe artifacts exist but do not validate display. No retry without source fix."
+    "verification": "Job 136733303398 and SHA-256 verified diagnostic ZIP 14692512723 confirm Android win32u.so link failure: undefined vulkan_update_surfaces without SONAME_LIBVULKAN. Display upload skipped. Prior PR #27 main validation failed at this same link gate. PR #28 proposes the missing no-Vulkan fallback. Runtime readiness 40%."
   },
   "event_batch_utc": "2026-11-21T04",
   "pending_validation": {
-    "source_run_id": 44862325497,
-    "pr_number": 27,
-    "branch": "engineering/wine29-android-display-callback",
-    "head_sha": "c738593a0b675cbb801e4ddbddbf8727d60e23eb",
-    "phase": "main_ci_failed",
-    "merged_main_sha": "0006d56c8473d99b1618c099ffd0b782685aad40",
-    "main_run_id": 44863426039
+    "source_run_id": 44867163894,
+    "pr_number": 28,
+    "branch": "engineering/wine29-non-vulkan-display-link",
+    "head_sha": "209411266c79ffb39d186b76a397d4a4d9822db3",
+    "phase": "awaiting_pr_checks"
   }
 }

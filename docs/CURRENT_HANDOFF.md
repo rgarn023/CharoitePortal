@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy window retest still stops at fixture launch
+
+The latest Galaxy screenshot reports `Interrupted while running the x64 window fixture` and native crash status 11, with no readable abort detail. The saved checkpoint did not show desktop creation or surface handoff. The result of System → Read last Wine29 window log for the v2 run is still pending. No repeat is needed to read that file. Runtime readiness remains 40% and the cause is unverified.
+
 ## 2026-11-21 — Meteorite Alpha build 1138 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44921629602) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1138) is available. Update in place and run System → Run Wine29 x64 window test once. Report whether the purple window appeared and, if the test closes, reopen Portal and copy the recovery dialog and System → Read last Wine29 window log. This run uses the separate v2 test prefix. The Galaxy rendering milestone remains pending and estimated readiness is 40%.

@@ -1227,7 +1227,7 @@ jobs:
           curl -fsSL --retry 3 https://raw.githubusercontent.com/FEX-Emu/FEX/bce85d9941b2d37755f3b44a4f6e178617d94fba/LICENSE > "$assets/FEX-LICENSE.txt"
 
       - name: Stage verified Wine29 Java host assets
-        if: github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets
+        if: (github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[wine29-display]'))
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -1269,7 +1269,7 @@ jobs:
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
 
       - name: Verify packaged Wine29 Java host assets
-        if: github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets
+        if: (github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[wine29-display]'))
         run: |
           set -euo pipefail
           apk=upstream/app/build/outputs/apk/debug/app-debug.apk

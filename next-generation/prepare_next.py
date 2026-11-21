@@ -64,6 +64,16 @@ for node in tree.getroot().iter("provider"):
 # Existing direct/internal game launch activities and intent contracts are retained.
 application = tree.getroot().find("application")
 assert application is not None
+display_host = "org.winehq.wine.WineActivity"
+ET.SubElement(application, "activity", {
+    ns + "name": display_host,
+    ns + "exported": "false",
+    ns + "process": ":wine29_display",
+    ns + "configChanges": "orientation|screenSize|keyboardHidden",
+})
+display_host_java = app / "java/org/winehq/wine/WineActivity.java"
+display_host_java.parent.mkdir(parents=True, exist_ok=True)
+shutil.copy2(source_dir / "WineActivity.java", display_host_java)
 launcher = [activity for activity in application.findall("activity")
             if activity.get(ns + "name") == "com.winlator.TouhouEntryActivity"]
 assert len(launcher) == 1
@@ -3942,6 +3952,15 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29X64Smoke").start();
         }).show());
         rpcssAction.addView(runX64);
+        try (java.io.InputStream ignored = getAssets().open("wine29-java-host/SHA256SUMS")) {
+            android.widget.Button displayHost = new android.widget.Button(this);
+            displayHost.setText("Check Wine29 display libraries");
+            displayHost.setOnClickListener(v -> startActivity(new android.content.Intent(
+                    this, org.winehq.wine.WineActivity.class)));
+            rpcssAction.addView(displayHost);
+        } catch (java.io.IOException ignored) {
+            // The display bundle is available only in dedicated test builds.
+        }
         android.widget.Button inspectX64 = new android.widget.Button(this);
         inspectX64.setText("Inspect last x64 smoke test");
         inspectX64.setOnClickListener(v -> {

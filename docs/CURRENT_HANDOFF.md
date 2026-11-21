@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1139 published
+
+[Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44924684228) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1139) is available. Install in place via System → Check for updates → Update in app. Run System → Run Wine29 x64 window test once. Report whether the purple window appeared. If the test closes, reopen Portal and share the recovery message and System → Read last Wine29 window log. This run uses a fresh v3 prefix with the corrected NLS layout. Galaxy verification remains pending and estimated runtime readiness is 40%.
+
 ## 2026-11-21 — Correct the Android JNI loader's NLS layout
 
 On the Galaxy, build 1138 logged two `err:environ:read_nls_file failed to load` errors before crashing. The pinned Android JNI loader derives its data path from the location of ntdll.so. [The fix](https://github.com/rgarn023/CharoitePortal/commit/d260899e9eb2443fdad028c5f1ab90ec8f2204de) stages the host libraries under lib/wine and the 76 verified NLS tables under share/wine/nls in a fresh v3 display test directory. The Galaxy still needs to verify whether this clears the crash. Runtime readiness remains 40%.

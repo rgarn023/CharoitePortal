@@ -1,3 +1,7 @@
+## 2026-11-21 — Signed build 1127 ready for Galaxy library check
+
+[Signed APK artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44878089342/artifacts/14697271489). Android CI verified the six packaged host files and the persisted signer. Install build 1127 over the existing Meteorite Alpha app. Open System → Check Wine29 display libraries, then report PASS or the exact FAIL line. This checks the native library loading step before Wine initialization and window rendering. Runtime readiness remains 40% pending device verification.
+
 ## 2026-11-21 — Build an isolated Wine29 Android library loading test
 
 The [Meteorite Alpha build](https://github.com/rgarn023/CharoitePortal/actions/runs/44878089342) packages the verified display bundle. System → Check Wine29 display libraries opens a private activity in a separate Android process. It stages three ELF files in a fresh cache directory, checks Android loading and ntdll JNI registration, and displays PASS or the first failed library. The check does not call Wine initialization or launch an executable. After the signed APK publishes, install it in place and report the result. Actual Android surface rendering remains pending, so runtime readiness stays at 40%.

@@ -19,13 +19,20 @@
     44535421575,
     44589922771,
     44592939220,
-    44757889116
+    44757889116,
+    44862325497
   ],
   "last_result": {
-    "run_id": 44757889116,
-    "result": "success",
-    "verification": "Main push job 136362342810 and SHA-256 verified artifact 14640881388 contain ARM64X atl100.dll, matching binary digest, AtlCreateRegistrar export and nine import modules. Artifact 14641107011 records incomplete provider closure. Next verify all nine ATL imports against the sealed runtime, then integrate the pinned candidate into fresh scratch for registrar validation. Zero APKs, no runtime advancement; v1.0 estimate 35%."
+    "run_id": 44862325497,
+    "result": "failure",
+    "verification": "Job 136718243040 failed the Android display build on both AArch64 and ARM64EC: dllmain.c:126 assigns the Android start callback to a UINT64 without pointer conversion. Display upload skipped. SHA-256 verified provider artifact 14690801857 was published earlier. PR #27 proposes the targeted conversion; runtime remains 40%."
   },
   "event_batch_utc": "2026-11-21T01",
-  "pending_validation": null
+  "pending_validation": {
+    "source_run_id": 44862325497,
+    "pr_number": 27,
+    "branch": "engineering/wine29-android-display-callback",
+    "head_sha": "c738593a0b675cbb801e4ddbddbf8727d60e23eb",
+    "phase": "awaiting_pr_checks"
+  }
 }

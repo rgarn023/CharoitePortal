@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the x64 window fixture for Android
+
+The Meteorite Alpha display build now stages the AMD64 window fixture verified on desktop Wine. The workflow checks the artifact ZIP and executable digests and uses the existing APK asset byte comparison. The archive contents and digests were inspected locally. App-side launch still requires private prefix staging and the WineActivity window/surface callback contract. No APK requested for this packaging-only change. Estimated runtime readiness remains 40%.
+
 ## 2026-11-21 — Wine29 display libraries pass on the Galaxy
 
 The owner reported PASS for System → Check Wine29 display libraries on Meteorite Alpha build 1131. Android loaded ntdll.so, win32u.so, and wineandroid.so after the R8 keep fix for WineActivity.wine_init. This verifies the native load and JNI registration step on Galaxy S26 Ultra. Next milestone: initialize Wine through the Android host with a private test prefix and verify that the x64 window fixture renders to an Android surface. Estimated runtime readiness remains 40% pending rendered-window verification.

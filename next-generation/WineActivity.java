@@ -1,6 +1,9 @@
 package org.winehq.wine;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ApplicationExitInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.content.Context;
 import android.content.Intent;
@@ -53,13 +56,43 @@ public final class WineActivity extends Activity {
         AtomicFile file = checkpoint(portal);
         if (!file.getBaseFile().isFile()) return;
         try {
+            long recordedAt = file.getBaseFile().lastModified();
             String report = new String(file.readFully(), StandardCharsets.UTF_8);
+            if (report.startsWith("Interrupted")) report += describeExit(portal, recordedAt);
             file.delete();
             new AlertDialog.Builder(portal).setTitle("Wine29 display check")
                     .setMessage(report).setPositiveButton("OK", null).show();
         } catch (IOException failure) {
             android.util.Log.w("Wine29Display", "Could not read display checkpoint", failure);
         }
+    }
+
+    private static String describeExit(Activity portal, long recordedAt) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return "";
+        ActivityManager manager = portal.getSystemService(ActivityManager.class);
+        if (manager == null) return "";
+        String processName = portal.getPackageName() + ":wine29_display";
+        try {
+            for (ApplicationExitInfo exit : manager.getHistoricalProcessExitReasons(
+                    portal.getPackageName(), 0, 20)) {
+                if (!processName.equals(exit.getProcessName()) || exit.getTimestamp() < recordedAt) {
+                    continue;
+                }
+                String reason;
+                switch (exit.getReason()) {
+                    case ApplicationExitInfo.REASON_CRASH_NATIVE: reason = "native crash"; break;
+                    case ApplicationExitInfo.REASON_CRASH: reason = "Java crash"; break;
+                    case ApplicationExitInfo.REASON_SIGNALED: reason = "signal"; break;
+                    case ApplicationExitInfo.REASON_EXIT_SELF: reason = "process exit"; break;
+                    case ApplicationExitInfo.REASON_ANR: reason = "process did not respond"; break;
+                    default: reason = "reason " + exit.getReason(); break;
+                }
+                return "\nAndroid reports " + reason + " (status " + exit.getStatus() + ").";
+            }
+        } catch (RuntimeException failure) {
+            android.util.Log.w("Wine29Display", "Could not read process exit reason", failure);
+        }
+        return "\nAndroid has no matching process-exit record yet.";
     }
 
     @Override
@@ -107,6 +140,7 @@ public final class WineActivity extends Activity {
                 }
                 record(this, "Interrupted while loading " + library + ".");
                 System.load(file.getAbsolutePath());
+                record(this, "Interrupted after loading " + library + ".");
             }
             return "PASS — Android loaded all three Wine29 display libraries.";
         } catch (IOException | LinkageError failure) {

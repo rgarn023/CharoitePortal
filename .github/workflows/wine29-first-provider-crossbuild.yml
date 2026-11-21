@@ -1547,6 +1547,26 @@ jobs:
           path: wine29-android-java-host/
           if-no-files-found: error
           retention-days: 7
+      - name: Build Wine29 ARM64 Explorer for Android display startup
+        run: |
+          set -euo pipefail
+          build="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          out="$GITHUB_WORKSPACE/wine29-android-explorer"
+          target="programs/explorer/aarch64-windows/explorer.exe"
+          make -C "$build" -j2 "$target"
+          mkdir "$out"
+          cp "$build/$target" "$out/explorer.exe"
+          cd "$out"
+          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers --coff-imports explorer.exe > explorer-pe.txt
+          grep -F 'IMAGE_FILE_MACHINE_ARM64 (0xAA64)' explorer-pe.txt
+          sha256sum explorer.exe > SHA256SUMS
+      - name: Publish Wine29 Android Explorer candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Android-Explorer-Candidate
+          path: wine29-android-explorer/
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish Android display build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

@@ -875,11 +875,44 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     public static String run(Context context) {
-        return run(context, false, false);
+        return run(context, false, false, false);
     }
 
     public static String verifyFreshPrefix(Context context) {
-        return run(context, true, false);
+        return run(context, true, false, false);
+    }
+
+    private static void stageWindowInputs(Context context, File scratch, File prefix)
+            throws Exception {
+        stageX64Emulator(context, prefix);
+        String root = "wine29-java-host/";
+        String manifest = new String(readStandaloneAsset(context, root + "SHA256SUMS", 1024),
+                                     java.nio.charset.StandardCharsets.US_ASCII);
+        File host = child(scratch, "display-host");
+        for (String name : new String[] {"ntdll.dll", "ntdll.so", "wineandroid.drv",
+                                         "wineandroid.so", "win32u.dll", "win32u.so"}) {
+            byte[] bytes = readStandaloneAsset(context, root + name, 32 * 1024 * 1024);
+            stageV28SetupModule(bytes, child(host, name), verifyX64Asset(manifest, name, bytes));
+        }
+        String executable = "x64-window.exe";
+        String executableManifest = new String(readStandaloneAsset(context, root + "x64-window.sha256", 512),
+                                               java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] bytes = readStandaloneAsset(context, root + executable, 65536);
+        stageV28SetupModule(bytes, child(host, executable),
+                           verifyX64Asset(executableManifest, executable, bytes));
+    }
+
+    private static void stageX64Emulator(Context context, File prefix) throws Exception {
+        String manifest = new String(readStandaloneAsset(context, "wine29-x64/SHA256SUMS", 512),
+                                     java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] emulator = readStandaloneAsset(context, "wine29-x64/libarm64ecfex.dll", 32 * 1024 * 1024);
+        String digest = verifyX64Asset(manifest, "libarm64ecfex.dll", emulator);
+        File system32 = child(prefix, "drive_c/windows/system32");
+        if (!system32.isDirectory() || !system32.getCanonicalFile().equals(system32.getAbsoluteFile()))
+            throw new SecurityException("Unexpected x64 system32 path");
+        // Support both the default AMD64 loader name and the explicitly configured FEX name.
+        stageV28SetupModule(emulator, child(system32, "xtajit64.dll"), digest);
+        stageV28SetupModule(emulator, child(system32, "libarm64ecfex.dll"), digest);
     }
 
     private static String runX64Smoke(Context context, File nativeDir, File loader, File server,
@@ -887,20 +920,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
             throws Exception {
         String manifest = new String(readStandaloneAsset(context, "wine29-x64/SHA256SUMS", 512),
                                      java.nio.charset.StandardCharsets.US_ASCII);
-        byte[] emulator = readStandaloneAsset(context, "wine29-x64/libarm64ecfex.dll", 32 * 1024 * 1024);
         byte[] executable = readStandaloneAsset(context, "wine29-x64/standalone-x64.exe", 65536);
-        String emulatorHash = verifyX64Asset(manifest, "libarm64ecfex.dll", emulator);
         String executableHash = verifyX64Asset(manifest, "standalone-x64.exe", executable);
-
-        // The pinned Wine PE loader defaults to system32/xtajit64.dll for AMD64.
-        File system32 = child(prefix, "drive_c/windows/system32");
-        if (!system32.isDirectory() || !system32.getCanonicalFile().equals(system32.getAbsoluteFile()))
-            throw new SecurityException("Unexpected x64 system32 path");
-        File emulatorFile = child(system32, "xtajit64.dll");
-        File configuredEmulator = child(system32, "libarm64ecfex.dll");
+        stageX64Emulator(context, prefix);
         File smoke = child(lib, "standalone-x64.exe");
-        stageV28SetupModule(emulator, emulatorFile, emulatorHash);
-        stageV28SetupModule(emulator, configuredEmulator, emulatorHash);
         stageV28SetupModule(executable, smoke, executableHash);
         File log = child(scratch, "x64-smoke.log");
         if (!privateServer.isAlive()) return "X64 SMOKE: skipped because the private Wine server stopped\n";
@@ -963,10 +986,15 @@ public final class CharoiteWine29V28FocusedInfProbe {
     }
 
     public static String verifyX64Smoke(Context context) {
-        return run(context, true, true);
+        return run(context, true, true, false);
     }
 
-    private static String run(Context context, boolean verifyRunning, boolean testX64) {
+    public static String prepareX64Window(Context context) {
+        return run(context, true, false, true);
+    }
+
+    private static String run(Context context, boolean verifyRunning, boolean testX64,
+                              boolean prepareWindow) {
         StringBuilder out = new StringBuilder("Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n");
         if (testX64) out.append("Wine29 x64 smoke — separate private prefix\n");
         if (verifyRunning) {
@@ -1040,7 +1068,8 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = testX64 ? "charoite-next-wine29-x64-smoke-v2"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v1"
+                : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);
             if (!newScratch.mkdir())
@@ -1434,7 +1463,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         controlPassed = verifyRpcss(scmReport, nativeDir, loader, server, serverProc,
                                                     scratch, prefix, lib, scBuiltin, setupPassed);
                         out.insert(reportHeaderEnd, scmReport);
-                        if (controlPassed && testX64) {
+                        if (controlPassed && prepareWindow) {
+                            stageWindowInputs(context, scratch, prefix);
+                            out.insert(reportHeaderEnd, "X64 WINDOW INPUTS: staged and digest-verified\n");
+                        } else if (controlPassed && testX64) {
                             out.insert(reportHeaderEnd, runX64Smoke(context, nativeDir, loader, server,
                                 serverProc, scratch, prefix, lib));
                         } else if (controlPassed) {

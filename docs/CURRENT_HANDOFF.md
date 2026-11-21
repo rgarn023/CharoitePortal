@@ -1,3 +1,7 @@
+## 2026-11-21 — Build an isolated Wine29 Android library loading test
+
+The [Meteorite Alpha build](https://github.com/rgarn023/CharoitePortal/actions/runs/44878089342) packages the verified display bundle. System → Check Wine29 display libraries opens a private activity in a separate Android process. It stages three ELF files in a fresh cache directory, checks Android loading and ntdll JNI registration, and displays PASS or the first failed library. The check does not call Wine initialization or launch an executable. After the signed APK publishes, install it in place and report the result. Actual Android surface rendering remains pending, so runtime readiness stays at 40%.
+
 ## 2026-11-21 — Opt-in Wine29 display asset packaging
 
 The Meteorite Alpha Android workflow can stage the verified six-file Java host bundle when dispatched with `wine29_display_assets`. It pins the archive SHA-256, checks the six individual digests, and compares the packaged assets byte-for-byte after the Android build. Local archive extraction and digest checks passed. The pinned Actions artifact has a seven-day retention window and needs repinning if it expires. The activity and Wine surface callbacks still need integration. No phone test or APK is requested at this step. Readiness remains 40%.

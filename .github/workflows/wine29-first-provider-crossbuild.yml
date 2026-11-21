@@ -1406,3 +1406,38 @@ jobs:
           path: wine29-first-provider-candidate/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Build matching Android display driver and win32u
+        run: |
+          set -euo pipefail
+          build="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
+          out="$GITHUB_WORKSPACE/wine29-android-display-candidate"
+          readelf="$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          readobj="$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj"
+          cd "$build"
+          make -j2 \
+            dlls/wineandroid.drv/aarch64-windows/wineandroid.drv \
+            dlls/wineandroid.drv/wineandroid.so \
+            dlls/win32u/aarch64-windows/win32u.dll \
+            dlls/win32u/win32u.so
+          mkdir "$out"
+          cp dlls/wineandroid.drv/aarch64-windows/wineandroid.drv dlls/wineandroid.drv/wineandroid.so \
+            dlls/win32u/aarch64-windows/win32u.dll dlls/win32u/win32u.so "$out/"
+          cd "$out"
+          for pe in wineandroid.drv win32u.dll; do
+            "$readobj" --file-headers --coff-imports "$pe" > "$pe.txt"
+            grep -Ei 'Machine: .*ARM64(EC|X)?([[:space:]]|$)' "$pe.txt"
+          done
+          for elf in wineandroid.so win32u.so; do
+            "$readelf" -h -d "$elf" > "$elf.txt"
+            grep -E 'Machine:[[:space:]]+AArch64' "$elf.txt"
+            grep -E 'Type:[[:space:]]+DYN' "$elf.txt"
+          done
+          sha256sum wineandroid.drv wineandroid.so win32u.dll win32u.so > SHA256SUMS
+      - name: Publish Android display driver candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Android-Display-Candidate
+          path: wine29-android-display-candidate/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy window launch ends in a native segmentation fault
+
+Build 1136 reached the x64 fixture launch checkpoint after the display libraries loaded, then Android reported native crash status 11 without an abort message. It remains unknown whether a window rendered. [The follow-up build](https://github.com/rgarn023/CharoitePortal/commit/f4605e9c0664f064480d4044ef52d9d4474d9276) adds System → Read last Wine29 window log to read a bounded, path-redacted tail from the original test's private log if present, without repeating the one-shot test. Estimated readiness remains 40%.
+
 ## 2026-11-21 — Meteorite Alpha build 1136 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44917299393) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1136) is available. Install in place through System → Check for updates → Update in app. Tap System → Run Wine29 x64 window test once and report whether the purple window appeared and what the diagnostic dialog says. Reopen Portal if the test closes. The Galaxy render remains pending and readiness is estimated at 40%.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy window log identifies the Explorer startup blocker
+
+Build 1140 loaded the x64 fixture, FEX, user32 and GDI32. It reported API-set lookup status c000000f and Explorer startup status c000007b before Wine reported that no window driver could load. [API-set staging](https://github.com/rgarn023/CharoitePortal/commit/f3eaa3d7496ea27cfa96beb62b66c1d301522a69) copies the verified schema beside JNI ntdll. [Provider CI change](https://github.com/rgarn023/CharoitePortal/commit/40ac68c6d7e4e1cb25d395fd0f3455229f5a0a84) builds a source-matched ARM64 Explorer candidate and inventories its imports before app integration. The specific cause of Explorer's invalid image status remains unverified. Runtime readiness remains estimated at 40%.
+
 ## 2026-11-21 — Galaxy x64 fixture reaches Windows window creation
 
 The build 1140 recovery dialog reports process exit status 12. The pinned x64 fixture returns 12 when CreateWindowExW fails, after class registration and before painting. This advances the observed path beyond the prior native startup crash. Android rendering is still unverified. Read the preserved v4 window log to investigate driver initialization without rerunning the fixture. Runtime readiness remains estimated at 40%.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy checkpoint isolates the interruption to ntdll.so
+
+Build 1128 reported `Interrupted while loading ntdll.so.` after the display test process closed. The checkpoint places the interruption inside the first System.load call, before win32u.so and wineandroid.so were tested. It does not distinguish ELF loading from JNI initialization. The [follow-up build](https://github.com/rgarn023/CharoitePortal/actions/runs/44884888987) adds an after-load checkpoint and reports the matching Android process exit reason and numeric status. Runtime readiness remains 40%.
+
 ## 2026-11-21 — Signed build 1128 ready for the Galaxy
 
 [Signed APK artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44879033899/artifacts/14696854709). Install over Meteorite Alpha, tap System → Check Wine29 display libraries once, and report the result. If the app closes, reopen it and share the Wine29 display check dialog, including the stage or library it names. The crash cause remains unverified and runtime readiness is estimated at 40%.

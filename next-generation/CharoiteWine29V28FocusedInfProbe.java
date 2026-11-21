@@ -131,8 +131,16 @@ public final class CharoiteWine29V28FocusedInfProbe {
     private static Map<String,String> cleanEnv(ProcessBuilder pb,
             File nativeDir, File server, File scratch, File prefix, File library)
             throws Exception {
-        Map<String,String> env = pb.environment();
-        env.clear();
+        Map<String,String> environment = pb.environment();
+        environment.clear();
+        environment.putAll(privateEnvironment(nativeDir, server, scratch, prefix, library));
+        return environment;
+    }
+
+    private static Map<String,String> privateEnvironment(
+            File nativeDir, File server, File scratch, File prefix, File library)
+            throws Exception {
+        Map<String,String> env = new java.util.LinkedHashMap<>();
         env.put("PATH", "/system/bin:/system/xbin");
         env.put("HOME", child(scratch,"home").getCanonicalPath());
         env.put("TMPDIR", child(scratch,"tmp").getCanonicalPath());
@@ -1474,7 +1482,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                             stageWindowInputs(context, scratch, prefix);
                             File host = child(scratch, "display-host");
                             File peRoot = child(host, "aarch64-windows");
-                            Map<String,String> env = cleanEnv(new ProcessBuilder(), nativeDir, server, scratch, prefix, lib);
+                            Map<String,String> env = privateEnvironment(nativeDir, server, scratch, prefix, lib);
                             env.put("WINEDLLPATH", host.getCanonicalPath() + ":" + env.get("WINEDLLPATH"));
                             env.put("CHAROITE_WINE29_V6_PE_DIR", peRoot.getCanonicalPath());
                             env.put("WINEDEBUG", "-all");

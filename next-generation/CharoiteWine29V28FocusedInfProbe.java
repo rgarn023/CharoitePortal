@@ -920,6 +920,12 @@ public final class CharoiteWine29V28FocusedInfProbe {
                     : "aarch64-windows/" + name);
             stageV28SetupModule(bytes, destination, verifyX64Asset(manifest, name, bytes));
         }
+        // JNI's early API-set lookup uses the same PE directory as ntdll.dll.
+        File apiSet = child(scratch, "runtime/lib/wine/aarch64-windows/apisetschema.dll");
+        if (!apiSet.isFile() || !apiSet.getCanonicalFile().equals(apiSet.getAbsoluteFile()))
+            throw new SecurityException("Verified API-set schema is unavailable");
+        java.nio.file.Files.copy(apiSet.toPath(), child(host, "aarch64-windows/apisetschema.dll").toPath());
+
         String executable = "x64-window.exe";
         String executableManifest = new String(readStandaloneAsset(context, root + "x64-window.sha256", 512),
                                                java.nio.charset.StandardCharsets.US_ASCII);

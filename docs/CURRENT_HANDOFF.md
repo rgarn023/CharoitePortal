@@ -1,3 +1,7 @@
+## 2026-11-21 — Retry Wine29 Java host symbol validation
+
+The [prior provider run](https://github.com/rgarn023/CharoitePortal/actions/runs/44873253877) published the display driver binaries but failed the separate Java host validation. The first run did not preserve the ntdll symbol table. The [retry](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555) explicitly marks the four Android JNI and driver symbols with default ELF visibility, rebuilds the host ntdll in CI, and preserves its dynamic symbol table so any missing definition can be diagnosed. The host bundle remains pending CI and the runtime readiness estimate remains 40%.
+
 ## 2026-11-21 — Stage matching Wine29 Java host inputs
 
 The [provider workflow](https://github.com/rgarn023/CharoitePortal/actions/runs/44873253877) now stages the Android driver and win32u with the PE and ELF ntdll pair from the very same build. It checks the Android JNI entry point, `java_vm` export, pinned WineActivity class, native dependencies and all six hashes. The Java host input artifact is gated on this CI run. The Java activity and surface lifecycle still need app integration before the Galaxy x64 window test. Runtime readiness remains 40%.

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261121T04-run11",
-  "claimed_run_id": 44863426039,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -20,12 +20,13 @@
     44589922771,
     44592939220,
     44757889116,
-    44862325497
+    44862325497,
+    44863426039
   ],
   "last_result": {
-    "run_id": 44862325497,
+    "run_id": 44863426039,
     "result": "failure",
-    "verification": "Job 136718243040 failed the Android display build on both AArch64 and ARM64EC: dllmain.c:126 assigns the Android start callback to a UINT64 without pointer conversion. Display upload skipped. SHA-256 verified provider artifact 14690801857 was published earlier. PR #27 proposes the targeted conversion; runtime remains 40%."
+    "verification": "Main provider #162 job 136721691795: Android display compilation progressed beyond callback conversion, but linking Android AArch64 win32u.so failed: undefined symbol vulkan_update_surfaces referenced by win32u/window.o. Display artifact not uploaded; other PE probe artifacts exist but do not validate display. No retry without source fix."
   },
   "event_batch_utc": "2026-11-21T04",
   "pending_validation": {
@@ -33,7 +34,7 @@
     "pr_number": 27,
     "branch": "engineering/wine29-android-display-callback",
     "head_sha": "c738593a0b675cbb801e4ddbddbf8727d60e23eb",
-    "phase": "awaiting_main_ci",
+    "phase": "main_ci_failed",
     "merged_main_sha": "0006d56c8473d99b1618c099ffd0b782685aad40",
     "main_run_id": 44863426039
   }

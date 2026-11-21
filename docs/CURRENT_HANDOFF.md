@@ -1,3 +1,7 @@
+## 2026-11-21 — Preserve WineActivity JNI entry point through R8
+
+The Galaxy build 1130 tombstone reports that Android aborted inside native loading when JNI NewGlobalRef ran with a pending NoSuchMethodError. The WineActivity class was present on the Java stack. Wine registers the private wine_init method by name during JNI_OnLoad, and the method has no direct Java call site. The [fix](https://github.com/rgarn023/CharoitePortal/commit/e7d7fa32a34e123d18e004e72d3b6e32524185f5) marks both the class and native method with AndroidX Keep to preserve the expected JNI targets through R8. [Android CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44911347593) is building the follow-up. Galaxy verification is pending. Estimate remains 40%.
+
 ## 2026-11-21 — Meteorite Alpha build 1130 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44909301176) and the [signed update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1130) is available. Update in place through System → Check for updates → Update in app. Run Check Wine29 display libraries once and report the full dialog, including Native abort if Android supplies it. If the test closes, reopen Portal to see the dialog. The cause of the abort is still unverified and estimated runtime readiness remains 40%.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1136 published
+
+[Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44917299393) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1136) is available. Install in place through System → Check for updates → Update in app. Tap System → Run Wine29 x64 window test once and report whether the purple window appeared and what the diagnostic dialog says. Reopen Portal if the test closes. The Galaxy render remains pending and readiness is estimated at 40%.
+
 ## 2026-11-21 — Fix first Android window build's isolation check
 
 The first integrated build failed the isolation contract because the JNI path allocated a dummy ProcessBuilder to get environment strings. The retry constructs the private Wine environment directly and reuses it for subprocesses and JNI. All three focused contract tests passed locally. [Replacement Android build](https://github.com/rgarn023/CharoitePortal/actions/runs/44917299393) is running. Readiness remains 40% pending Galaxy rendering.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261121T19-provider-review",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -33,6 +33,6 @@
     "result": "success",
     "verification": "Main provider job 136946477262 published ARM64 GUI explorer.exe in artifact 14720800420. Verified archive and executable SHA-256 and 13 DLL imports. Main commit 3cee888c6c7c81382c0e3307e7e1bc475859326c already stages this exact candidate in private Wine29 window runtime. No duplicate PR or rebuild. Galaxy startup and GUI remain unverified, 40%."
   },
-  "event_batch_utc": "2026-11-21T16",
+  "event_batch_utc": "2026-11-21T19",
   "pending_validation": null
 }

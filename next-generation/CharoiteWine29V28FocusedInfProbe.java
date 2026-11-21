@@ -918,6 +918,46 @@ public final class CharoiteWine29V28FocusedInfProbe {
         return digest;
     }
 
+    public static String inspectX64Smoke(Context context) {
+        String header = "Handoff: https://github.com/rgarn023/CharoitePortal/blob/main/docs/CURRENT_HANDOFF.md\n"
+            + "Preserved Wine29 x64 smoke log\n";
+        try {
+            File base = context.getNoBackupFilesDir().getCanonicalFile();
+            File file = child(base, "charoite-next-wine29-x64-smoke/x64-smoke.log");
+            java.nio.file.Path path = file.toPath();
+            if (!file.getCanonicalFile().equals(file.getAbsoluteFile())
+                    || !java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                return header + "No preserved x64 smoke log available.";
+            byte[] bytes;
+            try (InputStream input = java.nio.file.Files.newInputStream(
+                    path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                byte[] chunk = new byte[4096];
+                int count;
+                while ((count = input.read(chunk)) != -1) {
+                    if (buffer.size() + count > 65536) return header + "Log exceeds 64 KiB.";
+                    buffer.write(chunk, 0, count);
+                }
+                bytes = buffer.toByteArray();
+            }
+            String log = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+            String lower = log.toLowerCase(Locale.ROOT);
+            java.util.regex.Matcher missing = java.util.regex.Pattern.compile(
+                "(?im)err:module:import_dll\\s+Library ([a-z0-9_.-]{1,80}\\.dll)\\b[^\\r\\n]*not found"
+            ).matcher(log);
+            java.util.Set<String> modules = new java.util.LinkedHashSet<>();
+            while (modules.size() < 12 && missing.find()) modules.add(missing.group(1));
+            return header + "Log bytes: " + bytes.length
+                + "\nMissing imports named by Wine: " + (modules.isEmpty() ? "none reported" : modules)
+                + "\nWindows status c0000135: " + lower.contains("c0000135")
+                + "\nkernel32.dll mentioned: " + lower.contains("kernel32.dll")
+                + "\nxtajit64.dll mentioned: " + lower.contains("xtajit64.dll")
+                + "\nFEX DLL mentioned: " + lower.contains("libarm64ecfex.dll");
+        } catch (Exception e) {
+            return header + "Could not inspect the preserved log (" + e.getClass().getSimpleName() + ").";
+        }
+    }
+
     public static String verifyX64Smoke(Context context) {
         return run(context, true, true);
     }

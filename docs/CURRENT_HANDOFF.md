@@ -1,3 +1,7 @@
+## 2026-11-20 — x64 smoke exits 53 on device
+
+Build 1123 completed prefix setup, verified all eight setup payloads, and started RpcSs. The x64 executable exited 53 without its expected marker while the private wineserver remained alive. The summary did not include the smoke log. System → Inspect last x64 smoke test reads the preserved log and reports missing DLL names and fixed markers without rerunning Wine. Readiness remains 35%.
+
 ## 2026-11-20 — Wine29 x64 smoke test on Meteorite Alpha
 
 System → Run x64 smoke test creates one new private prefix, reuses the V35 setup and RpcSs gate, verifies the packaged FEX and AMD64 fixture hashes, and stages FEX under the pinned Wine loader's default `xtajit64.dll` name. Success requires the exact x64 output, exit 42, and a live private wineserver. Copy the report after the phone test. Runtime readiness remains 35% until x64 execution is verified.

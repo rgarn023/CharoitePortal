@@ -3942,6 +3942,23 @@ ui = ui.replace(anchor, anchor + """
             }, "CharoiteWine29X64Smoke").start();
         }).show());
         rpcssAction.addView(runX64);
+        android.widget.Button inspectX64 = new android.widget.Button(this);
+        inspectX64.setText("Inspect last x64 smoke test");
+        inspectX64.setOnClickListener(v -> {
+            String report = com.charoitegames.core.CharoiteWine29V28FocusedInfProbe.inspectX64Smoke(this);
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Preserved x64 smoke report")
+                .setMessage(report)
+                .setPositiveButton("Copy report", (dialog, which) -> {
+                    android.content.ClipboardManager clipboard = getSystemService(
+                            android.content.ClipboardManager.class);
+                    if (clipboard != null) clipboard.setPrimaryClip(
+                        android.content.ClipData.newPlainText("Wine29 x64 smoke report", report));
+                })
+                .setNegativeButton("Close", null).show();
+        });
+        rpcssAction.addView(inspectX64);
+
         android.widget.Button rpcssHandoff = new android.widget.Button(this);
         rpcssHandoff.setText("Open current project handoff");
         rpcssHandoff.setAllCaps(false);

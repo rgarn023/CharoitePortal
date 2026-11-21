@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261121T10-claim",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -32,6 +32,6 @@
     "result": "success",
     "verification": "Provider #163 main run 44868006366 succeeded at exact PR #28 merged SHA 23646ce31f389e5a40d67252a07b02ca54d9c988; display candidate published. #165 failed Java host export check. #166 completed success, job 136764109201; Java host artifact 14697190124 (6-file SHA256 manifest and JNI symbols verified per main handoff). Runtime Android GUI rendering not verified; 40%."
   },
-  "event_batch_utc": "2026-11-21T07",
+  "event_batch_utc": "2026-11-21T10",
   "pending_validation": null
 }

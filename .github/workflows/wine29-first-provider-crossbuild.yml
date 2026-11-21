@@ -1427,6 +1427,26 @@ jobs:
               raise SystemExit("Unexpected pinned Android driver callback assignment")
           source.write_text(contents.replace(original, patched))
           PY
+          # Window updates still call this hook in builds without a Vulkan loader.
+          python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
+          import pathlib
+          import sys
+
+          source = pathlib.Path(sys.argv[1])
+          contents = source.read_text()
+          anchor = "#else /* SONAME_LIBVULKAN */\n\nvoid vulkan_detach_surfaces"
+          if contents.count(anchor) != 1:
+              raise SystemExit("Unexpected pinned win32u fallback layout")
+          fallback = (
+              "#else /* SONAME_LIBVULKAN */\n\n"
+              "void vulkan_update_surfaces( HWND hwnd )\n"
+              "{\n"
+              "    (void)hwnd;\n"
+              "}\n\n"
+              "void vulkan_detach_surfaces"
+          )
+          source.write_text(contents.replace(anchor, fallback))
+          PY
           cd "$build"
           diagnostics="$GITHUB_WORKSPACE/wine29-android-display-diagnostics"
           mkdir "$diagnostics"

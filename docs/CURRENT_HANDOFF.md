@@ -1,3 +1,7 @@
+## 2026-11-21 — ARM64 Explorer provider candidate verified
+
+[Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577) built a source-matched ARM64 GUI `explorer.exe`. The [Explorer artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577/artifacts/14720800420) matches GitHub's archive digest and the executable matches its manifest entry. Its import inventory lists 13 DLLs. [The runtime staging change](https://github.com/rgarn023/CharoitePortal/commit/3cee888c6c7c81382c0e3307e7e1bc475859326c) is already on main. Explorer startup and x64 window rendering on Galaxy remain unverified. Readiness stays **40%**. Provider CI produced zero APKs.
+
 ## 2026-11-21 — Package ARM64 Explorer for the next Galaxy window test
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577). The Explorer artifact was independently checksum-verified and its PE header identifies it as ARM64. The Meteorite Alpha build pins that artifact and stages Explorer and the verified API-set schema in a fresh v5 window-test runtime. Explorer startup and Android window rendering still need Galaxy verification. Estimated readiness remains 40%.

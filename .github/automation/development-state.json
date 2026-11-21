@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-693fbf50-e5dc-11f1-8437-a7b61dead883",
-  "claimed_run_id": 44937251577,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -25,12 +25,13 @@
     44867163894,
     44868006366,
     44873253877,
-    44877104555
+    44877104555,
+    44937251577
   ],
   "last_result": {
-    "run_id": 44877104555,
+    "run_id": 44937251577,
     "result": "success",
-    "verification": "Provider #163 main run 44868006366 succeeded at exact PR #28 merged SHA 23646ce31f389e5a40d67252a07b02ca54d9c988; display candidate published. #165 failed Java host export check. #166 completed success, job 136764109201; Java host artifact 14697190124 (6-file SHA256 manifest and JNI symbols verified per main handoff). Runtime Android GUI rendering not verified; 40%."
+    "verification": "Main provider job 136946477262 published ARM64 GUI explorer.exe in artifact 14720800420. Verified archive and executable SHA-256 and 13 DLL imports. Main commit 3cee888c6c7c81382c0e3307e7e1bc475859326c already stages this exact candidate in private Wine29 window runtime. No duplicate PR or rebuild. Galaxy startup and GUI remain unverified, 40%."
   },
   "event_batch_utc": "2026-11-21T16",
   "pending_validation": null

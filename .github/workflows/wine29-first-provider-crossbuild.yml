@@ -1491,7 +1491,32 @@ jobs:
           display="$GITHUB_WORKSPACE/wine29-android-display-candidate"
           host="$GITHUB_WORKSPACE/wine29-android-java-host"
           readelf="$ANDROID_HOME/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          diagnostics="$GITHUB_WORKSPACE/wine29-android-display-diagnostics"
           mkdir "$host"
+          # The Java host and driver look up these symbols at runtime.
+          python3 - "$root/dlls/ntdll/unix/loader.c" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          source = path.read_text()
+          declarations = (
+              "JavaVM *java_vm = NULL;",
+              "jobject java_object = 0;",
+              "unsigned short java_gdt_sel = 0;",
+              "jint JNI_OnLoad( JavaVM *vm, void *reserved )",
+          )
+          for declaration in declarations:
+              if source.splitlines().count(declaration) != 1:
+                  raise SystemExit(f"Unexpected Android loader declaration: {declaration}")
+              source = source.replace("\n" + declaration, '\n__attribute__((visibility("default"))) ' + declaration)
+          path.write_text(source)
+          PY
+          if ! make -C "$build" -j2 dlls/ntdll/ntdll.so > "$RUNNER_TEMP/wine29-java-host-build.log" 2>&1; then
+            tail -c 131072 "$RUNNER_TEMP/wine29-java-host-build.log" > "$diagnostics/java-host-build-tail.log"
+            tail -n 35 "$diagnostics/java-host-build-tail.log"
+            exit 1
+          fi
           (cd "$display" && sha256sum -c SHA256SUMS)
           cp "$display"/{wineandroid.drv,wineandroid.so,win32u.dll,win32u.so} "$host/"
           cp "$build/dlls/ntdll/ntdll.so" "$build/dlls/ntdll/aarch64-windows/ntdll.dll" "$host/"
@@ -1500,8 +1525,12 @@ jobs:
           "$readelf" --dyn-syms -W ntdll.so > ntdll-exports.txt
           grep -E 'Machine:[[:space:]]+AArch64' ntdll-elf.txt
           grep -E 'Type:[[:space:]]+DYN' ntdll-elf.txt
-          for symbol in JNI_OnLoad java_vm; do
-            awk -v symbol="$symbol" '$7 != "UND" && $8 == symbol { found = 1 } END { exit !found }' ntdll-exports.txt
+          cp ntdll-elf.txt ntdll-exports.txt "$diagnostics/"
+          for symbol in JNI_OnLoad java_vm java_object java_gdt_sel; do
+            if ! awk -v symbol="$symbol" '$7 != "UND" && $8 == symbol { found = 1 } END { exit !found }' ntdll-exports.txt; then
+              echo "Missing dynamic definition: $symbol" >&2
+              exit 1
+            fi
           done
           grep -F '#define WINE_JAVA_CLASS "org/winehq/wine/WineActivity"' "$root/dlls/ntdll/unix/loader.c"
           "$readelf" -d wineandroid.so > wineandroid-dependencies.txt

@@ -1242,6 +1242,13 @@ jobs:
           done
           (cd "$assets" && sha256sum -c SHA256SUMS)
 
+          fixture="$RUNNER_TEMP/wine29-x64-window.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14689134283/zip" > "$fixture"
+          echo "f34008e7e8570dd2c1a8e2084e19cf3fa12c329cb2c1d254f6b23bb99ca05bcf  $fixture" | sha256sum -c -
+          unzip -p "$fixture" x64-window.exe > "$assets/x64-window.exe"
+          echo "ef6eddd6b901951911f0f54b833c67a383c8daaf8ca2cf78539a5e0b177e3dda  x64-window.exe" > "$assets/x64-window.sha256"
+          (cd "$assets" && sha256sum -c x64-window.sha256)
+
       - name: Apply the allocated Android version
         env:
           NEXT_VERSION_CODE: ${{ steps.version.outputs.code }}

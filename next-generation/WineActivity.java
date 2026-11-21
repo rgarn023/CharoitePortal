@@ -13,6 +13,8 @@ import android.widget.LinearLayout;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.FileOutputStream;
@@ -87,12 +89,66 @@ public final class WineActivity extends Activity {
                     case ApplicationExitInfo.REASON_ANR: reason = "process did not respond"; break;
                     default: reason = "reason " + exit.getReason(); break;
                 }
-                return "\nAndroid reports " + reason + " (status " + exit.getStatus() + ").";
+                String report = "\nAndroid reports " + reason + " (status " + exit.getStatus() + ").";
+                return exit.getReason() == ApplicationExitInfo.REASON_CRASH_NATIVE
+                        ? report + readAbortMessage(exit) : report;
             }
         } catch (RuntimeException failure) {
             android.util.Log.w("Wine29Display", "Could not read process exit reason", failure);
         }
         return "\nAndroid has no matching process-exit record yet.";
+    }
+
+    private static String readAbortMessage(ApplicationExitInfo exit) {
+        // Android tombstone.proto: the top-level abort_message is string field 14.
+        try (InputStream trace = exit.getTraceInputStream()) {
+            if (trace == null) return "\nAndroid has no native abort detail.";
+            DataInputStream input = new DataInputStream(new BufferedInputStream(trace));
+            int remaining = 128 * 1024;
+            while (remaining > 0) {
+                long tag = readVarint(input);
+                remaining -= 10;
+                int wire = (int) (tag & 7);
+                if (wire == 0) {
+                    readVarint(input);
+                    remaining -= 10;
+                    continue;
+                }
+                long length;
+                switch (wire) {
+                    case 1: length = 8; break;
+                    case 2: length = readVarint(input); remaining -= 10; break;
+                    case 5: length = 4; break;
+                    default: return "\nAndroid returned an unreadable abort detail.";
+                }
+                if (length < 0 || length > remaining) break;
+                if (tag == ((14 << 3) | 2)) {
+                    byte[] bytes = new byte[(int) Math.min(length, 768)];
+                    input.readFully(bytes);
+                    String detail = new String(bytes, StandardCharsets.UTF_8)
+                            .replaceAll("[\\p{Cntrl}]+", " ")
+                            .replaceAll("/[^\\s'\"]+", "[path]").trim();
+                    if (!detail.isEmpty()) return "\nNative abort: " + detail;
+                    break;
+                }
+                if (input.skipBytes((int) length) != length) break;
+                remaining -= (int) length;
+            }
+        } catch (IOException | RuntimeException failure) {
+            android.util.Log.w("Wine29Display", "Could not read native abort detail", failure);
+        }
+        return "\nAndroid has no readable native abort detail.";
+    }
+
+    private static long readVarint(DataInputStream input) throws IOException {
+        long value = 0;
+        for (int shift = 0; shift < 64; shift += 7) {
+            int next = input.readUnsignedByte();
+            if (shift == 63 && next > 1) throw new IOException("Invalid tombstone varint");
+            value |= (long) (next & 127) << shift;
+            if ((next & 128) == 0) return value;
+        }
+        throw new IOException("Invalid tombstone varint");
     }
 
     @Override

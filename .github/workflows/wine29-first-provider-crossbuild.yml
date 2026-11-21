@@ -1428,11 +1428,20 @@ jobs:
           source.write_text(contents.replace(original, patched))
           PY
           cd "$build"
+          diagnostics="$GITHUB_WORKSPACE/wine29-android-display-diagnostics"
+          mkdir "$diagnostics"
+          awk '/^dlls\/(wineandroid\.drv|win32u)\/[^[:space:]]+:/ && count++ < 120 { print $1 }' Makefile > "$diagnostics/generated-targets.txt"
+          build_status=0
           make -j2 \
             dlls/wineandroid.drv/aarch64-windows/wineandroid.drv \
             dlls/wineandroid.drv/wineandroid.so \
             dlls/win32u/aarch64-windows/win32u.dll \
-            dlls/win32u/win32u.so
+            dlls/win32u/win32u.so > "$RUNNER_TEMP/wine29-display-build.log" 2>&1 || build_status=$?
+          tail -c 131072 "$RUNNER_TEMP/wine29-display-build.log" > "$diagnostics/build-tail.log"
+          if [ "$build_status" -ne 0 ]; then
+            tail -n 35 "$diagnostics/build-tail.log"
+            exit "$build_status"
+          fi
           mkdir "$out"
           cp dlls/wineandroid.drv/aarch64-windows/wineandroid.drv dlls/wineandroid.drv/wineandroid.so \
             dlls/win32u/aarch64-windows/win32u.dll dlls/win32u/win32u.so "$out/"
@@ -1453,4 +1462,12 @@ jobs:
           name: Wine29-Android-Display-Candidate
           path: wine29-android-display-candidate/
           if-no-files-found: error
+          retention-days: 7
+      - name: Publish Android display build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wine29-Android-Display-Build-Diagnostics
+          path: wine29-android-display-diagnostics/
+          if-no-files-found: ignore
           retention-days: 7

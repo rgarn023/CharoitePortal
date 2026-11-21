@@ -3955,8 +3955,7 @@ ui = ui.replace(anchor, anchor + """
         try (java.io.InputStream ignored = getAssets().open("wine29-java-host/SHA256SUMS")) {
             android.widget.Button displayHost = new android.widget.Button(this);
             displayHost.setText("Check Wine29 display libraries");
-            displayHost.setOnClickListener(v -> startActivity(new android.content.Intent(
-                    this, org.winehq.wine.WineActivity.class)));
+            displayHost.setOnClickListener(v -> org.winehq.wine.WineActivity.launchCheck(this));
             rpcssAction.addView(displayHost);
         } catch (java.io.IOException ignored) {
             // The display bundle is available only in dedicated test builds.
@@ -4080,6 +4079,7 @@ ui = ui.replace(resume_anchor, (
     "        super.onResume();\n"
     "        com.charoitegames.core.CharoiteNextBootActivity"
     ".onPortalResumed(this);\n"
+    "        org.winehq.wine.WineActivity.showLastCheck(this);\n"
     "        if (main != null && isDexActive() != lastDexState) {\n"
     "            render();\n"
     "            refreshReadyState();\n"

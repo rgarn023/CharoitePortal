@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-7852045e-e55e-11f1-9a64-1f9699f095ce",
-  "claimed_run_id": 44862325497,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -33,6 +33,8 @@
     "pr_number": 27,
     "branch": "engineering/wine29-android-display-callback",
     "head_sha": "c738593a0b675cbb801e4ddbddbf8727d60e23eb",
-    "phase": "awaiting_pr_checks"
+    "phase": "awaiting_main_ci",
+    "merged_main_sha": "0006d56c8473d99b1618c099ffd0b782685aad40",
+    "main_run_id": 44863426039
   }
 }

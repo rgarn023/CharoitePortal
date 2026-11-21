@@ -1,3 +1,7 @@
+## 2026-11-21 — Restore the intermediate directory in the Wine loader path
+
+Build 1139 still reports two failed NLS reads. Pinned Wine derives its data path through bin/../share/wine, and the private display runtime had no bin directory. A local filesystem check reproduced the failed read with the file present and confirmed that creating bin makes the same path readable. The v4 test creates that directory and preserves earlier tests. Android build and Galaxy rendering remain unverified. Readiness is estimated at 40%.
+
 ## 2026-11-21 — Meteorite Alpha build 1139 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44924684228) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1139) is available. Install in place via System → Check for updates → Update in app. Run System → Run Wine29 x64 window test once. Report whether the purple window appeared. If the test closes, reopen Portal and share the recovery message and System → Read last Wine29 window log. This run uses a fresh v3 prefix with the corrected NLS layout. Galaxy verification remains pending and estimated runtime readiness is 40%.

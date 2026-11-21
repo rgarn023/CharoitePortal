@@ -903,6 +903,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
         File[] tables = sourceNls.listFiles();
         if (tables == null || tables.length != 76)
             throw new SecurityException("Window runtime NLS cohort incomplete");
+        // init_paths() derives share/wine through bin/../share/wine.
+        // The kernel must be able to traverse bin even when it is empty.
+        mkdir(child(scratch, "display-host/bin"));
         mkdir(hostNls);
         for (File table : tables) {
             if (!table.getName().matches("[a-z0-9_]+\\.nls") || !table.isFile()
@@ -1096,7 +1099,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v3"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v4"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);

@@ -1,3 +1,7 @@
+## 2026-11-21 — Wine29 display libraries pass on the Galaxy
+
+The owner reported PASS for System → Check Wine29 display libraries on Meteorite Alpha build 1131. Android loaded ntdll.so, win32u.so, and wineandroid.so after the R8 keep fix for WineActivity.wine_init. This verifies the native load and JNI registration step on Galaxy S26 Ultra. Next milestone: initialize Wine through the Android host with a private test prefix and verify that the x64 window fixture renders to an Android surface. Estimated runtime readiness remains 40% pending rendered-window verification.
+
 ## 2026-11-21 — Meteorite Alpha build 1131 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44911347593) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1131) is available. Update in place via System → Check for updates → Update in app, then tap System → Check Wine29 display libraries once. Report PASS or the full diagnostic dialog after reopening Portal if the test process closes. This verifies the JNI registration fix on the Galaxy. Runtime readiness remains an estimated 40% pending device verification.

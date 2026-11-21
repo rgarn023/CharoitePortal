@@ -1,3 +1,7 @@
+## 2026-11-21 — Signed build 1128 ready for the Galaxy
+
+[Signed APK artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44879033899/artifacts/14696854709). Install over Meteorite Alpha, tap System → Check Wine29 display libraries once, and report the result. If the app closes, reopen it and share the Wine29 display check dialog, including the stage or library it names. The crash cause remains unverified and runtime readiness is estimated at 40%.
+
 ## 2026-11-21 — Galaxy display check interrupted
 
 Build 1127 closed when the owner tapped Check Wine29 display libraries. The cause is unverified. [The recovery build commit](https://github.com/rgarn023/CharoitePortal/commit/7da87731442a6ad0f33a62f1ce65f6b39423b25f) writes a private checkpoint before launching the isolated activity and before each library load. On return or relaunch Portal displays the last stage or completed result. This makes an interrupted check visible even if the process cannot catch the error. Runtime readiness remains 40%.

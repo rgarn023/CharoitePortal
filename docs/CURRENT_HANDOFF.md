@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1130 published
+
+[Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44909301176) and the [signed update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1130) is available. Update in place through System → Check for updates → Update in app. Run Check Wine29 display libraries once and report the full dialog, including Native abort if Android supplies it. If the test closes, reopen Portal to see the dialog. The cause of the abort is still unverified and estimated runtime readiness remains 40%.
+
 ## 2026-11-21 — Galaxy reports a native abort loading ntdll.so
 
 Build 1129 reported `Interrupted while loading ntdll.so. Android reports native crash (status 6).` The verified host ELF has an initialization array and a JNI_OnLoad entry point, so the checkpoint alone cannot identify which code aborted. The [follow-up commit](https://github.com/rgarn023/CharoitePortal/commit/53136145435f4689d094564a8085d052e0235161) extracts a bounded abort message from the matching Android exit record and redacts paths. It does not export the full tombstone. Runtime readiness remains 40% and the x64 window test still awaits Android host verification.

@@ -1,3 +1,7 @@
+## 2026-11-20 — Native Wine29 Android display candidate
+
+The [Android cross-build](https://github.com/rgarn023/CharoitePortal/actions/runs/44862325497) targets the pinned Wine source's `wineandroid.drv` and `win32u.dll` plus their Android AArch64 ELF companions. It checks the PE machine types, ELF architecture and dynamic-library type, and produces a digest manifest for the four binaries. The pinned Android driver expects JNI callbacks and Android surfaces from a Java host. The current isolated Wine29 launcher uses a native child process. Runtime integration must provide a compatible Java host and surface lifecycle or select a display backend that supports the child-process architecture. Readiness remains 40% pending Galaxy display verification.
+
 ## 2026-11-20 — x64 Windows window fixture
 
 Added a source-built AMD64 GUI fixture that creates a window, paints it purple, and samples a pixel from the Wine desktop. CI checks the PE architecture, GUI subsystem, import allowlist and Wine exit code before publishing the fixture. The desktop Wine check passed under Xvfb and the fixture exited with the expected code 42. [Verified fixture artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44860665791/artifacts/14689134283). Android integration still needs a verified display driver and connection for the native Wine29 runtime. Runtime readiness estimate remains 40% pending Galaxy verification.

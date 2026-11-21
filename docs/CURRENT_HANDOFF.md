@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1138 published
+
+[Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44921629602) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1138) is available. Update in place and run System → Run Wine29 x64 window test once. Report whether the purple window appeared and, if the test closes, reopen Portal and copy the recovery dialog and System → Read last Wine29 window log. This run uses the separate v2 test prefix. The Galaxy rendering milestone remains pending and estimated readiness is 40%.
+
 ## 2026-11-21 — Empty native log from Galaxy window crash
 
 The owner confirmed the preserved v1 native Wine log is empty. The v1 fixture launch suppressed all Wine debug channels, so the empty log does not locate the failure. [The next build](https://github.com/rgarn023/CharoitePortal/commit/fb90e257e60d55aae04078fd4f01eed051d3fb98) uses a fresh v2 scratch prefix, enables Wine errors and module loads, and records desktop creation and surface handoff checkpoints. The log viewer prefers v2 and falls back to the original run. No root cause verified. Estimated runtime readiness remains 40%.

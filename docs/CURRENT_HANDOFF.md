@@ -1,3 +1,7 @@
+## 2026-11-21 — Package ARM64 Explorer for the next Galaxy window test
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577). The Explorer artifact was independently checksum-verified and its PE header identifies it as ARM64. The Meteorite Alpha build pins that artifact and stages Explorer and the verified API-set schema in a fresh v5 window-test runtime. Explorer startup and Android window rendering still need Galaxy verification. Estimated readiness remains 40%.
+
 ## 2026-11-21 — Galaxy window log identifies the Explorer startup blocker
 
 Build 1140 loaded the x64 fixture, FEX, user32 and GDI32. It reported API-set lookup status c000000f and Explorer startup status c000007b before Wine reported that no window driver could load. [API-set staging](https://github.com/rgarn023/CharoitePortal/commit/f3eaa3d7496ea27cfa96beb62b66c1d301522a69) copies the verified schema beside JNI ntdll. [Provider CI change](https://github.com/rgarn023/CharoitePortal/commit/40ac68c6d7e4e1cb25d395fd0f3455229f5a0a84) builds a source-matched ARM64 Explorer candidate and inventories its imports before app integration. The specific cause of Explorer's invalid image status remains unverified. Runtime readiness remains estimated at 40%.

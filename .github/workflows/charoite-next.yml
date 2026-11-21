@@ -1249,6 +1249,13 @@ jobs:
           echo "ef6eddd6b901951911f0f54b833c67a383c8daaf8ca2cf78539a5e0b177e3dda  x64-window.exe" > "$assets/x64-window.sha256"
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
+          explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14720800420/zip" > "$explorer"
+          echo "35d2d5260493d60f8c2925e5a3fe7b4ab8c15d54e18209a92afa3ea5279981c7  $explorer" | sha256sum -c -
+          unzip -p "$explorer" explorer.exe > "$assets/explorer.exe"
+          echo "bec10ab09dc5c34bcf0083cb9c37fcc01218c929eb1819b0bcca6f998d994bb2  explorer.exe" > "$assets/explorer.sha256"
+          (cd "$assets" && sha256sum -c explorer.sha256)
+
       - name: Apply the allocated Android version
         env:
           NEXT_VERSION_CODE: ${{ steps.version.outputs.code }}

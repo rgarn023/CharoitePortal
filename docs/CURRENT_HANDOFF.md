@@ -1,3 +1,7 @@
+## 2026-11-21 — Opt-in Wine29 display asset packaging
+
+The Meteorite Alpha Android workflow can stage the verified six-file Java host bundle when dispatched with `wine29_display_assets`. It pins the archive SHA-256, checks the six individual digests, and compares the packaged assets byte-for-byte after the Android build. Local archive extraction and digest checks passed. The pinned Actions artifact has a seven-day retention window and needs repinning if it expires. The activity and Wine surface callbacks still need integration. No phone test or APK is requested at this step. Readiness remains 40%.
+
 ## 2026-11-21 — Wine29 Android Java host bundle verified
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555) and published the [Java host bundle](https://github.com/rgarn023/CharoitePortal/actions/runs/44877104555/artifacts/14697190124). The downloaded archive SHA-256 is `7af48bf2e3b062f32d15ddaf12404efdb9f65e7167c7e415e7d12c460555c7f0`. All six binaries independently matched SHA256SUMS. The bundled ntdll.so defines JNI_OnLoad, java_vm, java_object, and java_gdt_sel in its dynamic symbol table. The next integration uses this cohort from a separate, non-exported Android activity process and passes Android surfaces through Wine’s Java callbacks. The x64 fixture still needs Galaxy rendering verification. Readiness remains 40% and this provider run produced no APK.

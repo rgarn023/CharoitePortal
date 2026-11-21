@@ -1,3 +1,7 @@
+## 2026-11-21 — Implement the Wine29 test window's Android surfaces
+
+The [Java host change](https://github.com/rgarn023/CharoitePortal/commit/c892d9309c6c27e4fc5e442027db2933a05ef1c5) adds the callback names and signatures from the pinned Android driver. The host creates and positions Android TextureViews on the UI thread, forwards their surfaces to Wine, and releases them on destruction. This implementation targets the single-window fixture with a flat desktop and the default cursor. The library check remains the only enabled entry point. Private runtime staging and Java-initiated Wine launch are still pending, so this code has not rendered a window and no device test build was requested. Readiness remains 40%.
+
 ## 2026-11-21 — Stage the x64 window fixture for Android
 
 The Meteorite Alpha display build now stages the AMD64 window fixture verified on desktop Wine. The workflow checks the artifact ZIP and executable digests and uses the existing APK asset byte comparison. The archive contents and digests were inspected locally. App-side launch still requires private prefix staging and the WineActivity window/surface callback contract. No APK requested for this packaging-only change. Estimated runtime readiness remains 40%.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy x64 fixture reaches Windows window creation
+
+The build 1140 recovery dialog reports process exit status 12. The pinned x64 fixture returns 12 when CreateWindowExW fails, after class registration and before painting. This advances the observed path beyond the prior native startup crash. Android rendering is still unverified. Read the preserved v4 window log to investigate driver initialization without rerunning the fixture. Runtime readiness remains estimated at 40%.
+
 ## 2026-11-21 — Meteorite Alpha build 1140 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44933829295) and the [signed in-app update](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1140) is available. Install in place via System → Check for updates → Update in app. Tap System → Run Wine29 x64 window test once. Report whether the purple window appears and, if the test closes, reopen Portal and share the recovery message plus System → Read last Wine29 window log. This uses a fresh v4 test directory and tests the fix to Wine's computed NLS path. Runtime readiness is estimated at 40% pending Galaxy rendering.

@@ -3962,6 +3962,10 @@ ui = ui.replace(anchor, anchor + """
                 windowTest.setText("Run Wine29 x64 window test");
                 windowTest.setOnClickListener(v -> org.winehq.wine.WineActivity.launchWindow(this));
                 rpcssAction.addView(windowTest);
+                android.widget.Button readWindowLog = new android.widget.Button(this);
+                readWindowLog.setText("Read last Wine29 window log");
+                readWindowLog.setOnClickListener(v -> org.winehq.wine.WineActivity.showWindowLog(this));
+                rpcssAction.addView(readWindowLog);
             }
         } catch (java.io.IOException ignored) {
             // The display bundle is available only in dedicated test builds.

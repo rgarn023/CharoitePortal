@@ -137,6 +137,39 @@ public final class WineActivity extends Activity {
     public void setParent(int hwnd, int parent, float scale, int pid) {}
     public void setCursor(int id, int width, int height, int hotspotX, int hotspotY, int[] bits) {}
 
+    public static void showWindowLog(Activity portal) {
+        File log = new File(portal.getNoBackupFilesDir(),
+                "charoite-next-wine29-x64-window-v1/x64-window-native.log");
+        String report;
+        try {
+            if (!log.isFile() || !log.getCanonicalFile().equals(log.getAbsoluteFile())) {
+                report = "No preserved native Wine log for the window test.";
+            } else {
+                try (java.io.RandomAccessFile input = new java.io.RandomAccessFile(log, "r")) {
+                    long size = input.length();
+                    byte[] tail = new byte[(int) Math.min(size, 4096L)];
+                    input.seek(size - tail.length);
+                    input.readFully(tail);
+                    String detail = new String(tail, StandardCharsets.UTF_8)
+                            .replaceAll("[\\p{Cntrl}&&[^\\n\\t]]+", " ")
+                            .replaceAll("/[^\\s'\"]+", "[path]").trim();
+                    report = detail.isEmpty() ? "The preserved Wine log is empty." : detail;
+                }
+            }
+        } catch (IOException failure) {
+            report = "Could not read the preserved Wine window log.";
+        }
+        final String message = report;
+        new AlertDialog.Builder(portal).setTitle("Wine29 window log").setMessage(message)
+                .setNegativeButton("Close", null)
+                .setPositiveButton("Copy", (dialog, which) -> {
+                    android.content.ClipboardManager clipboard =
+                            portal.getSystemService(android.content.ClipboardManager.class);
+                    if (clipboard != null) clipboard.setPrimaryClip(
+                            android.content.ClipData.newPlainText("Wine29 window log", message));
+                }).show();
+    }
+
     private static AtomicFile checkpoint(Context context) {
         return new AtomicFile(new File(context.getFilesDir(), "wine29-display-check.txt"));
     }

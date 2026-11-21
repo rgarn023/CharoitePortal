@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261121T07-reconcile-166",
-  "claimed_run_id": 44877104555,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -22,21 +22,16 @@
     44757889116,
     44862325497,
     44863426039,
-    44867163894
+    44867163894,
+    44868006366,
+    44873253877,
+    44877104555
   ],
   "last_result": {
-    "run_id": 44867163894,
-    "result": "failure",
-    "verification": "Job 136733303398 and SHA-256 verified diagnostic ZIP 14692512723 confirm Android win32u.so link failure: undefined vulkan_update_surfaces without SONAME_LIBVULKAN. Display upload skipped. Prior PR #27 main validation failed at this same link gate. PR #28 proposes the missing no-Vulkan fallback. Runtime readiness 40%."
+    "run_id": 44877104555,
+    "result": "success",
+    "verification": "Provider #163 main run 44868006366 succeeded at exact PR #28 merged SHA 23646ce31f389e5a40d67252a07b02ca54d9c988; display candidate published. #165 failed Java host export check. #166 completed success, job 136764109201; Java host artifact 14697190124 (6-file SHA256 manifest and JNI symbols verified per main handoff). Runtime Android GUI rendering not verified; 40%."
   },
   "event_batch_utc": "2026-11-21T07",
-  "pending_validation": {
-    "source_run_id": 44867163894,
-    "pr_number": 28,
-    "branch": "engineering/wine29-non-vulkan-display-link",
-    "head_sha": "209411266c79ffb39d186b76a397d4a4d9822db3",
-    "phase": "awaiting_main_ci",
-    "merged_main_sha": "23646ce31f389e5a40d67252a07b02ca54d9c988",
-    "main_run_id": 44868006366
-  }
+  "pending_validation": null
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-768451b0-e566-11f1-80a3-8d3baf5519e5",
-  "claimed_run_id": 44867163894,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -35,6 +35,8 @@
     "pr_number": 28,
     "branch": "engineering/wine29-non-vulkan-display-link",
     "head_sha": "209411266c79ffb39d186b76a397d4a4d9822db3",
-    "phase": "awaiting_pr_checks"
+    "phase": "awaiting_main_ci",
+    "merged_main_sha": "23646ce31f389e5a40d67252a07b02ca54d9c988",
+    "main_run_id": 44868006366
   }
 }

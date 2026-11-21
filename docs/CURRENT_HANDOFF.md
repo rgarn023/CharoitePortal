@@ -1,3 +1,7 @@
+## 2026-11-21 — Fix first Android window build's isolation check
+
+The first integrated build failed the isolation contract because the JNI path allocated a dummy ProcessBuilder to get environment strings. The retry constructs the private Wine environment directly and reuses it for subprocesses and JNI. All three focused contract tests passed locally. [Replacement Android build](https://github.com/rgarn023/CharoitePortal/actions/runs/44917299393) is running. Readiness remains 40% pending Galaxy rendering.
+
 ## 2026-11-21 — Build the first integrated Android x64 window test
 
 [Android CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44915353838) is building the integrated test. System → Run Wine29 x64 window test starts the private activity, prepares its dedicated Wine prefix, and launches the pinned fixture through Wine's Java entry point after the RpcSs and digest checks. The run uses a finite wineserver idle lifetime and a 45-second native launch deadline in the display process. Galaxy rendering is unverified. After the signed build publishes, update in place and report whether the purple window appeared and what the recovery dialog reported. Estimated readiness remains 40%.

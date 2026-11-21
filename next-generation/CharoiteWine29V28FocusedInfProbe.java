@@ -897,8 +897,10 @@ public final class CharoiteWine29V28FocusedInfProbe {
         if (!system32.isDirectory() || !system32.getCanonicalFile().equals(system32.getAbsoluteFile()))
             throw new SecurityException("Unexpected x64 system32 path");
         File emulatorFile = child(system32, "xtajit64.dll");
+        File configuredEmulator = child(system32, "libarm64ecfex.dll");
         File smoke = child(lib, "standalone-x64.exe");
         stageV28SetupModule(emulator, emulatorFile, emulatorHash);
+        stageV28SetupModule(emulator, configuredEmulator, emulatorHash);
         stageV28SetupModule(executable, smoke, executableHash);
         File log = child(scratch, "x64-smoke.log");
         if (!privateServer.isAlive()) return "X64 SMOKE: skipped because the private Wine server stopped\n";
@@ -923,7 +925,9 @@ public final class CharoiteWine29V28FocusedInfProbe {
             + "Preserved Wine29 x64 smoke log\n";
         try {
             File base = context.getNoBackupFilesDir().getCanonicalFile();
-            File file = child(base, "charoite-next-wine29-x64-smoke/x64-smoke.log");
+            File file = child(base, "charoite-next-wine29-x64-smoke-v2/x64-smoke.log");
+            if (!java.nio.file.Files.exists(file.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                file = child(base, "charoite-next-wine29-x64-smoke/x64-smoke.log");
             java.nio.file.Path path = file.toPath();
             if (!file.getCanonicalFile().equals(file.getAbsoluteFile())
                     || !java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS))
@@ -1036,7 +1040,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = testX64 ? "charoite-next-wine29-x64-smoke"
+            String scratchName = testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);
             if (!newScratch.mkdir())

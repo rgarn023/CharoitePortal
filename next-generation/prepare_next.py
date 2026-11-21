@@ -3917,7 +3917,7 @@ ui = ui.replace(anchor, anchor + """
         }).show());
         rpcssAction.addView(runV35);
         android.widget.Button runX64 = new android.widget.Button(this);
-        runX64.setText("Run x64 smoke test");
+        runX64.setText("Run x64 FEX retry");
         runX64.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
             .setTitle("Run Wine29 and FEX in a fresh private prefix")
             .setMessage("After Wine setup and RpcSs verification, run one packaged x64 console executable through FEX. Copy the report when the test finishes.")

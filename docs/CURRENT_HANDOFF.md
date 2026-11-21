@@ -1,3 +1,7 @@
+## 2026-11-20 — Stage the FEX DLL under both Wine loader names
+
+The saved x64 log from build 1123 reported c0000135 and mentioned libarm64ecfex.dll. It named no missing imports. Stage the verified FEX DLL as both libarm64ecfex.dll and xtajit64.dll in the new test prefix so Wine can find it by its configured name or its default. System → Run x64 FEX retry runs once in a new prefix. Inspect last x64 smoke test prefers the new log when present. Runtime readiness remains 35% pending device verification.
+
 ## 2026-11-20 — x64 smoke exits 53 on device
 
 Build 1123 completed prefix setup, verified all eight setup payloads, and started RpcSs. The x64 executable exited 53 without its expected marker while the private wineserver remained alive. The summary did not include the smoke log. System → Inspect last x64 smoke test reads the preserved log and reports missing DLL names and fixed markers without rerunning Wine. Readiness remains 35%.

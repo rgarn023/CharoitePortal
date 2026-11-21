@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage matching Wine29 Java host inputs
+
+The [provider workflow](https://github.com/rgarn023/CharoitePortal/actions/runs/44873253877) now stages the Android driver and win32u with the PE and ELF ntdll pair from the very same build. It checks the Android JNI entry point, `java_vm` export, pinned WineActivity class, native dependencies and all six hashes. The Java host input artifact is gated on this CI run. The Java activity and surface lifecycle still need app integration before the Galaxy x64 window test. Runtime readiness remains 40%.
+
 ## 2026-11-21 — Wine29 Android display cross-build verified
 
 [Main provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44868006366) passed. Independently downloaded the [display candidate](https://github.com/rgarn023/CharoitePortal/actions/runs/44868006366/artifacts/14692907360), verified all four SHA-256 checksums and confirmed ARM64 PE headers for `wineandroid.drv` and `win32u.dll` and AArch64 Android 35 ELF headers for `wineandroid.so` and `win32u.so`. The ELF dependencies require the names `ntdll.so` and `win32u.so` in Wine's native linker namespace. The driver resolves `java_vm` from ntdll, which the Java loading path initializes in `JNI_OnLoad`. The Android host therefore needs to initialize the same ntdll instance used by the display driver and connect its surface callbacks before the x64 window fixture can run on the Galaxy. No APK was produced. Runtime readiness remains 40% pending device verification.

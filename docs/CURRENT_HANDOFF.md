@@ -1,3 +1,7 @@
+## 2026-11-20 — Preserve compiler output from the Android display build
+
+The callback conversion merged in PR #27, but the [next main validation](https://github.com/rgarn023/CharoitePortal/actions/runs/44863426039) still exited 2 in the display step and produced no display artifact. The underlying compiler error was unavailable through the public run view. The [new validation](https://github.com/rgarn023/CharoitePortal/actions/runs/44867163894) captures generated display target names and the last 128 KiB of build output, and uploads the diagnostics if the job fails. The runtime readiness estimate stays at 40% until the Galaxy window test progresses.
+
 ## 2026-11-20 — Android display callback compile fix merged
 
 [Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44862325497) failed on both AArch64 and ARM64EC because the Wine Android driver assigned a function pointer directly to the Unix-call UINT64 callback field. The display artifact upload was skipped. [PR #27](https://github.com/rgarn023/CharoitePortal/pull/27) merged after static verification and Android debug checks passed. Its CI-only fix converts the callback address through ULONG_PTR in the isolated pinned source checkout.

@@ -1,3 +1,9 @@
+## 2026-11-20 — Android display callback compile fix merged
+
+[Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44862325497) failed on both AArch64 and ARM64EC because the Wine Android driver assigned a function pointer directly to the Unix-call UINT64 callback field. The display artifact upload was skipped. [PR #27](https://github.com/rgarn023/CharoitePortal/pull/27) merged after static verification and Android debug checks passed. Its CI-only fix converts the callback address through ULONG_PTR in the isolated pinned source checkout.
+
+[Main provider validation](https://github.com/rgarn023/CharoitePortal/actions/runs/44863426039) is pending. Verify both PE modules, their two AArch64 ELF companions and the digest manifest before attempting Android display integration. Runtime readiness remains **40%**. The provider workflow produces zero APKs.
+
 ## 2026-11-20 — Native Wine29 Android display candidate
 
 The [Android cross-build](https://github.com/rgarn023/CharoitePortal/actions/runs/44862325497) targets the pinned Wine source's `wineandroid.drv` and `win32u.dll` plus their Android AArch64 ELF companions. It checks the PE machine types, ELF architecture and dynamic-library type, and produces a digest manifest for the four binaries. The pinned Android driver expects JNI callbacks and Android surfaces from a Java host. The current isolated Wine29 launcher uses a native child process. Runtime integration must provide a compatible Java host and surface lifecycle or select a display backend that supports the child-process architecture. Readiness remains 40% pending Galaxy display verification.

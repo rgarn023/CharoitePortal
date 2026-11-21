@@ -1,3 +1,7 @@
+## 2026-11-21 — Empty native log from Galaxy window crash
+
+The owner confirmed the preserved v1 native Wine log is empty. The v1 fixture launch suppressed all Wine debug channels, so the empty log does not locate the failure. [The next build](https://github.com/rgarn023/CharoitePortal/commit/fb90e257e60d55aae04078fd4f01eed051d3fb98) uses a fresh v2 scratch prefix, enables Wine errors and module loads, and records desktop creation and surface handoff checkpoints. The log viewer prefers v2 and falls back to the original run. No root cause verified. Estimated runtime readiness remains 40%.
+
 ## 2026-11-21 — Galaxy window launch ends in a native segmentation fault
 
 Build 1136 reached the x64 fixture launch checkpoint after the display libraries loaded, then Android reported native crash status 11 without an abort message. It remains unknown whether a window rendered. [The follow-up build](https://github.com/rgarn023/CharoitePortal/commit/f4605e9c0664f064480d4044ef52d9d4474d9276) adds System → Read last Wine29 window log to read a bounded, path-redacted tail from the original test's private log if present, without repeating the one-shot test. Estimated readiness remains 40%.

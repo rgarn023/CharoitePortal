@@ -896,7 +896,20 @@ public final class CharoiteWine29V28FocusedInfProbe {
         String root = "wine29-java-host/";
         String manifest = new String(readStandaloneAsset(context, root + "SHA256SUMS", 1024),
                                      java.nio.charset.StandardCharsets.US_ASCII);
-        File host = child(scratch, "display-host");
+        File host = child(scratch, "display-host/lib/wine");
+        // The JNI host derives DATADIR from the location of ntdll.so.
+        File sourceNls = child(scratch, "runtime/share/wine/nls");
+        File hostNls = child(scratch, "display-host/share/wine/nls");
+        File[] tables = sourceNls.listFiles();
+        if (tables == null || tables.length != 76)
+            throw new SecurityException("Window runtime NLS cohort incomplete");
+        mkdir(hostNls);
+        for (File table : tables) {
+            if (!table.getName().matches("[a-z0-9_]+\\.nls") || !table.isFile()
+                    || !table.getCanonicalFile().equals(table.getAbsoluteFile()))
+                throw new SecurityException("Unexpected window runtime NLS table");
+            java.nio.file.Files.copy(table.toPath(), child(hostNls, table.getName()).toPath());
+        }
         for (String name : new String[] {"ntdll.dll", "ntdll.so", "wineandroid.drv",
                                          "wineandroid.so", "win32u.dll", "win32u.so"}) {
             byte[] bytes = readStandaloneAsset(context, root + name, 32 * 1024 * 1024);
@@ -1083,7 +1096,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v2"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v3"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);
@@ -1480,7 +1493,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                         out.insert(reportHeaderEnd, scmReport);
                         if (controlPassed && prepareWindow) {
                             stageWindowInputs(context, scratch, prefix);
-                            File host = child(scratch, "display-host");
+                            File host = child(scratch, "display-host/lib/wine");
                             File peRoot = child(host, "aarch64-windows");
                             Map<String,String> env = privateEnvironment(nativeDir, server, scratch, prefix, lib);
                             env.put("WINEDLLPATH", host.getCanonicalPath() + ":" + env.get("WINEDLLPATH"));

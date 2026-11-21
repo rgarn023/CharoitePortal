@@ -1,3 +1,7 @@
+## 2026-11-21 — Correct the Android JNI loader's NLS layout
+
+On the Galaxy, build 1138 logged two `err:environ:read_nls_file failed to load` errors before crashing. The pinned Android JNI loader derives its data path from the location of ntdll.so. [The fix](https://github.com/rgarn023/CharoitePortal/commit/d260899e9eb2443fdad028c5f1ab90ec8f2204de) stages the host libraries under lib/wine and the 76 verified NLS tables under share/wine/nls in a fresh v3 display test directory. The Galaxy still needs to verify whether this clears the crash. Runtime readiness remains 40%.
+
 ## 2026-11-21 — Galaxy window retest still stops at fixture launch
 
 The latest Galaxy screenshot reports `Interrupted while running the x64 window fixture` and native crash status 11, with no readable abort detail. The saved checkpoint did not show desktop creation or surface handoff. The result of System → Read last Wine29 window log for the v2 run is still pending. No repeat is needed to read that file. Runtime readiness remains 40% and the cause is unverified.

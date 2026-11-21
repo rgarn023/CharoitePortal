@@ -1,3 +1,7 @@
+## 2026-11-21 — Galaxy display check interrupted
+
+Build 1127 closed when the owner tapped Check Wine29 display libraries. The cause is unverified. [The recovery build commit](https://github.com/rgarn023/CharoitePortal/commit/7da87731442a6ad0f33a62f1ce65f6b39423b25f) writes a private checkpoint before launching the isolated activity and before each library load. On return or relaunch Portal displays the last stage or completed result. This makes an interrupted check visible even if the process cannot catch the error. Runtime readiness remains 40%.
+
 ## 2026-11-21 — Signed build 1127 ready for Galaxy library check
 
 [Signed APK artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44878089342/artifacts/14697271489). Android CI verified the six packaged host files and the persisted signer. Install build 1127 over the existing Meteorite Alpha app. Open System → Check Wine29 display libraries, then report PASS or the exact FAIL line. This checks the native library loading step before Wine initialization and window rendering. Runtime readiness remains 40% pending device verification.

@@ -1,3 +1,7 @@
+## 2026-11-21 — Build the first integrated Android x64 window test
+
+[Android CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44915353838) is building the integrated test. System → Run Wine29 x64 window test starts the private activity, prepares its dedicated Wine prefix, and launches the pinned fixture through Wine's Java entry point after the RpcSs and digest checks. The run uses a finite wineserver idle lifetime and a 45-second native launch deadline in the display process. Galaxy rendering is unverified. After the signed build publishes, update in place and report whether the purple window appeared and what the recovery dialog reported. Estimated readiness remains 40%.
+
 ## 2026-11-21 — Prepare a private Wine29 runtime for the x64 window test
 
 [The staging implementation](https://github.com/rgarn023/CharoitePortal/commit/e80266ef8b2da521c4c2410b9b61027b3fcd07c8) adds a separate scratch directory for the window test. It reuses fresh-prefix initialization and the RpcSs gate, then stages FEX under both verified loader names and digest-checks the six display host files and x64 fixture. The Android activity still needs to invoke this path and start Wine through JNI. The staging code has not run on the Galaxy. No APK requested yet, and estimated runtime readiness remains 40%.

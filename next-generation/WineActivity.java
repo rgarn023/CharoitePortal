@@ -10,6 +10,11 @@ import android.content.Intent;
 import android.app.AlertDialog;
 import android.util.AtomicFile;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.graphics.SurfaceTexture;
+import android.view.Surface;
+import android.view.TextureView;
+import android.util.SparseArray;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -30,6 +35,107 @@ public final class WineActivity extends Activity {
     // ntdll registers this exact method during JNI_OnLoad.
     @Keep
     private native String wine_init(String[] command, String[] environment);
+
+    private native void wine_desktop_changed(int width, int height);
+    private native void wine_config_changed(int dpi);
+    private native void wine_surface_changed(int hwnd, Surface surface, boolean opengl);
+    private native boolean wine_motion_event(int hwnd, int action, int x, int y, int state, int vscroll);
+    private native boolean wine_keyboard_event(int hwnd, int action, int keycode, int state);
+
+    private static final int WS_VISIBLE = 0x10000000;
+    private final SparseArray<TextureView> windows = new SparseArray<>();
+    private FrameLayout desktop;
+
+    // Called by Wine's Android driver. Keep all Android view changes on the UI thread.
+    public void createDesktopWindow(int hwnd) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed() || desktop != null) return;
+            desktop = new FrameLayout(this);
+            desktop.addOnLayoutChangeListener((view, left, top, right, bottom,
+                    oldLeft, oldTop, oldRight, oldBottom) -> {
+                int width = right - left;
+                int height = bottom - top;
+                if (width > 0 && height > 0
+                        && (width != oldRight - oldLeft || height != oldBottom - oldTop)) {
+                    wine_desktop_changed(width, height);
+                }
+            });
+            setContentView(desktop);
+            addWindow(hwnd, false, FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT);
+            wine_config_changed(getResources().getDisplayMetrics().densityDpi);
+        });
+    }
+
+    public void createWindow(int hwnd, boolean opengl, int parent, float scale, int pid) {
+        runOnUiThread(() -> addWindow(hwnd, opengl, 1, 1));
+    }
+
+    private void addWindow(int hwnd, boolean opengl, int width, int height) {
+        if (desktop == null || isFinishing() || isDestroyed() || windows.get(hwnd) != null) return;
+        TextureView view = new TextureView(this);
+        view.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            private Surface surface;
+
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+                surface = new Surface(texture);
+                wine_surface_changed(hwnd, surface, opengl);
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+                if (surface != null) wine_surface_changed(hwnd, surface, opengl);
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+                if (surface != null) {
+                    try {
+                        wine_surface_changed(hwnd, null, opengl);
+                    } finally {
+                        surface.release();
+                        surface = null;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture texture) {}
+        });
+        windows.put(hwnd, view);
+        desktop.addView(view, new FrameLayout.LayoutParams(width, height));
+    }
+
+    public void destroyWindow(int hwnd) {
+        runOnUiThread(() -> {
+            TextureView view = windows.get(hwnd);
+            if (view == null) return;
+            windows.remove(hwnd);
+            desktop.removeView(view);
+        });
+    }
+
+    public void windowPosChanged(int hwnd, int flags, int after, int owner, int style,
+            int left, int top, int right, int bottom,
+            int clientLeft, int clientTop, int clientRight, int clientBottom,
+            int visibleLeft, int visibleTop, int visibleRight, int visibleBottom) {
+        runOnUiThread(() -> {
+            TextureView view = windows.get(hwnd);
+            if (view == null) return;
+            FrameLayout.LayoutParams layout = new FrameLayout.LayoutParams(
+                    Math.max(1, right - left), Math.max(1, bottom - top));
+            layout.leftMargin = left;
+            layout.topMargin = top;
+            view.setLayoutParams(layout);
+            view.setVisibility((style & WS_VISIBLE) != 0 ? TextureView.VISIBLE : TextureView.INVISIBLE);
+        });
+    }
+
+    // The single-window test uses a flat desktop with Android's default pointer.
+    public void setParent(int hwnd, int parent, float scale, int pid) {}
+    public void setCursor(int id, int width, int height, int hotspotX, int hotspotY, int[] bits) {}
 
     private static AtomicFile checkpoint(Context context) {
         return new AtomicFile(new File(context.getFilesDir(), "wine29-display-check.txt"));

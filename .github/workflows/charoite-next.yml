@@ -9,6 +9,11 @@ on:
       - '!next-generation/tests/**'
       - '.github/workflows/charoite-next.yml'
   workflow_dispatch:
+    inputs:
+      wine29_display_assets:
+        description: 'Include verified Wine29 Java host and display test assets'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -1221,6 +1226,22 @@ jobs:
           (cd "$assets" && sha256sum -c SHA256SUMS)
           curl -fsSL --retry 3 https://raw.githubusercontent.com/FEX-Emu/FEX/bce85d9941b2d37755f3b44a4f6e178617d94fba/LICENSE > "$assets/FEX-LICENSE.txt"
 
+      - name: Stage verified Wine29 Java host assets
+        if: github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/wine29-java-host.zip"
+          assets=upstream/app/src/main/assets/wine29-java-host
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14697190124/zip" > "$archive"
+          echo "7af48bf2e3b062f32d15ddaf12404efdb9f65e7167c7e415e7d12c460555c7f0  $archive" | sha256sum -c -
+          mkdir -p "$assets"
+          for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
+            unzip -p "$archive" "$file" > "$assets/$file"
+          done
+          (cd "$assets" && sha256sum -c SHA256SUMS)
+
       - name: Apply the allocated Android version
         env:
           NEXT_VERSION_CODE: ${{ steps.version.outputs.code }}
@@ -1246,6 +1267,15 @@ jobs:
       - name: Build integrated Windows runtime preview
         working-directory: upstream
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" -Dorg.gradle.workers.max=2 assembleDebug
+
+      - name: Verify packaged Wine29 Java host assets
+        if: github.event_name == 'workflow_dispatch' && inputs.wine29_display_assets
+        run: |
+          set -euo pipefail
+          apk=upstream/app/build/outputs/apk/debug/app-debug.apk
+          for file in upstream/app/src/main/assets/wine29-java-host/*; do
+            unzip -p "$apk" "assets/wine29-java-host/${file##*/}" | cmp - "$file"
+          done
 
       - name: Verify packaged x64 candidate assets
         run: |

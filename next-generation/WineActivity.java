@@ -50,6 +50,7 @@ public final class WineActivity extends Activity {
     public void createDesktopWindow(int hwnd) {
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed() || desktop != null) return;
+            recordWindowStage("Interrupted after Wine requested an Android desktop.");
             desktop = new FrameLayout(this);
             desktop.addOnLayoutChangeListener((view, left, top, right, bottom,
                     oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -67,6 +68,14 @@ public final class WineActivity extends Activity {
         });
     }
 
+    private void recordWindowStage(String stage) {
+        try {
+            record(this, stage);
+        } catch (IOException failure) {
+            android.util.Log.w("Wine29Display", "Could not save display checkpoint", failure);
+        }
+    }
+
     public void createWindow(int hwnd, boolean opengl, int parent, float scale, int pid) {
         runOnUiThread(() -> addWindow(hwnd, opengl, 1, 1));
     }
@@ -80,7 +89,9 @@ public final class WineActivity extends Activity {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
                 surface = new Surface(texture);
+                recordWindowStage("Interrupted while handing a window surface to Wine.");
                 wine_surface_changed(hwnd, surface, opengl);
+                recordWindowStage("Interrupted after handing a window surface to Wine.");
             }
 
             @Override
@@ -139,7 +150,11 @@ public final class WineActivity extends Activity {
 
     public static void showWindowLog(Activity portal) {
         File log = new File(portal.getNoBackupFilesDir(),
-                "charoite-next-wine29-x64-window-v1/x64-window-native.log");
+                "charoite-next-wine29-x64-window-v2/x64-window-native.log");
+        if (!log.exists()) {
+            log = new File(portal.getNoBackupFilesDir(),
+                    "charoite-next-wine29-x64-window-v1/x64-window-native.log");
+        }
         String report;
         try {
             if (!log.isFile() || !log.getCanonicalFile().equals(log.getAbsoluteFile())) {

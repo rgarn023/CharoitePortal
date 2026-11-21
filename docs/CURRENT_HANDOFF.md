@@ -1,3 +1,9 @@
+## 2026-11-20 — Wine29 x64 console smoke passes on Galaxy
+
+Build 1125 passed the x64 FEX retry in a separate private prefix on the Galaxy S26 Ultra. The x64 program returned the expected exit code 42 and exact output while the private wineserver stayed alive. The independent fresh-prefix SCM check showed RpcSs STOPPED, then RUNNING after an explicit start. All eight setup payloads verified, and Program Files and the registry persisted after finalization. Eight SetupAPI registration markers remain in the preserved report.
+
+Runtime readiness estimate: 40% toward 1.0. Next milestone: run a minimal x64 Windows GUI program and verify that its window renders on-device before testing a game.
+
 ## 2026-11-20 — Stage the FEX DLL under both Wine loader names
 
 The saved x64 log from build 1123 reported c0000135 and mentioned libarm64ecfex.dll. It named no missing imports. Stage the verified FEX DLL as both libarm64ecfex.dll and xtajit64.dll in the new test prefix so Wine can find it by its configured name or its default. System → Run x64 FEX retry runs once in a new prefix. Inspect last x64 smoke test prefers the new log when present. Runtime readiness remains 35% pending device verification.

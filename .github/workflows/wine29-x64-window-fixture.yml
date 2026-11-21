@@ -1,0 +1,51 @@
+name: Wine29 x64 window fixture
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'next-generation/charoite-wine/fixtures/x64-window.c'
+      - '.github/workflows/wine29-x64-window-fixture.yml'
+permissions:
+  contents: read
+jobs:
+  fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross compiler and desktop Wine
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64-posix wine64 xvfb xauth
+      - name: Build and verify the AMD64 GUI executable
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          x86_64-w64-mingw32-gcc-posix -Os -Wall -Wextra -Werror -fno-stack-protector \
+            -nostdlib -mwindows -Wl,--entry,fixture_entry \
+            next-generation/charoite-wine/fixtures/x64-window.c \
+            -o out/x64-window.exe -lkernel32 -luser32 -lgdi32
+          x86_64-w64-mingw32-objdump -p out/x64-window.exe > "$RUNNER_TEMP/pe.txt"
+          x86_64-w64-mingw32-objdump -f out/x64-window.exe | grep -F 'architecture: i386:x86-64'
+          grep -E '^Subsystem[[:space:]]+00000002' "$RUNNER_TEMP/pe.txt"
+          awk '/DLL Name:/ { print toupper($3) }' "$RUNNER_TEMP/pe.txt" | sort -u > "$RUNNER_TEMP/imports.txt"
+          diff -u <(printf '%s\n' GDI32.DLL KERNEL32.DLL USER32.DLL) "$RUNNER_TEMP/imports.txt"
+          (cd out && sha256sum x64-window.exe > SHA256SUMS)
+      - name: Verify desktop Wine window and rendered pixel
+        run: |
+          set -euo pipefail
+          export WINEPREFIX="$RUNNER_TEMP/wine-window-fixture"
+          export WINEDEBUG=-all
+          rc=0
+          timeout 90s xvfb-run -a -s '-screen 0 800x600x24' \
+            /usr/lib/wine/wine64 "$PWD/out/x64-window.exe" || rc=$?
+          if [ "$rc" -ne 42 ]; then
+            echo "Window test failed with exit $rc"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wine29-x64-window-fixture
+          path: out/
+          if-no-files-found: error

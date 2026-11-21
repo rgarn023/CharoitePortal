@@ -1,3 +1,7 @@
+## 2026-11-20 — x64 Windows window fixture
+
+Added a source-built AMD64 GUI fixture that creates a window, paints it purple, and samples a pixel from the Wine desktop. CI checks the PE architecture, GUI subsystem, import allowlist and Wine exit code before publishing the fixture. The desktop Wine check uses Xvfb. Android integration still needs a verified display driver and connection for the native Wine29 runtime. Runtime readiness estimate remains 40% pending Galaxy verification.
+
 ## 2026-11-20 — Wine29 x64 console smoke passes on Galaxy
 
 Build 1125 passed the x64 FEX retry in a separate private prefix on the Galaxy S26 Ultra. The x64 program returned the expected exit code 42 and exact output while the private wineserver stayed alive. The independent fresh-prefix SCM check showed RpcSs STOPPED, then RUNNING after an explicit start. All eight setup payloads verified, and Program Files and the registry persisted after finalization. Eight SetupAPI registration markers remain in the preserved report.

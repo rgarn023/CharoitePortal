@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261122T08-batch11",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -50,6 +50,6 @@
       137060805212
     ],
     "main_ci_completed_at": "2026-11-22T02:04:55Z",
-    "note": "Superseded PR #31 main CI passed. Provider #169 failed Explorer build; #170/#171 succeeded; latest main provider run 44987057118 succeeded (job 137099821382, 9 artifacts including Android display/Explorer/Java host). Archive contents and functional Android rendering not independently verified; these runs remain unprocessed pending full evidence review. No APK from provider."
+    "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider."
   }
 }

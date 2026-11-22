@@ -150,7 +150,11 @@ public final class WineActivity extends Activity {
 
     public static void showWindowLog(Activity portal) {
         File log = new File(portal.getNoBackupFilesDir(),
-                "charoite-next-wine29-x64-window-v5/x64-window-native.log");
+                "charoite-next-wine29-x64-window-v6/x64-window-native.log");
+        if (!log.exists()) {
+            log = new File(portal.getNoBackupFilesDir(),
+                    "charoite-next-wine29-x64-window-v5/x64-window-native.log");
+        }
         if (!log.exists()) {
             log = new File(portal.getNoBackupFilesDir(),
                     "charoite-next-wine29-x64-window-v4/x64-window-native.log");

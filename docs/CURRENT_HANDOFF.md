@@ -1,3 +1,7 @@
+## 2026-11-22 — Package the verified WineAndroid native device path for v13
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/45027919664). The Java host archive and all six payload checksums matched, and the rebuilt client contains the native device path. The v13 window test uses a new private runtime and preserves the v12 log. Android packaging and Galaxy rendering remain pending. Estimated overall readiness is 40%.
+
 ## 2026-11-22 — Open the WineAndroid device by its native name
 
 Build 1159 registered the desktop surface but reported NTSTATUS 0xC0000033 during the window device open and exited 15. The provider patch makes the client pass the same native device name the driver registers to NtCreateFile. A native rebuild and Galaxy rendering check are pending. Estimated overall readiness remains 40%.

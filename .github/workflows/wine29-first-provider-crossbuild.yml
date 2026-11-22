@@ -58,6 +58,8 @@ jobs:
                   subprocess.run(["bash", "-n", script.name], check=True)
               print(f"SHELL_BLOCK_{index}_SYNTAX=PASS")
           PY
+      - name: Check WineAndroid surface-flush failure gate offline
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_flush_patch.py -v
       - name: Verify pinned source and isolated output contracts
         run: |
           set -euo pipefail
@@ -1571,6 +1573,10 @@ jobs:
               raise SystemExit("Unexpected pinned create-window locals")
           path.write_text(source.replace(match, match + "\n    int result;"))
           PYDEVICE
+          # A failed native buffer lock or post must not be reported as a painted frame.
+          # Apply to this fresh pinned source checkout only; never to an installed runtime.
+          python3 analysis/wine29_bootstrap/patch_android_surface_flush.py \
+            "$build/../dlls/wineandroid.drv/window.c"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib

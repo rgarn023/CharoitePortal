@@ -1,3 +1,7 @@
+## 2026-11-22 — Give the x64 window fixture a drawable client area
+
+Build 1162 created the x64 window and registered its Android surface, but Wine reported a zero-height client rectangle and the pixel check exited 15. The updated fixture removes window decorations and repaints while waiting for a visible client area large enough for the sample. It still requires the expected purple pixel from the screen DC. Desktop Wine CI and the Galaxy check are pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-22 — Package the verified WineAndroid native device path for v13
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/45027919664). The Java host archive and all six payload checksums matched, and the rebuilt client contains the native device path. The v13 window test uses a new private runtime and preserves the v12 log. Android packaging and Galaxy rendering remain pending. Estimated overall readiness is 40%.

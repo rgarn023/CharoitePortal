@@ -1,3 +1,7 @@
+## 2026-11-22 — Stage the verified WineAndroid device-open fix for v12
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44987057118). The Java host archive and all six payload hashes were independently verified. The v12 window test uses a fresh private runtime and retains access to earlier logs. Android packaging and Galaxy rendering remain pending. Estimated overall readiness is 40%.
+
 ## 2026-11-21 — Handle client opens on the WineAndroid device
 
 Build 1157 registered the 1440x2581 desktop surface. The x64 fixture still returned 15 after its create-window request returned -2. Wine issues NtCreateFile before the window ioctl, but the pinned Android driver registers only device control. Unhandled opens fail in the Wine kernel dispatcher. The provider build now handles create and close requests and records the original status if opening still fails. Device validation remains pending and overall readiness remains estimated at 40%.

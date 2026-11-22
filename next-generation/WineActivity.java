@@ -149,23 +149,11 @@ public final class WineActivity extends Activity {
     public void setCursor(int id, int width, int height, int hotspotX, int hotspotY, int[] bits) {}
 
     public static void showWindowLog(Activity portal) {
-        File log = new File(portal.getNoBackupFilesDir(),
-                "charoite-next-wine29-x64-window-v5/x64-window-native.log");
-        if (!log.exists()) {
+        File log = portal.getNoBackupFilesDir();
+        for (int version = 6; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
-                    "charoite-next-wine29-x64-window-v4/x64-window-native.log");
-        }
-        if (!log.exists()) {
-            log = new File(portal.getNoBackupFilesDir(),
-                    "charoite-next-wine29-x64-window-v3/x64-window-native.log");
-        }
-        if (!log.exists()) {
-            log = new File(portal.getNoBackupFilesDir(),
-                    "charoite-next-wine29-x64-window-v2/x64-window-native.log");
-        }
-        if (!log.exists()) {
-            log = new File(portal.getNoBackupFilesDir(),
-                    "charoite-next-wine29-x64-window-v1/x64-window-native.log");
+                    "charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log");
+            if (log.exists()) break;
         }
         String report;
         try {

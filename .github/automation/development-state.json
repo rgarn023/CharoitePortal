@@ -26,13 +26,20 @@
     44868006366,
     44873253877,
     44877104555,
-    44937251577
+    44937251577,
+    44973476658
   ],
   "last_result": {
-    "run_id": 44937251577,
+    "run_id": 44973476658,
     "result": "success",
-    "verification": "Main provider job 136946477262 published ARM64 GUI explorer.exe in artifact 14720800420. Verified archive and executable SHA-256 and 13 DLL imports. Main commit 3cee888c6c7c81382c0e3307e7e1bc475859326c already stages this exact candidate in private Wine29 window runtime. No duplicate PR or rebuild. Galaxy startup and GUI remain unverified, 40%."
+    "verification": "Provider job 137058090003 passed; Java host artifact 14733779740 ZIP and all six binary digests match. ntdll.so contains the V6 APK loader selector and numeric child exec failure marker. Zero APKs. PR #31 pins the candidate to a fresh private V6 window test; Galaxy GUI pending, 40%."
   },
   "event_batch_utc": "2026-11-22T01",
-  "pending_validation": null
+  "pending_validation": {
+    "source_run_id": 44973476658,
+    "pr_number": 31,
+    "branch": "engineering/wine29-v6-window-loader",
+    "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+    "phase": "awaiting_pr_checks"
+  }
 }

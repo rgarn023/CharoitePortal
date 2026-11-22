@@ -43,7 +43,7 @@ class LightweightBuildSplit(unittest.TestCase):
         block = triggers(LIGHT)
         self.assertIn("  push:\n", block)
         for required in (
-            "'next-generation/tests/**'",
+            "'next-generation/**'",
             "'.github/workflows/charoite-agent-pr-check.yml'",
             "'.github/workflows/charoite-next.yml'",
             "  pull_request:",

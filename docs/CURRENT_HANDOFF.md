@@ -1,3 +1,9 @@
+## 2026-11-21 — Route the Android display host's Explorer launch through the APK loader
+
+The Galaxy v5 log reaches the x64 fixture, FEX, user32, and GDI32. It no longer shows the API-set lookup error. Wine reports Explorer process creation status 1, followed by the no-window-driver error. The pinned JNI loader derives the child executable path from the display host's empty private bin directory. The provider build now applies the same canonical APK loader selector used by the private prefix and checks that the rebuilt host contains the selector and numeric exec failure marker. The status alone does not prove the on-device exec failure.
+
+After Provider CI passes, pin the new Java host archive and its verified digest, keep the child's V6 PE selector pointed at the verified prefix runtime, and stage a fresh v6 window test with a fallback to the saved v5 log. Runtime readiness remains estimated at 40%. No v5 repeat is needed.
+
 ## 2026-11-21 — Meteorite Alpha build 1144 published
 
 [Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44970778578) and the [in-app release](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1144) is live. Update in place. Check that the update progress bar appears as Portal opens after the splash. Run the v5 Wine29 x64 window test only if it has not already been run on build 1142, which has the same Explorer and API-set changes. If it already ran, read the preserved log instead. Runtime readiness remains estimated at 40% pending Galaxy rendering.

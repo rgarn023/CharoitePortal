@@ -9,6 +9,7 @@ on:
       - 'next-generation/charoite-wine/prepare-source.sh'
       - 'next-generation/charoite-wine/build-arm64ec-ntdll.sh'
       - 'next-generation/wine29-imports/classify.py'
+      - 'analysis/wine29_bootstrap/patch_v6_child_loader.py'
 
 permissions:
   contents: read
@@ -1496,10 +1497,13 @@ jobs:
           # The Java host and driver look up these symbols at runtime.
           python3 - "$root/dlls/ntdll/unix/loader.c" <<'PY'
           from pathlib import Path
+          import runpy
           import sys
 
           path = Path(sys.argv[1])
-          source = path.read_text()
+          # Use the same APK-owned exec target as the verified private prefix.
+          patch = runpy.run_path("analysis/wine29_bootstrap/patch_v6_child_loader.py")
+          source = patch["patch_text"](path.read_text())
           declarations = (
               "JavaVM *java_vm = NULL;",
               "jobject java_object = 0;",
@@ -1521,6 +1525,8 @@ jobs:
           cp "$display"/{wineandroid.drv,wineandroid.so,win32u.dll,win32u.so} "$host/"
           cp "$build/dlls/ntdll/ntdll.so" "$build/dlls/ntdll/aarch64-windows/ntdll.dll" "$host/"
           cd "$host"
+          grep -aFq 'CHAROITE_WINE29_V6_LOADER_EXEC' ntdll.so
+          grep -aFq 'CHAROITE_WINE29_V6_CHILD_EXECV_FAILURE' ntdll.so
           "$readelf" -h -d ntdll.so > ntdll-elf.txt
           "$readelf" --dyn-syms -W ntdll.so > ntdll-exports.txt
           grep -E 'Machine:[[:space:]]+AArch64' ntdll-elf.txt

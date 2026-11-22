@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage Wine29 v9 driver files in private System32
+
+Build 1151 started Explorer and returned fixture exit 12, with no successful Android driver load shown. The v9 window test places the verified driver and its PE imports in private System32 as well as the Wine builtin search directory. It preserves v8 evidence and adds Explorer selection and module warnings to the bounded log. The exact v8 load failure remains unverified. Overall readiness remains estimated at 40%.
+
 ## 2026-11-21 — Stage the verified Android driver guard for Wine29 v8
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44980304600). The new Java host archive and all six files in its checksum manifest were independently verified. The v8 window test uses a new private directory, retains access to the v7 log, and enables Android driver trace output. Android packaging and Galaxy rendering remain pending. Estimated overall readiness remains 40%.

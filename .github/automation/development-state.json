@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-19ed1f42-e618-11f1-9c22-43c553b489da",
-  "claimed_run_id": 44973476658,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -32,7 +32,7 @@
   "last_result": {
     "run_id": 44973476658,
     "result": "success",
-    "verification": "Provider job 137058090003 passed; Java host artifact 14733779740 ZIP and all six binary digests match. ntdll.so contains the V6 APK loader selector and numeric child exec failure marker. Zero APKs. PR #31 pins the candidate to a fresh private V6 window test; Galaxy GUI pending, 40%."
+    "verification": "Provider job 137058090003 passed; Java host artifact 14733779740 ZIP and all six binary digests match. ntdll.so contains the V6 APK loader selector and numeric child exec failure marker. Zero APKs. PR #31 pins the candidate to a fresh private V6 window test; Galaxy GUI pending, 40%. Main commit 2c421ff2a7401cbd389560d6a0db5b7a11eac2e1 independently landed the same archive and fresh V6 scratch plus the private prefix PE selector fix. PR #31 closed unmerged as superseded. Main Android CI 44973984123 is already running."
   },
   "event_batch_utc": "2026-11-22T01",
   "pending_validation": {
@@ -40,6 +40,9 @@
     "pr_number": 31,
     "branch": "engineering/wine29-v6-window-loader",
     "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
-    "phase": "awaiting_pr_checks"
+    "phase": "awaiting_main_ci",
+    "pr_disposition": "closed_unmerged_superseded",
+    "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
+    "main_run_id": 44973984123
   }
 }

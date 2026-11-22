@@ -1,3 +1,7 @@
+## 2026-11-21 — Handle client opens on the WineAndroid device
+
+Build 1157 registered the 1440x2581 desktop surface. The x64 fixture still returned 15 after its create-window request returned -2. Wine issues NtCreateFile before the window ioctl, but the pinned Android driver registers only device control. Unhandled opens fail in the Wine kernel dispatcher. The provider build now handles create and close requests and records the original status if opening still fails. Device validation remains pending and overall readiness remains estimated at 40%.
+
 ## 2026-11-21 — Stage the verified desktop registration fix for Wine29 v11
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44985395798). The Java host archive and all six payload hashes were verified. The v11 window test stages the native desktop registration fix in a fresh private runtime and retains access to v10 logs. Android packaging and visible Galaxy rendering are pending. Estimated overall readiness remains 40%.

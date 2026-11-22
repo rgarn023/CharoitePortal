@@ -1498,6 +1498,37 @@ jobs:
               data = get_win_data( hwnd );""")
           path.write_text(source)
           PYSURFACE
+          # Move desktop surface registration ahead of the Java callback.
+          python3 - "$build/../dlls/wineandroid.drv/device.c" <<'PYDEVICE'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          source = path.read_text()
+          desktop = "    init_java_thread( java_vm );\n    create_desktop_window( NtUserGetDesktopWindow() );"
+          replacement = """    init_java_thread( java_vm );
+              desktop = NtUserGetDesktopWindow();
+              if (!desktop) return STATUS_UNSUCCESSFUL;
+              data = get_native_win_data( desktop, FALSE );
+              if (!data && !create_native_win_data( desktop, FALSE )) return STATUS_NO_MEMORY;
+              create_desktop_window( desktop );"""
+          # Put declarations beside java_vm to match Wine's declaration rules.
+          declaration = "NTSTATUS android_java_init( void *arg )\n{\n    JavaVM *java_vm;"
+          if source.count(desktop) != 1 or source.count(declaration) != 1:
+              raise SystemExit("Unexpected pinned Java desktop initialization")
+          source = source.replace(declaration, declaration + "\n    HWND desktop;\n    struct native_win_data *data;")
+          source = source.replace(desktop, replacement)
+          request = "    android_ioctl( IOCTL_CREATE_WINDOW, &req, sizeof(req), NULL, NULL );"
+          if source.count(request) != 1:
+              raise SystemExit("Unexpected pinned create-window ioctl")
+          source = source.replace(request, """    result = android_ioctl( IOCTL_CREATE_WINDOW, &req, sizeof(req), NULL, NULL );
+              if (result)
+                  WARN( "window %p create ioctl returned %d\\n", hwnd, result );""")
+          match = "    struct ioctl_android_create_window req;\n    struct native_win_wrapper *win = calloc( 1, sizeof(*win) );"
+          if source.count(match) != 1:
+              raise SystemExit("Unexpected pinned create-window locals")
+          path.write_text(source.replace(match, match + "\n    int result;"))
+          PYDEVICE
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib

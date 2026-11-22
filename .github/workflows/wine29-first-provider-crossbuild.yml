@@ -1462,6 +1462,42 @@ jobs:
               raise SystemExit("Unexpected pinned Android driver Java lookup")
           path.write_text(source.replace(lookup, replacement))
           PYJNI
+          # The JNI fixture may join a desktop already owned by native Explorer.
+          python3 - "$build/../dlls/wineandroid.drv/window.c" <<'PYSURFACE'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          source = path.read_text()
+          desktop = "        init_event_queue();\n        start_android_device();"
+          position = (
+              "BOOL ANDROID_WindowPosChanging( HWND hwnd, UINT swp_flags, BOOL shaped, const struct window_rects *rects )\n"
+              "{\n"
+              "    struct android_win_data *data = get_win_data( hwnd );"
+          )
+          if source.count(desktop) != 1 or source.count(position) != 1:
+              raise SystemExit("Unexpected pinned Android window startup")
+          source = source.replace(desktop, """        if (!desktop_tid)
+                  {
+                      init_event_queue();
+                      start_android_device();
+                  }""")
+          source = source.replace(position, """BOOL ANDROID_WindowPosChanging( HWND hwnd, UINT swp_flags, BOOL shaped, const struct window_rects *rects )
+          {
+              struct android_win_data *data;
+
+              /* Explorer may own the Wine desktop in a process without a JVM.
+               * Start the Android device on the Java client's window thread
+               * before its first window attempts an ioctl. */
+              if (!desktop_tid && *p_java_vm)
+              {
+                  init_event_queue();
+                  start_android_device();
+                  if (wait_events( 2000 ) == 1) process_events( QS_ALLINPUT );
+              }
+              data = get_win_data( hwnd );""")
+          path.write_text(source)
+          PYSURFACE
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib

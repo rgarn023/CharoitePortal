@@ -107,7 +107,7 @@ public final class CharoiteNextUpdateChecker {
                 if(newest==null || code>newest.versionCode) {
                     String label=r.optString("name","");
                     if(label.length()>90 || !label.matches("[A-Za-z0-9 ._\\-]+"))
-                        label="Charoite Portal (Metorite Pre-Alpha) build "+code;
+                        label="Charoite Portal (Meteorite Alpha) build "+code;
                     newest=new Available(code,label,expected,digest,asset.optLong("size",0));
                 }
             }
@@ -161,10 +161,10 @@ public final class CharoiteNextUpdateChecker {
                 if(activity.isFinishing() || activity.isDestroyed())return;
                 if(result!=null && result.versionCode>installed) {
                     new AlertDialog.Builder(activity)
-                        .setTitle("Charoite Portal (Metorite Pre-Alpha) update available")
+                        .setTitle("Charoite Portal (Meteorite Alpha) update available")
                         .setMessage(result.versionLabel+" (build "+result.versionCode+")\n"
                             +"Installed build: "+installed+"\n\n"
-                            +"Download the APK inside Charoite Portal (Metorite Pre-Alpha) and ask Android to install "
+                            +"Download the APK inside Charoite Portal (Meteorite Alpha) and ask Android to install "
                             +"the verified update? No browser or file manager is needed. "
                             +"Android will ask for installation approval. "
                             +"Install OVER the existing com.charoitx app; never uninstall, "
@@ -178,11 +178,11 @@ public final class CharoiteNextUpdateChecker {
                         .show();
                 } else if(manual) {
                     String message=error ? "Could not check GitHub releases. Try again later."
-                        : result==null ? "No signed Charoite Portal (Metorite Pre-Alpha) APK releases available yet."
+                        : result==null ? "No signed Charoite Portal (Meteorite Alpha) APK releases available yet."
                         : "Up to date. Installed build "+installed
                             +" is at least as recent as published build "+result.versionCode+".";
                     new AlertDialog.Builder(activity)
-                        .setTitle("Charoite Portal (Metorite Pre-Alpha) updates")
+                        .setTitle("Charoite Portal (Meteorite Alpha) updates")
                         .setMessage(message)
                         .setPositiveButton("Close",null).show();
                 }

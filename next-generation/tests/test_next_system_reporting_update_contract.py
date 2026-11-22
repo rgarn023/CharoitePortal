@@ -5,6 +5,7 @@ R=Path(__file__).resolve().parents[1]
 P=(R/"prepare_next.py").read_text()
 S=(R/"CharoiteWine29V28ReportShare.java").read_text()
 U=(R/"CharoiteNextUpdateChecker.java").read_text()
+B=(R/"CharoiteNextBootActivity.java").read_text()
 W=(R.parent/".github/workflows/charoite-next.yml").read_text()
 
 class NextSystemWorkflow(unittest.TestCase):
@@ -31,7 +32,6 @@ class NextSystemWorkflow(unittest.TestCase):
         for marker in (
             'nextCheckUpdates.setText("Check for updates")',
             "CharoiteNextUpdateChecker.checkNow(this)",
-            "CharoiteNextUpdateChecker.checkOnLaunch(this)",
             '"CharoiteNextUpdateChecker.java"',
             "versionCode 157","11.2-next.0.126"
         ): self.assertIn(marker,P)
@@ -44,7 +44,7 @@ class NextSystemWorkflow(unittest.TestCase):
             "browser_download_url",
             "sha256:[a-f0-9]{64}",
             "result.versionCode>installed",
-            'setTitle("Charoite Portal (Metorite Pre-Alpha) update available")',
+            'setTitle("Charoite Portal (Meteorite Alpha) update available")',
             'setPositiveButton("Update in app"',
             'public static void checkOnLaunch(Activity activity)',
             'public static void checkNow(Activity activity)'
@@ -53,7 +53,21 @@ class NextSystemWorkflow(unittest.TestCase):
                        "delete(", "ACTION_INSTALL_PACKAGE", "REQUEST_INSTALL_PACKAGES",
                        "github_pat_", "Authorization", "Runtime.getRuntime()"):
             self.assertNotIn(unsafe,U)
-        self.assertIn("7200L",U)
+        self.assertNotIn("7200L", U)
+        self.assertNotIn("CharoiteNextUpdateChecker.checkOnLaunch(this)", P)
+        start = B.index("public static void onPortalPostCreated")
+        finish = B.index("public static void notePortalDestroyed", start)
+        post_create = B[start:finish]
+        self.assertEqual(post_create.count("CharoiteNextUpdateChecker.checkOnLaunch(portal)"), 2)
+        self.assertIn("if (pendingColdFallbackOwner != portal) {\n"
+                      "            CharoiteNextUpdateChecker.checkOnLaunch(portal);", post_create)
+        self.assertLess(post_create.index("removeView(splash)"),
+                        post_create.rindex("CharoiteNextUpdateChecker.checkOnLaunch(portal)"))
+        self.assertIn('label.setText("Checking for updates…")', U)
+        self.assertIn("progress.setIndeterminate(true)", U)
+        self.assertLess(U.index("manual ? null : showStartupProgress(activity)"),
+                        U.index("newestNextRelease(fetchPublicReleases())"))
+        self.assertLess(U.index("removeView(progress)"), U.index('setTitle("Charoite Portal'))
 
     def test_release_job_separate_and_portal_unmodified(self):
         for marker in (

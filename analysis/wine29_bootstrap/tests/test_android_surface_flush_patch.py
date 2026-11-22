@@ -54,6 +54,10 @@ class FlushGate(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.patch_source(edited)
 
+        # Reapplying a source patch is a build-configuration error, not success.
+        with self.assertRaises(ValueError):
+            module.patch_source(module.patch_source(PINNED))
+
     def test_workflow_checks_patch_before_crossbuilding(self):
         workflow = WORKFLOW.read_text(encoding='utf-8')
         self.assertIn('analysis/wine29_bootstrap/patch_android_surface_flush.py', workflow)

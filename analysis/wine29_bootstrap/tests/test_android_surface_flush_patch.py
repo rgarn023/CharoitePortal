@@ -3,7 +3,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 PATCHER = ROOT / "analysis/wine29_bootstrap/patch_android_surface_flush.py"
 WORKFLOW = ROOT / ".github/workflows/wine29-first-provider-crossbuild.yml"
 

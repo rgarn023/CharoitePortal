@@ -20,6 +20,8 @@ class AndroidFrameProofContract(unittest.TestCase):
         self.assertIn("hwnd == desktopHwnd", HOST)
         self.assertIn("view.getWidth() < 16 || view.getHeight() < 16", HOST)
         self.assertIn("frame = view.getBitmap(64, 64);", HOST)
+        self.assertIn("now - lastFrameReadbackAt < 250", HOST)
+        self.assertIn("lastFrameReadbackAt = now;", HOST)
         self.assertIn("int pixel = frame.getPixel(8, 8) & 0x00ffffff;", HOST)
         for channel in ("- 124) <= 8", "- 64) <= 8", "- 192) <= 8"):
             self.assertIn(channel, HOST)

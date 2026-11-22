@@ -1,3 +1,7 @@
+## 2026-11-21 — Meteorite Alpha build 1144 published
+
+[Android CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44970778578) and the [in-app release](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1144) is live. Update in place. Check that the update progress bar appears as Portal opens after the splash. Run the v5 Wine29 x64 window test only if it has not already been run on build 1142, which has the same Explorer and API-set changes. If it already ran, read the preserved log instead. Runtime readiness remains estimated at 40% pending Galaxy rendering.
+
 ## 2026-11-21 — Verify the startup progress behavior
 
 The first Android build stopped at a source test that still required the old 7.2-second timer. The replacement tests verify both splash paths, progress visibility during the release check, and removal before the prompt. All three focused tests passed locally. The full local suite had only two errors from missing OpenCV in startup-art tests. [Replacement Android build](https://github.com/rgarn023/CharoitePortal/actions/runs/44970778578) is running and includes the Explorer/API-set changes. Readiness remains estimated at 40%.

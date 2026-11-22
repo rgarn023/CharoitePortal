@@ -1118,7 +1118,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v7"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v8"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);
@@ -1520,7 +1520,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                             env.put("WINEDLLPATH", host.getCanonicalPath() + ":" + env.get("WINEDLLPATH"));
                             // The JNI host resolves its own PE files. Its APK child loader
                             // inherits the verified private runtime PE directory.
-                            env.put("WINEDEBUG", "-all,err+all,+loaddll");
+                            env.put("WINEDEBUG", "-all,err+all,+loaddll,+android");
                             env.put("WINEDEBUGLOG", child(scratch, "x64-window-native.log").getCanonicalPath());
                             String[] environment = new String[2 * env.size()];
                             int slot = 0;

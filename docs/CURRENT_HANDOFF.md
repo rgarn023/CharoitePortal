@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the verified Android driver guard for Wine29 v8
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44980304600). The new Java host archive and all six files in its checksum manifest were independently verified. The v8 window test uses a new private directory, retains access to the v7 log, and enables Android driver trace output. Android packaging and Galaxy rendering remain pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-21 — Guard the Android driver in Explorer's native child process
 
 The Galaxy reported signal 11 during the v7 window test on build 1149. Explorer launched and the log did not confirm a loaded Android graphics driver. The pinned driver's init code dereferences Java symbol lookup results without checking them. The provider build now supports the native child when all Java exports are absent and reports an initialization error for partial Java exports or a missing host object. The device crash location remains unverified. Runtime readiness remains estimated at 40%.

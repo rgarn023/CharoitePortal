@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261122T05-provider-44987057118",
-  "claimed_run_id": 44987057118,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -50,6 +50,6 @@
       137060805212
     ],
     "main_ci_completed_at": "2026-11-22T02:04:55Z",
-    "note": "Main Android build and publication jobs passed; superseded PR #31 closed unmerged. Galaxy rendering remains unverified. Provider run 44977360079 failed Explorer step; not processed pending detailed failure logs."
+    "note": "Superseded PR #31 main CI passed. Provider #169 failed Explorer build; #170/#171 succeeded; latest main provider run 44987057118 succeeded (job 137099821382, 9 artifacts including Android display/Explorer/Java host). Archive contents and functional Android rendering not independently verified; these runs remain unprocessed pending full evidence review. No APK from provider."
   }
 }

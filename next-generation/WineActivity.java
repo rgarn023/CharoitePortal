@@ -50,6 +50,7 @@ public final class WineActivity extends Activity {
     // Only a posted Android frame (not a Win32 screen-DC readback) can prove presentation.
     private boolean presentedPurpleWindow;
     private boolean sampledWindowFrame;
+    private long lastFrameReadbackAt;
 
     // Called by Wine's Android driver. Keep all Android view changes on the UI thread.
     public void createDesktopWindow(int hwnd) {
@@ -126,6 +127,11 @@ public final class WineActivity extends Activity {
                 if (hwnd == desktopHwnd || presentedPurpleWindow || isFinishing()
                         || isDestroyed() || !view.isAvailable()
                         || view.getWidth() < 16 || view.getHeight() < 16) return;
+                // Frame callbacks may arrive rapidly; avoid repeated blocking GPU
+                // readbacks on the Android UI thread while a window is animating.
+                long now = android.os.SystemClock.uptimeMillis();
+                if (now - lastFrameReadbackAt < 250) return;
+                lastFrameReadbackAt = now;
                 Bitmap frame = null;
                 try {
                     // Small, bounded GPU readback. No screenshot or game data is stored.

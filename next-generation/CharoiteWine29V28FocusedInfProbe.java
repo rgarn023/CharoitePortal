@@ -933,11 +933,18 @@ public final class CharoiteWine29V28FocusedInfProbe {
             stageV28SetupModule(image, child(host, "aarch64-windows/" + name),
                     verifyX64Asset(explorerManifest, name, image));
         }
-        File systemExplorer = child(prefix, "drive_c/windows/system32/explorer.exe");
-        if (!systemExplorer.getCanonicalFile().equals(systemExplorer.getAbsoluteFile()))
-            throw new SecurityException("Unexpected window Explorer path");
-        java.nio.file.Files.copy(child(host, "aarch64-windows/explorer.exe").toPath(),
-                systemExplorer.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        // Make the display PEs visible to ordinary System32 imports as well as
+        // Wine's builtin lookup, which associates them with their Unix companions.
+        File system32 = child(prefix, "drive_c/windows/system32");
+        if (!system32.isDirectory() || !system32.getCanonicalFile().equals(system32.getAbsoluteFile()))
+            throw new SecurityException("Unexpected window System32 path");
+        for (String name : new String[] {"explorer.exe", "wineandroid.drv", "ntoskrnl.exe", "hal.dll"}) {
+            File destination = child(system32, name);
+            if (!destination.getCanonicalFile().equals(destination.getAbsoluteFile()))
+                throw new SecurityException("Unexpected window System32 module path");
+            java.nio.file.Files.copy(child(host, "aarch64-windows/" + name).toPath(),
+                    destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
 
         String executable = "x64-window.exe";
         String executableManifest = new String(readStandaloneAsset(context, root + "x64-window.sha256", 512),
@@ -1118,7 +1125,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v8"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v9"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);
@@ -1520,7 +1527,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
                             env.put("WINEDLLPATH", host.getCanonicalPath() + ":" + env.get("WINEDLLPATH"));
                             // The JNI host resolves its own PE files. Its APK child loader
                             // inherits the verified private runtime PE directory.
-                            env.put("WINEDEBUG", "-all,err+all,+loaddll,+android");
+                            env.put("WINEDEBUG", "-all,err+all,warn+module,+loaddll,+android,+explorer");
                             env.put("WINEDEBUGLOG", child(scratch, "x64-window-native.log").getCanonicalPath());
                             String[] environment = new String[2 * env.size()];
                             int slot = 0;

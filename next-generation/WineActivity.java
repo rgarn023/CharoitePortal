@@ -150,7 +150,7 @@ public final class WineActivity extends Activity {
 
     public static void showWindowLog(Activity portal) {
         File log = portal.getNoBackupFilesDir();
-        for (int version = 8; version >= 1; version--) {
+        for (int version = 9; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
                     "charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log");
             if (log.exists()) break;
@@ -162,7 +162,7 @@ public final class WineActivity extends Activity {
             } else {
                 try (java.io.RandomAccessFile input = new java.io.RandomAccessFile(log, "r")) {
                     long size = input.length();
-                    byte[] tail = new byte[(int) Math.min(size, 4096L)];
+                    byte[] tail = new byte[(int) Math.min(size, 16384L)];
                     input.seek(size - tail.length);
                     input.readFully(tail);
                     String detail = new String(tail, StandardCharsets.UTF_8)

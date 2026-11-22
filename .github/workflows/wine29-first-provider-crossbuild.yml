@@ -1498,6 +1498,43 @@ jobs:
               data = get_win_data( hwnd );""")
           path.write_text(source)
           PYSURFACE
+          # The Android device client opens the device before issuing ioctls.
+          python3 - "$build/../dlls/wineandroid.drv/dllmain.c" "$build/../dlls/wineandroid.drv/device.c" <<'PYOPEN'
+          from pathlib import Path
+          import sys
+
+          driver, client = map(Path, sys.argv[1:])
+          source = driver.read_text()
+          init = "static NTSTATUS CALLBACK init_android_driver("
+          dispatch = "    driver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = ioctl_callback;"
+          if source.count(init) != 1 or source.count(dispatch) != 1:
+              raise SystemExit("Unexpected pinned Android driver's dispatch table")
+          source = source.replace(init, """static NTSTATUS WINAPI open_close_callback( DEVICE_OBJECT *device, IRP *irp )
+          {
+              irp->IoStatus.Status = STATUS_SUCCESS;
+              irp->IoStatus.Information = 0;
+              IoCompleteRequest( irp, IO_NO_INCREMENT );
+              return STATUS_SUCCESS;
+          }
+
+          """ + init)
+          source = source.replace(dispatch, """    driver->MajorFunction[IRP_MJ_CREATE] = open_close_callback;
+              driver->MajorFunction[IRP_MJ_CLOSE] = open_close_callback;
+          """ + dispatch)
+          driver.write_text(source)
+
+          source = client.read_text()
+          opened = """        if (status) return -ENOENT;
+                  if (InterlockedCompareExchangePointer( &device, file, NULL )) NtClose( file );"""
+          if source.count(opened) != 1:
+              raise SystemExit("Unexpected pinned Android device-open code")
+          client.write_text(source.replace(opened, """        if (status)
+                  {
+                      WARN( "could not open WineAndroid device, status %08x\\n", status );
+                      return -ENOENT;
+                  }
+                  if (InterlockedCompareExchangePointer( &device, file, NULL )) NtClose( file );"""))
+          PYOPEN
           # Move desktop surface registration ahead of the Java callback.
           python3 - "$build/../dlls/wineandroid.drv/device.c" <<'PYDEVICE'
           from pathlib import Path

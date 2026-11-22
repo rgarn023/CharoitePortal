@@ -11,6 +11,7 @@ import android.app.AlertDialog;
 import android.util.AtomicFile;
 import android.widget.LinearLayout;
 import android.widget.FrameLayout;
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
 import android.view.TextureView;
@@ -45,12 +46,17 @@ public final class WineActivity extends Activity {
     private static final int WS_VISIBLE = 0x10000000;
     private final SparseArray<TextureView> windows = new SparseArray<>();
     private FrameLayout desktop;
+    private int desktopHwnd;
+    // Only a posted Android frame (not a Win32 screen-DC readback) can prove presentation.
+    private boolean presentedPurpleWindow;
+    private boolean sampledWindowFrame;
 
     // Called by Wine's Android driver. Keep all Android view changes on the UI thread.
     public void createDesktopWindow(int hwnd) {
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed() || desktop != null) return;
             recordWindowStage("Interrupted after Wine requested an Android desktop.");
+            desktopHwnd = hwnd;
             desktop = new FrameLayout(this);
             desktop.addOnLayoutChangeListener((view, left, top, right, bottom,
                     oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -114,7 +120,37 @@ public final class WineActivity extends Activity {
             }
 
             @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture texture) {}
+            public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+                // The desktop can have its own SurfaceTexture. Only sample
+                // an actual, sized child window after Android posts a frame.
+                if (hwnd == desktopHwnd || presentedPurpleWindow || isFinishing()
+                        || isDestroyed() || !view.isAvailable()
+                        || view.getWidth() < 16 || view.getHeight() < 16) return;
+                Bitmap frame = null;
+                try {
+                    // Small, bounded GPU readback. No screenshot or game data is stored.
+                    frame = view.getBitmap(64, 64);
+                    if (frame == null) return;
+                    int pixel = frame.getPixel(8, 8) & 0x00ffffff;
+                    if (Math.abs(((pixel >> 16) & 255) - 124) <= 8
+                            && Math.abs(((pixel >> 8) & 255) - 64) <= 8
+                            && Math.abs((pixel & 255) - 192) <= 8) {
+                        presentedPurpleWindow = true;
+                        recordWindowStage("Android presentation VERIFIED: the Wine29 x64 "
+                                + "window posted a purple RGB frame. "
+                                + "Win32 screen-DC readback is a separate gate.");
+                    } else if (!sampledWindowFrame) {
+                        sampledWindowFrame = true;
+                        recordWindowStage(String.format(java.util.Locale.ROOT,
+                                "Android posted a Wine29 window frame, sampled RGB #%06X "
+                                + "(expected #7C40C0).", pixel));
+                    }
+                } catch (RuntimeException failure) {
+                    android.util.Log.w("Wine29Display", "Could not sample window frame", failure);
+                } finally {
+                    if (frame != null) frame.recycle();
+                }
+            }
         });
         windows.put(hwnd, view);
         desktop.addView(view, new FrameLayout.LayoutParams(width, height));

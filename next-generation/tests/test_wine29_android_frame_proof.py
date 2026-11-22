@@ -12,6 +12,9 @@ HOST = (ROOT / "next-generation/WineActivity.java").read_text(encoding="utf-8")
 FIXTURE = (ROOT / "next-generation/charoite-wine/fixtures/x64-window.c").read_text(
     encoding="utf-8"
 )
+PROBE = (ROOT / "next-generation/CharoiteWine29V28FocusedInfProbe.java").read_text(
+    encoding="utf-8"
+)
 
 
 class AndroidFrameProofContract(unittest.TestCase):
@@ -34,6 +37,11 @@ class AndroidFrameProofContract(unittest.TestCase):
         self.assertIn("if (pixel != paint_color || !IsWindowVisible(window))", FIXTURE)
         self.assertIn("ExitProcess(15);", FIXTURE)
         self.assertIn("ExitProcess(42);", FIXTURE)
+
+    def test_new_window_probe_is_private_and_preserves_v14(self):
+        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v15"', PROBE)
+        self.assertIn("if (!newScratch.mkdir())", PROBE)
+        self.assertIn("for (int version = 15; version >= 1; version--)", HOST)
 
     def test_checkpoint_does_not_capture_frames_or_user_data(self):
         self.assertIn("recordWindowStage(", HOST)

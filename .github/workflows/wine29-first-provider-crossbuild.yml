@@ -1428,6 +1428,40 @@ jobs:
               raise SystemExit("Unexpected pinned Android driver callback assignment")
           source.write_text(contents.replace(original, patched))
           PY
+          # Explorer can load the driver in a child without the Java host exports.
+          python3 - "$build/../dlls/wineandroid.drv/init.c" <<'PYJNI'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          source = path.read_text()
+          lookup = "    object = *p_java_object;"
+          replacement = """    if (!p_java_vm && !p_java_object && !p_java_gdt_sel)
+              {
+                  static JavaVM *no_java_vm;
+                  static jobject no_java_object;
+                  static unsigned short no_java_gdt_sel;
+
+                  p_java_vm = &no_java_vm;
+                  p_java_object = &no_java_object;
+                  p_java_gdt_sel = &no_java_gdt_sel;
+              }
+              else if (!p_java_vm || !p_java_object || !p_java_gdt_sel)
+              {
+                  ERR( "incomplete Android driver Java exports\\n" );
+                  return STATUS_UNSUCCESSFUL;
+              }
+
+              object = *p_java_object;
+              if (*p_java_vm && !object)
+              {
+                  ERR( "Android driver Java host object is unavailable\\n" );
+                  return STATUS_UNSUCCESSFUL;
+              }"""
+          if source.count(lookup) != 1:
+              raise SystemExit("Unexpected pinned Android driver Java lookup")
+          path.write_text(source.replace(lookup, replacement))
+          PYJNI
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib

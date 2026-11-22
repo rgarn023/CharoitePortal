@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the verified desktop registration fix for Wine29 v11
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44985395798). The Java host archive and all six payload hashes were verified. The v11 window test stages the native desktop registration fix in a fresh private runtime and retains access to v10 logs. Android packaging and visible Galaxy rendering are pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-21 — Register Wine's desktop before handing it the Android surface
 
 The Galaxy v10 run delivered a 1440x2581 Android surface and processed the desktop dimensions. The native driver reported the desktop window handle as unknown when registering that surface. The fixture exited 15 at its visible purple pixel check. The provider build now creates the native desktop record before issuing the Java callback and logs any failed per-window creation ioctl. Visible x64 rendering remains pending. Estimated overall readiness remains 40%.

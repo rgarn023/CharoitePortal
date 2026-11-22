@@ -1,3 +1,7 @@
+## 2026-11-22 — Open the WineAndroid device by its native name
+
+Build 1159 registered the desktop surface but reported NTSTATUS 0xC0000033 during the window device open and exited 15. The provider patch makes the client pass the same native device name the driver registers to NtCreateFile. A native rebuild and Galaxy rendering check are pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-22 — Stage the verified WineAndroid device-open fix for v12
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44987057118). The Java host archive and all six payload hashes were independently verified. The v12 window test uses a fresh private runtime and retains access to earlier logs. Android packaging and Galaxy rendering remain pending. Estimated overall readiness is 40%.

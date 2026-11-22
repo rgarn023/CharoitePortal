@@ -1524,6 +1524,11 @@ jobs:
           driver.write_text(source)
 
           source = client.read_text()
+          dos_path = r"static const WCHAR deviceW[] = {'\\','\\','.','\\','W','i','n','e','A','n','d','r','o','i','d',0 };"
+          native_path = r"static const WCHAR deviceW[] = {'\\','D','e','v','i','c','e','\\','W','i','n','e','A','n','d','r','o','i','d',0 };"
+          if source.count(dos_path) != 1 or native_path.replace("deviceW", "device_nameW") not in driver.read_text():
+              raise SystemExit("Unexpected pinned WineAndroid device names")
+          source = source.replace(dos_path, native_path)
           opened = """        if (status) return -ENOENT;
                   if (InterlockedCompareExchangePointer( &device, file, NULL )) NtClose( file );"""
           if source.count(opened) != 1:

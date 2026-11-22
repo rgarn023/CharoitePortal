@@ -1,3 +1,7 @@
+## 2026-11-21 — Correct the Explorer dependency header gate
+
+[Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44977360079) compiled Explorer and its dependencies, then stopped when the packaging check required plain ARM64 headers for every module. The check still requires plain ARM64 for Explorer and accepts ARM64 or ARM64X for ntoskrnl and HAL, with rejected headers printed. The v7 APK awaits a verified provider bundle. Estimated runtime readiness remains 40%.
+
 ## 2026-11-21 — Select the Android graphics driver after Explorer starts
 
 The Galaxy v6 run on build 1147 started Explorer in a separate process and reached tray initialization. Explorer and the x64 fixture reported no graphics driver, and the fixture returned 12 from its window-creation failure. Pinned Explorer defaults to mac, x11, and wayland; that list omits the packaged Android driver. The private Explorer candidate now defaults to android and Provider CI builds and inventories the ARM64 ntoskrnl.exe and hal.dll PE dependencies. After the provider build, verify and stage the new Explorer and dependency files for a fresh private display test. Galaxy rendering remains unverified and overall readiness remains estimated at 40%.

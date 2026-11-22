@@ -1578,7 +1578,14 @@ jobs:
           cd "$out"
           for pe in explorer.exe ntoskrnl.exe hal.dll; do
             "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers --coff-imports "$pe" > "${pe%.*}-pe.txt"
-            grep -F 'IMAGE_FILE_MACHINE_ARM64 (0xAA64)' "${pe%.*}-pe.txt"
+          done
+          grep -E '^  Machine: IMAGE_FILE_MACHINE_ARM64 \(0xAA64\)$' explorer-pe.txt
+          for pe in ntoskrnl hal; do
+            if ! grep -E '^  Machine: IMAGE_FILE_MACHINE_ARM64 \(0xAA64\)$|^  Machine: IMAGE_FILE_MACHINE_ARM64X \(0xA64E\)$' "$pe-pe.txt"; then
+              grep -E 'Machine:' "$pe-pe.txt" >&2 || true
+              echo "$pe: expected an ARM64 or ARM64X PE image" >&2
+              exit 1
+            fi
           done
           sha256sum explorer.exe ntoskrnl.exe hal.dll > SHA256SUMS
       - name: Publish Wine29 Android Explorer candidate

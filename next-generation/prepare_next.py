@@ -4066,8 +4066,7 @@ ui = ui.replace(create_anchor, (
     ".onPortalCreated(this, savedInstanceState);\n"
     "        CharoiteEnvironments.initialize(this);\n"
     "        com.charoitegames.core.CharoiteNextAutoReports.schedule(this);\n"
-    "        com.charoitegames.core.CharoiteNextAutoReports.sendOnLaunch(this);\n"
-    "        com.charoitegames.core.CharoiteNextUpdateChecker.checkOnLaunch(this);"), 1)
+    "        com.charoitegames.core.CharoiteNextAutoReports.sendOnLaunch(this);"), 1)
 
 # The fallback is prepared in onCreate and mounted synchronously in
 # onPostCreate, after the full Portal view is assembled but BEFORE first draw.

@@ -142,7 +142,10 @@ public final class CharoiteNextBootActivity extends Activity {
      * and before Android's first visible frame. Adding to android.R.id.content
      * here avoids the main-screen flash caused by Handler.postDelayed. */
     public static void onPortalPostCreated(Activity portal) {
-        if (pendingColdFallbackOwner != portal) return;
+        if (pendingColdFallbackOwner != portal) {
+            CharoiteNextUpdateChecker.checkOnLaunch(portal);
+            return;
+        }
         pendingColdFallbackOwner = null;
         if (portal.isFinishing() || portal.isDestroyed()) return;
         FrameLayout content = portal.findViewById(android.R.id.content);
@@ -180,6 +183,8 @@ public final class CharoiteNextBootActivity extends Activity {
             coldFallbackOwner = null;
             if (splash.getParent() instanceof ViewGroup)
                 ((ViewGroup) splash.getParent()).removeView(splash);
+            if (!portal.isFinishing() && !portal.isDestroyed())
+                CharoiteNextUpdateChecker.checkOnLaunch(portal);
         }, BOOT_DURATION_MS);
     }
     public static void notePortalDestroyed(Activity portal) {

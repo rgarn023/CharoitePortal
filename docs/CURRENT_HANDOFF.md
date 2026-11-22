@@ -1,3 +1,7 @@
+## 2026-11-21 — Show update checking on the first Portal screen
+
+Meteorite Alpha starts its automatic release check when the Portal first appears, including after the direct cold-start splash overlay is removed. A labeled indeterminate progress bar appears while the check is active and clears before the result dialog. The patch removes the fixed 7.2-second delay. This signed build also carries the ARM64 Explorer and API-set staging for the existing v5 window test. Android CI and Galaxy verification are pending. Runtime readiness remains 40%.
+
 ## 2026-11-21 — ARM64 Explorer provider candidate verified
 
 [Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577) built a source-matched ARM64 GUI `explorer.exe`. The [Explorer artifact](https://github.com/rgarn023/CharoitePortal/actions/runs/44937251577/artifacts/14720800420) matches GitHub's archive digest and the executable matches its manifest entry. Its import inventory lists 13 DLLs. [The runtime staging change](https://github.com/rgarn023/CharoitePortal/commit/3cee888c6c7c81382c0e3307e7e1bc475859326c) is already on main. Explorer startup and x64 window rendering on Galaxy remain unverified. Readiness stays **40%**. Provider CI produced zero APKs.

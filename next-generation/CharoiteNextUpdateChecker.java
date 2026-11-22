@@ -115,11 +115,38 @@ public final class CharoiteNextUpdateChecker {
         return newest;
     }
 
+    private static android.view.View showStartupProgress(Activity activity) {
+        android.widget.FrameLayout content = activity.findViewById(android.R.id.content);
+        android.widget.LinearLayout status = new android.widget.LinearLayout(activity);
+        status.setOrientation(android.widget.LinearLayout.VERTICAL);
+        float density = activity.getResources().getDisplayMetrics().density;
+        int padding = Math.round(12 * density);
+        status.setPadding(padding, padding, padding, padding);
+        status.setBackgroundColor(0xff291c3a);
+        status.setElevation(6 * density);
+        android.widget.TextView label = new android.widget.TextView(activity);
+        label.setText("Checking for updates…");
+        label.setTextColor(android.graphics.Color.WHITE);
+        label.setAccessibilityLiveRegion(android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        status.addView(label);
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(activity, null,
+                android.R.attr.progressBarStyleHorizontal);
+        progress.setIndeterminate(true);
+        progress.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xffcfadff));
+        status.addView(progress, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, Math.round(8 * density)));
+        content.addView(status, new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP));
+        return status;
+    }
+
     private static void check(Activity activity, boolean manual) {
         if(!PACKAGE.equals(activity.getPackageName()) || !CHECKING.compareAndSet(false,true))
             return;
         long installed=installedVersionCode(activity);
         if(installed<1){CHECKING.set(false);return;}
+        android.view.View progress = manual ? null : showStartupProgress(activity);
         new Thread(() -> {
             Available newest=null;
             boolean failed=false;
@@ -127,8 +154,10 @@ public final class CharoiteNextUpdateChecker {
             catch(Exception ignored) {failed=true;}
             final Available result=newest;
             final boolean error=failed;
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            new Handler(Looper.getMainLooper()).post(() -> {
                 CHECKING.set(false);
+                if (progress != null && progress.getParent() instanceof android.view.ViewGroup)
+                    ((android.view.ViewGroup) progress.getParent()).removeView(progress);
                 if(activity.isFinishing() || activity.isDestroyed())return;
                 if(result!=null && result.versionCode>installed) {
                     new AlertDialog.Builder(activity)
@@ -157,7 +186,7 @@ public final class CharoiteNextUpdateChecker {
                         .setMessage(message)
                         .setPositiveButton("Close",null).show();
                 }
-            },manual?0L:7200L); // do not interrupt the 7-second boot splash
+            });
         },"CharoiteNextPublicGitHubUpdateCheck").start();
     }
 

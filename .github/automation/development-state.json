@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261122T15-automation11",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -68,6 +68,6 @@
       137228308210
     ],
     "main_ci_completed_at": "2026-11-22T13:44:35Z",
-    "note": "Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified."
+    "note": "At 2026-11-22T15 UTC batch, main x64 fixture run 45029459478 succeeded with desktop purple-pixel test; source validation 45029459502 succeeded six jobs; Android main run 45030232303 succeeded both jobs for 5b1cfcad, APK artifact 14756689575 metadata only (signature and archive contents not independently verified). Galaxy rendering remains unverified. No provider completion in latest 25 main runs. Existing v14 packaging is already on main; do not duplicate milestone. Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified."
   }
 }

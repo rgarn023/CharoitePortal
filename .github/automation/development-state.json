@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261122T03-main-ci-reconcile",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -40,9 +40,16 @@
     "pr_number": 31,
     "branch": "engineering/wine29-v6-window-loader",
     "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
-    "phase": "awaiting_main_ci",
+    "phase": "main_ci_passed",
     "pr_disposition": "closed_unmerged_superseded",
     "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
-    "main_run_id": 44973984123
+    "main_run_id": 44973984123,
+    "main_ci_conclusion": "success",
+    "main_ci_verified_jobs": [
+      137059664870,
+      137060805212
+    ],
+    "main_ci_completed_at": "2026-11-22T02:04:55Z",
+    "note": "Main Android build and publication jobs passed; superseded PR #31 closed unmerged. Galaxy rendering remains unverified. Provider run 44977360079 failed Explorer step; not processed pending detailed failure logs."
   }
 }

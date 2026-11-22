@@ -1,3 +1,7 @@
+## 2026-11-21 — Register Wine's desktop before handing it the Android surface
+
+The Galaxy v10 run delivered a 1440x2581 Android surface and processed the desktop dimensions. The native driver reported the desktop window handle as unknown when registering that surface. The fixture exited 15 at its visible purple pixel check. The provider build now creates the native desktop record before issuing the Java callback and logs any failed per-window creation ioctl. Visible x64 rendering remains pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-21 — Stage the verified Android surface host for Wine29 v10
 
 [Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44983827651). The Java host archive and all six payload hashes were verified. The v10 window test uses a fresh private runtime, reports when the Android dimensions callback returns, and retains access to older window logs. The next signed app build and Galaxy rendering are pending. Estimated overall readiness remains 40%.

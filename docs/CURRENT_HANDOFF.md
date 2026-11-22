@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the rebuilt Android Java host for the Wine29 v6 window test
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44973476658). The app build pins the new Java host archive and its SHA-256. The v6 test uses a fresh private directory and preserves the verified runtime PE path for Explorer's APK child loader. The existing window log reader also reads v5 evidence when a v6 log is unavailable. Android packaging and Galaxy rendering remain pending. Runtime readiness remains estimated at 40%.
+
 ## 2026-11-21 — Route the Android display host's Explorer launch through the APK loader
 
 The Galaxy v5 log reaches the x64 fixture, FEX, user32, and GDI32. It no longer shows the API-set lookup error. Wine reports Explorer process creation status 1, followed by the no-window-driver error. The pinned JNI loader derives the child executable path from the display host's empty private bin directory. The provider build now applies the same canonical APK loader selector used by the private prefix and checks that the rebuilt host contains the selector and numeric exec failure marker. The status alone does not prove the on-device exec failure.

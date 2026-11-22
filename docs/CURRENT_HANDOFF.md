@@ -1,3 +1,7 @@
+## 2026-11-21 — Start the Android surface host from the Java window thread
+
+Build 1153 loaded wineandroid.drv and reached window creation in the x64 fixture. Explorer reported a 0x0 display mode. The pinned driver normally starts its Android device only when its process creates the desktop window. In this test native Explorer can own that desktop while the x64 fixture runs in the Java host. The provider build now starts the device before the Java host's first window positioning ioctl if its event queue has not started, then gives Android a bounded opportunity to send the initial view dimensions. Galaxy rendering remains pending and overall readiness remains estimated at 40%.
+
 ## 2026-11-21 — Stage Wine29 v9 driver files in private System32
 
 Build 1151 started Explorer and returned fixture exit 12, with no successful Android driver load shown. The v9 window test places the verified driver and its PE imports in private System32 as well as the Wine builtin search directory. It preserves v8 evidence and adds Explorer selection and module warnings to the bounded log. The exact v8 load failure remains unverified. Overall readiness remains estimated at 40%.

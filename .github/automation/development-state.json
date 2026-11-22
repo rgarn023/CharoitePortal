@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261122T11-automation11",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -34,7 +34,7 @@
     "result": "success",
     "verification": "Provider job 137058090003 passed; Java host artifact 14733779740 ZIP and all six binary digests match. ntdll.so contains the V6 APK loader selector and numeric child exec failure marker. Zero APKs. PR #31 pins the candidate to a fresh private V6 window test; Galaxy GUI pending, 40%. Main commit 2c421ff2a7401cbd389560d6a0db5b7a11eac2e1 independently landed the same archive and fresh V6 scratch plus the private prefix PE selector fix. PR #31 closed unmerged as superseded. Main Android CI 44973984123 is already running."
   },
-  "event_batch_utc": "2026-11-22T08",
+  "event_batch_utc": "2026-11-22T11",
   "pending_validation": {
     "source_run_id": 44973476658,
     "pr_number": 31,

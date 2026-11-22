@@ -1234,8 +1234,8 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/wine29-java-host.zip"
           assets=upstream/app/src/main/assets/wine29-java-host
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14738070569/zip" > "$archive"
-          echo "294d254f3aae5c8230364ee577e8c4cdee7353956af62a5359e36a0514d8f7c5  $archive" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14739206365/zip" > "$archive"
+          echo "805bda7dff218c9d4fb8b6b506eab3317ff743f46314abaf49771964f31f1688  $archive" | sha256sum -c -
           mkdir -p "$assets"
           for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
             unzip -p "$archive" "$file" > "$assets/$file"

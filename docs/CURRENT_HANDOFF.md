@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the verified Android surface host for Wine29 v10
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44983827651). The Java host archive and all six payload hashes were verified. The v10 window test uses a fresh private runtime, reports when the Android dimensions callback returns, and retains access to older window logs. The next signed app build and Galaxy rendering are pending. Estimated overall readiness remains 40%.
+
 ## 2026-11-21 — Start the Android surface host from the Java window thread
 
 Build 1153 loaded wineandroid.drv and reached window creation in the x64 fixture. Explorer reported a 0x0 display mode. The pinned driver normally starts its Android device only when its process creates the desktop window. In this test native Explorer can own that desktop while the x64 fixture runs in the Java host. The provider build now starts the device before the Java host's first window positioning ioctl if its event queue has not started, then gives Android a bounded opportunity to send the initial view dimensions. Galaxy rendering remains pending and overall readiness remains estimated at 40%.

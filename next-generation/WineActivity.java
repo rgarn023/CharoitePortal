@@ -59,6 +59,7 @@ public final class WineActivity extends Activity {
                 if (width > 0 && height > 0
                         && (width != oldRight - oldLeft || height != oldBottom - oldTop)) {
                     wine_desktop_changed(width, height);
+                    recordWindowStage("Wine received Android desktop dimensions " + width + "×" + height + ".");
                 }
             });
             setContentView(desktop);
@@ -150,7 +151,7 @@ public final class WineActivity extends Activity {
 
     public static void showWindowLog(Activity portal) {
         File log = portal.getNoBackupFilesDir();
-        for (int version = 9; version >= 1; version--) {
+        for (int version = 10; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
                     "charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log");
             if (log.exists()) break;

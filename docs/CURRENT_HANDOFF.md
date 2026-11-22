@@ -1,3 +1,7 @@
+## 2026-11-21 — Verify the startup progress behavior
+
+The first Android build stopped at a source test that still required the old 7.2-second timer. The replacement tests verify both splash paths, progress visibility during the release check, and removal before the prompt. All three focused tests passed locally. The full local suite had only two errors from missing OpenCV in startup-art tests. [Replacement Android build](https://github.com/rgarn023/CharoitePortal/actions/runs/44970778578) is running and includes the Explorer/API-set changes. Readiness remains estimated at 40%.
+
 ## 2026-11-21 — Show update checking on the first Portal screen
 
 Meteorite Alpha starts its automatic release check when the Portal first appears, including after the direct cold-start splash overlay is removed. A labeled indeterminate progress bar appears while the check is active and clears before the result dialog. The patch removes the fixed 7.2-second delay. This signed build also carries the ARM64 Explorer and API-set staging for the existing v5 window test. Android CI and Galaxy verification are pending. Runtime readiness remains 40%.

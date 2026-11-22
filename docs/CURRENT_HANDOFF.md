@@ -1,3 +1,7 @@
+## 2026-11-21 — Stage the verified Android Explorer bundle for Wine29 v7
+
+[Provider CI passed](https://github.com/rgarn023/CharoitePortal/actions/runs/44978578613). The Explorer archive and all three PE files matched their SHA-256 digests. The v7 window test stages Explorer, ntoskrnl.exe, and hal.dll in a fresh private runtime and continues to expose the saved v6 log. Android packaging and Galaxy rendering remain pending. Estimated runtime readiness is 40%.
+
 ## 2026-11-21 — Correct the Explorer dependency header gate
 
 [Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/44977360079) compiled Explorer and its dependencies, then stopped when the packaging check required plain ARM64 headers for every module. The check still requires plain ARM64 for Explorer and accepts ARM64 or ARM64X for ntoskrnl and HAL, with rejected headers printed. The v7 APK awaits a verified provider bundle. Estimated runtime readiness remains 40%.

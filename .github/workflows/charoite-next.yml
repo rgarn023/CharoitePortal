@@ -1250,10 +1250,12 @@ jobs:
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14720800420/zip" > "$explorer"
-          echo "35d2d5260493d60f8c2925e5a3fe7b4ab8c15d54e18209a92afa3ea5279981c7  $explorer" | sha256sum -c -
-          unzip -p "$explorer" explorer.exe > "$assets/explorer.exe"
-          echo "bec10ab09dc5c34bcf0083cb9c37fcc01218c929eb1819b0bcca6f998d994bb2  explorer.exe" > "$assets/explorer.sha256"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14736472448/zip" > "$explorer"
+          echo "a61c80a2dcb8b0a00bf03c97aa57dd201f307f99b3519fc49f36d8e43f46ff1e  $explorer" | sha256sum -c -
+          for file in explorer.exe ntoskrnl.exe hal.dll; do
+            unzip -p "$explorer" "$file" > "$assets/$file"
+          done
+          unzip -p "$explorer" SHA256SUMS > "$assets/explorer.sha256"
           (cd "$assets" && sha256sum -c explorer.sha256)
 
       - name: Apply the allocated Android version

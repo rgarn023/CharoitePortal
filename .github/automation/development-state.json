@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "hourly-20261122T1355-main-ci-reconcile",
-  "claimed_run_id": 45028643343,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -41,7 +41,7 @@
     "pr_number": 46,
     "branch": "engineering/wine29-v13-native-device",
     "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
-    "phase": "awaiting_main_ci",
+    "phase": "main_ci_passed",
     "pr_disposition": "closed_unmerged_superseded",
     "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
     "main_run_id": 45028643343,
@@ -61,6 +61,13 @@
       ],
       "main_ci_completed_at": "2026-11-22T02:04:55Z",
       "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
-    }
+    },
+    "main_ci_conclusion": "success",
+    "main_ci_verified_jobs": [
+      137227117000,
+      137228308210
+    ],
+    "main_ci_completed_at": "2026-11-22T13:44:35Z",
+    "note": "Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified."
   }
 }

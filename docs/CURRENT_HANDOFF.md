@@ -1,3 +1,9 @@
+## 2026-11-22 — Separate Galaxy v14 Android pixel presentation from Win32 screen-DC readback
+
+The owner's Galaxy build 1164 report reached the x64 window's 360×220 geometry and Android surface registration (`android_register_window` for hwnd 0x2003e), after receiving desktop dimensions 1440×2581. The test ended with ordinary process exit status 15; the Win32 screen-DC purple pixel requirement was not met. Earlier 0xc0000034 device opens belong to a separate Explorer process and do not invalidate the later fixture-process registration. **Actual purple Android pixels remain unverified.**
+
+The experimental `WineActivity` change on `fix/wine29-galaxy-frame-proof-v15` reads a bounded 64×64 bitmap from the UI-thread `TextureView` **only after a child window posts a frame**, samples its RGB pixel, and records either its first observed color or a matched purple color. The Android pixel proof is independent of the unchanged Win32 fixture `GetPixel(screen)` gate. No screenshot is stored, no game data is read, and the stable Portal and previous scratch directories are untouched. This is a source-only change; Android compile, CI verification and Galaxy results are pending. Next: review the PR and lightweight CI, then package a new isolated v15 build only after a separately verified build. **Owner action: NO for source/CI; any subsequent device test requires opt-in. Estimated overall v1.0 readiness: 40%.**
+
 ## 2026-11-22 — Package the desktop-verified v14 window fixture
 
 [Desktop Wine CI](https://github.com/rgarn023/CharoitePortal/actions/runs/45029459478) passed the purple-pixel test. The Android workflow pins the verified archive and executable hashes. The v14 run uses a fresh private directory and preserves access to v13 logs. Galaxy rendering remains pending. Overall readiness remains estimated at 40%.

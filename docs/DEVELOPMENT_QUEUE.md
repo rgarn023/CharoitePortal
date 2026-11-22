@@ -1,3 +1,10 @@
+## Current graphics priority — 2026-11-22
+
+- **P0, actively progressing:** Galaxy v14 x64 fixture reached native Android registration of a 360×220 window; the Win32 screen-DC pixel test still exited 15. No Galaxy visual/purple-pixel pass has been verified.
+- **P0, proposed on `fix/wine29-galaxy-frame-proof-v15`:** Verify actual **Android TextureView presentation** after a posted child frame, using a bounded 64×64 readback and first-frame/purple-color checkpoint. The Win32 screen-DC test remains strict and separate. Pending lightweight CI and an explicitly authorized future Galaxy test; this change is not a rendering success claim.
+- **P1, if Android reports a posted nonpurple frame:** inspect the native `android_surface_flush` / buffer queue and paint path with bounded evidence rather than guessing. If Android reports purple but Win32 `GetPixel(screen)` remains invalid, investigate the screen-DC readback separately.
+- **Isolation:** all source work targets experimental Meteorite Alpha. Do not reuse consumed v1–v14 window scratch or touch stable Portal, saves, prefixes, games, or rootfs. Readiness stays approximately **40%** until runtime proof improves.
+
 # Charoite Portal — Development Queue
 
 **Scope:** experimental Wine29 source-only provider work on `main`. Updated 2026-11-12. Queue entries are priorities, not claims of completed tests.

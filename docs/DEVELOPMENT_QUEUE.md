@@ -1,3 +1,9 @@
+## Active graphics integration update — 2026-11-22
+
+- **v15 source merged:** [PR #49](https://github.com/rgarn023/CharoitePortal/pull/49) improves Android child-window frame proof and isolates the next test in new v15 scratch. Static PR CI [45077079556](https://github.com/rgarn023/CharoitePortal/actions/runs/45077079556) passed; full [Android build 45077167201](https://github.com/rgarn023/CharoitePortal/actions/runs/45077167201) is pending.
+- **Highest unblocked gate:** confirm signed build/release, then user-authorized Galaxy test of **native purple Android frame versus Win32 GetPixel(screen)**. Do not count either as passed until directly observed.
+- **Estimated readiness:** 40%. No fresh device test until the release is verified; never reuse v14 or older consumed scratch.
+
 ## Current graphics priority — 2026-11-22
 
 - **P0, actively progressing:** Galaxy v14 x64 fixture reached native Android registration of a 360×220 window; the Win32 screen-DC pixel test still exited 15. No Galaxy visual/purple-pixel pass has been verified.

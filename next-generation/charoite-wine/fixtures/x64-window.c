@@ -32,32 +32,39 @@ void fixture_entry(void)
         ExitProcess(11);
 
     HWND window = CreateWindowExW(0, window_class.lpszClassName,
-        L"Charoite Portal x64 window test", WS_OVERLAPPEDWINDOW,
+        L"Charoite Portal x64 window test", WS_POPUP,
         80, 80, 360, 220, NULL, NULL, instance, NULL);
     if (!window)
         ExitProcess(12);
 
     ShowWindow(window, SW_SHOWNORMAL);
-    UpdateWindow(window);
 
     POINT sample = {16, 16};
-    if (!ClientToScreen(window, &sample))
-        ExitProcess(13);
 
     HDC screen = GetDC(NULL);
     if (!screen)
         ExitProcess(14);
 
     COLORREF pixel = CLR_INVALID;
-    for (unsigned attempt = 0; attempt < 20; ++attempt) {
+    for (unsigned attempt = 0; attempt < 100; ++attempt) {
         MSG message;
         while (PeekMessageW(&message, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
-        pixel = GetPixel(screen, sample.x, sample.y);
-        if (pixel == paint_color)
-            break;
+        RECT client;
+        if (GetClientRect(window, &client) && client.right > 16 && client.bottom > 16
+            && IsWindowVisible(window)) {
+            sample = (POINT){16, 16};
+            if (!ClientToScreen(window, &sample))
+                ExitProcess(13);
+            InvalidateRect(window, NULL, FALSE);
+            UpdateWindow(window);
+            GdiFlush();
+            pixel = GetPixel(screen, sample.x, sample.y);
+            if (pixel == paint_color)
+                break;
+        }
         Sleep(50);
     }
     ReleaseDC(NULL, screen);

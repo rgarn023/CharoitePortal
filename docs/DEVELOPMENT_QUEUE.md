@@ -1,3 +1,10 @@
+## Native Android frame flush — 2026-11-22
+
+- **P0 Android graphics (source implementation):** The pinned Wine29 CPU `android_surface_flush` path ignored a failed `NATIVE_WINDOW_UNLOCK_AND_POST` and reported successful flush on an unsuccessful `NATIVE_WINDOW_LOCK`. A fail-closed source patch on `fix/wine29-android-surface-flush-gate` now propagates errors through FALSE and emits bounded Wine WARN markers. Exact-anchor source-only regression tests and provider-workflow integration have been committed; native provider CI / Galaxy verification are pending. Not a verified rendering fix.
+- **Signed current build:** Meteorite Alpha [1169](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1169), [GitHub Actions 45077167201](https://github.com/rgarn023/CharoitePortal/actions/runs/45077167201) PASSED. The v15 Galaxy purple-frame check has not yet been run/verified.
+- **Next:** Inspect provider CI (actual artifact hashes, source patch gate, Android ELF and Windows PE), then decide whether native driver should be pinned into a new APK. Preserve strict Win32 GetPixel test and all old evidence. Never test or modify stable Portal/user data/historical scratch.
+- **Overall:** 40% estimated; only increase with runtime evidence.
+
 ## Active graphics integration update — 2026-11-22
 
 - **v15 source merged:** [PR #49](https://github.com/rgarn023/CharoitePortal/pull/49) improves Android child-window frame proof and isolates the next test in new v15 scratch. Static PR CI [45077079556](https://github.com/rgarn023/CharoitePortal/actions/runs/45077079556) passed; full [Android build 45077167201](https://github.com/rgarn023/CharoitePortal/actions/runs/45077167201) is pending.

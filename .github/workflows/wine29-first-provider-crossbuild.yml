@@ -1558,14 +1558,29 @@ jobs:
           set -euo pipefail
           build="$RUNNER_TEMP/charoite-first-provider-source/charoite-arm64ec-android"
           out="$GITHUB_WORKSPACE/wine29-android-explorer"
-          target="programs/explorer/aarch64-windows/explorer.exe"
-          make -C "$build" -j2 "$target"
+          python3 - "$build/../programs/explorer/desktop.c" <<'PYDRIVER'
+          from pathlib import Path
+          import sys
+
+          source = Path(sys.argv[1])
+          contents = source.read_text()
+          default = 'static const WCHAR default_driver[] = L"mac,x11,wayland";'
+          if contents.count(default) != 1:
+              raise SystemExit("Unexpected pinned Explorer driver defaults")
+          source.write_text(contents.replace(default, 'static const WCHAR default_driver[] = L"android";'))
+          PYDRIVER
+          explorer="programs/explorer/aarch64-windows/explorer.exe"
+          ntoskrnl="dlls/ntoskrnl.exe/aarch64-windows/ntoskrnl.exe"
+          hal="dlls/hal/aarch64-windows/hal.dll"
+          make -C "$build" -j2 "$explorer" "$ntoskrnl" "$hal"
           mkdir "$out"
-          cp "$build/$target" "$out/explorer.exe"
+          cp "$build/$explorer" "$build/$ntoskrnl" "$build/$hal" "$out/"
           cd "$out"
-          "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers --coff-imports explorer.exe > explorer-pe.txt
-          grep -F 'IMAGE_FILE_MACHINE_ARM64 (0xAA64)' explorer-pe.txt
-          sha256sum explorer.exe > SHA256SUMS
+          for pe in explorer.exe ntoskrnl.exe hal.dll; do
+            "$RUNNER_TEMP/charoite-llvm-mingw/bin/llvm-readobj" --file-headers --coff-imports "$pe" > "${pe%.*}-pe.txt"
+            grep -F 'IMAGE_FILE_MACHINE_ARM64 (0xAA64)' "${pe%.*}-pe.txt"
+          done
+          sha256sum explorer.exe ntoskrnl.exe hal.dll > SHA256SUMS
       - name: Publish Wine29 Android Explorer candidate
         uses: actions/upload-artifact@v4
         with:

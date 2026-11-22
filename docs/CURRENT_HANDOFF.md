@@ -1,3 +1,7 @@
+## 2026-11-22 — Package the desktop-verified v14 window fixture
+
+[Desktop Wine CI](https://github.com/rgarn023/CharoitePortal/actions/runs/45029459478) passed the purple-pixel test. The Android workflow pins the verified archive and executable hashes. The v14 run uses a fresh private directory and preserves access to v13 logs. Galaxy rendering remains pending. Overall readiness remains estimated at 40%.
+
 ## 2026-11-22 — Give the x64 window fixture a drawable client area
 
 Build 1162 created the x64 window and registered its Android surface, but Wine reported a zero-height client rectangle and the pixel check exited 15. The updated fixture removes window decorations and repaints while waiting for a visible client area large enough for the sample. It still requires the expected purple pixel from the screen DC. Desktop Wine CI and the Galaxy check are pending. Estimated overall readiness remains 40%.

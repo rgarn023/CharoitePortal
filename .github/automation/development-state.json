@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-ea540b58-e679-11f1-9de0-19b9bbc08c61",
-  "claimed_run_id": 45027919664,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -27,29 +27,40 @@
     44873253877,
     44877104555,
     44937251577,
-    44973476658
+    44973476658,
+    45027919664
   ],
   "last_result": {
-    "run_id": 44973476658,
+    "run_id": 45027919664,
     "result": "success",
-    "verification": "Provider job 137058090003 passed; Java host artifact 14733779740 ZIP and all six binary digests match. ntdll.so contains the V6 APK loader selector and numeric child exec failure marker. Zero APKs. PR #31 pins the candidate to a fresh private V6 window test; Galaxy GUI pending, 40%. Main commit 2c421ff2a7401cbd389560d6a0db5b7a11eac2e1 independently landed the same archive and fresh V6 scratch plus the private prefix PE selector fix. PR #31 closed unmerged as superseded. Main Android CI 44973984123 is already running."
+    "verification": "Provider job 137224893171 built the native WineAndroid device-name fix. Java host ZIP 14756623119 and all six binary digests matched; native device name present in compiled artifacts. Zero APKs. Main independently stages the same artifact and isolated v13 window test at 8e9e1933200b70c6022466fbdae3e8998757670d; PR #46 closed unmerged as superseded. Android CI pending, Galaxy rendering unverified, 40%."
   },
   "event_batch_utc": "2026-11-22T12",
   "pending_validation": {
-    "source_run_id": 44973476658,
-    "pr_number": 31,
-    "branch": "engineering/wine29-v6-window-loader",
-    "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
-    "phase": "main_ci_passed",
+    "source_run_id": 45027919664,
+    "pr_number": 46,
+    "branch": "engineering/wine29-v13-native-device",
+    "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
+    "phase": "awaiting_main_ci",
     "pr_disposition": "closed_unmerged_superseded",
-    "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
-    "main_run_id": 44973984123,
-    "main_ci_conclusion": "success",
-    "main_ci_verified_jobs": [
-      137059664870,
-      137060805212
-    ],
-    "main_ci_completed_at": "2026-11-22T02:04:55Z",
-    "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
+    "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
+    "main_run_id": 45028643343,
+    "previous_validation": {
+      "source_run_id": 44973476658,
+      "pr_number": 31,
+      "branch": "engineering/wine29-v6-window-loader",
+      "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+      "phase": "main_ci_passed",
+      "pr_disposition": "closed_unmerged_superseded",
+      "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
+      "main_run_id": 44973984123,
+      "main_ci_conclusion": "success",
+      "main_ci_verified_jobs": [
+        137059664870,
+        137060805212
+      ],
+      "main_ci_completed_at": "2026-11-22T02:04:55Z",
+      "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
+    }
   }
 }

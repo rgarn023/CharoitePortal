@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261122T2104Z-automation11",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -35,7 +35,7 @@
     "result": "success",
     "verification": "Provider job 137224893171 built the native WineAndroid device-name fix. Java host ZIP 14756623119 and all six binary digests matched; native device name present in compiled artifacts. Zero APKs. Main independently stages the same artifact and isolated v13 window test at 8e9e1933200b70c6022466fbdae3e8998757670d; PR #46 closed unmerged as superseded. Android CI pending, Galaxy rendering unverified, 40%."
   },
-  "event_batch_utc": "2026-11-22T18",
+  "event_batch_utc": "2026-11-22T21",
   "pending_validation": {
     "source_run_id": 45027919664,
     "pr_number": 46,

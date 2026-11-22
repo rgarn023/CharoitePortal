@@ -926,12 +926,13 @@ public final class CharoiteWine29V28FocusedInfProbe {
             throw new SecurityException("Verified API-set schema is unavailable");
         java.nio.file.Files.copy(apiSet.toPath(), child(host, "aarch64-windows/apisetschema.dll").toPath());
 
-        String explorer = "explorer.exe";
-        byte[] explorerImage = readStandaloneAsset(context, root + explorer, 1024 * 1024);
         String explorerManifest = new String(readStandaloneAsset(context, root + "explorer.sha256", 512),
                                              java.nio.charset.StandardCharsets.US_ASCII);
-        String explorerDigest = verifyX64Asset(explorerManifest, explorer, explorerImage);
-        stageV28SetupModule(explorerImage, child(host, "aarch64-windows/explorer.exe"), explorerDigest);
+        for (String name : new String[] {"explorer.exe", "ntoskrnl.exe", "hal.dll"}) {
+            byte[] image = readStandaloneAsset(context, root + name, 32 * 1024 * 1024);
+            stageV28SetupModule(image, child(host, "aarch64-windows/" + name),
+                    verifyX64Asset(explorerManifest, name, image));
+        }
         File systemExplorer = child(prefix, "drive_c/windows/system32/explorer.exe");
         if (!systemExplorer.getCanonicalFile().equals(systemExplorer.getAbsoluteFile()))
             throw new SecurityException("Unexpected window Explorer path");
@@ -1117,7 +1118,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v6"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v7"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);

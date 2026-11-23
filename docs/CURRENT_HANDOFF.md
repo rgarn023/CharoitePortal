@@ -1,3 +1,13 @@
+## 2026-11-23 00:30 UTC — Screen-awake + v16 native driver merged, signed APK CI running
+
+The latest owner Galaxy test of signed build 1169 (v15) again exited with status 15 after Wine created a 360×220 window, observed 1440×2581 desktop dimensions and registered its Android native surface. No visible purple rendering or successful Win32 pixel readback has been verified. **Do not reuse consumed v15 scratch or request further testing on 1169.**
+
+[PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) merged to [d873786d](https://github.com/rgarn023/CharoitePortal/commit/d873786d86145b24ebba737af2c34e03a3d3a671). This **experimental `com.charoitx` only** change installs `CharoiteNextAwakeApplication`, which sets `FLAG_KEEP_SCREEN_ON` on foreground/resumed activities (boot, Portal, setup/installers, gameplay and the separate Wine29 test process), and clears the flag when paused. It does not hold background wake locks or write system sleep settings, and does not modify stable Portal.
+
+The same commit pins new, source-built WineAndroid graphics host ZIP 14778917103 SHA-256 `1322daaee98bb72b06fb68f668edc8e3213f088cb875914a68d09897a6eb0dd1` and Explorer ZIP 14779061741 SHA-256 `dbea63c036d8a9f3866b47212e725d2305a7f55ef794a7b57233280e4982d00c` from [successful provider run 45084634107](https://github.com/rgarn023/CharoitePortal/actions/runs/45084634107). Source-only static tests [run 45089002567](https://github.com/rgarn023/CharoitePortal/actions/runs/45089002567) and the merged-main [run 45089079934](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079934) both **PASSED**. The new isolated graphics scratch is **v16**, with preserved access to older logs. The strict Win32 purple-pixel test remains in place.
+
+Signed experimental [Android workflow 45089079910](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079910) **RUNNING**, so no published APK or on-phone verification may be claimed yet. Next: confirm signed workflow and release; if successful, allow normal in-app update followed by one owner-approved **v16-only** phone test. Owner action **NO** until updated release is verified. All stable Portal packages, games, saves, user prefixes/rootfs and consumed historical Wine scratch remain untouched. Estimated v1.0 readiness **40%**, not an audited metric.
+
 ## 2026-11-23 00:26 UTC — Foreground screen-awake + Wine29 v16 driver packaging candidate
 
 Owner's Galaxy test on signed **build 1169 / v15** again ends status 15. Wine's 360×220 window hwnd 0x2003e and 1440×2581 desktop surface registered, but neither Android-posted purple pixels nor Win32 screen-DC `GetPixel` success was observed. This is **not a rendering pass**. Do not retry consumed v15 scratch.

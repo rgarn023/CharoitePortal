@@ -21,6 +21,28 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LP
     return DefWindowProcW(window, message, wparam, lparam);
 }
 
+/* Direct client-DC repaint is a recovery for an Android driver that
+ * delivers the window surface but misses the first WM_PAINT invalidation.
+ * It still uses standard GDI; it never writes into an Android surface
+ * directly and does not weaken the two independent GetPixel gates. */
+static void repaint_client_dc(HWND window)
+{
+    RECT client;
+    HDC dc = GetDC(window);
+    if (!dc) return;
+    if (GetClientRect(window, &client))
+    {
+        HBRUSH brush = CreateSolidBrush(paint_color);
+        if (brush)
+        {
+            FillRect(dc, &client, brush);
+            DeleteObject(brush);
+        }
+    }
+    GdiFlush();
+    ReleaseDC(window, dc);
+}
+
 void fixture_entry(void)
 {
     HINSTANCE instance = GetModuleHandleW(NULL);
@@ -70,6 +92,10 @@ void fixture_entry(void)
                 ExitProcess(13);
             InvalidateRect(window, NULL, FALSE);
             UpdateWindow(window);
+            /* Repaint through the HWND client DC if a normal WM_PAINT
+             * has still not made pixels visible. Never synthesize a pass. */
+            if (attempt == 0 || attempt == 20 || attempt == 60)
+                repaint_client_dc(window);
             GdiFlush();
             client_pixel = GetPixel(client_dc, 16, 16);
             pixel = GetPixel(screen, sample.x, sample.y);

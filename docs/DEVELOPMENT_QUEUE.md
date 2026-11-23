@@ -1,3 +1,10 @@
+## 2026-11-23 16:02 UTC — v22 scaled Android GDI driver handling merged; native provider in progress
+
+- **Device proof:** v21 signed build 1198 exit **15**, registered 360×220 HWND 0x2003e; rearm ran but current GDI backend check still failed, no real buffer/Android frame. v1–v21 one-shot tests permanently consumed; never rerun/reset/delete.
+- **Functional change MERGED:** [PR #66](https://github.com/rgarn023/CharoitePortal/pull/66), [commit 495af7a0](https://github.com/rgarn023/CharoitePortal/commit/495af7a054be51118d6794789fe3b33e06a14843), native Win32u target-ref helper unwraps DPI `scaled_surface` only to verify exact Android driver; pixel painting/flush still runs through original scaled surface. Dummy/offscreen fail closed; previous single rearm and strict dual Win32 + Android frame success remain. New create-only private v22 scratch, v22→v1 read-only log. [Source CI 45211737407](https://github.com/rgarn023/CharoitePortal/actions/runs/45211737407) PASS.
+- **P0 compilation:** [Wine29 provider 45211800904](https://github.com/rgarn023/CharoitePortal/actions/runs/45211800904) RUNNING on merged source; v22 native ELF/PE and matched trio NOT yet verified. No signed v22 release/phone evidence.
+- **Next:** real provider compile → source-matched Java host/display/Explorer ZIP hash + inner manifests → signed experimental-only release → ONE owner-authorized v22 Galaxy graphics test. Owner action NO now. All stable/app data and archived scratch protected. Overall 1.0 readiness estimate **40%**.
+
 ## 2026-11-23 16:00 UTC — P0 real DPI-scaled Win32u driver target recognition (v22); v21 consumed
 
 - **Device v21:** signed 1198 one-shot exit **15**; real HWND `0x2003e` 360×220 registered, native rearm ran but reported missing Android GDI surface after rearm; no Win32 purple pixels/native-post/Android child frame. **Never rerun v1–v21** or clear app data.

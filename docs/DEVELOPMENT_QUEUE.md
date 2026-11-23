@@ -1,3 +1,10 @@
+## 2026-11-23 00:41 UTC — Galaxy confirmation and discriminating paint fixture
+
+- **Confirmed device UX:** Owner reports "No sleep" — Meteorite Alpha foreground screen awake works on Galaxy; no need to change device power settings.
+- **P0 rendering:** 360×220 window creation and surface registration observed; native posted purple frame remains unverified. Do not count this as a graphics pass.
+- **Source-only next test:** x64 fixture now samples HWND client DC and desktop DC separately. Exit 42 still requires both purple and visible; exits 15/16/17 identify neither/client-only/screen-only. Desktop Wine CI must pass before new pinned fixture artifact is staged in fresh v17 scratch. Do not rerun any previously executed one-shot scratch.
+- **Overall:** ~40% estimated.
+
 ## 2026-11-23 00:35 UTC — Build 1175 signed and released, Galaxy test pending
 
 - **P0 screen awake RELEASED in experimental Next:** [Meteorite Alpha 1175](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1175), [Actions 45089079910](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079910) **SUCCESS**. Foreground activity `FLAG_KEEP_SCREEN_ON` enabled, cleared on pause, no persistent wake lock. Actual device behavior pending.

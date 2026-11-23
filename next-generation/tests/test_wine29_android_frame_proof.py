@@ -34,8 +34,9 @@ class AndroidFrameProofContract(unittest.TestCase):
     def test_screen_readback_remains_independently_required(self):
         self.assertIn("Win32 screen-DC readback is a separate gate.", HOST)
         self.assertIn("GetPixel(screen, sample.x, sample.y)", FIXTURE)
-        self.assertIn("if (pixel != paint_color || !IsWindowVisible(window))", FIXTURE)
-        self.assertIn("ExitProcess(15);", FIXTURE)
+        self.assertIn("if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))", FIXTURE)
+        self.assertIn("ExitProcess(code);", FIXTURE)
+        self.assertIn("client_pixel = GetPixel(client_dc, 16, 16);", FIXTURE)
         self.assertIn("ExitProcess(42);", FIXTURE)
 
     def test_new_window_probe_is_private_and_preserves_v14(self):

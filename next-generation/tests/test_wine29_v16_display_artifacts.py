@@ -35,7 +35,7 @@ class V16DisplayArtifacts(unittest.TestCase):
         self.assertIn("for (int version = 16; version >= 1; version--)", HOST)
         self.assertIn("wine29-x64-window.zip", WORKFLOW)
         self.assertIn("x64-window.sha256", WORKFLOW)
-        self.assertIn('if (pixel != paint_color || !IsWindowVisible(window))',
+        self.assertIn('if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))',
                       (ROOT / "next-generation/charoite-wine/fixtures/x64-window.c")
                       .read_text(encoding="utf-8"))
 

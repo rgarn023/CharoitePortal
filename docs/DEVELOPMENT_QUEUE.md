@@ -1,3 +1,10 @@
+## 2026-11-23 14:50 UTC — v20 real native GDI surface missing, isolated v21 candidate PR #63
+
+- **Galaxy v20 on signed 1193:** 360×220 HWND 0x2003e registered and refresh handler executed, but `Wine29 native replay HWND 0x2003e has no Android GDI surface` logged. Win32 dual GetPixel **exit 15**, no proven Android frame or successful native buffer post. v20 one-shot **CONSUMED**, never rerun or clear.
+- **P0 implementation:** [PR #63](https://github.com/rgarn023/CharoitePortal/pull/63) source-only guarded real GDI backend rearm through Win32u SetWindowPos (without geometry/Z-order/activation changes), re-check `android_surface_funcs` before real bitmap replay, preserve all failure gates; pending static validation and provider compile.
+- **Next:** PR source tests → native provider PE/ELF compile → source-matched host/display artifact pinning → fresh v21 test isolation and signed experimental release → ONE opt-in owner phone test. No further v20 tests. uxtheme missing and Explorer WineAndroid device-open warnings tracked separately, not yet proven root causes.
+- Owner action **NO** now; preserve stable Portal, all games/saves, rootfs, prefixes, archived one-shots. Estimated v1.0 readiness **40%** pending real on-device graphics.
+
 ## 2026-11-23 14:37 UTC — P0 signed Meteorite Alpha 1193 v20 RELEASED, Galaxy proof next
 
 - **Delivery confirmed:** [official signed build 45113103826](https://github.com/rgarn023/CharoitePortal/actions/runs/45113103826) **SUCCESS** including native v20 byte cohort, Android Gradle, signing, APK assets, official publish job; [immutable public build 1193](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1193) **PUBLISHED** from merge `67c2787c` with signed APK and LGPL sources attached (GitHub SHA256 `f5a9ca07d72cf958fd66ca49ded05bf8024e2772a9f85f23be42aa7ddc24ae5a`).

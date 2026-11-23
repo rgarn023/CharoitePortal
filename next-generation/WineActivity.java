@@ -213,7 +213,8 @@ public final class WineActivity extends Activity {
     public void setParent(int hwnd, int parent, float scale, int pid) {}
     public void setCursor(int id, int width, int height, int hotspotX, int hotspotY, int[] bits) {}
 
-    public static void showWindowLog(Activity portal) {
+    // Bounded, read-only native evidence. Never read an entire historical Wine log.
+    private static String readWindowLog(Activity portal) {
         File log = portal.getNoBackupFilesDir();
         for (int version = 23; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
@@ -239,7 +240,11 @@ public final class WineActivity extends Activity {
         } catch (IOException failure) {
             report = "Could not read the preserved Wine window log.";
         }
-        final String message = report;
+        return report;
+    }
+
+    public static void showWindowLog(Activity portal) {
+        final String message = readWindowLog(portal);
         new AlertDialog.Builder(portal).setTitle("Wine29 window log").setMessage(message)
                 .setNegativeButton("Close", null)
                 .setPositiveButton("Copy", (dialog, which) -> {
@@ -252,6 +257,89 @@ public final class WineActivity extends Activity {
 
     private static AtomicFile checkpoint(Context context) {
         return new AtomicFile(new File(context.getFilesDir(), "wine29-display-check.txt"));
+    }
+
+    // The display checkpoint is consumed by showLastCheck(). Preserve just its
+    // finalized, bounded text separately so the user can copy it later without
+    // re-running a consumed one-shot test or opening an old scratch directory.
+    private static AtomicFile lastWindowReport(Context context) {
+        return new AtomicFile(new File(context.getFilesDir(), "wine29-display-last-report.txt"));
+    }
+
+    private static void saveLastWindowReport(Context context, String report) throws IOException {
+        byte[] bytes = report.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > 32768) throw new IOException("Display report exceeded size limit");
+        AtomicFile file = lastWindowReport(context);
+        FileOutputStream output = file.startWrite();
+        try {
+            output.write(bytes);
+            file.finishWrite(output);
+        } catch (IOException failure) {
+            file.failWrite(output);
+            throw failure;
+        }
+    }
+
+    private static String loadLastWindowReport(Context context) {
+        AtomicFile file = lastWindowReport(context);
+        if (!file.getBaseFile().isFile() || file.getBaseFile().length() > 32768) return null;
+        try {
+            return new String(file.readFully(), StandardCharsets.UTF_8);
+        } catch (IOException failure) {
+            android.util.Log.w("Wine29Display", "Could not read saved display report", failure);
+            return null;
+        }
+    }
+
+    private static String completeWindowReport(Activity portal, String displayResult) {
+        StringBuilder report = new StringBuilder("Charoite Portal — Meteorite Alpha\n");
+        report.append("Wine29 x64 window test — copyable report\n");
+        report.append("Package: ").append(portal.getPackageName()).append('\n');
+        try {
+            long build = portal.getPackageManager().getPackageInfo(
+                    portal.getPackageName(), 0).getLongVersionCode();
+            report.append("Build: ").append(build).append('\n');
+        } catch (android.content.pm.PackageManager.NameNotFoundException | RuntimeException failure) {
+            report.append("Build: unavailable\n");
+        }
+        report.append("Android API: ").append(Build.VERSION.SDK_INT).append("\n\n");
+        report.append("Display result and Android frame checkpoints:\n");
+        report.append(displayResult).append("\n\n");
+        report.append("Bounded native Wine29 window log (last 16 KiB, paths redacted):\n");
+        report.append(readWindowLog(portal));
+        return report.toString();
+    }
+
+    // Clipboard writes are manual, never automatic; this copies text only, not
+    // screenshots, game state, or any files. The native log reader redacts paths.
+    private static void copyCompleteWindowReport(Activity portal, String displayResult) {
+        try {
+            android.content.ClipboardManager clipboard =
+                    portal.getSystemService(android.content.ClipboardManager.class);
+            if (clipboard == null) throw new IllegalStateException("Clipboard unavailable");
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                    "Wine29 complete display report", completeWindowReport(portal, displayResult)));
+            android.widget.Toast.makeText(portal, "Wine29 report copied",
+                    android.widget.Toast.LENGTH_SHORT).show();
+        } catch (RuntimeException failure) {
+            new AlertDialog.Builder(portal).setTitle("Cannot copy Wine29 report")
+                    .setMessage("Android clipboard is unavailable. The saved report and"
+                            + " native Wine log remain unchanged.")
+                    .setPositiveButton("OK", null).show();
+        }
+    }
+
+    public static void copyLastWindowReport(Activity portal) {
+        String report = loadLastWindowReport(portal);
+        if (report == null) {
+            new AlertDialog.Builder(portal).setTitle("No saved Wine29 report")
+                    .setMessage("No finalized report is available from a copy-enabled build."
+                            + " You can still use Read last Wine29 window log → Copy."
+                            + " Do not rerun consumed one-shot tests.")
+                    .setPositiveButton("OK", null).show();
+            return;
+        }
+        copyCompleteWindowReport(portal, report);
     }
 
     private static void record(Context context, String message) throws IOException {
@@ -305,9 +393,20 @@ public final class WineActivity extends Activity {
                 }
                 report += exitDescription;
             }
+            // Save the finalized exit reason and bounded frame history before
+            // consuming the one-shot checkpoint. Never alter historical scratch.
+            try {
+                saveLastWindowReport(portal, report);
+            } catch (IOException failure) {
+                android.util.Log.w("Wine29Display", "Could not retain finalized display report", failure);
+            }
             file.delete();
+            final String displayedReport = report;
             new AlertDialog.Builder(portal).setTitle("Wine29 display check")
-                    .setMessage(report).setPositiveButton("OK", null).show();
+                    .setMessage(displayedReport)
+                    .setNegativeButton("Close", null)
+                    .setPositiveButton("Copy report", (dialog, which) ->
+                            copyCompleteWindowReport(portal, displayedReport)).show();
         } catch (IOException failure) {
             android.util.Log.w("Wine29Display", "Could not read display checkpoint", failure);
         }

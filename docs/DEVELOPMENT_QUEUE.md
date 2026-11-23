@@ -1,3 +1,10 @@
+## 2026-11-23 14:37 UTC — P0 signed Meteorite Alpha 1193 v20 RELEASED, Galaxy proof next
+
+- **Delivery confirmed:** [official signed build 45113103826](https://github.com/rgarn023/CharoitePortal/actions/runs/45113103826) **SUCCESS** including native v20 byte cohort, Android Gradle, signing, APK assets, official publish job; [immutable public build 1193](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1193) **PUBLISHED** from merge `67c2787c` with signed APK and LGPL sources attached (GitHub SHA256 `f5a9ca07d72cf958fd66ca49ded05bf8024e2772a9f85f23be42aa7ddc24ae5a`).
+- **Next P0 owner action YES:** in existing `com.charoitx`, System → Check for updates → Update in app to 1193; ONCE execute brand-new private v20 x64 window test, report purple window visibility, Win32 exit 15/16/17/42, Android frame/update checkpoint and, if failure, last bounded Wine29 log including real native `GDI buffer posted` marker. No v1–v19 reuse.
+- **Post-test P0 implementation:** if no Win32 purple pixel, isolate GDI paint and native flush/queue based on evidence; if Win32 pixels pass but no Android updated frame, fix Java TextureView/native buffer integration. Do not claim runtime success based on APK signing alone.
+- **Preservation:** stable Portal, games/saves, user prefixes/rootfs and all historical scratch untouched. Completion estimate **40%** pending on-device graphics proof; historical source-archive audit failure separate.
+
 ## 2026-11-23 04:40 UTC — v20 signed packaging gates green; Android Gradle step underway
 
 - [Signed run 45113103826](https://github.com/rgarn023/CharoitePortal/actions/runs/45113103826): verified v20 artifact provenance/ZIP hashes/inner checksums/four matching native binaries at **successful** `Stage verified Wine29 Java host assets`; version assignment PASS. `Build integrated Windows runtime preview` IN PROGRESS. No signed APK/public release or real Galaxy frame proof claimed.

@@ -1,3 +1,10 @@
+## 2026-11-23 00:45 UTC — v17 discriminating graphics gate
+
+- **Owner-confirmed UX:** no-sleep while foreground in Meteorite Alpha works on Galaxy. No further UX change needed.
+- **Verified desktop fixture:** [Wine CI 45090425972](https://github.com/rgarn023/CharoitePortal/actions/runs/45090425972) **SUCCESS**, strict dual-pixel exit 42. Artifact 14780807305 ZIP digest `f82c963c8de53429c889c6338c27e1091889838e96e2bed0403b0973bbf5c226`, internal PE `c8f19ccfc4804029837589def8c500d1f41ff071d2f91153dc6b8aff66b5f727` independently verified.
+- **In progress Android v17:** Pin both hashes into experimental signed workflow, launch from **fresh private v17** scratch, collect bounded Android TextureView event history, and give diagnostic meanings for exits 15 (neither pixel), 16 (client only), 17 (screen only), 42 (both). Strict pass remains unchanged. Android CI and Galaxy runtime not yet verified.
+- **Next:** green source-only tests → signed APK → single authorized v17 Galaxy check. No historical scratch reuse or stable Portal data access. Overall 1.0 estimated 40%.
+
 ## 2026-11-23 00:41 UTC — Galaxy confirmation and discriminating paint fixture
 
 - **Confirmed device UX:** Owner reports "No sleep" — Meteorite Alpha foreground screen awake works on Galaxy; no need to change device power settings.

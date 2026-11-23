@@ -62,7 +62,7 @@ class RefreshRedraw(unittest.TestCase):
         self.assertIn("patch_android_refresh_redraw.py", workflow)
         self.assertIn("patch_android_surface_flush.py", workflow)
         self.assertLess(workflow.index("patch_android_surface_flush.py \\"), workflow.index("patch_android_refresh_redraw.py \\"))
-        self.assertLess(workflow.index("patch_android_refresh_redraw.py \\"), workflow.index("make -j2 \\"))
+        self.assertLess(workflow.index("patch_android_refresh_redraw.py \\"), workflow.index("dlls/wineandroid.drv/aarch64-windows/wineandroid.drv \\"))
         self.assertIn("branches: [main]", workflow)
         self.assertNotIn("adb install", workflow)
 

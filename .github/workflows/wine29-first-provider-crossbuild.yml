@@ -12,7 +12,9 @@ on:
       - 'analysis/wine29_bootstrap/patch_v6_child_loader.py'
       - 'analysis/wine29_bootstrap/patch_android_refresh_redraw.py'
       - 'analysis/wine29_bootstrap/patch_android_surface_replay.py'
+      - 'analysis/wine29_bootstrap/patch_android_surface_rearm.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_replay_patch.py'
+      - 'analysis/wine29_bootstrap/tests/test_android_surface_rearm_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_refresh_redraw_patch.py'
 
 permissions:
@@ -68,6 +70,8 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_refresh_redraw_patch.py -v
       - name: Check real GDI surface replay without faking pixels
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_replay_patch.py -v
+      - name: Check v21 real Android GDI surface rearm (source-only)
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_rearm_patch.py -v
       - name: Verify pinned source and isolated output contracts
         run: |
           set -euo pipefail
@@ -1593,6 +1597,11 @@ jobs:
           # cleared prior dirty bounds. Replay ONLY the real existing HWND DIB.
           # The gate still requires actual Windows pixels and an Android frame.
           python3 analysis/wine29_bootstrap/patch_android_surface_replay.py \
+            "$build/../dlls/wineandroid.drv/window.c"
+          # v20 Galaxy proved native HWND registration but the replay found
+          # Win32u's dummy surface. Make one guarded normal SetWindowPos
+          # surface-allocation attempt before replaying real GDI pixels.
+          python3 analysis/wine29_bootstrap/patch_android_surface_rearm.py \
             "$build/../dlls/wineandroid.drv/window.c"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'

@@ -22,9 +22,14 @@ def native_window():
     initial = ("static void android_surface_flush(void) {\n" +
                v20.POST_ANCHOR + "\n}\n" + v20.DISPATCH +
                "\n{\n" + v20.HANDLER + "\n}\n" + v23.ANDROID_ANCHOR + "\n")
+    dce = (
+        "struct scaled_surface { struct window_surface header; struct window_surface *target_surface; };\n"
+        "static const struct window_surface_funcs scaled_surface_funcs = {0};\n"
+        "static struct scaled_surface *get_scaled_surface( struct window_surface *surface ) { return (void *)surface; }\n"
+        + v22.DCE_ANCHOR
+    )
     return v22.patch_sources(v21.patch_source(v20.patch_source(initial)),
-                             v22.DCE_ANCHOR.replace("window_surface_get", "window_surface_get"),
-                             v22.HEADER_ANCHOR)[0]
+                             dce, v22.HEADER_ANCHOR)[0]
 
 class VisibleGdiNativeGate(unittest.TestCase):
     def setUp(self):

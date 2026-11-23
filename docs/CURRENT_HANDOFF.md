@@ -1,6 +1,6 @@
 ## 2026-11-23 00:30 UTC — Screen-awake + v16 native driver merged, signed APK CI running
 
-The latest owner Galaxy test of signed build 1169 (v15) again exited with status 15 after Wine created a 360×220 window, observed 1440×2581 desktop dimensions and registered its Android native surface. No visible purple rendering or successful Win32 pixel readback has been verified. **Do not reuse consumed v15 scratch or request further testing on 1169.**
+After the build 1169/v15 test request, the owner supplied another Galaxy log with exit status 15. Wine created a 360×220 window, observed 1440×2581 desktop dimensions and registered the Android native surface, but no purple rendering or successful Win32 pixel readback was verified. The screenshot does not display the installed build version or scratch path, so the exact device build remains unconfirmed. **Do not reuse any executed one-shot scratch; the next test uses a new private v16 directory.**
 
 [PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) merged to [d873786d](https://github.com/rgarn023/CharoitePortal/commit/d873786d86145b24ebba737af2c34e03a3d3a671). This **experimental `com.charoitx` only** change installs `CharoiteNextAwakeApplication`, which sets `FLAG_KEEP_SCREEN_ON` on foreground/resumed activities (boot, Portal, setup/installers, gameplay and the separate Wine29 test process), and clears the flag when paused. It does not hold background wake locks or write system sleep settings, and does not modify stable Portal.
 

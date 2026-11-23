@@ -1,3 +1,13 @@
+## 2026-11-23 UTC — v19 native graphics rebuild underway; no new APK yet
+
+**Latest owner Galaxy evidence (following release 1183):** Android 1440×2581 desktop and 360×220 hwnd 0x2003e surface are registered; **exit 15** means neither Windows client nor screen pixel matched purple. No Android child texture-update evidence. User's screenshot did not display installed build number. Do not repeat consumed v18 or modify any historical scratch. Foreground no-sleep remains owner-verified.
+
+**Real code implementation:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) merged as `bf6f94e2795b35a9a83b8cbe841e903bea7fa727`. Pinned native WineAndroid CPU `WM_ANDROID_REFRESH` handler now requests one *actual* Windows repaint for a visible HWND after native surface registration (preserving GL behavior and existing Win32/Android pixel gates). The 48 source audit tests passed at the PR head, but the full audit still fails later on an unrelated unavailable historical artifact. Dedicated provider [run 45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) passed its native patch preflight checks, toolchain preparation, and had reached ARM64 modules at last check. **Native display driver output has NOT yet been verified.**
+
+**Isolated future test:** [PR #57](https://github.com/rgarn023/CharoitePortal/pull/57) merged as `d2d2525fe8401f83d75a3a0f108055ada179be5f`, reserving fresh private `charoite-next-wine29-x64-window-v19` and v19→v1 log fallback. Static CI passed. No source-matched new native driver has been pinned into an experimental APK and **there is no signed v19 release**. Do not ask for further phone tests until provider output is verified, pinned to a dedicated signed Meteorite Alpha build, and published through normal in-app updates.
+
+Next engineering: examine actual provider job exit and `Wine29-Android-Java-Host-Inputs` / `Wine29-Android-Explorer-Candidate` ZIP SHA-256 manifests; only then stage compiled exact assets into separate signed experimental APK with new v19 one-shot scratch. Preserve stable Portal, games/saves, user prefixes/rootfs and all v1–v18 tests. Owner action **NO**. Estimated overall v1.0 readiness **40%**.
+
 ## 2026-11-23 — v19 isolated scratch prepared; native refresh driver provider build running
 
 Owner's latest post-1183 Galaxy check still reports **exit 15** despite native registration of the 360×220 window and Android TextureView surface. Both Win32 pixel checks failed, and no successful Android frame update is evidenced. The screenshot does not include an installed build number; do not infer an exact installed APK. Treat v18 as potentially used; no v18 repeat.

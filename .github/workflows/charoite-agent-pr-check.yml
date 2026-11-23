@@ -47,5 +47,7 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_v20_apk_native_cohort.py -v
       - name: Verify v22 scaled Win32u Android target without executing Wine
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_scaled_surface_target_patch.py -v
+      - name: Verify v23 native GDI surface allocation gate without Wine execution
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_visible_surface_create_patch.py -v
       - name: Assert this workflow did not use signing keys or a phone
         run: echo 'CHAROITE_AGENT_PROPOSAL_STATIC_TESTS=PASS'

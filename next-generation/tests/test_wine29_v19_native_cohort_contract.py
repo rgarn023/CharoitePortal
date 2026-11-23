@@ -30,10 +30,10 @@ class NativeCohortV22(unittest.TestCase):
         ):
             self.assertNotIn(stale, WORKFLOW)
 
-    def test_one_shot_only_new_private_v22_and_strict_wine_gate(self):
-        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v22"', PROBE)
+    def test_one_shot_only_new_private_v23_and_strict_wine_gate(self):
+        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v23"', PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 22; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 23; version >= 1; version--)", HOST)
         self.assertIn("actions/artifacts/14782543540/zip", WORKFLOW)
         self.assertIn('(cd "$assets" && sha256sum -c x64-window.sha256)', WORKFLOW)
         self.assertNotIn('adb install', WORKFLOW)

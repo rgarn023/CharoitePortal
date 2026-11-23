@@ -1,3 +1,10 @@
+## 2026-11-23 04:34 UTC — v20 native bitmap replay built in source, cross-build pending
+
+- **Galaxy v19:** 360×220 window and native redraw handler confirmed executed, yet exit 15 means neither Windows pixel matched and there was no Android updated frame. No v19 reruns.
+- **Real native fix:** [PR #60](https://github.com/rgarn023/CharoitePortal/pull/60) merged: on visible CPU HWND surface-refresh, flush the real previously painted Wine GDI surface once; explicit posted-buffer success marker; no artificial pixel fill or weakened success gate. Native provider [45112110313](https://github.com/rgarn023/CharoitePortal/actions/runs/45112110313) compiling ARM64 modules after source checks passed.
+- **Isolation:** [PR #61](https://github.com/rgarn023/CharoitePortal/pull/61) merged fresh v20 scratch and v20→v1 log fallback; [static 45112260679](https://github.com/rgarn023/CharoitePortal/actions/runs/45112260679) PASS. Separate Debug APK [45112260727](https://github.com/rgarn023/CharoitePortal/actions/runs/45112260727) FAILED due Maven Central HTTP 429 dependency throttling, not verified Java code failure.
+- **Next:** verify provider and matched native host/display/Explorer SHA256SUMS; pin immutable artifact IDs/digests into experimental signed Android workflow; publish and obtain one v20 Galaxy test. No phone action now. Overall estimated 40%; stable Portal, games, saves, user prefixes/rootfs and v1–v19 tests untouched.
+
 ## 2026-11-23 04:29 UTC — Native GDI buffer replay v20 candidate, v19 consumed
 
 - **Galaxy v19 result:** Native `WM_ANDROID_REFRESH` executed for hwnd 0x2003e after 360×220 surface registration; Windows pixel gate still exit 15 (neither client nor screen purple); no Android updated-frame evidence. The native refresh request alone did not fix painting. Do not rerun v19 or earlier one-shot scratch.

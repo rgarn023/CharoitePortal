@@ -1,3 +1,10 @@
+## 2026-11-23 16:47 UTC — v23 visible native GDI allocation merged, provider compiling
+
+- **Device v22:** signed build 1203, Android surface registered but real driver still missing, both Win32 purple pixel checks **exit 15**; no Android updated-frame evidence. One-shot v22 consumed, as are v1–v21.
+- **Real native source implementation:** [PR #68](https://github.com/rgarn023/CharoitePortal/pull/68), [commit b4642f08](https://github.com/rgarn023/CharoitePortal/commit/b4642f08600302197e55023fc7502d77f6b80b69) merged. On already-visible HWND, one guarded `SWP_SHOWWINDOW` request to Win32u normal GDI surface allocation gate, preserving flags and exact native backend/bitmap pixel requirements; new bounded Win32u and Android CreateWindowSurface source markers. Fresh create-only v23 scratch and read-only v23→v1 log fallback. Lightweight [CI 45220122115](https://github.com/rgarn023/CharoitePortal/actions/runs/45220122115) PASS.
+- [Native provider 45220173185](https://github.com/rgarn023/CharoitePortal/actions/runs/45220173185) running; no source-matched artifact hashes, APK or device proof yet. Strict historical source-archive audit failure separate.
+- **Next:** native compile/postbuild PASS → source-matched native quartet and Java/Explorer artifacts → verified signed experimental-only APK → one fresh v23 Galaxy graphics test. **Owner action NO.** Preserve all stable/app data, games/saves, prefixes/rootfs and consumed scratch. v1.0 estimate 40% pending pixels + Android frame.
+
 ## 2026-11-23 UTC — v22 Galaxy exit 15, v23 native visible-surface allocation source candidate
 
 - **Owner v22:** signed 1203, 360×220 HWND native registration succeeded; real Android GDI target remained unavailable after v21 SWP_FRAMECHANGED fallback, dual Win32 GetPixel failed **exit 15**, no native post or Android frame. v22 one-shot consumed permanently, never retry v1–v22.

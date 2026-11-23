@@ -1,3 +1,10 @@
+## 2026-11-23 04:38 UTC — v20 source-matched host/display/Explorer provider PASS, APK integration PR #62
+
+- **Real implementation complete in source:** [native PR #60](https://github.com/rgarn023/CharoitePortal/pull/60) replay flushes existing GDI bitmap after visible native refresh; [test PR #61](https://github.com/rgarn023/CharoitePortal/pull/61) reserves a new one-shot v20 directory and log fallback. Native provider [45112110313](https://github.com/rgarn023/CharoitePortal/actions/runs/45112110313) and postbuild [45112714985](https://github.com/rgarn023/CharoitePortal/actions/runs/45112714985) **SUCCESS**; exact v20 host/display/Explorer metadata hashes and source-run identity retrieved.
+- **APK integration:** [PR #62](https://github.com/rgarn023/CharoitePortal/pull/62) pins all three v20 artifacts, adds fail-closed source/run provenance and digest gate, preserves ZIP/internal SHA checks and four independent display binary comparisons. Updated existing stale artifact-ID tests. Static CI latest attempt pending; no signed v20 release yet.
+- **Priority P0:** green source/static verification → merge `[next-apk] [wine29-display]` → signed Meteorite Alpha release → one owner-approved Galaxy v20 check for both Win32 purple GetPixel gates and Android frame callback. Historical source-audit archive remains unrelated external blocker.
+- **Safeguards:** no stable Portal touch, no install/clear/phone action, no scratch reuse. Overall 1.0 estimate remains **40%** until physical rendering proof. Owner action **NO**.
+
 ## 2026-11-23 04:34 UTC — v20 native bitmap replay built in source, cross-build pending
 
 - **Galaxy v19:** 360×220 window and native redraw handler confirmed executed, yet exit 15 means neither Windows pixel matched and there was no Android updated frame. No v19 reruns.

@@ -1,3 +1,10 @@
+## 2026-11-23 00:47 UTC — v17 fixture packaged in source, full Android CI running
+
+- **No sleep:** foreground keep-screen-on behavior observed successful by owner on Galaxy.
+- **Exact fixture:** [desktop run 45090425972](https://github.com/rgarn023/CharoitePortal/actions/runs/45090425972) **SUCCESS**; artifact ZIP `f82c963c8de53429c889c6338c27e1091889838e96e2bed0403b0973bbf5c226`; PE `c8f19ccfc4804029837589def8c500d1f41ff071d2f91153dc6b8aff66b5f727`. Strict exit 42 still requires client+screen readback and visible HWND.
+- **v17 integration:** [PR #53](https://github.com/rgarn023/CharoitePortal/pull/53) merged [4080e5fa](https://github.com/rgarn023/CharoitePortal/commit/4080e5faa9f78ac873f5b74525169b57b124e731); bounded Android frame events and exit 15/16/17 explanation, new private one-shot v17 only. [Static run 45090684361](https://github.com/rgarn023/CharoitePortal/actions/runs/45090684361) **PASS**; [signed Android run 45090730363](https://github.com/rgarn023/CharoitePortal/actions/runs/45090730363) **RUNNING**. Do not claim a release or Android purple pixels yet.
+- **Next:** verify full build and release; one owner-approved v17 Galaxy test; use separate Android texture evidence to distinguish actual presentation. Preserve all consumed scratch. Estimated completion 40%.
+
 ## 2026-11-23 00:45 UTC — v17 discriminating graphics gate
 
 - **Owner-confirmed UX:** no-sleep while foreground in Meteorite Alpha works on Galaxy. No further UX change needed.

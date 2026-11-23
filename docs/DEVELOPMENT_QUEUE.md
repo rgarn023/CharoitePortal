@@ -1,3 +1,11 @@
+## 2026-11-23 15:00 UTC — v21 native GDI rearm provider compiled, official signed build running
+
+- **Device v20:** native window registered, actual Android GDI surface missing on refresh; 360×220 HWND 0x2003e, both pixel checks exit 15; no real post/TextureView frame. v20 scratch permanently consumed; no repeats or deletes.
+- **Functional source:** [PR #63](https://github.com/rgarn023/CharoitePortal/pull/63) merged 55a626f6, one guarded rearm via native SetWindowPos only if non-Android surface; strict real DIB gate. [Native provider 45198706088](https://github.com/rgarn023/CharoitePortal/actions/runs/45198706088) **SUCCESS**, Java host #14830427285, display #14830207787, Explorer #14830162796 from exact source commit; all artifact metadata SHA256 retrieved.
+- **Test reservation:** [PR #64](https://github.com/rgarn023/CharoitePortal/pull/64) merged 5e139170, NEW v21 scratch/fail-closed mkdir, v21→v1 old-log fallback; static [45199220477](https://github.com/rgarn023/CharoitePortal/actions/runs/45199220477) PASS.
+- **APK integration:** [PR #65](https://github.com/rgarn023/CharoitePortal/pull/65) merged d398823e with verified v21 source-run/digest pins, inner SHA256SUMS, four real native binary identity gate; static [45199995818](https://github.com/rgarn023/CharoitePortal/actions/runs/45199995818) PASS. [Official signed experimental build 45200139822](https://github.com/rgarn023/CharoitePortal/actions/runs/45200139822) RUNNING; do not claim release until signing and publication succeed.
+- **Next P0:** verify green Android signing & immutable public release → request ONE owner-approved in-app update and v21 test; inspect GDI backend rearm, real buffer post and Android child frame + Win32 dual GetPixel. uxtheme/Explorer device warnings separately tracked. No owner action now, preserve all data. 1.0 readiness estimate **40%** until phone graphics proof.
+
 ## 2026-11-23 14:55 UTC — v21 real GDI surface recovery and private one-shot ready; native provider building
 
 - **Device root clue:** Owner's v20 Galaxy (signed 1193) had registered Android HWND/TextureView 360×220 but native replay found a non-Android/default GDI surface; both Win32 pixel gates failed **exit 15**, no posted native or Android frame proof. v20 one-shot CONSUMED; no repeat, deletion or data reset.

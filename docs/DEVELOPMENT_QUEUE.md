@@ -1,3 +1,11 @@
+## 2026-11-23 00:51 UTC — Public build 1179 signed, v17 Galaxy evidence required
+
+- **Screen awake confirmed:** owner reports no sleep while active in experimental Portal; foreground-only `FLAG_KEEP_SCREEN_ON` feature is working on Galaxy.
+- **Desktop source proven:** x64 dual-readback fixture passed [Wine run 45090425972](https://github.com/rgarn023/CharoitePortal/actions/runs/45090425972) with exit 42 and verified ZIP/PE SHA-256 artifact hashes.
+- **Experimental release confirmed:** [Meteorite Alpha 1179](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1179) published with signed APK, [Android Actions 45090730363](https://github.com/rgarn023/CharoitePortal/actions/runs/45090730363) **SUCCESS** (build and publication). Includes **fresh private v17 window test**, Android 20-event presentation record, and 15/16/17/42 diagnostics. APK installation/on-device graphics are **not** yet verified.
+- **Next (owner action):** one normal in-app update and one isolated v17 test; send Wine29 display check and v17 window log. No repetitive phone testing. If client-only purple (16), focus screen readback/compositing; if neither (15), focus paint/flush and whether Android receives a posted frame.
+- **Safety and readiness:** v1–v16 scratch, stable Portal, user games/saves/prefixes/rootfs untouched; v1.0 readiness estimated ~40%.
+
 ## 2026-11-23 00:47 UTC — v17 fixture packaged in source, full Android CI running
 
 - **No sleep:** foreground keep-screen-on behavior observed successful by owner on Galaxy.

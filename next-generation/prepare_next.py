@@ -3974,6 +3974,13 @@ ui = ui.replace(anchor, anchor + """
                 readWindowLog.setText("Read last Wine29 window log");
                 readWindowLog.setOnClickListener(v -> org.winehq.wine.WineActivity.showWindowLog(this));
                 rpcssAction.addView(readWindowLog);
+                // Read-only, explicit clipboard copy of the finalized result
+                // plus the bounded native log; never rerun consumed Wine tests.
+                android.widget.Button copyWindowReport = new android.widget.Button(this);
+                copyWindowReport.setText("Copy last Wine29 test report");
+                copyWindowReport.setOnClickListener(v ->
+                        org.winehq.wine.WineActivity.copyLastWindowReport(this));
+                rpcssAction.addView(copyWindowReport);
             }
         } catch (java.io.IOException ignored) {
             // The display bundle is available only in dedicated test builds.

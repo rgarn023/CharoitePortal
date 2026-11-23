@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261123T15-v21-reconcile",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -38,39 +38,51 @@
     "result": "success",
     "verification": "Exact main provider run completed 2026-11-23T04:34:55Z, job 137486588583 success; nine artifact metadata entries with SHA256 digests, not APKs. Source handoff documents downstream v20 staging checks and signed Android release 1193; independent provider ZIP inspection not performed in this check. Previous provider 45105262930 also success job 137464966764, completed 2026-11-23T03:23:37Z. No new functional on-device rendering verified; 40% retained."
   },
-  "event_batch_utc": "2026-11-23T12",
+  "event_batch_utc": "2026-11-23T15",
   "pending_validation": {
-    "source_run_id": 45027919664,
-    "pr_number": 46,
-    "branch": "engineering/wine29-v13-native-device",
-    "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
-    "phase": "main_ci_passed",
-    "pr_disposition": "closed_unmerged_superseded",
-    "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
-    "main_run_id": 45028643343,
+    "source_run_id": 45198706088,
+    "pr_number": 65,
+    "branch": "fix/wine29-v21-native-artifact-pins",
+    "head_sha": "6811e6cf5e6687eaa48550ec3690140a1e3417d7",
+    "phase": "main_ci_pending",
+    "pr_disposition": "merged",
+    "main_sha": "d398823efbe3270d7fd7d9e97d301ee35658cb39",
+    "main_run_id": 45200139822,
+    "main_ci_conclusion": null,
+    "note": "PR #65 merged 2026-11-23T14:59:19Z by another worker. Main Android run 45200139822 in progress at 15:00 UTC. Earlier PR revision ea8a636 had failed source-only; final reviewed head is 6811e6c. Verify final diff and main run jobs before marking complete; do not duplicate proposal. Provider run 45198706088 success at native source 55a626f; artifacts require contents verification. No APK yet.",
     "previous_validation": {
-      "source_run_id": 44973476658,
-      "pr_number": 31,
-      "branch": "engineering/wine29-v6-window-loader",
-      "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+      "source_run_id": 45027919664,
+      "pr_number": 46,
+      "branch": "engineering/wine29-v13-native-device",
+      "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
       "phase": "main_ci_passed",
       "pr_disposition": "closed_unmerged_superseded",
-      "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
-      "main_run_id": 44973984123,
+      "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
+      "main_run_id": 45028643343,
+      "previous_validation": {
+        "source_run_id": 44973476658,
+        "pr_number": 31,
+        "branch": "engineering/wine29-v6-window-loader",
+        "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+        "phase": "main_ci_passed",
+        "pr_disposition": "closed_unmerged_superseded",
+        "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
+        "main_run_id": 44973984123,
+        "main_ci_conclusion": "success",
+        "main_ci_verified_jobs": [
+          137059664870,
+          137060805212
+        ],
+        "main_ci_completed_at": "2026-11-22T02:04:55Z",
+        "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
+      },
       "main_ci_conclusion": "success",
       "main_ci_verified_jobs": [
-        137059664870,
-        137060805212
+        137227117000,
+        137228308210
       ],
-      "main_ci_completed_at": "2026-11-22T02:04:55Z",
-      "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
-    },
-    "main_ci_conclusion": "success",
-    "main_ci_verified_jobs": [
-      137227117000,
-      137228308210
-    ],
-    "main_ci_completed_at": "2026-11-22T13:44:35Z",
-    "note": "At 2026-11-22T15 UTC batch, main x64 fixture run 45029459478 succeeded with desktop purple-pixel test; source validation 45029459502 succeeded six jobs; Android main run 45030232303 succeeded both jobs for 5b1cfcad, APK artifact 14756689575 metadata only (signature and archive contents not independently verified). Galaxy rendering remains unverified. No provider completion in latest 25 main runs. Existing v14 packaging is already on main; do not duplicate milestone. Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified. 2026-11-22T18 batch: main 5b1cfcad v14 Android run 45030232303 success, artifact 14756689575 metadata digest only; binary/signature and Galaxy visible rendering unverified. Latest 25 main runs show no provider workflow; provider-specific endpoint inaccessible. No new safe implementation justified without device rendering evidence; owner consent required before Galaxy test. PR #9 and unrelated #25 open; no pending engineering PR. No build retried. 2026-11-22T21 UTC batch: inspected main handoff, protocol, ledger, main HEAD 5b1cfcad, open PRs #9/#25, latest 25 main runs. No exact provider workflow among latest 25; latest Android v14 run 45030232303 success already recorded, with no binary/signature or device rendering verification. Existing v14 source on main; no pending engineering PR. No independently established safe new code milestone beyond device-dependent rendering gate; no duplicate builds or phone operations. Batch opened and released."
+      "main_ci_completed_at": "2026-11-22T13:44:35Z",
+      "note": "At 2026-11-22T15 UTC batch, main x64 fixture run 45029459478 succeeded with desktop purple-pixel test; source validation 45029459502 succeeded six jobs; Android main run 45030232303 succeeded both jobs for 5b1cfcad, APK artifact 14756689575 metadata only (signature and archive contents not independently verified). Galaxy rendering remains unverified. No provider completion in latest 25 main runs. Existing v14 packaging is already on main; do not duplicate milestone. Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified. 2026-11-22T18 batch: main 5b1cfcad v14 Android run 45030232303 success, artifact 14756689575 metadata digest only; binary/signature and Galaxy visible rendering unverified. Latest 25 main runs show no provider workflow; provider-specific endpoint inaccessible. No new safe implementation justified without device rendering evidence; owner consent required before Galaxy test. PR #9 and unrelated #25 open; no pending engineering PR. No build retried. 2026-11-22T21 UTC batch: inspected main handoff, protocol, ledger, main HEAD 5b1cfcad, open PRs #9/#25, latest 25 main runs. No exact provider workflow among latest 25; latest Android v14 run 45030232303 success already recorded, with no binary/signature or device rendering verification. Existing v14 source on main; no pending engineering PR. No independently established safe new code milestone beyond device-dependent rendering gate; no duplicate builds or phone operations. Batch opened and released."
+    }
   }
 }

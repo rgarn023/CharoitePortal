@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261123T06-automation11",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -29,12 +29,14 @@
     44937251577,
     44973476658,
     45027919664,
-    45084634107
+    45084634107,
+    45105262930,
+    45112110313
   ],
   "last_result": {
-    "run_id": 45084634107,
+    "run_id": 45112110313,
     "result": "success",
-    "verification": "Main exact provider workflow completed 2026-11-22T23:48:19Z, job 137400346080 SUCCESS. Offline surface-flush gate and ARM64 driver/win32u and Explorer cross-build steps succeeded. Nine NOT-APK artifacts uploaded with SHA-256 archive metadata; CI logs report SHA256SUMS validation. Independent archive binary inspection and Galaxy rendering NOT verified. No APK from provider. Source patch merged via PR #50 SHA 6ef18241. Bootstrap source audit 45084634138 failed on historical artifact retrieval; separate blocker. No new implementation claimed; overall 40%."
+    "verification": "Exact main provider run completed 2026-11-23T04:34:55Z, job 137486588583 success; nine artifact metadata entries with SHA256 digests, not APKs. Source handoff documents downstream v20 staging checks and signed Android release 1193; independent provider ZIP inspection not performed in this check. Previous provider 45105262930 also success job 137464966764, completed 2026-11-23T03:23:37Z. No new functional on-device rendering verified; 40% retained."
   },
   "event_batch_utc": "2026-11-23T06",
   "pending_validation": {

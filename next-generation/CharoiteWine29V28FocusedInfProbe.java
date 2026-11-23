@@ -1125,7 +1125,7 @@ public final class CharoiteWine29V28FocusedInfProbe {
             File privateBase = context.getNoBackupFilesDir().getCanonicalFile();
             File staged = child(privateBase, STAGE_ROOT);
             if (!staged.isDirectory()) throw new SecurityException("Wine29 stage absent");
-            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v21"
+            String scratchName = prepareWindow ? "charoite-next-wine29-x64-window-v22"
                 : testX64 ? "charoite-next-wine29-x64-smoke-v2"
                 : verifyRunning ? "charoite-next-wine29-entry-v35" : SCRATCH;
             File newScratch = child(privateBase, scratchName);

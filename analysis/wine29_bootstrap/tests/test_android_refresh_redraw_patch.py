@@ -61,6 +61,9 @@ class RefreshRedraw(unittest.TestCase):
         self.assertIn("test_android_refresh_redraw_patch.py", workflow)
         self.assertIn("patch_android_refresh_redraw.py", workflow)
         self.assertIn("patch_android_surface_flush.py", workflow)
+        self.assertLess(workflow.index("patch_android_surface_flush.py \\"), workflow.index("patch_android_refresh_redraw.py \\"))
+        self.assertLess(workflow.index("patch_android_refresh_redraw.py \\"), workflow.index("make -j2 \\"))
+        self.assertIn("branches: [main]", workflow)
         self.assertNotIn("adb install", workflow)
 
 

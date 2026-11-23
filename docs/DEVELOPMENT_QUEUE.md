@@ -1,3 +1,9 @@
+## 2026-11-23 — Native GDI refresh fix and isolated v19 preparation
+
+- **P0 new native fix:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) merged; after Android native-window registration, visible CPU HWND now requests actual `NtUserRedrawWindow`, not just stale-surface exposure. Native provider [CI 45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) in progress; patch/source tests pass, ELF/PE not yet verified.
+- **Fresh test only:** `v19` one-shot private scratch staged, older v1–v18 preserved and read-only. No v19 APK released, no phone action.
+- **Next:** verify provider outputs + matching Java host/Explorer ELF/PE digests before updating signed experimental APK. Require one opt-in v19 Galaxy test to distinguish HWND drawing vs Android TextureView frame. Overall 40% estimated.
+
 ## 2026-11-23 — Native surface refresh repaint after repeated Galaxy exit 15
 
 - **Latest user report:** After 1183 test request, another 360×220 visible, registered Android window and exit **15: neither Windows pixel matched**; no Android frame-update event. Screenshot does not show build number. Avoid rerunning any possibly consumed v18 scratch.

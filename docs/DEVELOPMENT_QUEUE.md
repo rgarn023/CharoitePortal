@@ -1,3 +1,9 @@
+## 2026-11-23 04:29 UTC — Native GDI buffer replay v20 candidate, v19 consumed
+
+- **Galaxy v19 result:** Native `WM_ANDROID_REFRESH` executed for hwnd 0x2003e after 360×220 surface registration; Windows pixel gate still exit 15 (neither client nor screen purple); no Android updated-frame evidence. The native refresh request alone did not fix painting. Do not rerun v19 or earlier one-shot scratch.
+- **Implemented source-only:** A fail-closed WineAndroid patch now obtains the real current `window_surface` on that native-refresh event, checks `android_surface_funcs`, marks the real bitmap dirty and calls `window_surface_flush` once. Success trace distinguishes actual native buffer post; never fabricate pixel results or modify games/prefixes. Integrated into fresh native-provider CI with strict tests, before any APK.
+- **Next:** static checks → native ARM64 PE / AArch64 ELF source-build and matching ZIP/inner binary hashes → new private v20 scratch with fresh signed experimental APK → one Galaxy test. No new phone test yet. Overall v1.0 readiness estimated 40%.
+
 ## 2026-11-23 04:20 UTC — Meteorite Alpha build 1188 published; on-device v19 graphics pending
 
 - **Galaxy prior v18:** Exit 15 = neither Windows client nor screen pixel purple despite 360×220 native surface registration; no Android frame-update event in checkpoint. Do not repeat consumed v18 or modify earlier tests. Foreground screen-awake already works.

@@ -1,4 +1,4 @@
-"""Bounded source-only provenance checks for the next isolated Wine29 v16 display test."""
+"""Source-only immutable provenance checks for the current isolated Wine29 v20 display test."""
 from pathlib import Path
 import unittest
 
@@ -12,16 +12,16 @@ HOST = (ROOT / "next-generation/WineActivity.java").read_text(encoding="utf-8")
 
 class V16DisplayArtifacts(unittest.TestCase):
     def test_exact_verified_native_host_and_explorer_zip_digests(self):
-        # GitHub Actions source-only provider run 45105262930; artifact digests
+        # GitHub Actions source-only provider run 45112110313; artifact digests
         # are published by GitHub and checked again when staging the APK.
-        self.assertIn("actions/artifacts/14786954701/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/14789922623/zip", WORKFLOW)
         self.assertIn(
-            "0d4962024f954caef466aa4f4f924f4af69fdb21f5196f1e89c52bdfb4e4992a",
+            "b2d8efaad39038b253f349c22b23c4f243b299a313a77c1db79ca3f6fa1044c1",
             WORKFLOW
         )
-        self.assertIn("actions/artifacts/14786854846/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/14790167079/zip", WORKFLOW)
         self.assertIn(
-            "eb195a59124fa77addcce5836e6c955d1421acae13f917c348b7d3f9dc87dbdd",
+            "974df7a059a8945315f438c26795f69e7d600c79265dc7c8371477afb55fb02e",
             WORKFLOW
         )
         self.assertIn('(cd "$assets" && sha256sum -c SHA256SUMS)', WORKFLOW)

@@ -1,3 +1,10 @@
+## 2026-11-23 00:30 UTC — Merged screen-awake and v16 native driver
+
+- **P0 foreground screen awake:** [PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) merged as [d873786d](https://github.com/rgarn023/CharoitePortal/commit/d873786d86145b24ebba737af2c34e03a3d3a671). Experimental-only `CharoiteNextAwakeApplication` keeps each resumed Charoite activity awake and clears flag on pause. No background wake lock; stable Portal unchanged.
+- **P0 native graphics:** Matched Wine29 host and Explorer assets from successful provider [45084634107](https://github.com/rgarn023/CharoitePortal/actions/runs/45084634107) have been repinned by exact ZIP SHA-256; the next test uses fresh **v16** scratch, preserving consumed v15. No purple screen readback is yet verified on device.
+- **Tests:** Static [45089079934](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079934) **SUCCESS**. Signed [Android 45089079910](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079910) **RUNNING**, release not yet verified. Verify signature/install/update and native artifact hashes before requesting one v16 Galaxy test.
+- **Overall:** ~40% estimated. No phone tests or game/prefix modifications in this development session.
+
 ## 2026-11-23 00:26 UTC — Next experimental release candidate
 
 - **P0 screen awake:** [PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) adds experimental-only `CharoiteNextAwakeApplication` using resumed-activity `FLAG_KEEP_SCREEN_ON` and pause-time cleanup. No background wake lock, stable package changes or settings permission.

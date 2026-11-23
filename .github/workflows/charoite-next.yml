@@ -1234,13 +1234,24 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/wine29-java-host.zip"
           assets=upstream/app/src/main/assets/wine29-java-host
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14778917103/zip" > "$archive"
-          echo "1322daaee98bb72b06fb68f668edc8e3213f088cb875914a68d09897a6eb0dd1  $archive" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14786954701/zip" > "$archive"
+          echo "0d4962024f954caef466aa4f4f924f4af69fdb21f5196f1e89c52bdfb4e4992a  $archive" | sha256sum -c -
           mkdir -p "$assets"
           for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
             unzip -p "$archive" "$file" > "$assets/$file"
           done
           (cd "$assets" && sha256sum -c SHA256SUMS)
+
+          # This independent native display artifact is built from the same
+          # source-pinned provider run. Reject a mixed/stale Java-host bundle.
+          # No runtime execution, user prefix access, or device interaction.
+          display="$RUNNER_TEMP/wine29-android-display.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14787417115/zip" > "$display"
+          echo "1a9e3b6771e1847d259db32688b6e0d4b9abdc3f05a884ee4341505132448f2f  $display" | sha256sum -c -
+          for file in win32u.dll win32u.so wineandroid.drv wineandroid.so; do
+            unzip -p "$display" "$file" | cmp - "$assets/$file"
+          done
+          echo "WINE29_V19_NATIVE_HOST_DISPLAY_COHORT=MATCH"
 
           fixture="$RUNNER_TEMP/wine29-x64-window.zip"
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14782543540/zip" > "$fixture"
@@ -1250,8 +1261,8 @@ jobs:
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14779061741/zip" > "$explorer"
-          echo "dbea63c036d8a9f3866b47212e725d2305a7f55ef794a7b57233280e4982d00c  $explorer" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14786854846/zip" > "$explorer"
+          echo "eb195a59124fa77addcce5836e6c955d1421acae13f917c348b7d3f9dc87dbdd  $explorer" | sha256sum -c -
           for file in explorer.exe ntoskrnl.exe hal.dll; do
             unzip -p "$explorer" "$file" > "$assets/$file"
           done

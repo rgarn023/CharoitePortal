@@ -1232,10 +1232,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Immutable v20 WineAndroid provider provenance gate, checked before staging.
+          # Every binary must be from the same source commit and source-pinned run.
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/45112110313/artifacts?per_page=100" > "$RUNNER_TEMP/wine29-v20-provider-cohort.json"
+          python3 - "$RUNNER_TEMP/wine29-v20-provider-cohort.json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as src:
+              artifacts = {a["id"]: a for a in json.load(src)["artifacts"]}
+          expected = {
+              14789922623: ("Wine29-Android-Java-Host-Inputs", "b2d8efaad39038b253f349c22b23c4f243b299a313a77c1db79ca3f6fa1044c1"),
+              14789992572: ("Wine29-Android-Display-Candidate", "b3af3ca1332569549001e5ad0a2bf5bfc21cb2c43175d8228ce73c76ab08f258"),
+              14790167079: ("Wine29-Android-Explorer-Candidate", "974df7a059a8945315f438c26795f69e7d600c79265dc7c8371477afb55fb02e"),
+          }
+          for artifact_id, (name, digest) in expected.items():
+              artifact = artifacts.get(artifact_id)
+              assert artifact is not None, f"Missing v20 provider artifact {artifact_id}"
+              assert artifact["name"] == name and artifact["digest"] == f"sha256:{digest}", f"Artifact identity/digest mismatch: {artifact_id}"
+              assert not artifact["expired"], f"Artifact expired: {artifact_id}"
+              origin = artifact["workflow_run"]
+              assert origin["id"] == 45112110313 and origin["head_sha"] == "3896af78a51e4bf1f29e3fdcef6b816e48e4440e", f"Cross-source artifact: {artifact_id}"
+          print("WINE29_V20_PROVIDER_COHORT=SOURCE_MATCH")
+          PY
           archive="$RUNNER_TEMP/wine29-java-host.zip"
           assets=upstream/app/src/main/assets/wine29-java-host
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14786954701/zip" > "$archive"
-          echo "0d4962024f954caef466aa4f4f924f4af69fdb21f5196f1e89c52bdfb4e4992a  $archive" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14789922623/zip" > "$archive"
+          echo "b2d8efaad39038b253f349c22b23c4f243b299a313a77c1db79ca3f6fa1044c1  $archive" | sha256sum -c -
           mkdir -p "$assets"
           for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
             unzip -p "$archive" "$file" > "$assets/$file"
@@ -1246,12 +1269,12 @@ jobs:
           # source-pinned provider run. Reject a mixed/stale Java-host bundle.
           # No runtime execution, user prefix access, or device interaction.
           display="$RUNNER_TEMP/wine29-android-display.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14787417115/zip" > "$display"
-          echo "1a9e3b6771e1847d259db32688b6e0d4b9abdc3f05a884ee4341505132448f2f  $display" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14789992572/zip" > "$display"
+          echo "b3af3ca1332569549001e5ad0a2bf5bfc21cb2c43175d8228ce73c76ab08f258  $display" | sha256sum -c -
           for file in win32u.dll win32u.so wineandroid.drv wineandroid.so; do
             unzip -p "$display" "$file" | cmp - "$assets/$file"
           done
-          echo "WINE29_V19_NATIVE_HOST_DISPLAY_COHORT=MATCH"
+          echo "WINE29_V20_NATIVE_HOST_DISPLAY_COHORT=MATCH"
 
           fixture="$RUNNER_TEMP/wine29-x64-window.zip"
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14782543540/zip" > "$fixture"
@@ -1261,8 +1284,8 @@ jobs:
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14786854846/zip" > "$explorer"
-          echo "eb195a59124fa77addcce5836e6c955d1421acae13f917c348b7d3f9dc87dbdd  $explorer" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14790167079/zip" > "$explorer"
+          echo "974df7a059a8945315f438c26795f69e7d600c79265dc7c8371477afb55fb02e  $explorer" | sha256sum -c -
           for file in explorer.exe ntoskrnl.exe hal.dll; do
             unzip -p "$explorer" "$file" > "$assets/$file"
           done

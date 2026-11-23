@@ -10,6 +10,8 @@ on:
       - 'next-generation/charoite-wine/build-arm64ec-ntdll.sh'
       - 'next-generation/wine29-imports/classify.py'
       - 'analysis/wine29_bootstrap/patch_v6_child_loader.py'
+      - 'analysis/wine29_bootstrap/patch_android_refresh_redraw.py'
+      - 'analysis/wine29_bootstrap/tests/test_android_refresh_redraw_patch.py'
 
 permissions:
   contents: read
@@ -60,6 +62,8 @@ jobs:
           PY
       - name: Check WineAndroid surface-flush failure gate offline
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_flush_patch.py -v
+      - name: Check WineAndroid native surface-refresh repaint gate offline
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_refresh_redraw_patch.py -v
       - name: Verify pinned source and isolated output contracts
         run: |
           set -euo pipefail
@@ -1576,6 +1580,10 @@ jobs:
           # A failed native buffer lock or post must not be reported as a painted frame.
           # Apply to this fresh pinned source checkout only; never to an installed runtime.
           python3 analysis/wine29_bootstrap/patch_android_surface_flush.py \
+            "$build/../dlls/wineandroid.drv/window.c"
+          # Refresh a real HWND's dirty GDI region when Android first binds its
+          # TextureView surface, rather than relying on a stale pre-surface paint.
+          python3 analysis/wine29_bootstrap/patch_android_refresh_redraw.py \
             "$build/../dlls/wineandroid.drv/window.c"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'

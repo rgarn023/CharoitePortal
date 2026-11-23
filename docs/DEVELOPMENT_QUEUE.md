@@ -1,3 +1,10 @@
+## 2026-11-23 — Native surface refresh repaint after repeated Galaxy exit 15
+
+- **Latest user report:** After 1183 test request, another 360×220 visible, registered Android window and exit **15: neither Windows pixel matched**; no Android frame-update event. Screenshot does not show build number. Avoid rerunning any possibly consumed v18 scratch.
+- **New actual WineAndroid code change:** Pinned `WM_ANDROID_REFRESH` CPU path now exposes surface **and** requests one real visible-HWND GDI invalidation/update after native surface registration. Previous test EXE-only redraw has not worked; this modification targets the native driver ordering. Keep OpenGL path and strict readback gates unchanged.
+- **CI:** Source-only `patch_android_refresh_redraw.py` with exact-match tests, integrated into isolated [Wine29 provider workflow](https://github.com/rgarn023/CharoitePortal/actions/workflows/wine29-first-provider-crossbuild.yml). Native PE/ELF build is pending, **not a verified graphics fix**.
+- **Next:** pass CI, inspect compiled driver and matching Java host, package only to a fresh experimental v19 signed release, obtain at most one owner-approved test. No stable Portal data touched; overall readiness estimate stays 40%.
+
 ## 2026-11-23 01:42 UTC — Meteorite Alpha build 1183 signed and released
 
 - **Owner-confirmed v17:** 360×220 native window surface reached Android, but neither Win32 client nor screen pixel purple. Exit 15, no Android frame-update checkpoint. v17 consumed; do not repeat.

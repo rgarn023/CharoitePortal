@@ -1,3 +1,10 @@
+## 2026-11-23 00:26 UTC — Next experimental release candidate
+
+- **P0 screen awake:** [PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) adds experimental-only `CharoiteNextAwakeApplication` using resumed-activity `FLAG_KEEP_SCREEN_ON` and pause-time cleanup. No background wake lock, stable package changes or settings permission.
+- **P0 graphics v16:** Provider [45084634107](https://github.com/rgarn023/CharoitePortal/actions/runs/45084634107) **SUCCESS**, postbuild [45085211043](https://github.com/rgarn023/CharoitePortal/actions/runs/45085211043) **SUCCESS**. Next APK workflow repins matching host/explorer ZIP hashes from that run and stages a **fresh, non-reusable `x64-window-v16` scratch**. Desktop fixture's strict purple-pixel gate remains. Actual Android rendering **NOT VERIFIED**.
+- **CI gate:** Run static contracts and signed Next-only APK build; do not claim v16 shipped until official release and APK published. Request one Galaxy v16 test after update; never repeat consumed v15.
+- **Completion:** Estimated 40%; without a verified on-device purple frame, unchanged.
+
 ## 2026-11-22 — Sleep prevention and Galaxy window trace
 
 - **Requested foreground screen-awake behavior:** experimental-only `CharoiteNextAwakeApplication` installs callbacks for every resumed Charoite activity, adds `FLAG_KEEP_SCREEN_ON`, and clears on pause. This covers main Portal/boot, setup/gameplay, and the separate Wine29 test process; no persistent wake lock or stable Portal modification. Source-only tests pending CI.

@@ -1,3 +1,9 @@
+## 2026-11-23 04:40 UTC — v20 signed packaging gates green; Android Gradle step underway
+
+- [Signed run 45113103826](https://github.com/rgarn023/CharoitePortal/actions/runs/45113103826): verified v20 artifact provenance/ZIP hashes/inner checksums/four matching native binaries at **successful** `Stage verified Wine29 Java host assets`; version assignment PASS. `Build integrated Windows runtime preview` IN PROGRESS. No signed APK/public release or real Galaxy frame proof claimed.
+- Provider [45112110313](https://github.com/rgarn023/CharoitePortal/actions/runs/45112110313), postbuild [45112714985](https://github.com/rgarn023/CharoitePortal/actions/runs/45112714985), main static [45113103822](https://github.com/rgarn023/CharoitePortal/actions/runs/45113103822): PASS. Native graphics replay and packaging PRs #60/#61/#62 merged.
+- **P0:** finish Android Gradle/signing/release verification, then ONE owner-authorized private v20 Galaxy graphics run. Preserve old one-shots and all user data. No user action yet; overall **40%** until actual pixels + Android frame.
+
 ## 2026-11-23 04:39 UTC — v20 native source packaged into running signed experimental pipeline
 
 - **Merged:** [PR #62](https://github.com/rgarn023/CharoitePortal/pull/62), [commit 67c2787c](https://github.com/rgarn023/CharoitePortal/commit/67c2787c69ec653156b391b12f781ed3f1d0bb3b), source-matched Wine29 v20 host/display/Explorer pinning with exact provenance/digest and native byte-comparison checks. PR static CI [45113025338](https://github.com/rgarn023/CharoitePortal/actions/runs/45113025338) PASS. Provider [45112110313](https://github.com/rgarn023/CharoitePortal/actions/runs/45112110313) and postbuild [45112714985](https://github.com/rgarn023/CharoitePortal/actions/runs/45112714985) PASS.

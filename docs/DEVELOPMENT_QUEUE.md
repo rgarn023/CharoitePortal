@@ -1,3 +1,11 @@
+## 2026-11-23 04:20 UTC — Meteorite Alpha build 1188 published; on-device v19 graphics pending
+
+- **Galaxy prior v18:** Exit 15 = neither Windows client nor screen pixel purple despite 360×220 native surface registration; no Android frame-update event in checkpoint. Do not repeat consumed v18 or modify earlier tests. Foreground screen-awake already works.
+- **Native code implemented:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) requests real visible-HWND GDI redraw after Android native-surface refresh. [Provider 45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) and [postbuild 45105717342](https://github.com/rgarn023/CharoitePortal/actions/runs/45105717342) **SUCCESS**. All matching native source/ZIP/PE/ELF SHA256SUMS independently verified; host and display driver binaries byte-identical.
+- **v19 APK RELEASED:** [PR #59](https://github.com/rgarn023/CharoitePortal/pull/59) merges exact artifact pins and fail-closed native cohort check; [Android Actions 45110695253](https://github.com/rgarn023/CharoitePortal/actions/runs/45110695253) **SUCCESS**; official signed [Meteorite Alpha 1188](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1188) published with APK. New private one-shot v19 is ready; no actual Galaxy test yet. Duplicate PR #58 closed.
+- **One action needed:** Owner updates in-app to 1188 and runs one isolated v19 window test. Record Win32 15/16/17/42 status, Android presentation frame checkpoint, and native log on failure. If still 15, work on native GDI dirty flush/queue after surface registration, not repeated desktop-only repaints.
+- **Preservation/progress:** Stable Portal, games, saves, user prefixes/rootfs, all v1–v18 scratch untouched. Approximate v1.0 readiness remains 40%.
+
 ## 2026-11-23 — Verified v19 native driver candidate packaging
 
 - **Native fix already merged:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) requests GDI redraw after visible CPU HWND receives Android native surface. [PR #57](https://github.com/rgarn023/CharoitePortal/pull/57) stages fresh isolated v19 one-shot. Duplicate PR #58 closed. v18 owner test exited 15 with no updated Android frame.

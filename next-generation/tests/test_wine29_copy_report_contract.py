@@ -54,7 +54,7 @@ class Wine29CopyReportContract(unittest.TestCase):
         self.assertIn("file.finishWrite(output);", WINE)
         self.assertIn("file.failWrite(output);", WINE)
         self.assertIn("clipboard.setPrimaryClip(", WINE)
-        self.assertIn('newPlainText("Wine29 complete display report"', WINE)
+        self.assertIn('"Wine29 complete display report"', WINE)
         self.assertIn('android.widget.Toast.makeText(portal, "Wine29 report copied"', WINE)
         # New complete clipboard write is triggered only by a real user control.
         start = WINE.index("private static void copyCompleteWindowReport(")

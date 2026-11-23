@@ -1,3 +1,10 @@
+## 2026-11-23 16:26 UTC — v22 native provider/postbuild PASS, signed APK integration merged and running
+
+- [Source-pinned v22 native provider 45211800904](https://github.com/rgarn023/CharoitePortal/actions/runs/45211800904) **PASS**; [postbuild 45213004200](https://github.com/rgarn023/CharoitePortal/actions/runs/45213004200) **PASS**. Exact same-commit artifact IDs + GitHub SHA: Java host #14838255023 `7d871248c53a610ba27fbc9e252a3af25d5877febbc5d4878db798ba16f7ba00`, display #14836507866 `0912eaf81f3c6e574b5f5bb0a0d1c9783956dc7dab3b14c00dae563bca88717b`, Explorer #14836598137 `e41ef0bb37b32f2b89c66f7ae0d8fe732fc0568b9c5b390a17e4c4883ff0bf57`.
+- [PR #67](https://github.com/rgarn023/CharoitePortal/pull/67) merged `3a717db8`, strict signed APK v22 provenance and native driver quartet byte-match staging, updated static test assertions; [CI #45216102686](https://github.com/rgarn023/CharoitePortal/actions/runs/45216102686) **PASS**.
+- [Official Meteorite Alpha Android v22 run 45216315455](https://github.com/rgarn023/CharoitePortal/actions/runs/45216315455) **RUNNING** at entry; package Gradle/signing/release not yet verified. Do not claim APK ready.
+- **Next P0:** inspect staged asset hashes, build and signing, then official immutable public release. Only then ONE opt-in Galaxy x64-window **v22** test with real GDI driver target, Windows client+screen GetPixel, and Android frame checkpoint. **v1–v21 consumed; never rerun or clear**. Stable Portal, games/saves, prefixes/rootfs preserved. Owner action NO. Overall 1.0 estimate **40%** until phone graphics proof.
+
 ## 2026-11-23 16:02 UTC — v22 scaled Android GDI driver handling merged; native provider in progress
 
 - **Device proof:** v21 signed build 1198 exit **15**, registered 360×220 HWND 0x2003e; rearm ran but current GDI backend check still failed, no real buffer/Android frame. v1–v21 one-shot tests permanently consumed; never rerun/reset/delete.

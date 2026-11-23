@@ -43,5 +43,7 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_replay_patch.py -v
       - name: Verify v21 missing native GDI surface recovery without execution
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_rearm_patch.py -v
+      - name: Verify source-matched v21 signed APK cohort hashes without executing Wine
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_v20_apk_native_cohort.py -v
       - name: Assert this workflow did not use signing keys or a phone
         run: echo 'CHAROITE_AGENT_PROPOSAL_STATIC_TESTS=PASS'

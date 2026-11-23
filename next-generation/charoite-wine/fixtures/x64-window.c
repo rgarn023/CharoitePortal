@@ -45,7 +45,17 @@ void fixture_entry(void)
     if (!screen)
         ExitProcess(14);
 
+    /* Read the actual HWND's client DC as well as the composited desktop.
+     * A GUI may paint its client surface correctly even when a platform
+     * driver does not expose that result through GetPixel(screen). */
+    HDC client_dc = GetDC(window);
+    if (!client_dc) {
+        ReleaseDC(NULL, screen);
+        ExitProcess(14);
+    }
+
     COLORREF pixel = CLR_INVALID;
+    COLORREF client_pixel = CLR_INVALID;
     for (unsigned attempt = 0; attempt < 100; ++attempt) {
         MSG message;
         while (PeekMessageW(&message, NULL, 0, 0, PM_REMOVE)) {
@@ -61,16 +71,23 @@ void fixture_entry(void)
             InvalidateRect(window, NULL, FALSE);
             UpdateWindow(window);
             GdiFlush();
+            client_pixel = GetPixel(client_dc, 16, 16);
             pixel = GetPixel(screen, sample.x, sample.y);
-            if (pixel == paint_color)
+            if (pixel == paint_color && client_pixel == paint_color)
                 break;
         }
         Sleep(50);
     }
+    ReleaseDC(window, client_dc);
     ReleaseDC(NULL, screen);
-    if (pixel != paint_color || !IsWindowVisible(window)) {
+    if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window)) {
+        /* Distinguish client painting from desktop readback; never count
+         * either one alone as a passed Windows display test.
+         * 15 = neither pixel matched, 16 = client only, 17 = screen only. */
+        unsigned code = client_pixel == paint_color ? 16
+            : pixel == paint_color ? 17 : 15;
         DestroyWindow(window);
-        ExitProcess(15);
+        ExitProcess(code);
     }
 
     Sleep(1500);

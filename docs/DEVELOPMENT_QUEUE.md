@@ -1,3 +1,9 @@
+## 2026-11-23 01:33 UTC — v17 failure directs direct GDI repaint recovery
+
+- **On-device v17 verified:** hwnd 0x2003e 360×220 visible/drawable, Android `SurfaceTexture` available, WineAndroid surface registered. **Exit 15 = neither Windows client nor desktop screen pixel matched**. No reported Android frame-update event. Do not reuse v17.
+- **P0 implementation:** Source-only x64 GUI fixture now retries direct `GetDC(hwnd)`/GDI `FillRect` on bounded attempts 0, 20, 60, alongside existing WM_PAINT/UpdateWindow path. Never bypass the independent two-purple-pixel + visible-window exit 42 gate. Desktop CI pending.
+- **Then:** prove desktop build and hashes, new v18 one-shot scratch, signed separate experimental release, one opted-in Galaxy test. If failure persists, focus WineAndroid `pCreateWindowSurface`/GDI dirty flush and buffer queue rather than reiterating generic logs. Overall readiness ~40%; no stable/user data touched.
+
 ## 2026-11-23 00:51 UTC — Public build 1179 signed, v17 Galaxy evidence required
 
 - **Screen awake confirmed:** owner reports no sleep while active in experimental Portal; foreground-only `FLAG_KEEP_SCREEN_ON` feature is working on Galaxy.

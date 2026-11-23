@@ -1,4 +1,4 @@
-"""Fail-closed signed experimental APK v20 native artifact provenance contract.
+"""Fail-closed signed experimental APK v21 native artifact provenance contract.
 
 Static only: never runs Wine, changes phone storage, or installs an APK.
 """
@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / ".github/workflows/charoite-next.yml"
 
 
-class V20NativeCohortContract(unittest.TestCase):
+class V21NativeCohortContract(unittest.TestCase):
     def setUp(self):
         source = WORKFLOW.read_text(encoding="utf-8")
         start = source.index("      - name: Stage verified Wine29 Java host assets")
@@ -18,18 +18,18 @@ class V20NativeCohortContract(unittest.TestCase):
 
     def test_immutable_artifacts_share_exact_provider_source(self):
         for expected in (
-            "actions/runs/45112110313/artifacts?per_page=100",
-            "3896af78a51e4bf1f29e3fdcef6b816e48e4440e",
-            'origin["id"] == 45112110313',
+            "actions/runs/45198706088/artifacts?per_page=100",
+            "55a626f63f63c2bbcd9e2ca8f9eb3a82178936ad",
+            'origin["id"] == 45198706088',
             'origin["head_sha"]',
             'assert not artifact["expired"]',
-            "WINE29_V20_PROVIDER_COHORT=SOURCE_MATCH",
-            "14789922623",
-            "14789992572",
-            "14790167079",
-            "b2d8efaad39038b253f349c22b23c4f243b299a313a77c1db79ca3f6fa1044c1",
-            "b3af3ca1332569549001e5ad0a2bf5bfc21cb2c43175d8228ce73c76ab08f258",
-            "974df7a059a8945315f438c26795f69e7d600c79265dc7c8371477afb55fb02e",
+            "WINE29_V21_PROVIDER_COHORT=SOURCE_MATCH",
+            "14830427285",
+            "14830207787",
+            "14830162796",
+            "3a4ac7e4c397bbc227f7fd3fa3d83654c2a1f725aedb8fdb7288b9b79addded5",
+            "b41ea09ce24ce642305d2e59e9466955e21177b988017292c2ebee8c5afa9564",
+            "74f58c19fef20a8c2eddae8540751bcd82d2e376935e7efec9c5b8573406a087",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, self.stage)
@@ -39,9 +39,9 @@ class V20NativeCohortContract(unittest.TestCase):
         self.assertIn("(cd \"$assets\" && sha256sum -c SHA256SUMS)", self.stage)
         self.assertIn("(cd \"$assets\" && sha256sum -c explorer.sha256)", self.stage)
         self.assertIn('unzip -p \"$display\" \"$file\" | cmp - \"$assets/$file\"', self.stage)
-        self.assertIn("WINE29_V20_NATIVE_HOST_DISPLAY_COHORT=MATCH", self.stage)
-        self.assertLess(self.stage.index("WINE29_V20_PROVIDER_COHORT=SOURCE_MATCH"),
-                        self.stage.index('gh api \"repos/$GITHUB_REPOSITORY/actions/artifacts/14789922623/zip\"'))
+        self.assertIn("WINE29_V21_NATIVE_HOST_DISPLAY_COHORT=MATCH", self.stage)
+        self.assertLess(self.stage.index("WINE29_V21_PROVIDER_COHORT=SOURCE_MATCH"),
+                        self.stage.index('gh api \"repos/$GITHUB_REPOSITORY/actions/artifacts/14830427285/zip\"'))
         for old in ("14786954701", "14787417115", "14786854846",
                     "WINE29_V19_NATIVE_HOST_DISPLAY_COHORT"):
             self.assertNotIn(old, self.stage)

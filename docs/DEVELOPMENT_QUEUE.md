@@ -1,3 +1,10 @@
+## 2026-11-22 — Sleep prevention and Galaxy window trace
+
+- **Requested foreground screen-awake behavior:** experimental-only `CharoiteNextAwakeApplication` installs callbacks for every resumed Charoite activity, adds `FLAG_KEEP_SCREEN_ON`, and clears on pause. This covers main Portal/boot, setup/gameplay, and the separate Wine29 test process; no persistent wake lock or stable Portal modification. Source-only tests pending CI.
+- **Rendering:** Galaxy build 1169 window test still exits **15**, after 1440×2581 desktop dimensions and x64 360×220 surface registration. Android visible purple frame and Win32 screen pixel are not verified. Do not reuse consumed v15 scratch.
+- **Native driver:** [provider CI 45084634107](https://github.com/rgarn023/CharoitePortal/actions/runs/45084634107) **SUCCESS** with [postbuild 45085211043](https://github.com/rgarn023/CharoitePortal/actions/runs/45085211043) **SUCCESS**. Next graphics batch must verify pinned manifest hashes, stage the new driver into a fresh versioned experimental build, and use one authorized phone test. Build 1169 does not carry this native patch.
+- **Readiness:** ~40%, not a gameplay or rendering success.
+
 ## 2026-11-22 23:42 UTC — Graphics P0 native flush work merged
 
 - **P0 graphics:** [PR #50](https://github.com/rgarn023/CharoitePortal/pull/50) merged as [6ef18241](https://github.com/rgarn023/CharoitePortal/commit/6ef18241cf8e0e01a0f8c3fb3c1064246d22de31). Native Android CPU surface flush now fails closed on missing window, lock error, or post error, with bounded Wine WARN status. Workflow source-only offline test step PASSED. [Provider cross-build 45084634107](https://github.com/rgarn023/CharoitePortal/actions/runs/45084634107) **RUNNING**; no PE/ELF or on-device pass is claimed.

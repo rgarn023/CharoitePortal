@@ -8,6 +8,9 @@ PROBE = (ROOT / "CharoiteWine29V28FocusedInfProbe.java").read_text(encoding="utf
 FIXTURE = (ROOT / "charoite-wine/fixtures/x64-window.c").read_text(
     encoding="utf-8"
 )
+WORKFLOW = (ROOT.parent / ".github/workflows/charoite-next.yml").read_text(
+    encoding="utf-8"
+)
 
 
 class V17DisplayEvidence(unittest.TestCase):
@@ -38,6 +41,14 @@ class V17DisplayEvidence(unittest.TestCase):
         self.assertIn("for (int version = 17; version >= 1; version--)", HOST)
         self.assertIn("new java.io.RandomAccessFile(log, \"r\")", HOST)
         self.assertIn("Math.min(size, 16384L)", HOST)
+
+    def test_desktop_verified_fixture_zip_and_inner_pe_are_pinned(self):
+        # The artifact is from desktop Wine fixture run 45090425972 (SUCCESS).
+        self.assertIn("actions/artifacts/14780807305/zip", WORKFLOW)
+        self.assertIn("f82c963c8de53429c889c6338c27e1091889838e96e2bed0403b0973bbf5c226", WORKFLOW)
+        self.assertIn("c8f19ccfc4804029837589def8c500d1f41ff071d2f91153dc6b8aff66b5f727", WORKFLOW)
+        self.assertIn('(cd "$assets" && sha256sum -c x64-window.sha256)', WORKFLOW)
+        self.assertNotIn("actions/artifacts/14756991971/zip", WORKFLOW)
 
     def test_no_screenshots_or_game_data_stored_in_checkpoint(self):
         segment = HOST.split("private synchronized void recordWindowStage(", 1)[1].split(

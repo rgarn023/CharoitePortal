@@ -13,8 +13,10 @@ on:
       - 'analysis/wine29_bootstrap/patch_android_refresh_redraw.py'
       - 'analysis/wine29_bootstrap/patch_android_surface_replay.py'
       - 'analysis/wine29_bootstrap/patch_android_surface_rearm.py'
+      - 'analysis/wine29_bootstrap/patch_android_scaled_surface_target.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_replay_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_rearm_patch.py'
+      - 'analysis/wine29_bootstrap/tests/test_android_scaled_surface_target_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_refresh_redraw_patch.py'
 
 permissions:
@@ -72,6 +74,8 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_replay_patch.py -v
       - name: Check v21 real Android GDI surface rearm (source-only)
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_rearm_patch.py -v
+      - name: Verify v22 DPI-scaled real Android target (source-only)
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_scaled_surface_target_patch.py -v
       - name: Verify pinned source and isolated output contracts
         run: |
           set -euo pipefail
@@ -1603,6 +1607,13 @@ jobs:
           # surface-allocation attempt before replaying real GDI pixels.
           python3 analysis/wine29_bootstrap/patch_android_surface_rearm.py \
             "$build/../dlls/wineandroid.drv/window.c"
+          # Wine may hold a DPI scaling wrapper with a REAL Android backend.
+          # Unwrap only for validating the backend; replay/flush the original
+          # surface through Win32u's scale and paint path, never fake pixels.
+          python3 analysis/wine29_bootstrap/patch_android_scaled_surface_target.py \
+            "$build/../dlls/wineandroid.drv/window.c" \
+            "$build/../dlls/win32u/dce.c" \
+            "$build/../include/wine/gdi_driver.h"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib

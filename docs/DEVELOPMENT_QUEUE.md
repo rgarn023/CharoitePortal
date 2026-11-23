@@ -1,3 +1,10 @@
+## 2026-11-23 15:05 UTC — P0 v21 signed released, ONE fresh Galaxy graphics check needed
+
+- **Signed experimental APK verified:** GitHub [Actions #45200139822](https://github.com/rgarn023/CharoitePortal/actions/runs/45200139822) **SUCCESS**. v21 native host staging, Android Gradle, APK signing identity, in-APK verification and official publication job passed. [Immutable Meteorite Alpha build 1198](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1198) published at 15:04:36 UTC from commit `d398823e`, APK SHA256 `6359029446aec741f7dc0441726057c1431d495ddcd3c51fd969acae5ceee208` (466620432 bytes), LGPL ZIP included.
+- **Owner action YES, once:** Existing `com.charoitx` System → Check for updates → Update in app → approve Android over-install of 1198, then ONE private v21 x64 360×220 purple-window test. Capture exit status (15/16/17/42), actual visible pixels/Android frame callback and bounded latest native log (v21 rearm/attached/posted markers). Do not rerun v1–v20 or v21 after first use.
+- **Next source work:** based on v21 result distinguish failed Win32u rearm (still dummy/no Android GDI), attached GDI but no real buffer post, Win32 pixel failure, or Android TextureView update/composition failure. Do not claim success from native compilation alone. `uxtheme.dll c0000135` and Explorer ioctl `c0000034` tracked but not proven root causes.
+- **Safety:** no uninstall, clear, delete, scratch reuse, direct Wine/SCM execution, or stable Portal/game/rootfs/prefix changes. Overall estimated 40% until actual Android graphics proof.
+
 ## 2026-11-23 15:00 UTC — v21 native GDI rearm provider compiled, official signed build running
 
 - **Device v20:** native window registered, actual Android GDI surface missing on refresh; 360×220 HWND 0x2003e, both pixel checks exit 15; no real post/TextureView frame. v20 scratch permanently consumed; no repeats or deletes.

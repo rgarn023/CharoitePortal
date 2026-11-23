@@ -51,6 +51,8 @@ public final class WineActivity extends Activity {
     private boolean presentedPurpleWindow;
     private boolean sampledWindowFrame;
     private long lastFrameReadbackAt;
+    private boolean recordedDrawableWindow;
+    private final java.util.ArrayDeque<String> windowStageHistory = new java.util.ArrayDeque<>();
 
     // Called by Wine's Android driver. Keep all Android view changes on the UI thread.
     public void createDesktopWindow(int hwnd) {
@@ -76,9 +78,17 @@ public final class WineActivity extends Activity {
         });
     }
 
-    private void recordWindowStage(String stage) {
+    private synchronized void recordWindowStage(String stage) {
         try {
-            record(this, stage);
+            // Persist a bounded event history, not just the last checkpoint.
+            // This survives a normal Wine ExitProcess and contains no screenshot
+            // pixels, file paths, user content, or game state.
+            if (windowStageHistory.size() == 20) windowStageHistory.removeFirst();
+            windowStageHistory.addLast(stage);
+            StringBuilder history = new StringBuilder(
+                    "Interrupted during Wine29 x64 window test; Android frame checkpoints:\n");
+            for (String event : windowStageHistory) history.append(event).append('\n');
+            record(this, history.toString());
         } catch (IOException failure) {
             android.util.Log.w("Wine29Display", "Could not save display checkpoint", failure);
         }
@@ -97,6 +107,8 @@ public final class WineActivity extends Activity {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
                 surface = new Surface(texture);
+                recordWindowStage("Android texture available hwnd "
+                        + Integer.toHexString(hwnd) + " size " + width + "x" + height + ".");
                 recordWindowStage("Interrupted while handing a window surface to Wine.");
                 wine_surface_changed(hwnd, surface, opengl);
                 recordWindowStage("Interrupted after handing a window surface to Wine.");
@@ -105,6 +117,8 @@ public final class WineActivity extends Activity {
             @Override
             public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
                 if (surface != null) wine_surface_changed(hwnd, surface, opengl);
+                if (hwnd != desktopHwnd) recordWindowStage("Android child texture size "
+                        + width + "x" + height + ".");
             }
 
             @Override
@@ -184,6 +198,14 @@ public final class WineActivity extends Activity {
             layout.topMargin = top;
             view.setLayoutParams(layout);
             view.setVisibility((style & WS_VISIBLE) != 0 ? TextureView.VISIBLE : TextureView.INVISIBLE);
+            if (hwnd != desktopHwnd && !recordedDrawableWindow
+                    && (style & WS_VISIBLE) != 0
+                    && right - left >= 16 && bottom - top >= 16) {
+                recordedDrawableWindow = true;
+                recordWindowStage("Android window drawable and visible, hwnd "
+                        + Integer.toHexString(hwnd) + " size "
+                        + (right - left) + "x" + (bottom - top) + ".");
+            }
         });
     }
 
@@ -193,7 +215,7 @@ public final class WineActivity extends Activity {
 
     public static void showWindowLog(Activity portal) {
         File log = portal.getNoBackupFilesDir();
-        for (int version = 16; version >= 1; version--) {
+        for (int version = 17; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
                     "charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log");
             if (log.exists()) break;
@@ -300,6 +322,17 @@ public final class WineActivity extends Activity {
                     default: reason = "reason " + exit.getReason(); break;
                 }
                 String report = "\nAndroid reports " + reason + " (status " + exit.getStatus() + ").";
+                // v17 exit codes are diagnostic, never count a single pixel
+                // as Windows/Android graphics success.
+                if (exit.getReason() == ApplicationExitInfo.REASON_EXIT_SELF) {
+                    switch (exit.getStatus()) {
+                        case 15: return report + "\nNeither Windows client nor screen pixel matched.";
+                        case 16: return report + "\nWindows client pixel matched; screen readback did not.";
+                        case 17: return report + "\nWindows screen pixel matched; client readback did not.";
+                        case 42: return report + "\nWindows dual-pixel fixture passed; Android visible frame still separate.";
+                        default: break;
+                    }
+                }
                 return exit.getReason() == ApplicationExitInfo.REASON_CRASH_NATIVE
                         ? report + readAbortMessage(exit) : report;
             }

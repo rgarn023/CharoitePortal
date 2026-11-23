@@ -1,4 +1,4 @@
-"""Source-only immutable provenance checks for the current isolated Wine29 v20 display test."""
+"""Source-only immutable provenance checks for the current isolated Wine29 v21 display test."""
 from pathlib import Path
 import unittest
 
@@ -30,9 +30,9 @@ class V16DisplayArtifacts(unittest.TestCase):
             self.assertNotIn(old, WORKFLOW)
 
     def test_strict_purple_fixture_and_fresh_prefix_survive(self):
-        self.assertIn("charoite-next-wine29-x64-window-v20", PROBE)
+        self.assertIn("charoite-next-wine29-x64-window-v21", PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 20; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 21; version >= 1; version--)", HOST)
         self.assertIn("wine29-x64-window.zip", WORKFLOW)
         self.assertIn("x64-window.sha256", WORKFLOW)
         self.assertIn('if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))',

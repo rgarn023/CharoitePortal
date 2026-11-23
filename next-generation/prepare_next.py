@@ -64,6 +64,14 @@ for node in tree.getroot().iter("provider"):
 # Existing direct/internal game launch activities and intent contracts are retained.
 application = tree.getroot().find("application")
 assert application is not None
+# Keep the screen on only while Meteorite Alpha has a foreground Activity,
+# including the separate Wine29 test process. Stable Portal is unchanged.
+assert application.get(ns + "name") is None, "Unexpected existing upstream Application"
+application.set(ns + "name", "com.charoitegames.core.CharoiteNextAwakeApplication")
+awake_java = app / "java/com/charoitegames/core/CharoiteNextAwakeApplication.java"
+assert not awake_java.exists(), "Next-only screen awake Application already exists"
+awake_java.parent.mkdir(parents=True, exist_ok=True)
+shutil.copy2(source_dir / "CharoiteNextAwakeApplication.java", awake_java)
 display_host = "org.winehq.wine.WineActivity"
 ET.SubElement(application, "activity", {
     ns + "name": display_host,

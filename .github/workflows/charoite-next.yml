@@ -1243,10 +1243,10 @@ jobs:
           (cd "$assets" && sha256sum -c SHA256SUMS)
 
           fixture="$RUNNER_TEMP/wine29-x64-window.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14756991971/zip" > "$fixture"
-          echo "7aba3c9635b464a204f69787d412ac8e1142ad955e33ded7ef884cb5ef448e93  $fixture" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14780807305/zip" > "$fixture"
+          echo "f82c963c8de53429c889c6338c27e1091889838e96e2bed0403b0973bbf5c226  $fixture" | sha256sum -c -
           unzip -p "$fixture" x64-window.exe > "$assets/x64-window.exe"
-          echo "c2de747cfbdd2e2dcb4e319e6a84387999981d979c4dbff24ea8e55b7af66c2b  x64-window.exe" > "$assets/x64-window.sha256"
+          echo "c8f19ccfc4804029837589def8c500d1f41ff071d2f91153dc6b8aff66b5f727  x64-window.exe" > "$assets/x64-window.sha256"
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"

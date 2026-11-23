@@ -1,4 +1,4 @@
-"""Source-only contracts for bounded Android frame evidence and v17 exit interpretation."""
+"""Source-only contracts for bounded Android frame evidence and v18 repaint integration."""
 from pathlib import Path
 import unittest
 
@@ -13,7 +13,7 @@ WORKFLOW = (ROOT.parent / ".github/workflows/charoite-next.yml").read_text(
 )
 
 
-class V17DisplayEvidence(unittest.TestCase):
+class V18DisplayEvidence(unittest.TestCase):
     def test_frame_checkpoint_persists_bounded_sequence_on_process_exit(self):
         self.assertIn("windowStageHistory = new java.util.ArrayDeque<>();", HOST)
         self.assertIn("if (windowStageHistory.size() == 20) windowStageHistory.removeFirst();", HOST)
@@ -35,7 +35,7 @@ class V17DisplayEvidence(unittest.TestCase):
         self.assertIn("pixel = GetPixel(screen, sample.x, sample.y)", FIXTURE)
         self.assertIn("if (pixel == paint_color && client_pixel == paint_color)", FIXTURE)
 
-    def test_v17_private_one_shot_and_last_log_fallback(self):
+    def test_v18_private_one_shot_and_last_log_fallback(self):
         self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v18"', PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
         self.assertIn("for (int version = 18; version >= 1; version--)", HOST)
@@ -43,10 +43,10 @@ class V17DisplayEvidence(unittest.TestCase):
         self.assertIn("Math.min(size, 16384L)", HOST)
 
     def test_desktop_verified_fixture_zip_and_inner_pe_are_pinned(self):
-        # The artifact is from desktop Wine fixture run 45090425972 (SUCCESS).
-        self.assertIn("actions/artifacts/14780807305/zip", WORKFLOW)
-        self.assertIn("f82c963c8de53429c889c6338c27e1091889838e96e2bed0403b0973bbf5c226", WORKFLOW)
-        self.assertIn("c8f19ccfc4804029837589def8c500d1f41ff071d2f91153dc6b8aff66b5f727", WORKFLOW)
+        # The artifact is from strict desktop Wine fixture run 45095286821 (SUCCESS).
+        self.assertIn("actions/artifacts/14782543540/zip", WORKFLOW)
+        self.assertIn("05f4d80c56312ef9fdd567cce61c3c939e21b047a5bf9a3ec469c6c6545e08c8", WORKFLOW)
+        self.assertIn("80c1df49ed02b61aa4bf479b7fc6805a258a24e1559cf7e0408a19c1a72eb670", WORKFLOW)
         self.assertIn('(cd "$assets" && sha256sum -c x64-window.sha256)', WORKFLOW)
         self.assertNotIn("actions/artifacts/14756991971/zip", WORKFLOW)
 

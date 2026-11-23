@@ -12,16 +12,16 @@ HOST = (ROOT / "next-generation/WineActivity.java").read_text(encoding="utf-8")
 
 class V16DisplayArtifacts(unittest.TestCase):
     def test_exact_verified_native_host_and_explorer_zip_digests(self):
-        # GitHub Actions source-only provider run 45112110313; artifact digests
+        # GitHub Actions source-only provider run 45198706088; artifact digests
         # are published by GitHub and checked again when staging the APK.
-        self.assertIn("actions/artifacts/14789922623/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/14830427285/zip", WORKFLOW)
         self.assertIn(
-            "b2d8efaad39038b253f349c22b23c4f243b299a313a77c1db79ca3f6fa1044c1",
+            "3a4ac7e4c397bbc227f7fd3fa3d83654c2a1f725aedb8fdb7288b9b79addded5",
             WORKFLOW
         )
-        self.assertIn("actions/artifacts/14790167079/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/14830162796/zip", WORKFLOW)
         self.assertIn(
-            "974df7a059a8945315f438c26795f69e7d600c79265dc7c8371477afb55fb02e",
+            "74f58c19fef20a8c2eddae8540751bcd82d2e376935e7efec9c5b8573406a087",
             WORKFLOW
         )
         self.assertIn('(cd "$assets" && sha256sum -c SHA256SUMS)', WORKFLOW)

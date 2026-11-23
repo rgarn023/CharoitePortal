@@ -1232,33 +1232,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Immutable v22 WineAndroid provider provenance gate, checked before staging.
+          # Immutable v23 WineAndroid provider provenance gate, checked before staging.
           # Every binary must be from the same source commit and source-pinned run.
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/45211800904/artifacts?per_page=100" > "$RUNNER_TEMP/wine29-v22-provider-cohort.json"
-          python3 - "$RUNNER_TEMP/wine29-v22-provider-cohort.json" <<'PY'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/45220173185/artifacts?per_page=100" > "$RUNNER_TEMP/wine29-v23-provider-cohort.json"
+          python3 - "$RUNNER_TEMP/wine29-v23-provider-cohort.json" <<'PY'
           import json
           import sys
 
           with open(sys.argv[1], encoding="utf-8") as src:
               artifacts = {a["id"]: a for a in json.load(src)["artifacts"]}
           expected = {
-              14838255023: ("Wine29-Android-Java-Host-Inputs", "7d871248c53a610ba27fbc9e252a3af25d5877febbc5d4878db798ba16f7ba00"),
-              14836507866: ("Wine29-Android-Display-Candidate", "0912eaf81f3c6e574b5f5bb0a0d1c9783956dc7dab3b14c00dae563bca88717b"),
-              14836598137: ("Wine29-Android-Explorer-Candidate", "e41ef0bb37b32f2b89c66f7ae0d8fe732fc0568b9c5b390a17e4c4883ff0bf57"),
+              14841775498: ("Wine29-Android-Java-Host-Inputs", "1486897e9bb6607549cba2391f407548bb544568f5d5b446776fc3740b67b8a3"),
+              14840920851: ("Wine29-Android-Display-Candidate", "92835ef588f0b87cee9274cd44b72de7445a0039a1a2a7e8d9d4e2e1e0f7fa34"),
+              14840820839: ("Wine29-Android-Explorer-Candidate", "4fbb46191fc0c7833c0cf68d3e16e1d82c7191e014533afdbf445fd7d50dd182"),
           }
           for artifact_id, (name, digest) in expected.items():
               artifact = artifacts.get(artifact_id)
-              assert artifact is not None, f"Missing v22 provider artifact {artifact_id}"
+              assert artifact is not None, f"Missing v23 provider artifact {artifact_id}"
               assert artifact["name"] == name and artifact["digest"] == f"sha256:{digest}", f"Artifact identity/digest mismatch: {artifact_id}"
               assert not artifact["expired"], f"Artifact expired: {artifact_id}"
               origin = artifact["workflow_run"]
-              assert origin["id"] == 45211800904 and origin["head_sha"] == "495af7a054be51118d6794789fe3b33e06a14843", f"Cross-source artifact: {artifact_id}"
-          print("WINE29_V22_PROVIDER_COHORT=SOURCE_MATCH")
+              assert origin["id"] == 45220173185 and origin["head_sha"] == "b4642f08600302197e55023fc7502d77f6b80b69", f"Cross-source artifact: {artifact_id}"
+          print("WINE29_V23_PROVIDER_COHORT=SOURCE_MATCH")
           PY
           archive="$RUNNER_TEMP/wine29-java-host.zip"
           assets=upstream/app/src/main/assets/wine29-java-host
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14838255023/zip" > "$archive"
-          echo "7d871248c53a610ba27fbc9e252a3af25d5877febbc5d4878db798ba16f7ba00  $archive" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14841775498/zip" > "$archive"
+          echo "1486897e9bb6607549cba2391f407548bb544568f5d5b446776fc3740b67b8a3  $archive" | sha256sum -c -
           mkdir -p "$assets"
           for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
             unzip -p "$archive" "$file" > "$assets/$file"
@@ -1269,12 +1269,12 @@ jobs:
           # source-pinned provider run. Reject a mixed/stale Java-host bundle.
           # No runtime execution, user prefix access, or device interaction.
           display="$RUNNER_TEMP/wine29-android-display.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14836507866/zip" > "$display"
-          echo "0912eaf81f3c6e574b5f5bb0a0d1c9783956dc7dab3b14c00dae563bca88717b  $display" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14840920851/zip" > "$display"
+          echo "92835ef588f0b87cee9274cd44b72de7445a0039a1a2a7e8d9d4e2e1e0f7fa34  $display" | sha256sum -c -
           for file in win32u.dll win32u.so wineandroid.drv wineandroid.so; do
             unzip -p "$display" "$file" | cmp - "$assets/$file"
           done
-          echo "WINE29_V22_NATIVE_HOST_DISPLAY_COHORT=MATCH"
+          echo "WINE29_V23_NATIVE_HOST_DISPLAY_COHORT=MATCH"
 
           fixture="$RUNNER_TEMP/wine29-x64-window.zip"
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14782543540/zip" > "$fixture"
@@ -1284,8 +1284,8 @@ jobs:
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14836598137/zip" > "$explorer"
-          echo "e41ef0bb37b32f2b89c66f7ae0d8fe732fc0568b9c5b390a17e4c4883ff0bf57  $explorer" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14840820839/zip" > "$explorer"
+          echo "4fbb46191fc0c7833c0cf68d3e16e1d82c7191e014533afdbf445fd7d50dd182  $explorer" | sha256sum -c -
           for file in explorer.exe ntoskrnl.exe hal.dll; do
             unzip -p "$explorer" "$file" > "$assets/$file"
           done

@@ -30,9 +30,9 @@ class V16DisplayArtifacts(unittest.TestCase):
             self.assertNotIn(old, WORKFLOW)
 
     def test_strict_purple_fixture_and_fresh_prefix_survive(self):
-        self.assertIn("charoite-next-wine29-x64-window-v18", PROBE)
+        self.assertIn("charoite-next-wine29-x64-window-v19", PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 18; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 19; version >= 1; version--)", HOST)
         self.assertIn("wine29-x64-window.zip", WORKFLOW)
         self.assertIn("x64-window.sha256", WORKFLOW)
         self.assertIn('if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))',

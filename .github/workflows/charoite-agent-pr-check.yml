@@ -39,5 +39,7 @@ jobs:
         run: python3 -m pip install --user --break-system-packages --disable-pip-version-check Pillow==11.3.0 numpy opencv-python-headless imageio-ffmpeg
       - name: Run Android-Next static regression contracts
         run: python3 -m unittest discover -s next-generation/tests -p 'test_*.py' -v
+      - name: Verify native v20 GDI replay source contract without execution
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_replay_patch.py -v
       - name: Assert this workflow did not use signing keys or a phone
         run: echo 'CHAROITE_AGENT_PROPOSAL_STATIC_TESTS=PASS'

@@ -292,7 +292,19 @@ public final class WineActivity extends Activity {
         try {
             long recordedAt = file.getBaseFile().lastModified();
             String report = new String(file.readFully(), StandardCharsets.UTF_8);
-            if (report.startsWith("Interrupted")) report += describeExit(portal, recordedAt);
+            if (report.startsWith("Interrupted")) {
+                String exitDescription = describeExit(portal, recordedAt);
+                // A deliberate Wine fixture ExitProcess (15/16/17/42) ends the
+                // one-shot check, it does not mean Android interrupted it.
+                // Keep "Interrupted" for crashes, missing process evidence,
+                // and incomplete launch paths; never infer graphics success.
+                if (exitDescription.startsWith("\nAndroid reports process exit (status ") &&
+                        report.startsWith("Interrupted during Wine29 x64 window test;")) {
+                    report = "Wine29 x64 window test ended; Android frame checkpoints:\n" +
+                            report.substring(report.indexOf('\n') + 1);
+                }
+                report += exitDescription;
+            }
             file.delete();
             new AlertDialog.Builder(portal).setTitle("Wine29 display check")
                     .setMessage(report).setPositiveButton("OK", null).show();

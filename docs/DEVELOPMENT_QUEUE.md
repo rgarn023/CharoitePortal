@@ -1,3 +1,10 @@
+## Current 2026-11-23 — Galaxy v17 fail and v18 native painting recovery
+
+- **Owner v17:** Status 15 = neither client nor desktop screen pixel purple, despite visible 360×220 window, Android TextureView availability and native surface handoff. No updated Android frame event. v17 consumed; NO reruns.
+- **P0 implementation:** [PR #54](https://github.com/rgarn023/CharoitePortal/pull/54) merged, direct GetDC(hwnd)/FillRect/GdiFlush bounded paint fallback. [Desktop Wine 45095286821](https://github.com/rgarn023/CharoitePortal/actions/runs/45095286821) PASS strict both pixels exit 42; exact artifact ZIP and PE hashes verified.
+- **P0 Next APK:** [PR #55](https://github.com/rgarn023/CharoitePortal/pull/55) merged, verifies binary and stages fresh v18 scratch in experimental-only app. Static [45095495656](https://github.com/rgarn023/CharoitePortal/actions/runs/45095495656) PASS. Signed [Android workflow 45095546802](https://github.com/rgarn023/CharoitePortal/actions/runs/45095546802) IN PROGRESS, release pending.
+- **Then:** only after official signed release, one Galaxy v18 test; check both Win32 status and Android frame history. If no frame still, trace GDI surface allocation/dirty flush and native buffer queue in pinned driver; avoid useless repeat phone diagnostics. Stable Portal and user data preserved. Estimated 40%.
+
 ## 2026-11-23 01:38 UTC — Next release candidate v18 GDI paint recovery
 
 - **Verified owner result v17:** Exit **15**, neither Windows client nor screen DC purple. Android 360×220 surface registered but no frame-update checkpoint. Do not repeat v17.

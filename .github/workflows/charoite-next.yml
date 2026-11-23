@@ -1234,8 +1234,8 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/wine29-java-host.zip"
           assets=upstream/app/src/main/assets/wine29-java-host
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14756623119/zip" > "$archive"
-          echo "d20bf4266aff519c652f0bfd73ae17f9a870af4b63e5234608c6de86460bdf63  $archive" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14778917103/zip" > "$archive"
+          echo "1322daaee98bb72b06fb68f668edc8e3213f088cb875914a68d09897a6eb0dd1  $archive" | sha256sum -c -
           mkdir -p "$assets"
           for file in ntdll.dll ntdll.so wineandroid.drv wineandroid.so win32u.dll win32u.so SHA256SUMS; do
             unzip -p "$archive" "$file" > "$assets/$file"
@@ -1250,8 +1250,8 @@ jobs:
           (cd "$assets" && sha256sum -c x64-window.sha256)
 
           explorer="$RUNNER_TEMP/wine29-android-explorer.zip"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14736472448/zip" > "$explorer"
-          echo "a61c80a2dcb8b0a00bf03c97aa57dd201f307f99b3519fc49f36d8e43f46ff1e  $explorer" | sha256sum -c -
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14779061741/zip" > "$explorer"
+          echo "dbea63c036d8a9f3866b47212e725d2305a7f55ef794a7b57233280e4982d00c  $explorer" | sha256sum -c -
           for file in explorer.exe ntoskrnl.exe hal.dll; do
             unzip -p "$explorer" "$file" > "$assets/$file"
           done

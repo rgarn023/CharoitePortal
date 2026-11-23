@@ -1,3 +1,10 @@
+## 2026-11-23 00:35 UTC — Build 1175 signed and released, Galaxy test pending
+
+- **P0 screen awake RELEASED in experimental Next:** [Meteorite Alpha 1175](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1175), [Actions 45089079910](https://github.com/rgarn023/CharoitePortal/actions/runs/45089079910) **SUCCESS**. Foreground activity `FLAG_KEEP_SCREEN_ON` enabled, cleared on pause, no persistent wake lock. Actual device behavior pending.
+- **P0 rendering v16 RELEASED, not runtime verified:** Verified new WineAndroid host/Explorer assets packaged with exact ZIP hashes; fresh private window-v16 test avoids historical scratch. One owner-authorized Galaxy test needed; obtain screenshot/exit and last bounded v16 log. Previous evidence shows 360×220 native surface registration but exit 15, not a purple-pixel pass.
+- **Next after device evidence:** If no Android `TextureView` frame callback, trace native `android_surface_flush`, buffer lock/post error status and WM_PAINT. If Android RGB is purple yet Win32 screen-DC GetPixel remains invalid, separate presentation pass from readback failure; never mark game rendering complete without visible pixels.
+- **Progress:** estimated v1.0 40%. Stable Portal, user data and prior scratch untouched.
+
 ## 2026-11-23 00:30 UTC — Merged screen-awake and v16 native driver
 
 - **P0 foreground screen awake:** [PR #51](https://github.com/rgarn023/CharoitePortal/pull/51) merged as [d873786d](https://github.com/rgarn023/CharoitePortal/commit/d873786d86145b24ebba737af2c34e03a3d3a671). Experimental-only `CharoiteNextAwakeApplication` keeps each resumed Charoite activity awake and clears flag on pause. No background wake lock; stable Portal unchanged.

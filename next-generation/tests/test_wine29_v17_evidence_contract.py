@@ -36,9 +36,9 @@ class V18DisplayEvidence(unittest.TestCase):
         self.assertIn("if (pixel == paint_color && client_pixel == paint_color)", FIXTURE)
 
     def test_v19_private_one_shot_and_last_log_fallback(self):
-        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v19"', PROBE)
+        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v20"', PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 19; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 20; version >= 1; version--)", HOST)
         self.assertIn("new java.io.RandomAccessFile(log, \"r\")", HOST)
         self.assertIn("Math.min(size, 16384L)", HOST)
 

@@ -1,3 +1,10 @@
+## 2026-11-23 — Verified v19 native driver candidate packaging
+
+- **Native fix already merged:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) requests GDI redraw after visible CPU HWND receives Android native surface. [PR #57](https://github.com/rgarn023/CharoitePortal/pull/57) stages fresh isolated v19 one-shot. Duplicate PR #58 closed. v18 owner test exited 15 with no updated Android frame.
+- **Provider + postbuild GREEN:** [45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) and [45105717342](https://github.com/rgarn023/CharoitePortal/actions/runs/45105717342). Downloaded and verified artifact archives and internal SHA256SUMS: native host 14786954701, Explorer 14786854846, display 14787417115. Native host and separate display binaries **byte-identical**.
+- **Next candidate:** `fix/wine29-v19-native-artifact-pins` repins exact output hashes into the experimental official APK workflow, verifies display cohort matches native host, preserves strict v18 GDI repaint Windows fixture and makes a *new* v19 scratch. Source-only CI, signed Android APK and device runtime pending; do not yet call v19 released.
+- **Safety:** Do not access stable Portal or wipe games, saves, rootfs, user prefixes or prior tests. Estimated completion 40%.
+
 ## 2026-11-23 — v19 native provider build, source implemented
 
 - **v18 Galaxy failure:** registered window and texture but exit 15 (neither Win32 client nor desktop screen purple); no Android updated frame. Do not reuse v18.

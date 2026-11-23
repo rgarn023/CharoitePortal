@@ -1,3 +1,11 @@
+## 2026-11-23 01:42 UTC — Meteorite Alpha build 1183 signed and released
+
+- **Owner-confirmed v17:** 360×220 native window surface reached Android, but neither Win32 client nor screen pixel purple. Exit 15, no Android frame-update checkpoint. v17 consumed; do not repeat.
+- **Implemented GDI repair attempt:** Bounded direct HWND client paint on attempts 0/20/60 preserves WM_PAINT and independent purple GetPixel checks. [Desktop Wine 45095286821](https://github.com/rgarn023/CharoitePortal/actions/runs/45095286821) **SUCCESS** with strict exit 42.
+- **Official signed experimental release:** [Meteorite Alpha 1183](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1183) published after [Android 45095546802](https://github.com/rgarn023/CharoitePortal/actions/runs/45095546802) **SUCCESS** including signing and publication. New private v18 only, all v1–v17 scratch and old binaries intact. No Galaxy v18 test yet.
+- **Next owner gate:** Normal in-app update to 1183 and one v18 window test. Capture Android frame history, Windows 15/16/17/42 exit and last native log on failure. If still 15 with no Android callback, work on underlying native window surface and GDI flush/queue.
+- **Stable/safety:** No touch to stable Portal, games, saves, rootfs or user prefixes. Estimated 40% overall readiness until new device evidence.
+
 ## Current 2026-11-23 — Galaxy v17 fail and v18 native painting recovery
 
 - **Owner v17:** Status 15 = neither client nor desktop screen pixel purple, despite visible 360×220 window, Android TextureView availability and native surface handoff. No updated Android frame event. v17 consumed; NO reruns.

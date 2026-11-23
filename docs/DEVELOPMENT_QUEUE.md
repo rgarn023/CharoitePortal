@@ -1,3 +1,10 @@
+## 2026-11-23 — v19 native provider build, source implemented
+
+- **v18 Galaxy failure:** registered window and texture but exit 15 (neither Win32 client nor desktop screen purple); no Android updated frame. Do not reuse v18.
+- **Code merged:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) adds visible-HWND native surface-refresh invalidation / GDI repaint; preserves GL and stringent pixel proof. [Provider run 45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) running, patch checks passed and ARM64 module compilation underway; not yet a driver build success.
+- **Isolation merged:** [PR #57](https://github.com/rgarn023/CharoitePortal/pull/57) reserves distinct v19 scratch and latest-log recovery, preserving v1–v18, static CI passed. No APK release yet.
+- **Next:** verified source-matched ARM64 PE + ELF and Java host hashes → new signed experimental APK → one owner-approved Galaxy v19 runtime test. Overall ~40%. Do not touch stable Portal, games or prefix data.
+
 ## 2026-11-23 — Native GDI refresh fix and isolated v19 preparation
 
 - **P0 new native fix:** [PR #56](https://github.com/rgarn023/CharoitePortal/pull/56) merged; after Android native-window registration, visible CPU HWND now requests actual `NtUserRedrawWindow`, not just stale-surface exposure. Native provider [CI 45105262930](https://github.com/rgarn023/CharoitePortal/actions/runs/45105262930) in progress; patch/source tests pass, ELF/PE not yet verified.

@@ -1,3 +1,10 @@
+## 2026-11-23 01:38 UTC — Next release candidate v18 GDI paint recovery
+
+- **Verified owner result v17:** Exit **15**, neither Windows client nor screen DC purple. Android 360×220 surface registered but no frame-update checkpoint. Do not repeat v17.
+- **Actual source change:** [PR #54](https://github.com/rgarn023/CharoitePortal/pull/54) merged, bounded Windows GDI GetDC/FillRect/GdiFlush recovery only 3/100 attempts, preserves strict dual-pixel proof.
+- **Desktop Wine** [45095286821](https://github.com/rgarn023/CharoitePortal/actions/runs/45095286821) **SUCCESS**, exact verified source-built fixture artifact ZIP sha256 `05f4d80c56312ef9fdd567cce61c3c939e21b047a5bf9a3ec469c6c6545e08c8`, PE sha256 `80c1df49ed02b61aa4bf479b7fc6805a258a24e1559cf7e0408a19c1a72eb670`.
+- **Experimental candidate:** source stage and isolated **v18** scratch; signed Android build and Galaxy verification **PENDING**. Next: source tests → signed APK + hashes → one Galaxy v18 test, preserve all history. Estimated 40%.
+
 ## 2026-11-23 01:33 UTC — v17 failure directs direct GDI repaint recovery
 
 - **On-device v17 verified:** hwnd 0x2003e 360×220 visible/drawable, Android `SurfaceTexture` available, WineAndroid surface registered. **Exit 15 = neither Windows client nor desktop screen pixel matched**. No reported Android frame-update event. Do not reuse v17.

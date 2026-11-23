@@ -40,9 +40,9 @@ class AndroidFrameProofContract(unittest.TestCase):
         self.assertIn("ExitProcess(42);", FIXTURE)
 
     def test_new_window_probe_is_private_and_preserves_v14(self):
-        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v21"', PROBE)
+        self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v22"', PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 21; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 22; version >= 1; version--)", HOST)
 
     def test_checkpoint_does_not_capture_frames_or_user_data(self):
         self.assertIn("recordWindowStage(", HOST)

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261124T00-11",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -89,5 +89,10 @@
       137784161547
     ],
     "main_ci_completed_at": "2026-11-23T15:04:37Z"
+  },
+  "scheduled_next_work": {
+    "batch": "2026-11-24T00",
+    "phase": "source_investigation",
+    "note": "Reviewed PR 68 exact patch; v23 already forces SHOWWINDOW and instruments native gate. Handoff lacks actual Win32u eligibility/driver allocation markers from consumed v23; do not repeat repaint or guess a driver change. Next inspect pinned Win32u get_window_surface/create_window_surface and Android get_win_data lifetime against preserved v23 log; no new APK or test authorized."
   }
 }

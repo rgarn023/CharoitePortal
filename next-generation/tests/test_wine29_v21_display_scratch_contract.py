@@ -23,7 +23,7 @@ class V24DisplayScratch(unittest.TestCase):
     def test_last_log_fallback_is_read_only_and_covers_history(self):
         self.assertIn("for (int version = 24; version >= 1; version--)", HOST)
         self.assertIn('"charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log"', HOST)
-        self.assertNotIn("for (int version = 24; version >= 1; version--)", HOST)
+        self.assertNotIn("for (int version = 23; version >= 1; version--)", HOST)
 
     def test_no_success_shortcuts_or_fake_android_pixels(self):
         self.assertIn("if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))", FIXTURE)

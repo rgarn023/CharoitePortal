@@ -15,10 +15,12 @@ on:
       - 'analysis/wine29_bootstrap/patch_android_surface_rearm.py'
       - 'analysis/wine29_bootstrap/patch_android_scaled_surface_target.py'
       - 'analysis/wine29_bootstrap/patch_android_visible_surface_create.py'
+      - 'analysis/wine29_bootstrap/patch_android_visible_dummy_swp_gate.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_replay_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_rearm_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_scaled_surface_target_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_visible_surface_create_patch.py'
+      - 'analysis/wine29_bootstrap/tests/test_android_visible_dummy_swp_gate.py'
       - 'analysis/wine29_bootstrap/tests/test_android_refresh_redraw_patch.py'
 
 permissions:
@@ -80,6 +82,8 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_scaled_surface_target_patch.py -v
       - name: Verify v23 visible-only native GDI CreateWindowSurface attempt (source-only)
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_visible_surface_create_patch.py -v
+      - name: Verify v24 visible dummy-surface SWP gate (source-only)
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_visible_dummy_swp_gate.py -v
       - name: Verify pinned source and isolated output contracts
         run: |
           set -euo pipefail
@@ -1623,6 +1627,11 @@ jobs:
           # Limit to a previously visible HWND; native real pixel check unchanged.
           python3 analysis/wine29_bootstrap/patch_android_visible_surface_create.py \
             "$build/../dlls/wineandroid.drv/window.c" \
+            "$build/../dlls/win32u/window.c"
+          # v23's SHOWWINDOW was stripped by fixup_swp_flags on visible HWNDs.
+          # Only preserve the exact dummy-surface/unchanged geometry recovery;
+          # this lets Win32u enter its genuine native CreateWindowSurface path.
+          python3 analysis/wine29_bootstrap/patch_android_visible_dummy_swp_gate.py \
             "$build/../dlls/win32u/window.c"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'

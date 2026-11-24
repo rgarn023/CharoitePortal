@@ -39,7 +39,7 @@ class Wine29CopyReportContract(unittest.TestCase):
         self.assertIn("long size = input.length();", WINE)
         self.assertIn("Math.min(size, 16384L)", WINE)
         self.assertIn("input.seek(size - tail.length);", WINE)
-        self.assertIn('for (int version = 23; version >= 1; version--)', WINE)
+        self.assertIn('for (int version = 24; version >= 1; version--)', WINE)
         self.assertIn("if (!log.isFile() || !log.getCanonicalFile().equals(log.getAbsoluteFile()))", WINE)
         self.assertIn('new File(portal.getNoBackupFilesDir(),', WINE)
         for status in (15, 16, 17, 42):

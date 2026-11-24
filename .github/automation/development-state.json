@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261124T060055Z",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -91,8 +91,8 @@
     "main_ci_completed_at": "2026-11-23T15:04:37Z"
   },
   "scheduled_next_work": {
-    "batch": "2026-11-24T00",
+    "batch": "2026-11-24T06",
     "phase": "source_investigation",
-    "note": "Reviewed PR 68 exact patch; v23 already forces SHOWWINDOW and instruments native gate. Handoff lacks actual Win32u eligibility/driver allocation markers from consumed v23; do not repeat repaint or guess a driver change. Next inspect pinned Win32u get_window_surface/create_window_surface and Android get_win_data lifetime against preserved v23 log; no new APK or test authorized."
+    "note": "Pinned upstream c74acb09 dlls/win32u/window.c explicitly strips SWP_SHOWWINDOW when WS_VISIBLE is already set, explaining why v23's visible-only request cannot force that flag through normal position processing and why SHOWWINDOW-filtered gate traces may be absent. However get_window_surface also uses WS_VISIBLE as fallback, so this alone does not establish allocation failure. Other gates: driver WindowPosChanging return, child status, empty visible/surface rect, default surface retrieval, OpenGL exclusion; dce.c calls driver pCreateWindowSurface and handles scaling. Android WindowPosChanging creates missing data; CreateWindowSurface returns default if missing. Next verify post-prerequisite source and preserved v23 logs; avoid another SHOWWINDOW/repaint retry. No new provider run in latest 25, provider-specific endpoint rejected; no active engineering PR. No code or device operation."
   }
 }

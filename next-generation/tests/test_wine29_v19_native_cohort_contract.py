@@ -1,4 +1,4 @@
-"""Source-only current v23 native WineAndroid provider provenance and isolation tests."""
+"""Source-only current v24 native WineAndroid provider provenance and isolation tests."""
 from pathlib import Path
 import unittest
 
@@ -9,28 +9,28 @@ PROBE = (ROOT / "next-generation/CharoiteWine29V28FocusedInfProbe.java").read_te
 )
 HOST = (ROOT / "next-generation/WineActivity.java").read_text(encoding="utf-8")
 
-class NativeCohortV23(unittest.TestCase):
+class NativeCohortV24(unittest.TestCase):
     def test_new_java_host_and_explorer_from_one_successful_provider(self):
-        self.assertIn("actions/artifacts/14841775498/zip", WORKFLOW)
-        self.assertIn("1486897e9bb6607549cba2391f407548bb544568f5d5b446776fc3740b67b8a3", WORKFLOW)
-        self.assertIn("actions/artifacts/14840820839/zip", WORKFLOW)
-        self.assertIn("4fbb46191fc0c7833c0cf68d3e16e1d82c7191e014533afdbf445fd7d50dd182", WORKFLOW)
+        self.assertIn("actions/artifacts/14965418391/zip", WORKFLOW)
+        self.assertIn("8be85d8443655c1428f6003ef9c7cc73352cd1e89147d732cab3ce22bfa470f0", WORKFLOW)
+        self.assertIn("actions/artifacts/14965827499/zip", WORKFLOW)
+        self.assertIn("6bbf702751b55e09be20bce38a769e42539a2abf28c265e144eaaa0d683a5acb", WORKFLOW)
         self.assertIn('(cd "$assets" && sha256sum -c SHA256SUMS)', WORKFLOW)
         self.assertIn('(cd "$assets" && sha256sum -c explorer.sha256)', WORKFLOW)
 
     def test_native_driver_is_byte_identical_to_host_cohort(self):
-        self.assertIn("actions/artifacts/14840920851/zip", WORKFLOW)
-        self.assertIn("92835ef588f0b87cee9274cd44b72de7445a0039a1a2a7e8d9d4e2e1e0f7fa34", WORKFLOW)
+        self.assertIn("actions/artifacts/14965018928/zip", WORKFLOW)
+        self.assertIn("741f218746a17730d450761737a1eea625bfc400dae49ae7cebd6c7a3a2a870d", WORKFLOW)
         self.assertIn("for file in win32u.dll win32u.so wineandroid.drv wineandroid.so; do", WORKFLOW)
         self.assertIn('unzip -p "$display" "$file" | cmp - "$assets/$file"', WORKFLOW)
-        self.assertIn("WINE29_V23_NATIVE_HOST_DISPLAY_COHORT=MATCH", WORKFLOW)
+        self.assertIn("WINE29_V24_NATIVE_HOST_DISPLAY_COHORT=MATCH", WORKFLOW)
         for stale in (
             "actions/artifacts/14778917103/zip",
             "actions/artifacts/14779061741/zip",
         ):
             self.assertNotIn(stale, WORKFLOW)
 
-    def test_one_shot_only_new_private_v23_and_strict_wine_gate(self):
+    def test_one_shot_only_new_private_v24_and_strict_wine_gate(self):
         self.assertIn('prepareWindow ? "charoite-next-wine29-x64-window-v24"', PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
         self.assertIn("for (int version = 24; version >= 1; version--)", HOST)

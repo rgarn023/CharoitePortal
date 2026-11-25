@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261125-0759-reconcile",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -40,59 +40,80 @@
   },
   "event_batch_utc": "2026-11-25T07",
   "pending_validation": {
-    "source_run_id": 45198706088,
-    "pr_number": 65,
-    "branch": "fix/wine29-v21-native-artifact-pins",
-    "head_sha": "6811e6cf5e6687eaa48550ec3690140a1e3417d7",
+    "source_run_id": 45489493053,
+    "pr_number": 73,
+    "branch": "",
+    "head_sha": "5c3e945dc6fee512229dddfc1ef3e524df82bbb9",
     "phase": "main_ci_passed",
     "pr_disposition": "merged",
-    "main_sha": "d398823efbe3270d7fd7d9e97d301ee35658cb39",
-    "main_run_id": 45200139822,
+    "main_sha": "446dbb2ef1f3f82b21c128592dfd4fb58252f762",
+    "main_run_id": 45517169974,
     "main_ci_conclusion": "success",
-    "note": "PR #65 merged exact main d398823e. Main Android run 45200139822 completed success: build-runtime-preview job 137781139056 and official publication job 137784161547 success. Handoff independently records signed experimental release vc1198 and exact APK digest. Packaging verified; Android frame not verified. v21 one-shot owner test required, no device operation authorized. Source provider 45198706088 success; do not treat provider as APK. 2026-11-23T16 hourly reconciliation; preserve batch 15 and all processed IDs.",
+    "main_ci_verified_jobs": [
+      138879482250,
+      138881776994
+    ],
+    "note": "Verified native staging, packaged assets, persisted signing identity and publication job success; release vc1218 targets exact main SHA, APK digest sha256:3a00ec18cb56f4534883e7f084ba385243e6cc7b3af13b2776e83b586cb1cc13. Device v24 result outstanding; provider archive contents not independently inspected.",
     "previous_validation": {
-      "source_run_id": 45027919664,
-      "pr_number": 46,
-      "branch": "engineering/wine29-v13-native-device",
-      "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
+      "source_run_id": 45198706088,
+      "pr_number": 65,
+      "branch": "fix/wine29-v21-native-artifact-pins",
+      "head_sha": "6811e6cf5e6687eaa48550ec3690140a1e3417d7",
       "phase": "main_ci_passed",
-      "pr_disposition": "closed_unmerged_superseded",
-      "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
-      "main_run_id": 45028643343,
+      "pr_disposition": "merged",
+      "main_sha": "d398823efbe3270d7fd7d9e97d301ee35658cb39",
+      "main_run_id": 45200139822,
+      "main_ci_conclusion": "success",
+      "note": "PR #65 merged exact main d398823e. Main Android run 45200139822 completed success: build-runtime-preview job 137781139056 and official publication job 137784161547 success. Handoff independently records signed experimental release vc1198 and exact APK digest. Packaging verified; Android frame not verified. v21 one-shot owner test required, no device operation authorized. Source provider 45198706088 success; do not treat provider as APK. 2026-11-23T16 hourly reconciliation; preserve batch 15 and all processed IDs.",
       "previous_validation": {
-        "source_run_id": 44973476658,
-        "pr_number": 31,
-        "branch": "engineering/wine29-v6-window-loader",
-        "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+        "source_run_id": 45027919664,
+        "pr_number": 46,
+        "branch": "engineering/wine29-v13-native-device",
+        "head_sha": "3f312ca9c5fb2d17f21f2f03c0a16a6df56c724e",
         "phase": "main_ci_passed",
         "pr_disposition": "closed_unmerged_superseded",
-        "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
-        "main_run_id": 44973984123,
+        "main_sha": "8e9e1933200b70c6022466fbdae3e8998757670d",
+        "main_run_id": 45028643343,
+        "previous_validation": {
+          "source_run_id": 44973476658,
+          "pr_number": 31,
+          "branch": "engineering/wine29-v6-window-loader",
+          "head_sha": "3b88967969cc584bfce4bceb9f4223b0144386f2",
+          "phase": "main_ci_passed",
+          "pr_disposition": "closed_unmerged_superseded",
+          "main_sha": "2c421ff2a7401cbd389560d6a0db5b7a11eac2e1",
+          "main_run_id": 44973984123,
+          "main_ci_conclusion": "success",
+          "main_ci_verified_jobs": [
+            137059664870,
+            137060805212
+          ],
+          "main_ci_completed_at": "2026-11-22T02:04:55Z",
+          "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
+        },
         "main_ci_conclusion": "success",
         "main_ci_verified_jobs": [
-          137059664870,
-          137060805212
+          137227117000,
+          137228308210
         ],
-        "main_ci_completed_at": "2026-11-22T02:04:55Z",
-        "note": "PR #31 closed unmerged superseded; main Android CI passed. Provider #169 failed Explorer build step (job 137070124798); #170/#171 and 44987057118 passed jobs 137073879919/137079144277/137099821382. Latest provider has nine non-expired artifacts (metadata and digests listed), but ZIP contents cannot be independently fetched with available GitHub text fetch. Runs remain unprocessed pending artifact content and diagnostic validation. Galaxy rendering not verified. No APK from provider. 2026-11-22T11 hourly: new independent batch opened; recent 25 main runs contain no matching provider workflow; PR #9 and #25 open; no engineering PR pending. Provider evidence reconciliation remains outstanding; no binary validation or functional advance claimed. 2026-11-22T12 batch: checked main handoff, protocol, current open PRs (#9/#25), main latest 25 runs (no provider match). Provider-specific runs endpoint rejected by connector; archive binaries unavailable via GitHub text fetch. Outstanding historical evidence remains unprocessed. No safe new change established without verified contents and diagnostics; no duplicate PR or retry. Lock released."
+        "main_ci_completed_at": "2026-11-22T13:44:35Z",
+        "note": "At 2026-11-22T15 UTC batch, main x64 fixture run 45029459478 succeeded with desktop purple-pixel test; source validation 45029459502 succeeded six jobs; Android main run 45030232303 succeeded both jobs for 5b1cfcad, APK artifact 14756689575 metadata only (signature and archive contents not independently verified). Galaxy rendering remains unverified. No provider completion in latest 25 main runs. Existing v14 packaging is already on main; do not duplicate milestone. Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified. 2026-11-22T18 batch: main 5b1cfcad v14 Android run 45030232303 success, artifact 14756689575 metadata digest only; binary/signature and Galaxy visible rendering unverified. Latest 25 main runs show no provider workflow; provider-specific endpoint inaccessible. No new safe implementation justified without device rendering evidence; owner consent required before Galaxy test. PR #9 and unrelated #25 open; no pending engineering PR. No build retried. 2026-11-22T21 UTC batch: inspected main handoff, protocol, ledger, main HEAD 5b1cfcad, open PRs #9/#25, latest 25 main runs. No exact provider workflow among latest 25; latest Android v14 run 45030232303 success already recorded, with no binary/signature or device rendering verification. Existing v14 source on main; no pending engineering PR. No independently established safe new code milestone beyond device-dependent rendering gate; no duplicate builds or phone operations. Batch opened and released."
       },
-      "main_ci_conclusion": "success",
       "main_ci_verified_jobs": [
-        137227117000,
-        137228308210
+        137781139056,
+        137784161547
       ],
-      "main_ci_completed_at": "2026-11-22T13:44:35Z",
-      "note": "At 2026-11-22T15 UTC batch, main x64 fixture run 45029459478 succeeded with desktop purple-pixel test; source validation 45029459502 succeeded six jobs; Android main run 45030232303 succeeded both jobs for 5b1cfcad, APK artifact 14756689575 metadata only (signature and archive contents not independently verified). Galaxy rendering remains unverified. No provider completion in latest 25 main runs. Existing v14 packaging is already on main; do not duplicate milestone. Main Android run 45028643343 succeeded for exact SHA 8e9e193; jobs 137227117000 and 137228308210 passed. Main has since advanced to 5893f892 (#47 x64 fixture drawable client area), with separate Wine source validation run 45029459502 in progress at check. This is not a provider completion; Galaxy rendering remains unverified. 2026-11-22T18 batch: main 5b1cfcad v14 Android run 45030232303 success, artifact 14756689575 metadata digest only; binary/signature and Galaxy visible rendering unverified. Latest 25 main runs show no provider workflow; provider-specific endpoint inaccessible. No new safe implementation justified without device rendering evidence; owner consent required before Galaxy test. PR #9 and unrelated #25 open; no pending engineering PR. No build retried. 2026-11-22T21 UTC batch: inspected main handoff, protocol, ledger, main HEAD 5b1cfcad, open PRs #9/#25, latest 25 main runs. No exact provider workflow among latest 25; latest Android v14 run 45030232303 success already recorded, with no binary/signature or device rendering verification. Existing v14 source on main; no pending engineering PR. No independently established safe new code milestone beyond device-dependent rendering gate; no duplicate builds or phone operations. Batch opened and released."
-    },
-    "main_ci_verified_jobs": [
-      137781139056,
-      137784161547
-    ],
-    "main_ci_completed_at": "2026-11-23T15:04:37Z"
+      "main_ci_completed_at": "2026-11-23T15:04:37Z"
+    }
   },
   "scheduled_next_work": {
-    "batch": "2026-11-24T18",
-    "phase": "source_investigation",
-    "note": "Pinned upstream c74acb09 dlls/win32u/window.c explicitly strips SWP_SHOWWINDOW when WS_VISIBLE is already set, explaining why v23's visible-only request cannot force that flag through normal position processing and why SHOWWINDOW-filtered gate traces may be absent. However get_window_surface also uses WS_VISIBLE as fallback, so this alone does not establish allocation failure. Other gates: driver WindowPosChanging return, child status, empty visible/surface rect, default surface retrieval, OpenGL exclusion; dce.c calls driver pCreateWindowSurface and handles scaling. Android WindowPosChanging creates missing data; CreateWindowSurface returns default if missing. Next verify post-prerequisite source and preserved v23 logs; avoid another SHOWWINDOW/repaint retry. No new provider run in latest 25, provider-specific endpoint rejected; no active engineering PR. No code or device operation. 09 UTC: reviewed actual PR #68 patch; both Win32u traces are conditional on SWP_SHOWWINDOW, so absent traces cannot distinguish allocation gates. No new provider in latest 25 main runs; only PRs 9 and 25 open. No new implementation validated; next inspect pinned driver registration and surface ownership before changing allocation. 14 UTC: latest 25 main runs contain no provider match; only PRs 9 and 25 open. Native v24 implementation remains outstanding. 18 UTC: main advanced to d15e597c (development queue documentation, no native correction); free-status run 45306772967 succeeded but unrelated to provider. Latest 25 main runs no provider match; provider-specific endpoint rejected. PRs 9 and 25 only. Reviewed PR 68 exact patch; v24 allocation correction remains outstanding, no safe implementation verified in this check. No code, build or device operation."
+    "batch": "2026-11-25T07",
+    "phase": "awaiting_owner_device_evidence",
+    "note": "v24 source and APK integration already merged; no speculative graphics change or duplicate build. Latest 25 main runs no exact provider path. Preserve all processed IDs; provider archive inspection outstanding.",
+    "previous_work": {
+      "batch": "2026-11-24T18",
+      "phase": "source_investigation",
+      "note": "Pinned upstream c74acb09 dlls/win32u/window.c explicitly strips SWP_SHOWWINDOW when WS_VISIBLE is already set, explaining why v23's visible-only request cannot force that flag through normal position processing and why SHOWWINDOW-filtered gate traces may be absent. However get_window_surface also uses WS_VISIBLE as fallback, so this alone does not establish allocation failure. Other gates: driver WindowPosChanging return, child status, empty visible/surface rect, default surface retrieval, OpenGL exclusion; dce.c calls driver pCreateWindowSurface and handles scaling. Android WindowPosChanging creates missing data; CreateWindowSurface returns default if missing. Next verify post-prerequisite source and preserved v23 logs; avoid another SHOWWINDOW/repaint retry. No new provider run in latest 25, provider-specific endpoint rejected; no active engineering PR. No code or device operation. 09 UTC: reviewed actual PR #68 patch; both Win32u traces are conditional on SWP_SHOWWINDOW, so absent traces cannot distinguish allocation gates. No new provider in latest 25 main runs; only PRs 9 and 25 open. No new implementation validated; next inspect pinned driver registration and surface ownership before changing allocation. 14 UTC: latest 25 main runs contain no provider match; only PRs 9 and 25 open. Native v24 implementation remains outstanding. 18 UTC: main advanced to d15e597c (development queue documentation, no native correction); free-status run 45306772967 succeeded but unrelated to provider. Latest 25 main runs no provider match; provider-specific endpoint rejected. PRs 9 and 25 only. Reviewed PR 68 exact patch; v24 allocation correction remains outstanding, no safe implementation verified in this check. No code, build or device operation."
+    }
   }
 }

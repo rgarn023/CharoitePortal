@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-20261125-0759-reconcile",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -38,7 +38,7 @@
     "result": "success",
     "verification": "Exact main provider run completed 2026-11-23T04:34:55Z, job 137486588583 success; nine artifact metadata entries with SHA256 digests, not APKs. Source handoff documents downstream v20 staging checks and signed Android release 1193; independent provider ZIP inspection not performed in this check. Previous provider 45105262930 also success job 137464966764, completed 2026-11-23T03:23:37Z. No new functional on-device rendering verified; 40% retained."
   },
-  "event_batch_utc": "2026-11-24T18",
+  "event_batch_utc": "2026-11-25T07",
   "pending_validation": {
     "source_run_id": 45198706088,
     "pr_number": 65,

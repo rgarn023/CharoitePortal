@@ -43,7 +43,7 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_replay_patch.py -v
       - name: Verify v21 missing native GDI surface recovery without execution
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_surface_rearm_patch.py -v
-      - name: Verify source-matched v24 signed APK cohort hashes without executing Wine
+      - name: Verify source-matched v25 signed APK cohort hashes without executing Wine
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_v20_apk_native_cohort.py -v
       - name: Verify v22 scaled Win32u Android target without executing Wine
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_scaled_surface_target_patch.py -v

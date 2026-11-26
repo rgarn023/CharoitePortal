@@ -216,7 +216,7 @@ public final class WineActivity extends Activity {
     // Bounded, read-only native evidence. Never read an entire historical Wine log.
     private static String readWindowLog(Activity portal) {
         File log = portal.getNoBackupFilesDir();
-        for (int version = 24; version >= 1; version--) {
+        for (int version = 25; version >= 1; version--) {
             log = new File(portal.getNoBackupFilesDir(),
                     "charoite-next-wine29-x64-window-v" + version + "/x64-window-native.log");
             if (log.exists()) break;

@@ -1,4 +1,4 @@
-"""Source-only immutable provenance checks for the current isolated Wine29 v24 display test."""
+"""Source-only immutable provenance checks for the current isolated Wine29 v25 display test."""
 from pathlib import Path
 import unittest
 
@@ -12,16 +12,16 @@ HOST = (ROOT / "next-generation/WineActivity.java").read_text(encoding="utf-8")
 
 class V16DisplayArtifacts(unittest.TestCase):
     def test_exact_verified_native_host_and_explorer_zip_digests(self):
-        # GitHub Actions source-only provider run 45489493053; artifact digests
+        # GitHub Actions source-only provider run 45908407139; artifact digests
         # are published by GitHub and checked again when staging the APK.
-        self.assertIn("actions/artifacts/14965418391/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/15158469428/zip", WORKFLOW)
         self.assertIn(
-            "8be85d8443655c1428f6003ef9c7cc73352cd1e89147d732cab3ce22bfa470f0",
+            "98a6a29c598e318dda3e75fe6475dd3a1c20dbb4c1cae44dcb3491193f8aa26a",
             WORKFLOW
         )
-        self.assertIn("actions/artifacts/14965827499/zip", WORKFLOW)
+        self.assertIn("actions/artifacts/15158738277/zip", WORKFLOW)
         self.assertIn(
-            "6bbf702751b55e09be20bce38a769e42539a2abf28c265e144eaaa0d683a5acb",
+            "6bddb288448c9e197e7faf6edca415a02c6a0cf6832fb225f0f762719b22687e",
             WORKFLOW
         )
         self.assertIn('(cd "$assets" && sha256sum -c SHA256SUMS)', WORKFLOW)
@@ -30,9 +30,9 @@ class V16DisplayArtifacts(unittest.TestCase):
             self.assertNotIn(old, WORKFLOW)
 
     def test_strict_purple_fixture_and_fresh_prefix_survive(self):
-        self.assertIn("charoite-next-wine29-x64-window-v24", PROBE)
+        self.assertIn("charoite-next-wine29-x64-window-v25", PROBE)
         self.assertIn("if (!newScratch.mkdir())", PROBE)
-        self.assertIn("for (int version = 24; version >= 1; version--)", HOST)
+        self.assertIn("for (int version = 25; version >= 1; version--)", HOST)
         self.assertIn("wine29-x64-window.zip", WORKFLOW)
         self.assertIn("x64-window.sha256", WORKFLOW)
         self.assertIn('if (pixel != paint_color || client_pixel != paint_color || !IsWindowVisible(window))',

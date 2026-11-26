@@ -1198,11 +1198,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --user --break-system-packages 'pefile==2024.8.26'
-          for id in 14564806910 14564397441; do
+          for id in 15159292498 15158444508; do
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$RUNNER_TEMP/$id.zip"
           done
           python3 next-generation/stage_wine29_v32_resources.py \
-            "$RUNNER_TEMP/14564806910.zip" "$RUNNER_TEMP/14564397441.zip" \
+            "$RUNNER_TEMP/15159292498.zip" "$RUNNER_TEMP/15158444508.zip" \
             upstream/app/src/main/assets/charoite-next/wine29-v23-setup/wine.inf \
             upstream/app/src/main/assets/wine29-v32
 

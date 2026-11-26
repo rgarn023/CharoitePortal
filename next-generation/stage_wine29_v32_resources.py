@@ -8,13 +8,13 @@ from zipfile import ZipFile
 import pefile
 
 ARCHIVES = (
-    ("a4f53257ca9b52df98cbf91ed9a95295b7f13a47427755cb39ffe26410f3f930", {
+    ("a311363f3dfa442742b817b8b5d74a3256a8d844a23f5c2ea09beb69826e082a", {
         "mscms.dll": "srgb color space profile.icm",
         "winebth.sys": "winebth.inf",
         "winebus.sys": "winebus.inf",
         "wineusb.sys": "wineusb.inf",
     }),
-    ("921f343dae62024764d7cae9c5897684ad2ecd2195db7dfbc4ccf98855594248", {
+    ("3d666572de99fa0d0c0cf9c51ad4ef8318ce18dcdcd51e13e603db7db54915a8", {
         "hidclass.sys": "input.inf",
         "mouhid.sys": "mouhid.inf",
         "winehid.sys": "winehid.inf",

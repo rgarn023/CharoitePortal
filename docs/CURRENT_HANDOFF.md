@@ -1,3 +1,9 @@
+## 2026-11-26 — Wine29 v25 monitor publication merged; native provider in progress
+
+[PR #74](https://github.com/rgarn023/CharoitePortal/pull/74) squash-merged as `3f780149052dddd9dce4f7ff441f738f37321c86` after [static checks](https://github.com/rgarn023/CharoitePortal/actions/runs/45906300058) and [Android debug CI](https://github.com/rgarn023/CharoitePortal/actions/runs/45906300409) passed. The [exact-source native provider](https://github.com/rgarn023/CharoitePortal/actions/runs/45908407139) passed its v25 source contract and started native compilation. Publication without a visible Explorer tray is the source fix. Actual Wine pixels and an Android frame still require device evidence.
+
+Next packaging gate is successful native provider and postbuild with matching Java-host, display and Explorer artifacts. Rotate the experimental display probe to create-only v25 scratch and extend bounded read-only log lookup through v25 when staging that cohort. Build 1218 and all v1–v24 display probes remain consumed. No owner action pending. Overall v1.0 readiness remains approximately 40% (unaudited).
+
 ## 2026-11-26 22:38 UTC — owner v24 exit 15 CONSUMED; v25 native monitor-publication correction PR #74
 
 **Owner Galaxy evidence:** Meteorite Alpha signed build 1218, com.charoitx / Android API 37, one-shot v24 completed exit **15**. Android desktop 1440x2581, HWND 0x20044 drawable 360x220, native android_register_window succeeded; v23 rearm reached ANDROID_WindowPosChanging with flags **0x1877** (SHOWWINDOW retained), then v21 still lacks Android GDI surface. Neither Windows pixel matched; no genuine native buffer post/Android updated frame. Explorer desktop loop exited earlier; c0000034 WineAndroid device warnings and missing uxtheme.dll remain separate unproven contributors. **v1–v24 permanently consumed; never rerun, clear, delete or reuse.**

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-20261126T09-1795683609165",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -107,25 +107,30 @@
     }
   },
   "scheduled_next_work": {
-    "batch": "2026-11-26T06",
+    "batch": "2026-11-26T09",
     "phase": "awaiting_owner_device_evidence",
-    "note": "PR 73 merged and Android 45517169974 successful; provider 182 (45489493053) exact main completed success, previously integrated; archive inspection outstanding. Latest 25 main runs no newer provider; only PR 9 and 25 open. No safe new graphics implementation without v24 device result.",
+    "note": "Latest 25 main runs no exact provider or active runs; PRs 9 and 25 only; PR 73 main CI passed previously. v24 device evidence remains required; no safe new graphics implementation established. Provider archive independent inspection outstanding.",
     "previous_work": {
-      "batch": "2026-11-25T22",
+      "batch": "2026-11-26T06",
       "phase": "awaiting_owner_device_evidence",
-      "note": "Main latest 25 runs checked: no exact provider workflow; PR 73 main CI success remains recorded, only PRs 9 and 25 open. v24 build 1218 device evidence and independent archive inspection outstanding. No safe new graphics change established; no duplicate build.",
+      "note": "PR 73 merged and Android 45517169974 successful; provider 182 (45489493053) exact main completed success, previously integrated; archive inspection outstanding. Latest 25 main runs no newer provider; only PR 9 and 25 open. No safe new graphics implementation without v24 device result.",
       "previous_work": {
-        "batch": "2026-11-25T12",
+        "batch": "2026-11-25T22",
         "phase": "awaiting_owner_device_evidence",
-        "note": "Current handoff and latest 25 main runs checked; no exact provider workflow in window. PR 73 main CI already passed per ledger; v24 device evidence and independent archive inspection outstanding. No new safe graphics implementation established; no duplicate build.",
+        "note": "Main latest 25 runs checked: no exact provider workflow; PR 73 main CI success remains recorded, only PRs 9 and 25 open. v24 build 1218 device evidence and independent archive inspection outstanding. No safe new graphics change established; no duplicate build.",
         "previous_work": {
-          "batch": "2026-11-25T07",
+          "batch": "2026-11-25T12",
           "phase": "awaiting_owner_device_evidence",
-          "note": "v24 source and APK integration already merged; no speculative graphics change or duplicate build. Latest 25 main runs no exact provider path. Preserve all processed IDs; provider archive inspection outstanding.",
+          "note": "Current handoff and latest 25 main runs checked; no exact provider workflow in window. PR 73 main CI already passed per ledger; v24 device evidence and independent archive inspection outstanding. No new safe graphics implementation established; no duplicate build.",
           "previous_work": {
-            "batch": "2026-11-24T18",
-            "phase": "source_investigation",
-            "note": "Pinned upstream c74acb09 dlls/win32u/window.c explicitly strips SWP_SHOWWINDOW when WS_VISIBLE is already set, explaining why v23's visible-only request cannot force that flag through normal position processing and why SHOWWINDOW-filtered gate traces may be absent. However get_window_surface also uses WS_VISIBLE as fallback, so this alone does not establish allocation failure. Other gates: driver WindowPosChanging return, child status, empty visible/surface rect, default surface retrieval, OpenGL exclusion; dce.c calls driver pCreateWindowSurface and handles scaling. Android WindowPosChanging creates missing data; CreateWindowSurface returns default if missing. Next verify post-prerequisite source and preserved v23 logs; avoid another SHOWWINDOW/repaint retry. No new provider run in latest 25, provider-specific endpoint rejected; no active engineering PR. No code or device operation. 09 UTC: reviewed actual PR #68 patch; both Win32u traces are conditional on SWP_SHOWWINDOW, so absent traces cannot distinguish allocation gates. No new provider in latest 25 main runs; only PRs 9 and 25 open. No new implementation validated; next inspect pinned driver registration and surface ownership before changing allocation. 14 UTC: latest 25 main runs contain no provider match; only PRs 9 and 25 open. Native v24 implementation remains outstanding. 18 UTC: main advanced to d15e597c (development queue documentation, no native correction); free-status run 45306772967 succeeded but unrelated to provider. Latest 25 main runs no provider match; provider-specific endpoint rejected. PRs 9 and 25 only. Reviewed PR 68 exact patch; v24 allocation correction remains outstanding, no safe implementation verified in this check. No code, build or device operation."
+            "batch": "2026-11-25T07",
+            "phase": "awaiting_owner_device_evidence",
+            "note": "v24 source and APK integration already merged; no speculative graphics change or duplicate build. Latest 25 main runs no exact provider path. Preserve all processed IDs; provider archive inspection outstanding.",
+            "previous_work": {
+              "batch": "2026-11-24T18",
+              "phase": "source_investigation",
+              "note": "Pinned upstream c74acb09 dlls/win32u/window.c explicitly strips SWP_SHOWWINDOW when WS_VISIBLE is already set, explaining why v23's visible-only request cannot force that flag through normal position processing and why SHOWWINDOW-filtered gate traces may be absent. However get_window_surface also uses WS_VISIBLE as fallback, so this alone does not establish allocation failure. Other gates: driver WindowPosChanging return, child status, empty visible/surface rect, default surface retrieval, OpenGL exclusion; dce.c calls driver pCreateWindowSurface and handles scaling. Android WindowPosChanging creates missing data; CreateWindowSurface returns default if missing. Next verify post-prerequisite source and preserved v23 logs; avoid another SHOWWINDOW/repaint retry. No new provider run in latest 25, provider-specific endpoint rejected; no active engineering PR. No code or device operation. 09 UTC: reviewed actual PR #68 patch; both Win32u traces are conditional on SWP_SHOWWINDOW, so absent traces cannot distinguish allocation gates. No new provider in latest 25 main runs; only PRs 9 and 25 open. No new implementation validated; next inspect pinned driver registration and surface ownership before changing allocation. 14 UTC: latest 25 main runs contain no provider match; only PRs 9 and 25 open. Native v24 implementation remains outstanding. 18 UTC: main advanced to d15e597c (development queue documentation, no native correction); free-status run 45306772967 succeeded but unrelated to provider. Latest 25 main runs no provider match; provider-specific endpoint rejected. PRs 9 and 25 only. Reviewed PR 68 exact patch; v24 allocation correction remains outstanding, no safe implementation verified in this check. No code, build or device operation."
+            }
           }
         }
       }

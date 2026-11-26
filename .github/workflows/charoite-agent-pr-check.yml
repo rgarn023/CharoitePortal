@@ -51,5 +51,7 @@ jobs:
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_visible_surface_create_patch.py -v
       - name: Verify v24 visible dummy-surface real GDI allocation without Wine execution
         run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_visible_dummy_swp_gate.py -v
+      - name: Verify v25 tray-independent Android monitor publication without Wine execution
+        run: python3 -m unittest discover -s analysis/wine29_bootstrap/tests -p test_android_monitor_publish.py -v
       - name: Assert this workflow did not use signing keys or a phone
         run: echo 'CHAROITE_AGENT_PROPOSAL_STATIC_TESTS=PASS'

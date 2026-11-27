@@ -1,3 +1,9 @@
+## 2026-11-27 ET — Galaxy v26 confirms usage flags reached the buffer; gralloc lock still fails
+
+Build 1224 (`com.charoitx`, API 37) completed the v26 x64 window test with exit 16. Windows client pixel matched; screen readback did not, and the report shows no posted Android frame. The 360×220 buffer advertised usage 307 after SET_USAGE 307, but the legacy gralloc lock still returned EINVAL (-22) and the buffer was canceled. This rules out the missing CPU usage flags as the sole cause.
+
+The pinned device code hands a native handle through WineAndroid and conditionally registers or retains it before the legacy lock. Trace the registration decision and lifetime in the Java-host path, and evaluate using the owning Android surface's native lock/post path for GDI. Keep both Windows pixel checks and Android frame verification. v1–v26 are consumed. No owner action pending. Overall v1.0 readiness remains approximately 40% (unaudited).
+
 ## 2026-11-26 22:42 ET — Wine29 x64 window v26 signed Meteorite Alpha build 1224 published
 
 Build 1222 v25 exited 16 on the Galaxy. The client pixel matched, screen readback missed, and Android sampled black. The native trace shows gralloc returning EINVAL on a 360×220 texture buffer. [PR #77](https://github.com/rgarn023/CharoitePortal/pull/77) requests CPU read/write usage alongside texture sampling before GDI buffer dequeue. Native [provider](https://github.com/rgarn023/CharoitePortal/actions/runs/45934599681) and [postbuild](https://github.com/rgarn023/CharoitePortal/actions/runs/45935082593) passed for source `764c62f6057c4f67bc0ecb61bfd945d8ed34c0b6`.

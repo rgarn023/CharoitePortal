@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": null,
+  "owner": "hourly-2026-11-27T07-04-03",
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -39,7 +39,7 @@
     "result": "success",
     "verification": "Job 140294782557 passed. Verified three archive digests and all 13 manifest entries in Java host 15169674395, display 15169729236, and Explorer 15170283267. Four host/display binaries match byte for byte. v26 Galaxy rendering unverified, 40%; zero APKs from provider."
   },
-  "event_batch_utc": "2026-11-27T03",
+  "event_batch_utc": "2026-11-27T07",
   "pending_validation": {
     "source_run_id": 45934599681,
     "pr_number": 78,

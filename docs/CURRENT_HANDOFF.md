@@ -1,3 +1,11 @@
+## 2026-11-26 22:42 ET — Wine29 x64 window v26 signed Meteorite Alpha build 1224 published
+
+Build 1222 v25 exited 16 on the Galaxy. The client pixel matched, screen readback missed, and Android sampled black. The native trace shows gralloc returning EINVAL on a 360×220 texture buffer. [PR #77](https://github.com/rgarn023/CharoitePortal/pull/77) requests CPU read/write usage alongside texture sampling before GDI buffer dequeue. Native [provider](https://github.com/rgarn023/CharoitePortal/actions/runs/45934599681) and [postbuild](https://github.com/rgarn023/CharoitePortal/actions/runs/45935082593) passed for source `764c62f6057c4f67bc0ecb61bfd945d8ed34c0b6`.
+
+[PR #78](https://github.com/rgarn023/CharoitePortal/pull/78) pins matching Java host, display and Explorer archives, activates a fresh create-only v26 scratch, and extends bounded read-only log lookup through v26. [Official build](https://github.com/rgarn023/CharoitePortal/actions/runs/45935341172) passed source matching, native byte identity, Gradle, signing and publication on `68b04ab512415ac46e9ce0a1eb4371f20336e7eb`. [Build 1224](https://github.com/rgarn023/CharoitePortal/releases/tag/charoite-next-vc1224) package `com.charoitx` APK SHA-256 `62c9ae4208d75f525f8fdaf074367b3579d9730a6f18aa3109a2f27f4183aa6f`.
+
+Owner action: update the existing Meteorite Alpha app in place via System → Check for updates → Update in app. Confirm 1224, then run the Wine29 x64 window test exactly once and send Copy report plus whether the purple window appeared. v1–v25 are consumed. Windows screen pixel and Android purple frame still require device verification. Overall v1.0 readiness remains estimated at 40%.
+
 ## 2026-11-26 — Wine29 v26 native cohort verified
 
 [Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/45934599681) passed. All three archive digests and 13 manifest entries matched, and the four shared display binaries matched byte for byte between the Java host and display archives. [PR #78](https://github.com/rgarn023/CharoitePortal/pull/78) merged the verified pins and a create-only v26 test directory. [Android packaging and signing](https://github.com/rgarn023/CharoitePortal/actions/runs/45935341172) are pending. The CPU allocation change still needs Galaxy rendering evidence. Overall readiness remains approximately **40%**.

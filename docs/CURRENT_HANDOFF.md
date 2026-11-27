@@ -1,3 +1,7 @@
+## 2026-11-26 — Wine29 v26 native cohort verified
+
+[Provider CI](https://github.com/rgarn023/CharoitePortal/actions/runs/45934599681) passed. All three archive digests and 13 manifest entries matched, and the four shared display binaries matched byte for byte between the Java host and display archives. [PR #78](https://github.com/rgarn023/CharoitePortal/pull/78) merged the verified pins and a create-only v26 test directory. [Android packaging and signing](https://github.com/rgarn023/CharoitePortal/actions/runs/45935341172) are pending. The CPU allocation change still needs Galaxy rendering evidence. Overall readiness remains approximately **40%**.
+
 ## 2026-11-26 — Galaxy v25 client pixel PASS; Android gralloc lock blocks presentation
 
 Owner report from signed experimental build 1222 (API 37): v25 exited 16. The Windows client pixel matched; screen pixel did not. Android sized the child texture to 360×220 and sampled black (#000000, expected #7C40C0). The native trace repeatedly dequeued the real buffer with usage 256, then gralloc lock returned -22 and Wine canceled that buffer. v1–v25 are consumed. No new phone action pending.

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "owner": "webhook-a85ca096-ea13-11f1-99c4-ab228f12b102",
-  "claimed_run_id": 45934599681,
+  "owner": null,
+  "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
     44350971931,
@@ -45,7 +45,7 @@
     "pr_number": 78,
     "branch": "engineering/wine29-v26-experimental-packaging",
     "head_sha": "a7756c85ad91dce2428a5b2d33009c7531a69abf",
-    "phase": "awaiting_pr_checks",
+    "phase": "awaiting_main_ci",
     "previous_validation": {
       "source_run_id": 45908407139,
       "pr_number": 76,
@@ -128,7 +128,10 @@
           "main_ci_completed_at": "2026-11-23T15:04:37Z"
         }
       }
-    }
+    },
+    "pr_disposition": "merged",
+    "merged_main_sha": "68b04ab512415ac46e9ce0a1eb4371f20336e7eb",
+    "main_run_id": 45935341172
   },
   "scheduled_next_work": {
     "batch": "2026-11-27T03",

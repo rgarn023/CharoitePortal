@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "owner": "hourly-2026-11-27T05:04:46Z",
+  "owner": null,
   "claimed_run_id": null,
   "processed_run_ids": [
     44310229156,
@@ -45,7 +45,7 @@
     "pr_number": 78,
     "branch": "engineering/wine29-v26-experimental-packaging",
     "head_sha": "a7756c85ad91dce2428a5b2d33009c7531a69abf",
-    "phase": "awaiting_main_ci",
+    "phase": "main_ci_passed",
     "previous_validation": {
       "source_run_id": 45908407139,
       "pr_number": 76,
@@ -131,7 +131,15 @@
     },
     "pr_disposition": "merged",
     "merged_main_sha": "68b04ab512415ac46e9ce0a1eb4371f20336e7eb",
-    "main_run_id": 45935341172
+    "main_run_id": 45935341172,
+    "main_sha": "68b04ab512415ac46e9ce0a1eb4371f20336e7eb",
+    "main_ci_conclusion": "success",
+    "main_ci_verified_jobs": [
+      140297139050,
+      140298302281
+    ],
+    "main_ci_completed_at": "2026-11-27T03:42:42Z",
+    "note": "Verified exact merged PR 78, successful native staging, packaged asset checks, signing certificate match in actual job log, and official release vc1224 exact target and APK digest sha256:62c9ae4208d75f525f8fdaf074367b3579d9730a6f18aa3109a2f27f4183aa6f. Device v26 evidence outstanding; no new source change."
   },
   "scheduled_next_work": {
     "batch": "2026-11-27T03",

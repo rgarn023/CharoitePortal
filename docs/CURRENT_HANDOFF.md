@@ -1,3 +1,9 @@
+## 2026-11-26 — Galaxy v25 client pixel PASS; Android gralloc lock blocks presentation
+
+Owner report from signed experimental build 1222 (API 37): v25 exited 16. The Windows client pixel matched; screen pixel did not. Android sized the child texture to 360×220 and sampled black (#000000, expected #7C40C0). The native trace repeatedly dequeued the real buffer with usage 256, then gralloc lock returned -22 and Wine canceled that buffer. v1–v25 are consumed. No new phone action pending.
+
+Pinned device.c requests frequent CPU access on lock, while the recorded buffer advertises texture usage. v26 source candidate adds a CPU read/write allocation request before GDI dequeue, retaining texture sampling and the existing lock/cancel/post path. The usage mismatch is the working hypothesis pending native build and fresh device proof. Overall v1.0 readiness remains approximately 40% (unaudited).
+
 ## 2026-11-26 18:25 ET — Wine29 x64 window v25 signed Meteorite Alpha build 1222 published
 
 [PR #74](https://github.com/rgarn023/CharoitePortal/pull/74) merged monitor publication without a visible Explorer tray at `3f780149052dddd9dce4f7ff441f738f37321c86`. Exact-source [native provider](https://github.com/rgarn023/CharoitePortal/actions/runs/45908407139) and [postbuild](https://github.com/rgarn023/CharoitePortal/actions/runs/45908977600) passed. [PR #75](https://github.com/rgarn023/CharoitePortal/pull/75) pinned Java-host artifact 15158469428, display 15158479554, and Explorer 15158738277. Current probe is create-only `charoite-next-wine29-x64-window-v25`; last-log lookup is bounded and read-only through v25. Prior v1–v24 remain consumed.

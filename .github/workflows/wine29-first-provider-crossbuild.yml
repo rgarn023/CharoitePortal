@@ -17,6 +17,7 @@ on:
       - 'analysis/wine29_bootstrap/patch_android_visible_surface_create.py'
       - 'analysis/wine29_bootstrap/patch_android_visible_dummy_swp_gate.py'
       - 'analysis/wine29_bootstrap/patch_android_monitor_publish.py'
+      - 'analysis/wine29_bootstrap/patch_android_gdi_buffer_usage.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_replay_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_surface_rearm_patch.py'
       - 'analysis/wine29_bootstrap/tests/test_android_scaled_surface_target_patch.py'
@@ -1640,6 +1641,8 @@ jobs:
           # Publish real Java display dimensions even if the optional shell tray is absent.
           python3 analysis/wine29_bootstrap/patch_android_monitor_publish.py \
             "$build/../dlls/wineandroid.drv/init.c"
+          # Allocate CPU-mappable GDI buffers for the Android texture consumer.
+          python3 analysis/wine29_bootstrap/patch_android_gdi_buffer_usage.py "$build/../dlls/wineandroid.drv/device.c"
           # Window updates still call this hook in builds without a Vulkan loader.
           python3 - "$build/../dlls/win32u/vulkan.c" <<'PY'
           import pathlib
